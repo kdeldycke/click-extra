@@ -17,9 +17,11 @@
 
 The module name mirrors `cloup.styling`, the upstream module that hosts
 the original `Style` class. Click Extra's {class}`Style` is a subclass that
-keeps cloup's runtime contract (calling, equality, hashing, `with_()`)
-intact and adds:
+keeps cloup's runtime contract (calling the instance to apply the style, equality,
+hashing) intact and adds:
 
+- An equality and a hash shared with `cloup.Style`, so a {class}`Style` equals
+  the `cloup.Style` carrying the same fields.
 - A compact, single-line `__repr__` that hides `None` and falsy
   attributes and renders RGB tuples as `#rrggbb` hex.
 - Hex-string color shorthand: `Style(fg="#f1fa8c")` works alongside
@@ -43,94 +45,50 @@ intact and adds:
   a markup emitter. Wrapping them to a width lives in
   {func}`~click_extra.layout.wrap_ansi`, with the rest of the terminal-grid
   measures.
-- {func}`open_ansi` reporting the escapes a string leaves open, so a styled
-  fragment can be spliced into styled text without closing it.
-- {func}`strip_ansi` for the plain text of a styled string, every escape
-  sequence removed.
 - The {func}`ansi_to_html`, {func}`ansi_to_jira`, {func}`ansi_to_latex` and
   {func}`ansi_to_textile` converters, translating ANSI styling to markup
   languages with native styling support.
+
+The escape grammar, the SGR decoder and the color conversions all of this reads
+through live in {mod}`click_extra.ansi`, with
+{func}`~click_extra.ansi.strip_ansi` and {func}`~click_extra.ansi.open_ansi`.
 """
 
 from __future__ import annotations
 
 import os
-import re
 from dataclasses import dataclass, fields, replace
-from functools import lru_cache
-from typing import overload
+from functools import cache
+from operator import attrgetter
 
 import cloup
 
+from .ansi import (
+    ANSI_SGR_RE,
+    apply_sgr_codes,
+    hex_to_rgb,
+    is_rgb,
+    nearest_256,
+    palette_to_rgb,
+    resolve_rgb,
+    rgb_to_hex,
+    sgr_params,
+    strip_ansi,
+)
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator, Sequence
-    from typing import Any, TypeGuard
+    from collections.abc import Callable, Iterator
+    from dataclasses import Field
+    from typing import Any
 
 
-# --- Color conversion utilities ----------------------------------------------
-
-_ANSI_16_RGB: tuple[tuple[int, int, int], ...] = (
-    (0, 0, 0),  # 0: black
-    (239, 41, 41),  # 1: red
-    (138, 226, 52),  # 2: green
-    (252, 233, 79),  # 3: yellow
-    (52, 101, 164),  # 4: blue
-    (197, 9, 197),  # 5: magenta
-    (52, 226, 226),  # 6: cyan
-    (245, 245, 245),  # 7: white
-    (103, 103, 103),  # 8: bright_black
-    (255, 109, 103),  # 9: bright_red
-    (95, 249, 103),  # 10: bright_green
-    (254, 251, 103),  # 11: bright_yellow
-    (104, 113, 255),  # 12: bright_blue
-    (255, 118, 255),  # 13: bright_magenta
-    (95, 253, 255),  # 14: bright_cyan
-    (254, 255, 255),  # 15: bright_white
-)
-"""Canonical sRGB values for the 16 ANSI colors.
-
-The single source of truth wherever a named ANSI color, or one of the first 16
-slots of the 256-color palette, must materialize as a concrete RGB value:
-{meth}`Style.to_css` (`bright_*` names are not valid CSS keywords),
-{meth}`Style.contrast_ratio` (luminance needs RGB), {func}`_palette_to_rgb`
-(indices 0-15), and the palettes rendering terminal sessions in the
-documentation (`click_extra.pygments._NAMED_COLORS` and `_PALETTE_256`).
-
-Values are the ones the documentation always rendered: Tango-flavored normal
-colors and iTerm2's default brights, picked for legibility on both light and
-dark backgrounds.
-
-```{note}
-The 8 base *named* colors keep bypassing this table in markup output:
-{func}`_color_to_css` emits them as plain CSS keywords (and the Jira and
-LaTeX emitters as macro/xcolor names), delegating the exact shade to the
-renderer. This table only answers when a concrete value is unavoidable.
-```
-"""
-
-_ANSI_NAMES: tuple[str, ...] = (
-    "black",
-    "red",
-    "green",
-    "yellow",
-    "blue",
-    "magenta",
-    "cyan",
-    "white",
-)
-
-_ANSI_INDEX: dict[str, int] = {name: index for index, name in enumerate(_ANSI_NAMES)}
-"""Palette index of each base ANSI color name, the O(1) mirror of
-{data}`_ANSI_NAMES` for the name-to-slot lookups color resolution performs."""
-
-# Channel values for the 6×6×6 color cube (palette indices 16–231).
-_CUBE_VALUES: tuple[int, ...] = (0, 95, 135, 175, 215, 255)
+# --- Style attributes --------------------------------------------------------
 
 # Single source of truth mapping each boolean style attribute to its CSS
 # `(property, value)` equivalent. Consumed by {meth}`Style.to_css` (which
 # groups the three `text-decoration` attributes into one declaration) and,
-# in its declaration-string form, by `click_extra.theme_docs._PALETTE_ATTR_CSS`
+# in its declaration-string form, by `click_extra.sphinx.theme_docs._PALETTE_ATTR_CSS`
 # to render the documentation palette's attribute pills.
 #
 # `blink` maps to an empty pair on purpose: there is no standard CSS for it
@@ -151,69 +109,24 @@ _ATTR_CSS: dict[str, tuple[str, str]] = {
 # Boolean style attributes processed in repr/css/from_ansi, in palette order.
 _BOOL_ATTRS: tuple[str, ...] = tuple(_ATTR_CSS)
 
-# Match a single ANSI SGR escape: `\x1b[...m`. The parameter substring may be
-# empty: `\x1b[m` is a valid, parameter-less full reset.
-_ANSI_SGR_RE: re.Pattern[str] = re.compile(r"\x1b\[([0-9;]*)m")
-
-_SGR_ATTRIBUTES: dict[int, str] = {
-    1: "bold",
-    2: "dim",
-    3: "italic",
-    4: "underline",
-    5: "blink",
-    7: "reverse",
-    9: "strikethrough",
-    53: "overline",
-}
-"""The SGR code switching each boolean style attribute on."""
-
-_SGR_RESETS: dict[int, tuple[str, ...]] = {
-    22: ("bold", "dim"),
-    23: ("italic",),
-    24: ("underline",),
-    25: ("blink",),
-    27: ("reverse",),
-    29: ("strikethrough",),
-    39: ("fg",),
-    49: ("bg",),
-    55: ("overline",),
-}
-"""The style fields each selective SGR reset code switches off.
-
-`22` ends both the bold and the faint intensity, as ECMA-48 defines it. The full
-reset, `0`, clears every field and is handled apart.
-"""
-
-_SGR_COLOR_RANGES: tuple[tuple[int, int, str, str], ...] = (
-    (30, 37, "fg", ""),
-    (40, 47, "bg", ""),
-    (90, 97, "fg", "bright_"),
-    (100, 107, "bg", "bright_"),
-)
-"""The SGR code ranges naming one of the 16 ANSI colors.
-
-Each entry gives the first and last code of the range, the field it sets and the
-prefix of the color name: the standard colors are named after
-{data}`_ANSI_NAMES`, the bright ones take a `bright_` prefix.
-"""
-
-
-def _is_rgb(color: object) -> TypeGuard[tuple[int, int, int]]:
-    """Whether `color` is a 24-bit `(r, g, b)` triplet.
-
-    The one shape of color this module computes on: a named ANSI color, a palette
-    index or a hex string is resolved to it first.
-    """
-    return isinstance(color, tuple) and len(color) == 3
-
 
 # --- Shared dict round-trip helpers ------------------------------------------
 #
 # `Style` (per-attribute) and `HelpTheme` (per-slot) both serialize
 # their dataclass fields to plain dicts for TOML/JSON/YAML round-tripping.
-# These helpers codify the shared rules: walk `dataclasses.fields`, skip
-# cloup's lazy `_style_kwargs` cache, skip values that match the field
-# default, and raise on unknown keys with a clear message.
+# These helpers codify the shared rules: walk the dataclass fields, skip
+# values that match the field default, and raise on unknown keys with a
+# clear message.
+
+
+@cache
+def _fields_by_name(cls: type) -> dict[str, Field[Any]]:
+    """The dataclass fields of `cls`, keyed by name.
+
+    Cached per class: {func}`dataclasses.fields` rebuilds its tuple on every
+    call, and loading the built-in themes decodes one mapping per slot.
+    """
+    return {f.name: f for f in fields(cls)}
 
 
 def fields_to_dict(
@@ -222,31 +135,25 @@ def fields_to_dict(
     encode: Callable[[Any, Any], Any] = lambda field, value: value,
     keep: Callable[[Any, Any], bool] = lambda field, value: True,
 ) -> dict[str, Any]:
-    """Serialize a dataclass instance to a dict of set fields.
+    """Serialize a dataclass instance to a dict of its non-default fields.
 
-    Walks every field via {func}`dataclasses.fields`, skips the internal
-    `_style_kwargs` cache, applies *keep* to decide which fields are
-    written (default: every non-default field), and passes the surviving
-    values through *encode* (default: identity).
+    Skips every field still holding its declared default, then applies *keep*
+    to decide which of the remaining fields are written, and passes their
+    values through *encode*.
 
     :param instance: the dataclass to serialize.
     :param encode: callable `(field, value) -> encoded_value` applied to
         every kept value. Use to convert RGB tuples to `#rrggbb` strings,
-        nested dataclasses to dicts, etc.
-    :param keep: callable `(field, value) -> bool` deciding whether the
-        field is emitted. Default keeps everything that differs from the
-        field's declared default.
+        nested dataclasses to dicts, etc. Defaults to the identity.
+    :param keep: callable `(field, value) -> bool` deciding whether a
+        non-default field is emitted. Defaults to keeping all of them.
     """
+    cls: type = type(instance)
     out: dict[str, Any] = {}
-    for f in fields(instance):
-        if f.name == "_style_kwargs":
-            continue
-        value = getattr(instance, f.name)
-        if value == f.default:
-            continue
-        if not keep(f, value):
-            continue
-        out[f.name] = encode(f, value)
+    for name, f in _fields_by_name(cls).items():
+        value = getattr(instance, name)
+        if value != f.default and keep(f, value):
+            out[name] = encode(f, value)
     return out
 
 
@@ -258,164 +165,51 @@ def dict_to_fields(
 ) -> dict[str, Any]:
     """Validate *data*'s keys against *cls*'s dataclass fields and decode them.
 
-    Returns a kwargs dict ready to splat into `cls(**kwargs)`. Raises
-    {class}`TypeError` listing every unknown key, so callers can build
-    a constructor call without an extra pre-validation pass.
+    Returns a kwargs dict ready to splat into `cls(**kwargs)`.
 
     :param cls: the dataclass type whose fields define the legal keys.
     :param data: mapping from field name to a serialized value.
     :param decode: callable `(field, raw) -> decoded_value` invoked for
         every recognized key. Default returns the raw value unchanged.
+    :raises TypeError: listing every key that names no field of *cls*, so
+        callers can build a constructor call without validating first.
     """
-    fields_by_name = {f.name: f for f in fields(cls)}
-    unknown = set(data).difference(fields_by_name)
+    fields_by_name = _fields_by_name(cls)
+    unknown = data.keys() - fields_by_name.keys()
     if unknown:
         raise TypeError(
             f"Unknown {cls.__name__} field(s): {', '.join(sorted(unknown))}"
         )
-    kwargs: dict[str, Any] = {}
-    for name, raw in data.items():
-        kwargs[name] = decode(fields_by_name[name], raw)
-    return kwargs
+    return {name: decode(fields_by_name[name], raw) for name, raw in data.items()}
 
 
-def _hex_to_rgb(value: str) -> tuple[int, int, int]:
-    """Parse a hex color (`#rrggbb` or shorthand `#rgb`) to an RGB tuple."""
-    s = value.lstrip("#").lower()
-    if len(s) not in (3, 6):
-        raise ValueError(f"Not a valid hex color: {value!r}")
-    try:
-        if len(s) == 3:
-            return int(s[0] * 2, 16), int(s[1] * 2, 16), int(s[2] * 2, 16)
-        return int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)
-    except ValueError as exc:
-        raise ValueError(f"Not a valid hex color: {value!r}") from exc
-
-
-def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
-    """Format an `(r, g, b)` tuple as a `#rrggbb` hex string.
-
-    The inverse of {func}`_hex_to_rgb`. The single source of truth for the
-    RGB-to-hex rendering shared by `__repr__`, `to_css`, `to_dict`, and
-    the documentation palette.
-    """
-    r, g, b = rgb
-    return f"#{r:02x}{g:02x}{b:02x}"
-
-
-def _palette_to_rgb(idx: int) -> tuple[int, int, int]:
-    """Convert a 256-color palette index to its sRGB tuple.
-
-    Indices 0-15 are the terminal's *system colors*: terminals render them with
-    their theme's palette, so they resolve through the canonical
-    {data}`_ANSI_16_RGB` table. Indices 16-231 (the 6x6x6 color cube) and
-    232-255 (the grayscale ramp) are fixed by the xterm 256-color layout.
-    """
-    if 0 <= idx < 16:
-        return _ANSI_16_RGB[idx]
-    if 16 <= idx < 232:
-        idx -= 16
-        return (
-            _CUBE_VALUES[idx // 36],
-            _CUBE_VALUES[(idx // 6) % 6],
-            _CUBE_VALUES[idx % 6],
-        )
-    if 232 <= idx < 256:
-        v = (idx - 232) * 10 + 8
-        return v, v, v
-    raise ValueError(f"Palette index out of range: {idx}")
-
-
-@lru_cache(maxsize=512)
-def _nearest_256(r: int, g: int, b: int) -> int:
-    """Map a 24-bit RGB triplet to the nearest index in the 256-color palette.
-
-    The inverse of {func}`_palette_to_rgb`. Compares the Euclidean distance in RGB
-    space against both the 6x6x6 color cube (indices 16-231) and the grayscale ramp
-    (indices 232-255), returning whichever is closer.
-
-    Used by `Style.__call__` to downsample branded-theme colors when the
-    terminal lacks truecolor (see {func}`supports_truecolor`), and by
-    `click_extra.pygments` and `click_extra.cli` for the same 24-bit-to-8-bit
-    quantization.
-
-    ```{seealso}
-    [Previous implementation](https://github.com/kdeldycke/dotfiles/blob/64d29369/starship-ansi-colors.py)
-    of full-color to 8-bit quantization.
-    ```
-    """
-    # Color cube (indices 16-231).
-    ci = [
-        min(
-            range(6),
-            key=lambda i, v=v: abs(v - _CUBE_VALUES[i]),  # type: ignore[misc]
-        )
-        for v in (r, g, b)
-    ]
-    cube_idx = 16 + 36 * ci[0] + 6 * ci[1] + ci[2]
-    cube_dist = sum((v - _CUBE_VALUES[i]) ** 2 for v, i in zip((r, g, b), ci))
-
-    # Grayscale ramp (indices 232-255).
-    gray = round((r + g + b) / 3)
-    gi = min(range(24), key=lambda i: abs(gray - (10 * i + 8)))
-    gray_idx = 232 + gi
-    gray_val = 10 * gi + 8
-    gray_dist = sum((v - gray_val) ** 2 for v in (r, g, b))
-
-    return gray_idx if gray_dist < cube_dist else cube_idx
-
-
-def _resolve_rgb(color: object) -> tuple[int, int, int]:
-    """Best-effort conversion of any color value to an `(r, g, b)` tuple.
-
-    Accepts hex strings, named ANSI strings (`"red"`, `"bright_blue"`),
-    palette indices (`int`), and `Color`-enum-like objects with a
-    `.name` attribute.
-    """
-    if _is_rgb(color):
-        return color
-    if isinstance(color, str):
-        if color.startswith("#"):
-            return _hex_to_rgb(color)
-        if color.startswith("bright_"):
-            index = _ANSI_INDEX.get(color[7:])
-            if index is not None:
-                return _ANSI_16_RGB[index + 8]
-        else:
-            index = _ANSI_INDEX.get(color)
-            if index is not None:
-                return _ANSI_16_RGB[index]
-    elif isinstance(color, int):
-        return _palette_to_rgb(color)
-    elif hasattr(color, "name") and not isinstance(color, type):
-        return _resolve_rgb(color.name)
-    raise ValueError(f"Cannot resolve color: {color!r}")
+# --- Color rendering ---------------------------------------------------------
 
 
 def _color_repr(value: object) -> str:
     """Compact human-readable form of a color value for `__repr__`."""
-    if _is_rgb(value):
-        return _rgb_to_hex(value)
-    if hasattr(value, "name") and not isinstance(value, str):
-        return value.name  # type: ignore[no-any-return]
-    return repr(value)
+    return rgb_to_hex(value) if is_rgb(value) else repr(value)
 
 
 def _color_to_css(color: object) -> str:
-    """Render a color value as a CSS color string."""
-    if _is_rgb(color):
-        return _rgb_to_hex(color)
-    if isinstance(color, str):
-        if color.startswith("#"):
-            return color
-        if color.startswith("bright_"):
-            return _rgb_to_hex(_resolve_rgb(color))
-        return color  # plain CSS keyword: 'red', 'blue', etc.
+    """Render a color value as a CSS color string.
+
+    The 8 base ANSI names and hex strings pass through: both are valid CSS. A
+    `bright_*` name, a palette index and an RGB tuple resolve to `#rrggbb`.
+    """
+    if is_rgb(color):
+        return rgb_to_hex(color)
     if isinstance(color, int):
-        return _rgb_to_hex(_palette_to_rgb(color))
-    if hasattr(color, "name") and not isinstance(color, type):
-        return _color_to_css(color.name)
+        return rgb_to_hex(palette_to_rgb(color))
+    if isinstance(color, str) and color.startswith("bright_"):
+        return rgb_to_hex(resolve_rgb(color))
     return str(color)
+
+
+def _linear_channel(value: int) -> float:
+    """Linearize one sRGB channel for {func}`_relative_luminance`."""
+    ratio = value / 255
+    return ratio / 12.92 if ratio <= 0.03928 else ((ratio + 0.055) / 1.055) ** 2.4
 
 
 def _relative_luminance(color: object) -> float:
@@ -423,13 +217,12 @@ def _relative_luminance(color: object) -> float:
 
     See: https://www.w3.org/TR/WCAG22/#dfn-relative-luminance
     """
-    r, g, b = _resolve_rgb(color)
-
-    def _channel(c: int) -> float:
-        c01 = c / 255
-        return c01 / 12.92 if c01 <= 0.03928 else ((c01 + 0.055) / 1.055) ** 2.4
-
-    return 0.2126 * _channel(r) + 0.7152 * _channel(g) + 0.0722 * _channel(b)
+    r, g, b = resolve_rgb(color)
+    return (
+        0.2126 * _linear_channel(r)
+        + 0.7152 * _linear_channel(g)
+        + 0.0722 * _linear_channel(b)
+    )
 
 
 # --- Terminal color-depth detection -----------------------------------------
@@ -485,8 +278,8 @@ def _quantize_color(color: _Color) -> _Color:
     Any non-tuple color (a named ANSI string, an existing palette `int`, or
     `None`) is returned untouched: only true-color values need quantizing.
     """
-    if _is_rgb(color):
-        return _nearest_256(*color)
+    if is_rgb(color):
+        return nearest_256(*color)
     return color
 
 
@@ -498,49 +291,26 @@ class Style(cloup.Style):
     """`cloup.Style` with extra ergonomics.
 
     See the module docstring for the full list of additions. The runtime
-    contract (calling the instance to apply styling, equality, hashing,
-    `with_()`) is otherwise identical to `cloup.Style`.
-
-    ```{todo}
-    Re-scope `__eq__()` and `__hash__()` once this package's cloup floor
-    reaches `4.0.0`, which drops the lazy `_style_kwargs` cache to fix
-    [janluke/cloup#224](https://github.com/janluke/cloup/issues/224). Cloup 3.x
-    declares that cache without `compare=False`, so a `cloup.Style` stops
-    comparing equal to its twin, and `hash()` raises `TypeError`, from its first
-    call onwards. Both methods stay after that, for the cross-class comparison
-    against `cloup.Style` the generated ones refuse: only their cache rationale
-    expires.
-    ```
-
-    ```{todo}
-    Drop the `# type: ignore[assignment, unused-ignore]` on the `fg` and `bg`
-    re-declarations below once this package's cloup floor reaches `4.0.0`,
-    which widens both annotations as asked at
-    [janluke/cloup#222](https://github.com/janluke/cloup/issues/222#issuecomment-5600354828).
-    Cloup 3.x types both `Optional[str]`, while `click.style` takes
-    `int | tuple[int, int, int] | str | None`, so covering a palette index and an
-    RGB tuple here reads as an incompatible override there.
-    ```
+    contract (calling the instance to apply the style, equality, hashing) is
+    otherwise identical to `cloup.Style`.
     """
 
-    fg: _Color = None  # type: ignore[assignment, unused-ignore]
+    fg: _Color = None
     """Foreground color: named ANSI string, `#rrggbb` hex, RGB tuple, or palette index."""
 
-    bg: _Color = None  # type: ignore[assignment, unused-ignore]
+    bg: _Color = None
     """Background color: named ANSI string, `#rrggbb` hex, RGB tuple, or palette index."""
 
     def __post_init__(self) -> None:
         """Convert `#rrggbb` shorthand strings on `fg`/`bg` to RGB tuples.
 
         Frozen dataclass: must use {func}`object.__setattr__` to bypass the
-        frozen guard. Runs once at construction; cloup's lazy
-        `_style_kwargs` cache (built on first `__call__`) picks up the
-        converted values.
+        frozen guard.
         """
         if isinstance(self.fg, str) and self.fg.startswith("#"):
-            object.__setattr__(self, "fg", _hex_to_rgb(self.fg))
+            object.__setattr__(self, "fg", hex_to_rgb(self.fg))
         if isinstance(self.bg, str) and self.bg.startswith("#"):
-            object.__setattr__(self, "bg", _hex_to_rgb(self.bg))
+            object.__setattr__(self, "bg", hex_to_rgb(self.bg))
 
     def __call__(self, text: str) -> str:
         """Apply the style, quantizing 24-bit colors when truecolor is unavailable.
@@ -553,10 +323,9 @@ class Style(cloup.Style):
         unaffected either way, and a style carrying no RGB color never reads the
         environment: this method runs for every styled token of a help screen.
         """
-        if (_is_rgb(self.fg) or _is_rgb(self.bg)) and not supports_truecolor():
-            # Quantize on a transient copy. `replace` resets cloup's lazy
-            # `_style_kwargs` cache (the field is `init=False`), so the singleton
-            # theme styles keep their truecolor cache intact for the next call.
+        if (is_rgb(self.fg) or is_rgb(self.bg)) and not supports_truecolor():
+            # Quantize on a transient copy: the theme styles are shared, and the
+            # next call may land on a truecolor terminal.
             return replace(
                 self, fg=_quantize_color(self.fg), bg=_quantize_color(self.bg)
             )(text)
@@ -569,10 +338,9 @@ class Style(cloup.Style):
             parts.append(f"fg={_color_repr(self.fg)}")
         if self.bg is not None:
             parts.append(f"bg={_color_repr(self.bg)}")
-        parts.extend(attr for attr in _BOOL_ATTRS if getattr(self, attr, None))
-        text_transform = getattr(self, "text_transform", None)
-        if text_transform is not None:
-            parts.append(f"text_transform={text_transform!r}")
+        parts.extend(attr for attr in _BOOL_ATTRS if getattr(self, attr))
+        if self.text_transform is not None:
+            parts.append(f"text_transform={self.text_transform!r}")
         return f"Style({', '.join(parts)})"
 
     def __str__(self) -> str:
@@ -584,24 +352,19 @@ class Style(cloup.Style):
         return self("sample")
 
     def __eq__(self, other: object) -> bool:
-        """Equality on the publicly-set fields.
+        """Equality on the style fields, against `cloup.Style` too.
 
-        Excludes cloup's lazily-populated `_style_kwargs` cache so two
-        otherwise-identical styles compare equal whether or not either has
-        been called yet. Walks the pre-computed {data}`_STYLE_FIELDS` rather
-        than calling {func}`dataclasses.fields` per comparison: every styled
-        run {func}`split_ansi` yields lands here.
+        The generated dataclass equality only compares instances of the very
+        same class, so a {class}`Style` would never equal the `cloup.Style`
+        carrying the same fields.
         """
         if not isinstance(other, cloup.Style):
             return NotImplemented
-        for name in _STYLE_FIELDS:
-            if getattr(self, name) != getattr(other, name):
-                return False
-        return True
+        return _style_values(self) == _style_values(other)
 
     def __hash__(self) -> int:
-        """Hash mirroring {meth}`__eq__`: skip the lazy `_style_kwargs` cache."""
-        return hash(tuple(getattr(self, name) for name in _STYLE_FIELDS))
+        """Hash mirroring {meth}`__eq__`, and the hash of `cloup.Style`."""
+        return hash(_style_values(self))
 
     @staticmethod
     def _merge(base: cloup.Style, top: cloup.Style) -> Style:
@@ -613,14 +376,15 @@ class Style(cloup.Style):
         """
         merged: dict[str, Any] = {}
         for name in _STYLE_FIELDS:
-            top_val = getattr(top, name)
-            merged[name] = top_val if top_val is not None else getattr(base, name)
+            value = getattr(top, name)
+            merged[name] = getattr(base, name) if value is None else value
         # Pick the most specific class present so `my_style | cloup_style`
         # still returns a `Style` (this subclass).
-        cls = type(top) if isinstance(top, Style) else type(base)
-        if not isinstance(cls, type) or not issubclass(cls, Style):
-            cls = Style
-        return cls(**merged)
+        if isinstance(top, Style):
+            return type(top)(**merged)
+        if isinstance(base, Style):
+            return type(base)(**merged)
+        return Style(**merged)
 
     def __or__(self, other: object) -> Style:
         """`a | b` merges two styles. `b`'s set fields win on conflicts."""
@@ -649,14 +413,9 @@ class Style(cloup.Style):
     def _encode_field(_field: Any, value: Any) -> Any:
         """Encode a field value for {meth}`to_dict`.
 
-        RGB tuples become `#rrggbb` strings; enum-shaped objects with a
-        `.name` are serialized by name; everything else passes through.
+        RGB tuples become `#rrggbb` strings; everything else passes through.
         """
-        if _is_rgb(value):
-            return _rgb_to_hex(value)
-        if hasattr(value, "name") and not isinstance(value, str):
-            return value.name
-        return value
+        return rgb_to_hex(value) if is_rgb(value) else value
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a plain dict with only the set fields.
@@ -730,12 +489,12 @@ class Style(cloup.Style):
         To tokenize a string mixing text and escapes, with resets honored,
         see {func}`split_ansi`.
         """
-        matches = list(_ANSI_SGR_RE.finditer(escape))
+        matches = list(ANSI_SGR_RE.finditer(escape))
         if not matches:
             raise ValueError(f"Not an ANSI SGR escape: {escape!r}")
         state: dict[str, Any] = {}
         for m in matches:
-            _apply_sgr_codes(_sgr_params(m.group(1)), state, resets=False)
+            apply_sgr_codes(sgr_params(m.group(1)), state, resets=False)
         return cls(**state)
 
     def contrast_ratio(self, other: cloup.Style) -> float:
@@ -756,124 +515,22 @@ class Style(cloup.Style):
         return (a + 0.05) / (b + 0.05)
 
 
-_STYLE_FIELDS: tuple[str, ...] = tuple(
-    f.name for f in fields(Style) if f.name != "_style_kwargs"
-)
-"""Names of {class}`Style`'s public fields, cloup's lazy `_style_kwargs` cache
-excluded.
+_STYLE_FIELDS: tuple[str, ...] = tuple(_fields_by_name(Style))
+"""Names of {class}`Style`'s fields, in declaration order.
 
-Computed once at import: {func}`dataclasses.fields` rebuilds its tuple on every
-call, and {meth}`Style.__eq__` / {meth}`Style.__hash__` walk the fields for
-every styled run {func}`split_ansi` compares. The names also cover the parent
-`cloup.Style` (this subclass only re-types `fg` / `bg`), which is what lets
-{meth}`Style._merge` accept either class."""
+The names also cover the parent `cloup.Style` (this subclass only re-types
+`fg` / `bg`), which is what lets {meth}`Style._merge` and {meth}`Style.__eq__`
+accept either class."""
+
+_style_values = attrgetter(*_STYLE_FIELDS)
+"""Read the {data}`_STYLE_FIELDS` of a style as one tuple.
+
+What {meth}`Style.__eq__` and {meth}`Style.__hash__` compare: a single C call,
+where walking the fields in Python costs several times more for every styled
+run {func}`render_ansi` compares."""
 
 
 # --- ANSI stream parsing and markup rendering ---------------------------------
-
-_ANSI_ESCAPE_RE: re.Pattern[str] = re.compile(
-    r"\x1b(?:"
-    # An OSC command, like the boundary markers of a terminal hyperlink: `ESC ]`,
-    # a payload, then the BEL or `ESC \` closing it. A payload left open runs to
-    # the end of the text.
-    r"\][^\x07\x1b]*(?:\x07|\x1b\\)?"
-    # A CSI sequence, SGR styles included: `ESC [`, parameter bytes, intermediate
-    # bytes and a final byte.
-    r"|\[[0-?]*[ -/]*[@-~]"
-    # A two-byte sequence: `ESC` and one byte of the `@` to `_` range, the `[`
-    # and `]` opening the two forms above excepted.
-    r"|[@-Z\\^_]"
-    r")"
-)
-"""Match one ANSI escape sequence of any kind, SGR styles included."""
-
-_ANSI_ESCAPE_BYTES_RE: re.Pattern[bytes] = re.compile(
-    _ANSI_ESCAPE_RE.pattern.encode("ascii")
-)
-"""The pattern of `_ANSI_ESCAPE_RE`, over bytes."""
-
-
-@overload
-def strip_ansi(text: str) -> str: ...
-@overload
-def strip_ansi(text: bytes) -> bytes: ...
-def strip_ansi(text: str | bytes) -> str | bytes:
-    """Remove every ANSI escape sequence from `text`, leaving its plain text.
-
-    Styles, cursor movements, screen clearing and OSC commands all go. A terminal
-    hyperlink keeps its display text and loses its URI, which lived in the markers
-    around it. Bytes come back as bytes.
-    """
-    if isinstance(text, bytes):
-        return _ANSI_ESCAPE_BYTES_RE.sub(b"", text)
-    return _ANSI_ESCAPE_RE.sub("", text)
-
-
-_JIRA_ATTR_MARKUP: dict[str, str] = {
-    "bold": "*",
-    "italic": "_",
-    "underline": "+",
-    "strikethrough": "-",
-}
-"""Jira wiki markup markers for the text attributes it can express."""
-
-
-def _sgr_params(params: str) -> tuple[int, ...]:
-    r"""Decode an SGR parameter substring into a sequence of integer codes.
-
-    Per ECMA-48, an empty parameter defaults to `0`: `\x1b[m` is a full
-    reset, and `\x1b[;31m` carries a reset followed by a red foreground.
-    """
-    return tuple(int(code) if code else 0 for code in params.split(";"))
-
-
-def _apply_sgr_codes(
-    codes: Sequence[int],
-    state: dict[str, Any],
-    *,
-    resets: bool = True,
-) -> None:
-    """Apply SGR parameter *codes* to the mutable style *state*, in place.
-
-    The single source of truth for SGR semantics, shared by {func}`split_ansi`
-    (with the default `resets=True`) and {meth}`Style.from_ansi` (with
-    `resets=False`).
-
-    Style-setting codes add entries to *state*, keyed by {class}`Style` field
-    names. When *resets* is true, the full `0` reset clears the state, and
-    selective resets drop their attribute: `22` (bold and dim), `23`
-    (italic), `24` (underline), `25` (blink), `27` (reverse), `29`
-    (strikethrough), `39` (foreground), `49` (background) and `55`
-    (overline). When *resets* is false all of them are ignored, letting
-    {meth}`Style.from_ansi` merge escapes without wiping already-parsed codes.
-
-    Unknown codes are silently skipped, like terminals do.
-    """
-    i = 0
-    total = len(codes)
-    while i < total:
-        code = codes[i]
-        if code in _SGR_ATTRIBUTES:
-            state[_SGR_ATTRIBUTES[code]] = True
-        elif code in (38, 48):
-            key = "fg" if code == 38 else "bg"
-            if i + 2 < total and codes[i + 1] == 5:
-                state[key] = codes[i + 2]
-                i += 2
-            elif i + 4 < total and codes[i + 1] == 2:
-                state[key] = (codes[i + 2], codes[i + 3], codes[i + 4])
-                i += 4
-        elif resets and code == 0:
-            state.clear()
-        elif resets and code in _SGR_RESETS:
-            for field_name in _SGR_RESETS[code]:
-                state.pop(field_name, None)
-        else:
-            for first, last, key, prefix in _SGR_COLOR_RANGES:
-                if first <= code <= last:
-                    state[key] = prefix + _ANSI_NAMES[code - first]
-                    break
-        i += 1
 
 
 def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
@@ -887,8 +544,8 @@ def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
     so wrapping each yielded run produces minimal markup.
 
     Every other escape carries no style information and is removed from the
-    yielded text by {func}`strip_ansi`, so a terminal hyperlink keeps its display
-    text and loses its URI.
+    yielded text by {func}`~click_extra.ansi.strip_ansi`, so a terminal hyperlink
+    keeps its display text and loses its URI.
     """
     state: dict[str, Any] = {}
     current = Style()
@@ -902,56 +559,33 @@ def split_ansi(text: str) -> Iterator[tuple[Style, str]]:
     current_state: dict[str, Any] = {}
     buffer: list[str] = []
     pos = 0
-    for match in _ANSI_SGR_RE.finditer(text):
-        segment = strip_ansi(text[pos : match.start()])
+    for match in ANSI_SGR_RE.finditer(text):
+        segment = _strip_segment(text[pos : match.start()])
         pos = match.end()
         if segment:
             buffer.append(segment)
-        _apply_sgr_codes(_sgr_params(match.group(1)), state)
+        apply_sgr_codes(sgr_params(match.group(1)), state)
         if state != current_state:
             if buffer:
                 yield current, "".join(buffer)
                 buffer = []
             current = Style(**state)
             current_state = dict(state)
-    tail = strip_ansi(text[pos:])
+    tail = _strip_segment(text[pos:])
     if tail:
         buffer.append(tail)
     if buffer:
         yield current, "".join(buffer)
 
 
-def open_ansi(text: str, opened: str = "") -> str:
-    r"""Return the ANSI SGR escapes still in effect at the end of *text*.
+def _strip_segment(segment: str) -> str:
+    """Strip the non-SGR escapes from the text between two SGR escapes.
 
-    Escapes accumulate in the order they were read. A full `0` reset (its
-    parameter-less `\x1b[m` form included) empties the accumulator, so the
-    result re-opens what *text* left dangling and nothing else. Escapes come
-    back verbatim rather than folded into a {class}`Style`, which keeps a
-    code this module does not model.
-
-    Use it to splice a styled fragment into styled text: the fragment closes
-    with a reset of its own, which would otherwise strip the surrounding
-    styling from everything after it. See
-    {func}`~click_extra.highlight.highlight`.
-
-    :param text: the string to read the escapes from.
-    :param opened: escapes already in effect before *text*, as returned by an
-        earlier call. Feeding a string one chunk at a time then costs one pass
-        over it, where re-reading the whole prefix per chunk costs one per
-        chunk. A chunk must not start or end in the middle of an escape: the
-        two halves match nothing, and the escape is lost.
+    Each segment of {func}`split_ansi` is stripped on its own, so a sequence left
+    open ends at the SGR escape that follows it, as on a terminal. The regex pass
+    is skipped for the common segment that carries no escape at all.
     """
-    active: list[str] = [opened] if opened else []
-    for match in _ANSI_SGR_RE.finditer(text):
-        codes = _sgr_params(match.group(1))
-        if 0 in codes:
-            active.clear()
-        # A bare reset opens nothing, so it is dropped rather than accumulated.
-        # One carrying more parameters still sets them: `\x1b[0;31m` reopens red.
-        if set(codes) != {0}:
-            active.append(match.group(0))
-    return "".join(active)
+    return strip_ansi(segment) if "\x1b" in segment else segment
 
 
 def render_ansi(text: str, emitter: Callable[[Style, str], str]) -> str:
@@ -999,6 +633,15 @@ def ansi_to_html(text: str) -> str:
     like MediaWiki.
     """
     return render_ansi(text, _html_emitter)
+
+
+_JIRA_ATTR_MARKUP: dict[str, str] = {
+    "bold": "*",
+    "italic": "_",
+    "underline": "+",
+    "strikethrough": "-",
+}
+"""Jira wiki markup markers for the text attributes it can express."""
 
 
 def _jira_emitter(style: Style, text: str) -> str:

@@ -29,13 +29,15 @@ The inventory in § Documented exemptions is repomatic's own. Here it holds two 
 
 § Imports forbids local imports. This repository makes one exception, for startup time: importing the package is the fixed cost of every CLI built on it, so a dependency that only one code path needs is imported inside that function, under a `# Deferred import:` comment naming the package it keeps off the startup path. `tests/test_commands.py::test_no_heavy_dependency_ballast_on_startup` lists the modules concerned and fails when a hello-world `--help` loads one of them, and `test_import_module_budget` caps the module count. Add a new dependency to the list in the same change that defers it.
 
-Two places cannot wait for a deferred import of `extra-platforms`: the module-level prompt sigil of `click_extra/execution.py`, and the environment variable names every option computes at decoration time. Both read `IS_WINDOWS` from `click_extra/_utils.py`, the one constant mirroring the `sys.platform` test behind `extra_platforms.is_windows()`. Every other platform check keeps going through `extra-platforms`.
+The same budget rules out data files: the built-in themes are a Python literal in `click_extra/theme.py`, each built on its first lookup. A data file read at import costs every CLI a parse, and standalone-binary and setuptools builds drop package data unless configured to ship it.
+
+Three places cannot wait for a deferred import of `extra-platforms`: the module-level prompt sigil of `click_extra/execution.py`, the environment variable names every option computes at decoration time, and the configuration file search every invocation runs. All three read `IS_WINDOWS` from `click_extra/_utils.py`, the one constant mirroring the `sys.platform` test behind `extra_platforms.is_windows()`. Every other platform check keeps going through `extra-platforms`.
 
 ### Package internals import from their source module
 
 § Imports tells consumers, docs and tests to import from the root package. Inside `click_extra` the rule inverts: import each symbol from its concrete source module (`from .types import EnumChoice`, `from .styling import Style`, `from click import echo`, `from click._utils import UNSET`), never from the root package (`from . import X`). Root-symbol imports read attributes off the partially-initialized package, which makes `__init__.py`'s import order load-bearing during package initialization. Importing a sibling module as a namespace (`from . import context`) is fine: Python resolves it through `sys.modules` without depending on the root's binding order.
 
-That root `click_extra/__init__.py` is also the deliberate exception to § `__init__.py` files: it re-exports Click and Cloup symbols to serve as a drop-in replacement, which is the package's core design. It also exports each helper meant for consumers, like `get_cache_dir()` and `xdg_dir()`, so click-extra stays the one place for CLI and platform utilities.
+That root `click_extra/__init__.py` is also the deliberate exception to § `__init__.py` files: it re-exports Click and Cloup symbols to serve as a drop-in replacement, which is the package's core design. It also exports each helper meant for consumers, like `get_cache_dir()` and `xdg_dir()`, so click-extra stays the one place for CLI and platform utilities. A helper whose module stays off `import click_extra` goes into one of the root's lazy `__getattr__` registries, with a `TYPE_CHECKING` import beside it: `tests/test_commands.py` checks both.
 
 ### What the MyST docstring converter cannot round-trip
 
@@ -56,10 +58,11 @@ click-extra first, Click second, Cloup third, then remaining frameworks sorted b
 
 ### Synced rules this repository has not caught up with
 
-Two managed sections above describe a state that does not hold here yet. Read them with this in mind, rather than as a description of the tree:
+One managed section above describes a state that does not hold here yet. Read it with this in mind, rather than as a description of the tree:
 
 - **There is no `.claude/agents/` directory.** § Agent conventions opens on the three subagents repomatic ships. click-extra has never adopted the `subagents` component, so no agent definition lives in this repository.
-- **The `UTF-8` spelling is not normalized.** § Testing guidelines asks for `UTF-8` over `utf-8` in every `encoding=` argument. This repository spells it lowercase almost everywhere and carries no conformance test pinning either form, so match the file you are editing until someone normalizes the tree in a single pass.
+
+The `UTF-8` spelling § Testing guidelines asks for holds across the package and the suite: `tests/test_hygiene.py::test_utf8_spelled_uppercase` pins it.
 
 ## Commands
 

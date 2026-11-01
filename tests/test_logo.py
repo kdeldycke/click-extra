@@ -30,6 +30,7 @@ from pathlib import Path
 
 import pytest
 
+from click_extra.ansi import nearest_256, strip_ansi
 from click_extra.logo import (
     BRAND_HUES,
     BRAND_SCREEN,
@@ -46,7 +47,7 @@ from click_extra.logo import (
     size,
     sub_pixels,
 )
-from click_extra.styling import _nearest_256, _relative_luminance, strip_ansi
+from click_extra.styling import _relative_luminance
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -85,13 +86,12 @@ PLANE_NAMES = {"top": "t", "left": "l", "right": "r"}
 def test_palette_matches_the_artwork():
     """The terminal mark and the artwork paint the same eighteen colors.
 
-    They were separate palettes while the artwork was outlined and the terminal had
-    to compensate for it. Both being flat-shaded, there is no longer any reason for
-    them to differ — and nothing but this notices when one is recolored alone.
+    Both are flat-shaded, so nothing calls for two palettes, and nothing but this
+    notices when one is recolored alone.
     """
     rules = re.findall(
         r"\.cube(\d)-(top|left|right)\{fill:(#[0-9A-Fa-f]{6});\}",
-        ARTWORK.read_text(encoding="utf-8"),
+        ARTWORK.read_text(encoding="UTF-8"),
     )
     assert len(rules) == len(LEVELS) * 3, f"artwork declares {len(rules)} faces"
 
@@ -189,7 +189,7 @@ def test_every_cube_shows_exactly_its_three_faces():
     """The grid carries the eighteen declared colors and nothing between them.
 
     Rasterizing the mark and reading pixels back would let the antialiaser mint
-    colors belonging to no face — over a hundred of them at this size. Hit-testing
+    colors belonging to no face, over a hundred of them at this size. Hit-testing
     the polygons is what keeps the count to what the palette declares.
     """
     used = {cell for row in sub_pixels() for cell in row if cell is not None}
@@ -240,7 +240,7 @@ def test_neighbouring_faces_survive_a_256_color_terminal():
                     touching.add(tuple(sorted((here, there))))
 
     merged = [
-        pair for pair in touching if _nearest_256(*pair[0]) == _nearest_256(*pair[1])
+        pair for pair in touching if nearest_256(*pair[0]) == nearest_256(*pair[1])
     ]
     assert not merged, f"pairs that collide once downsampled: {merged}"
 

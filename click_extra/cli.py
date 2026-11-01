@@ -13,13 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Click Extra CLI with pre-baking utilities."""
+"""The `click-extra` CLI: terminal demos, the CLI wrapper, and the documentation
+and testing utilities."""
 
 from __future__ import annotations
 
-import colorsys
 import os
-import random
 import sys
 import time
 from functools import partial
@@ -38,36 +37,36 @@ from click import (
 from cloup import Color, dir_path, file_path
 
 from . import context
-from ._utils import missing_extra_message
-from .cli_capture import screenshot_cmd, snippet_cmd
-from .cli_prebake import prebake
+from .ansi import nearest_256
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
 from .color import is_a_tty
-from .commands import ColorizedCommand, default_params
-from .config import ClickExtraConfig, TestSuiteConfig, get_tool_config
+from .commands import ColorizedCommand, Context, LazySubcommand, default_params
+from .config.builtin import ClickExtraConfig, TestSuiteConfig
+from .config.schema import get_tool_config
 from .context import pass_context
 from .decorators import argument, command, group, jobs_option, option
 from .envvar import merge_envvar_ids
-from .execution import run_jobs
 from .highlight import HelpKeywords
+from .jobs import run_jobs
 from .layout import cell_width, center_in_rule
 from .logo import BRAND_SCREEN
-from .myst_converter import convert_directory, detect_source_package
-from .parameters import make_resilient_context
-from .spinner import OperationTrail, Spinner
+from .markdown.blocks import update_blocks
+from .markdown.myst import convert_directory
+from .output import MissingExtraError
+from .param_tools import make_resilient_context
+from .project import detect_source_package
+from .spinner import Spinner
 from .spinner_presets import SPINNERS, SpinnerPreset
-from .styling import _nearest_256
 from .table import corner_header
-from .test_suite import (
-    DEFAULT_TEST_SUITE,
-    CLITestCase,
-    cases_from_data,
-    load_test_suite,
-    parse_test_suite,
-    run_test_suite,
-)
 from .theme import AUTO_THEME, ThemeChoice, get_theme_registry, resolve_auto_theme
+from .trail import OperationTrail
 from .types import LazyChoice
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any
+
+    from .test_suite import CLITestCase
 
 
 def _platform_ids() -> list[str]:
@@ -78,8 +77,8 @@ def _platform_ids() -> list[str]:
     return sorted(ALL_IDS)
 
 
-# Max display width (terminal cells) of the frame preview column.
 _SPINNER_PREVIEW_WIDTH = 56
+"""Max display width, in terminal cells, of the frame preview column."""
 
 
 def _spinner_preview(preset: SpinnerPreset) -> str:
@@ -110,7 +109,6 @@ def _spinner_preview(preset: SpinnerPreset) -> str:
     return preview
 
 
-# A curated, visually-distinct default selection for the live tour.
 _DEFAULT_SHOWCASE = (
     "dots",
     "line",
@@ -123,14 +121,18 @@ _DEFAULT_SHOWCASE = (
     "shark",
     "mindblown",
 )
+"""A curated, visually distinct default selection for the live tour."""
 
-
-# The live tour aims for _TOUR_CYCLES full cycles per spinner, then bounds the
-# dwell to at least _TOUR_MIN seconds (so a snappy spinner stays watchable) and
-# at most _TOUR_CAP seconds (so a long or slow one does not monopolize the tour).
 _TOUR_CYCLES = 3
+"""Full cycles the live tour aims for on each spinner."""
+
 _TOUR_MIN = 2.0
+"""Least seconds the live tour dwells on a spinner, so a snappy one stays
+watchable."""
+
 _TOUR_CAP = 3.0
+"""Most seconds the live tour dwells on a spinner, so a long or slow one does not
+monopolize the tour."""
 
 
 def _tour_duration(preset: SpinnerPreset) -> float:
@@ -196,9 +198,36 @@ Examples:
 """
 
 
+LAZY_SUBCOMMANDS: dict[str, LazySubcommand] = {
+    "prebake": LazySubcommand(
+        "click_extra.cli_prebake.prebake",
+        short_help="Pre-bake build-time metadata into Python source files.",
+    ),
+    "screenshot": LazySubcommand(
+        "click_extra.cli_capture.screenshot_cmd",
+        short_help=(
+            "Capture a command's colored output and write it as an image or HTML."
+        ),
+    ),
+    "snippet": LazySubcommand(
+        "click_extra.cli_capture.snippet_cmd",
+        short_help="Highlight a source file and write it as an image or HTML.",
+    ),
+}
+"""The subcommands imported only when a run reaches them.
+
+The capture commands pull the recording and drawing machinery in, and `prebake`
+its source rewriting, which no other run of the CLI needs. Each declares the
+first paragraph of its help, so the root help screen lists it without importing
+it. A Nuitka build sees no import of these modules, so `[tool.nuitka]` of
+`pyproject.toml` includes each by name.
+"""
+
+
 @group(
     name="click-extra",
     cls=WrapperGroup,
+    lazy_subcommands=LAZY_SUBCOMMANDS,
     # Draws --version as the brand-mark screen, degrading to the plain rendering
     # wherever it cannot be shown. Bound uncalled so each application gets its own
     # option instances, as default_params documents. See click_extra.logo.
@@ -207,6 +236,9 @@ Examples:
     config_schema=ClickExtraConfig,
     schema_strict=False,
     epilog=DEMO_EPILOG,
+    # The examples above pass --output to the capture commands, whose options
+    # this screen cannot read without importing them.
+    extra_keywords=HelpKeywords(long_options={"--output"}),
 )
 def demo():
     """Click Extra CLI."""
@@ -313,7 +345,7 @@ Examples:
 )
 @pass_context
 def test_suite_cmd(
-    ctx: context.Context,
+    ctx: Context,
     command: str,
     suite_file: tuple[Path, ...],
     suite_envvar: tuple[str, ...],
@@ -341,6 +373,16 @@ def test_suite_cmd(
     It stays silent in pipes and CI logs, and --no-progress or --accessible
     turns it off.
     """
+    # Deferred import: keeps click.testing, and the debugger stack it pulls in, off
+    # the startup path of every other command of the CLI.
+    from .test_suite import (
+        DEFAULT_TEST_SUITE,
+        cases_from_data,
+        load_test_suite,
+        parse_test_suite,
+        run_test_suite,
+    )
+
     # click-extra's --jobs option stores its resolved worker count on the
     # context; read it and hand it to the runner.
     worker_count = context.get(ctx, context.JOBS, 1)
@@ -423,7 +465,7 @@ Examples:
 )
 @pass_context
 def refresh_directives_cmd(
-    ctx: context.Context,
+    ctx: Context,
     paths: tuple[Path, ...],
     check: bool,
 ) -> None:
@@ -454,31 +496,38 @@ def refresh_directives_cmd(
     Python executed with the privileges of this process, so only refresh
     documentation you trust, exactly as you would only build trusted docs.
     """
-    # Imported lazily so the sphinx extra stays optional: this is the only CLI
-    # command that needs it. Importing it eagerly would break the rest of the
-    # CLI when sphinx is absent, and slow every invocation with a heavy import.
+    # Deferred import: keeps the optional sphinx extra off the startup path, so
+    # the rest of the CLI works without it.
     try:
-        from .sphinx.click import update_screenshot_blocks
-        from .sphinx.matrix import update_matrix_blocks
-        from .sphinx.python import update_mirror_blocks
+        from .sphinx.click import rewrite_screenshot_regions
+        from .sphinx.matrix import memoized_history, rewrite_matrix_blocks
+        from .sphinx.python import rewrite_mirrors
     except ImportError as error:
-        raise ClickException(
-            missing_extra_message("sphinx", subject="Refreshing directives"),
-        ) from error
+        raise MissingExtraError("sphinx", subject="Refreshing directives") from error
 
-    # A matrix block carrying an invalid option value (like a misspelled
-    # column-order) raises ValueError: surface it as a clean CLI error.
-    try:
-        changed = set(update_matrix_blocks(paths, check=check))
-    except ValueError as error:
-        raise ClickException(str(error)) from error
-    changed.update(update_mirror_blocks(paths, check=check))
-    changed.update(update_screenshot_blocks(paths, check=check))
+    def rewrite(text: str, path: Path) -> str:
+        """Refresh every kind of block of one page, which is read and written once."""
+        # A matrix block carrying an invalid option value (like a misspelled
+        # column-order) raises ValueError: surface it as a clean CLI error.
+        try:
+            text = rewrite_matrix_blocks(text, base_dir=path.parent)
+        except ValueError as error:
+            raise ClickException(str(error)) from error
+        return rewrite_screenshot_regions(rewrite_mirrors(text, str(path)))
+
+    # One memo serves the git reads of every matrix block of the refresh.
+    with memoized_history():
+        changed = set(update_blocks(paths, rewrite, check=check))
     for path in sorted(changed):
         echo(f"{'would refresh' if check else 'refreshed'}: {path}")
     if check and changed:
         ctx.exit(1)
 
+
+# A choice value of the default options every command inherits, which this
+# description also uses as a plain English word: "never refreshed". See
+# `HelpFormatter.highlight_extra_keywords`.
+refresh_directives_cmd.excluded_keywords = HelpKeywords(choices={"never"})
 
 demo.add_command(refresh_directives_cmd)
 
@@ -529,20 +578,10 @@ def convert_to_myst_cmd(directory: str | None) -> None:
     echo(f"\n{len(changed)} file(s) converted.")
 
 
-demo.add_command(convert_to_myst_cmd)
-
-
-demo.add_command(screenshot_cmd)
-
-
-#: Choice values of the default options every command inherits that are also
-#: plain English words these descriptions use: "never refreshed", "MyST
-#: markdown", "a plain line". See `HelpFormatter.highlight_extra_keywords`.
-refresh_directives_cmd.excluded_keywords = HelpKeywords(choices={"never"})
+# Same as above, for "MyST markdown".
 convert_to_myst_cmd.excluded_keywords = HelpKeywords(choices={"markdown"})
 
-
-demo.add_command(snippet_cmd)
+demo.add_command(convert_to_myst_cmd)
 
 
 _ALL_STYLES = (
@@ -597,28 +636,18 @@ def _render_8color_table() -> str:
     combination.
     """
     sample = " gYw "
-    reset = "\x1b[m"
-    lines: list[str] = []
-
-    # Header row: background color codes.
-    lines.append(
-        " " * 6
-        + " " * len(sample)
-        + "".join(f"{bg:^{len(sample)}}" for bg in range(40, 48))
-    )
-
+    width = len(sample)
+    # The header row lists the background color codes.
+    lines = [" " * (6 + width) + "".join(f"{bg:^{width}}" for bg in range(40, 48))]
     for fg in range(30, 38):
-        for is_bold in (False, True):
-            fg_code = f"{'1;' if is_bold else ''}{fg}"
-            # First cell: sample with foreground only (default background).
-            label = f" {fg_code:>4} "
-            first = f"\x1b[{fg_code}m{sample}{reset}"
-            # Remaining cells: sample with foreground + each background.
+        for fg_code in (f"{fg}", f"1;{fg}"):
+            # The first cell keeps the default background, the others take each
+            # background in turn.
+            first = f"\x1b[{fg_code}m{sample}\x1b[m"
             cells = "".join(
-                f"\x1b[{fg_code};{bg}m{sample}{reset}" for bg in range(40, 48)
+                f"\x1b[{fg_code};{bg}m{sample}\x1b[m" for bg in range(40, 48)
             )
-            lines.append(f"{label}{first}{cells}")
-
+            lines.append(f" {fg_code:>4} {first}{cells}")
     return "\n".join(lines)
 
 
@@ -627,80 +656,76 @@ def _render_gradient() -> str:
 
     Each gradient is shown in two rows: the top row uses 24-bit `SGR 38;2;r;g;b`
     escape codes, the bottom row uses the quantized `SGR 38;5;n` index from
-    `_nearest_256`. Visible stepping in the quantized row reveals the palette
+    `nearest_256`. Visible stepping in the quantized row reveals the palette
     resolution limits.
     """
+    # Deferred import: keeps colorsys off the startup path of the CLI.
+    import colorsys
+
     # Each row is prefixed by a 9-character label gutter ("  24-bit "), so the
     # ramp stops at 71 blocks to keep the whole line inside a conventional
     # 80-column terminal. One block more and every row wraps.
     width = 71
-    block = "\u2588"
-    reset = "\x1b[m"
-    lines: list[str] = []
+    block = "\u2588\x1b[m"
+    ramps = (
+        # Sweep the hue at full saturation and value.
+        ("Rainbow:", lambda t: colorsys.hsv_to_rgb(t, 1.0, 1.0)),
+        ("Grayscale:", lambda t: (t, t, t)),
+        ("Red:", lambda t: (t, 0.0, 0.0)),
+        # Green and blue together stress the boundary of the color cube.
+        ("Cyan:", lambda t: (0.0, t, t)),
+    )
+    sections = []
+    for label, rgb_at in ramps:
+        rgbs = [
+            tuple(int(channel * 255) for channel in rgb_at(step / (width - 1)))
+            for step in range(width)
+        ]
+        row_24 = "".join(f"\x1b[38;2;{r};{g};{b}m{block}" for r, g, b in rgbs)
+        row_8 = "".join(f"\x1b[38;5;{nearest_256(*rgb)}m{block}" for rgb in rgbs)
+        sections.append(f"{label}\n  24-bit {row_24}\n   8-bit {row_8}")
+    return "\n\n".join(sections)
 
-    def row_pair(label: str, rgb_func):
-        """Generate a 24-bit row and its quantized counterpart."""
-        row_24 = ""
-        row_8 = ""
-        for i in range(width):
-            r, g, b = rgb_func(i / (width - 1))
-            ri, gi, bi = int(r * 255), int(g * 255), int(b * 255)
-            row_24 += f"\x1b[38;2;{ri};{gi};{bi}m{block}{reset}"
-            idx = _nearest_256(ri, gi, bi)
-            row_8 += f"\x1b[38;5;{idx}m{block}{reset}"
-        lines.append(f"{label}")
-        lines.append(f"  24-bit {row_24}")
-        lines.append(f"   8-bit {row_8}")
 
-    # Rainbow: sweep hue at full saturation and value.
-    row_pair("Rainbow:", lambda t: colorsys.hsv_to_rgb(t, 1.0, 1.0))
+def _print_color_grid(
+    ctx: Context,
+    corner: str,
+    columns: list[tuple[str, dict[str, Any]]],
+) -> None:
+    """Print a table crossing every color with each styled column.
 
-    lines.append("")
-
-    # Grayscale: black to white.
-    row_pair("Grayscale:", lambda t: (t, t, t))
-
-    lines.append("")
-
-    # Red channel ramp.
-    row_pair("Red:", lambda t: (t, 0.0, 0.0))
-
-    lines.append("")
-
-    # Cyan (green + blue) ramp: stresses the color cube boundary.
-    row_pair("Cyan:", lambda t: (0.0, t, t))
-
-    return "\n".join(lines)
+    Each column is a `(name, style_kwargs)` pair: its header is the name styled
+    with those arguments, and each of its cells is the row's color name, painted
+    in that color and styled the same way.
+    """
+    headers = [corner, *(style(name, **kwargs) for name, kwargs in columns)]
+    table = [
+        [style(fg, fg=fg), *(style(fg, fg=fg, **kwargs) for _, kwargs in columns)]
+        for fg in _ALL_COLORS
+    ]
+    ctx.print_table(table, headers=headers)
 
 
 @demo.command(name="colors", section=_demo_section)
 @pass_context
-def demo_colors(ctx: context.Context) -> None:
+def demo_colors(ctx: Context) -> None:
     """Render every foreground color against every background color."""
-    styled_headers = [style(c, bg=c) for c in _ALL_COLORS]
-    headers = [corner_header("Foreground", "Background"), *styled_headers]
-    table: list[list[str]] = []
-    for fg in _ALL_COLORS:
-        row = [style(fg, fg=fg)]
-        row.extend(style(fg, fg=fg, bg=bg) for bg in _ALL_COLORS)
-        table.append(row)
-    ctx.print_table(table, headers=headers)
+    _print_color_grid(
+        ctx,
+        corner_header("Foreground", "Background"),
+        [(bg, {"bg": bg}) for bg in _ALL_COLORS],
+    )
 
 
 @demo.command(name="styles", section=_demo_section)
 @pass_context
-def demo_styles(ctx: context.Context) -> None:
+def demo_styles(ctx: Context) -> None:
     """Render every color with each text style (bold, dim, italic, etc.)."""
-    styled_headers = [style(s, **{s: True}) for s in _ALL_STYLES]
-    headers = [corner_header("Color", "Style"), *styled_headers]
-    table: list[list[str]] = []
-    for color_name in _ALL_COLORS:
-        row = [style(color_name, fg=color_name)]
-        row.extend(
-            style(color_name, fg=color_name, **{prop: True}) for prop in _ALL_STYLES
-        )
-        table.append(row)
-    ctx.print_table(table, headers=headers)
+    _print_color_grid(
+        ctx,
+        corner_header("Color", "Style"),
+        [(prop, {prop: True}) for prop in _ALL_STYLES],
+    )
 
 
 @demo.command(name="palette", section=_demo_section)
@@ -751,7 +776,7 @@ def demo_gradient() -> None:
 )
 @pass_context
 def demo_spinner(
-    ctx: context.Context,
+    ctx: Context,
     every: bool,
     sample_size: int | None,
     names: str | None,
@@ -774,9 +799,12 @@ def demo_spinner(
     elif sample_size is not None:
         if sample_size < 1:
             raise ClickException("--random needs a count of at least 1.")
+        # Deferred import: keeps random off the startup path of the CLI.
+        import random
+
         selection = random.sample(list(SPINNERS), min(sample_size, len(SPINNERS)))
     elif names is not None:
-        selection = [name.strip() for name in names.split(",") if name.strip()]
+        selection = [name for name in map(str.strip, names.split(",")) if name]
         unknown = [name for name in selection if name not in SPINNERS]
         if unknown:
             raise ClickException(
@@ -814,10 +842,6 @@ def demo_spinner(
         _animate_spinners(selection)
 
 
-# A make-believe batch for the trail demo: each entry is one roasting operation.
-# Durations are a few seconds each and staggered, so the live spinner, bar and
-# streaming outcomes stay watchable (the leeks scorch to leave a ✘ in the trail).
-# Tests stub time.sleep, so these never slow the suite.
 _TRAIL_BATCH = (
     ("carrots", 2.4, True),
     ("fennel", 3.2, True),
@@ -826,7 +850,13 @@ _TRAIL_BATCH = (
     ("shallots", 2.2, True),
     ("squash", 3.0, True),
 )
-"""Vegetables roasted by the `trail` demo, as `(name, seconds, roasted_ok)`."""
+"""Vegetables roasted by the `trail` demo, as `(name, seconds, roasted_ok)`.
+
+Each entry is one operation. Durations are a few seconds each and staggered, so
+the live spinner, bar and streaming outcomes stay watchable, and the leeks scorch
+to leave a `✘` in the trail. Tests stub `time.sleep`, so these never slow the
+suite.
+"""
 
 
 @demo.command(name="trail", section=_demo_section)
@@ -861,7 +891,7 @@ _TRAIL_BATCH = (
 @jobs_option
 @pass_context
 def demo_trail(
-    ctx: context.Context,
+    ctx: Context,
     use_bar: bool,
     eta: bool | None,
     spinner_name: str | None,
@@ -941,11 +971,9 @@ def demo_trail(
     help="Centimetres between seeds.",
 )
 @option("--water/--no-water", default=True, help="Water the bed right after sowing.")
-# Click lists a positional argument only when it carries a help string. Cloup 3.x's
-# own `Argument` forces a row for a help-less one, and cloup 4.0.0 dropped that
-# shim: without this `help=`, cloup 3.x draws a `Positional arguments:` section
-# here and cloup 4.0.0 draws none, so the committed capture can only match one of
-# them.
+# Click lists a positional argument only when it carries a help string: this one
+# gives the sample a `Positional arguments:` section, so each theme shows how it
+# paints an argument row too.
 @argument("plot", help="Garden bed to sow the crop into.")
 def _theme_gallery_sample(**_kwargs: object) -> None:
     """Sow a crop into a garden PLOT and water it in."""
@@ -988,7 +1016,7 @@ def demo_themes(ctx: click.Context, theme_ids: tuple[str, ...]) -> None:
             auto_name if theme_id == AUTO_THEME else theme_id for theme_id in theme_ids
         ]
         # A name is None once ThemeChoice found nothing to resolve against,
-        # which is an empty registry: themes.toml was dropped at packaging time.
+        # which is an empty registry.
         gallery = [(name, registry[name]) for name in selection if name is not None]
     else:
         gallery = sorted(registry.items())
@@ -1013,6 +1041,3 @@ def demo_themes(ctx: click.Context, theme_ids: tuple[str, ...]) -> None:
         echo()
         echo(_theme_gallery_sample.get_help(sample_ctx), color=ctx.color)
         echo()
-
-
-demo.add_command(prebake)

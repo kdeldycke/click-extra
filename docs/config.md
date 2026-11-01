@@ -240,7 +240,7 @@ A conflict occurs when the same key is used as both a scalar and a namespace. Fo
 
 Here `subcommand` is a plain string, but `subcommand.int_param` requires it to be a dict. By default, Click Extra logs a warning and the **last value wins**: in this case, `subcommand` becomes `{"int_param": 3}`, silently dropping `"some_value"`.
 
-In [`strict` mode](config-validation.md#strictness), conflicts and invalid dotted keys raise a `ValueError` instead of being silently resolved.
+In [`strict` mode](config-validation.md#strictness), conflicts and invalid dotted keys are reported as validation errors instead of being silently resolved.
 
 The same conflict detection applies at deeper levels:
 
@@ -275,7 +275,7 @@ Dotted keys with empty segments (leading, trailing, or consecutive dots) are ski
 }
 ```
 
-All three keys above are ignored. Use `--verbosity WARNING` or higher to see the warnings. In [`strict` mode](config-validation.md#strictness), they raise a `ValueError`.
+All three keys above are ignored. Use `--verbosity WARNING` or higher to see the warnings. In [`strict` mode](config-validation.md#strictness), they are reported as validation errors.
 
 ## Precedence
 
@@ -498,9 +498,9 @@ Like `excluded_params`, this takes fully-qualified option IDs. Run your CLI with
 
 ### Schema-only configuration
 
-When using `config_schema` for typed configuration access, your config keys typically don't correspond to CLI parameters: they're custom fields consumed via `get_tool_config()`. In that case, passing them through `merge_default_map` is unnecessary and can cause collisions if a config key happens to share a name with a subcommand.
+When using `config_schema` for typed configuration access, your config keys typically don't correspond to CLI parameters: they're custom fields consumed via `get_tool_config()`. In that case, merging them into `default_map` is unnecessary and can cause collisions if a config key happens to share a name with a subcommand.
 
-Set `included_params=()` (empty tuple) to disable `merge_default_map` entirely. All configuration access goes through the schema:
+Set `included_params=()` (empty tuple) to merge nothing into `default_map`. All configuration access goes through the schema, which also reports the keys it does not know: the [strict check](config-validation.md#strictness) and `--validate-config` leave such a section to it.
 
 ```python
 from dataclasses import dataclass
@@ -832,6 +832,24 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
    :strict:
 
 .. automodule:: click_extra.config.option
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclasstree:: click_extra.config.discovery
+   :strict:
+
+.. automodule:: click_extra.config.discovery
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclasstree:: click_extra.config.export
+   :strict:
+
+.. automodule:: click_extra.config.export
    :no-index:
    :members:
    :undoc-members:

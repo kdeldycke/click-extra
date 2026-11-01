@@ -28,7 +28,7 @@ Suites are written in any list-capable configuration format and loaded with
 built in; YAML and the other {data}`~click_extra.test_suite.SUITE_FORMATS` need their matching
 `click-extra[…]` extra. {func}`run_test_suite` drives a list of cases against
 a target, parallelized per the resolved `--jobs` count (see
-{func}`click_extra.execution.run_jobs`) and reporting live progress through a
+{func}`click_extra.jobs.run_jobs`) and reporting live progress through a
 {class}`click_extra.spinner.Spinner`.
 
 This is the black-box, subprocess-level complement to
@@ -53,6 +53,7 @@ from subprocess import TimeoutExpired
 from click import echo
 
 from ._utils import flatten
+from .ansi import strip_ansi
 from .config.formats import (
     ConfigFormat,
     disabled_format_message,
@@ -60,15 +61,23 @@ from .config.formats import (
     read_file,
 )
 from .envvar import merge_envvar_ids, normalize_envvar_id
-from .execution import CPU_COUNT, args_cleanup, run_cli, run_jobs
+from .execution import args_cleanup, run_cli
+from .jobs import CPU_COUNT, run_jobs
 from .spinner import Spinner
-from .styling import strip_ansi
 from .testing import (
     STREAM_FIELDS,
     StreamView,
     regex_fullmatch_line_by_line,
     render_cli_run,
 )
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from typing import Any
+
+    from extra_platforms._types import _TNestedReferences
+
 
 SUITE_FORMATS: tuple[ConfigFormat, ...] = (
     # Built-in, no extra dependency.
@@ -94,13 +103,6 @@ Per-format availability is resolved by
 {class}`~click_extra.config.formats.ConfigFormat`, so a format whose parser is
 not installed raises an {exc}`ImportError` pointing at its extra at parse time.
 """
-
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    from collections.abc import Generator
-    from typing import Any
-
-    from extra_platforms._types import _TNestedReferences
 
 
 def _stream_prefixes(*attrs: str) -> tuple[str, ...]:
@@ -161,7 +163,6 @@ def _split_args(cli: str) -> list[str]:
             # The buffer is caller-owned, and LocalFree is what the API asks for.
             ctypes.windll.kernel32.LocalFree(argv)
 
-    # For Unix platforms, we have the dedicated shlex module.
     return shlex.split(cli)
 
 
@@ -251,8 +252,9 @@ class CLITestCase:
     cli_parameters: tuple[str, ...] | str = field(default_factory=tuple)
     """Arguments and options appended to the command-under-test.
 
-    A plain string is split into arguments (on spaces on Windows, with `shlex`
-    elsewhere); a list or tuple is used as-is.
+    A plain string is split into arguments the way the platform's own parser
+    does, quoted runs kept whole: `shlex` on POSIX, `CommandLineToArgvW` on
+    Windows. A list or tuple is used as-is.
     """
 
     env: dict[str, str] = field(default_factory=dict)
@@ -350,11 +352,11 @@ class CLITestCase:
     stderr_regex_fullmatch: re.Pattern | str | None = None
     """Regex that must fully match stderr, line by line."""
 
-    execution_trace: str | None = None
+    execution_trace: str | None = field(default=None, init=False, compare=False)
     """Rendering of the command execution and its output.
 
-    Populated after the case runs, for inspection on failure; not a directive
-    you set in a test suite.
+    Populated after the case runs, for inspection on failure. Not a directive: a
+    suite cannot set it, and two cases compare the same whether they ran or not.
     """
 
     @property
@@ -385,28 +387,27 @@ class CLITestCase:
         set stays a set.
 
         ```{note}
-        We iterate with `fields()` + `getattr()` instead of `asdict()`
-        because `asdict()` deep-copies field values via `copy.deepcopy()`,
-        which fails on Python < 3.13 for `MappingProxyType` objects (used
-        internally by `extra_platforms`).
+        The fields are read with `fields()` and `getattr()` rather than
+        `asdict()`, which deep-copies their values through `copy.deepcopy()`.
+        That fails on Python < 3.13 for the `MappingProxyType` objects
+        `extra_platforms` uses internally.
         ```
         """
         for f in fields(self):
+            # A field left out of `__init__` is no directive to normalize.
+            if not f.init:
+                continue
             field_id = f.name
             field_data = getattr(self, field_id)
 
-            # Filled by `run_cli_test`, never a directive to normalize.
-            if field_id == "execution_trace":
-                continue
-
-            # Validates and normalize integer properties.
+            # Validate and normalize integer properties.
             if field_id == "exit_code":
                 if isinstance(field_data, str):
                     field_data = int(field_data)
                 elif field_data is not None and not isinstance(field_data, int):
                     raise ValueError(f"exit_code is not an integer: {field_data}")
 
-            # Validates and normalize float properties.
+            # Validate and normalize float properties.
             elif field_id == "timeout":
                 # A numeric string or an int is coerced to float; bool is an int
                 # subclass but not a valid duration, so it is rejected below.
@@ -422,12 +423,12 @@ class CLITestCase:
                 if field_data and field_data < 0:
                     raise ValueError(f"timeout is negative: {field_data}")
 
-            # Validates and normalize boolean properties.
+            # Validate and normalize boolean properties.
             elif field_id == "strip_ansi":
                 if not isinstance(field_data, bool):
                     raise ValueError(f"strip_ansi is not a boolean: {field_data}")
 
-            # Validates and normalize the environment mapping.
+            # Validate and normalize the environment mapping.
             elif field_id == "env":
                 field_data = _normalize_env(field_data)
 
@@ -450,7 +451,7 @@ class CLITestCase:
                     else:
                         field_data = ()
 
-            # Validates and compile fields holding one or more regexes.
+            # Validate and compile fields holding one or more regexes.
             elif field_id.endswith("_regex_matches"):
                 field_data = _normalize_regexes(field_id, field_data)
 
@@ -459,7 +460,7 @@ class CLITestCase:
                 regexes = _normalize_regexes(field_id, field_data)
                 field_data = regexes[-1] if regexes else None
 
-            # Validates and normalize tuple of strings.
+            # Validate and normalize tuples of strings.
             else:
                 field_data = _normalize_strings(field_id, field_data)
 
@@ -532,13 +533,12 @@ class CLITestCase:
             command = resolved
 
         # Check the binary exists and is executable. `.absolute()`, not
-        # `.resolve()`: resolving a venv interpreter symlink (e.g.
+        # `.resolve()`: resolving a venv interpreter symlink (like
         # `.venv/bin/python` -> `.../uv/python/cpython-.../bin/python3.14`)
         # strips the venv context at exec time, since CPython locates its
-        # venv's `pyvenv.cfg` relative to the path it was invoked as. Running
-        # the fully-resolved target directly falls back to the base install
-        # with no site-packages, surfacing as a spurious "No module named
-        # 'click'".
+        # venv's `pyvenv.cfg` relative to the path it was invoked as. The
+        # fully-resolved target runs as the base install, with none of the
+        # venv's packages.
         binary = Path(command).absolute()
         assert binary.exists()
         assert binary.is_file()
@@ -574,9 +574,8 @@ class CLITestCase:
                 merge_stderr=self.has_merged_output_directives,
                 # Last-resort guard for binaries that emit non-UTF-8 bytes anyway:
                 # escape them instead of raising UnicodeDecodeError from the reader
-                # thread, which surfaced as a bare "expected string or bytes-like
-                # object, got 'NoneType'" case failure with no hint of the cause.
-                # Escaped bytes show up visibly in the assertion diff instead.
+                # thread, which would fail the case with no hint of the cause. The
+                # escaped bytes show up in the assertion diff instead.
                 errors="backslashreplace",
             )
         except TimeoutExpired:
@@ -613,13 +612,12 @@ class CLITestCase:
                 continue
 
             # Select the stream and its label from the shared field-prefix table.
-            output = ""
-            name = ""
-            for prefix, (label, attr) in STREAM_FIELDS.items():
-                if field_id.startswith(prefix):
-                    output = getattr(view, attr)
-                    name = label
-                    break
+            name, attr = next(
+                stream
+                for prefix, stream in STREAM_FIELDS.items()
+                if field_id.startswith(prefix)
+            )
+            output = getattr(view, attr)
 
             if self.strip_ansi:
                 logging.info(f"Strip ANSI sequences from {name}")
@@ -688,14 +686,14 @@ def cases_from_data(data: Any) -> Generator[CLITestCase, None, None]:
     if not isinstance(suite, list):
         raise TypeError(f"Test suite is not a list: {suite}")
 
-    directives = frozenset(CLITestCase.__dataclass_fields__.keys())
+    directives = frozenset(f.name for f in fields(CLITestCase) if f.init)
 
-    for index, test_case in enumerate(suite):
+    for number, test_case in enumerate(suite, start=1):
         if not isinstance(test_case, dict):
-            raise TypeError(f"Test case #{index + 1} is not a dict: {test_case}")
+            raise TypeError(f"Test case #{number} is not a dict: {test_case}")
         if not directives.issuperset(test_case):
             raise ValueError(
-                f"Test case #{index + 1} contains invalid directives: "
+                f"Test case #{number} contains invalid directives: "
                 f"{set(test_case) - directives}"
             )
         yield CLITestCase(**test_case)
@@ -763,7 +761,7 @@ def run_test_suite(
     """Run a list of test cases against a target command and tally the results.
 
     Cases are parallelized per `jobs` (see
-    {func}`click_extra.execution.run_jobs`): at one worker they run sequentially
+    {func}`click_extra.jobs.run_jobs`): at one worker they run sequentially
     and lazily, so `exit_on_error` can stop before the rest start; otherwise
     they run in a thread pool and every case runs to completion. Either way
     outcomes are tallied in submission order. On an interactive terminal a
@@ -794,8 +792,7 @@ def run_test_suite(
     # Select the cases to run (respecting select_test), keeping their 1-based
     # numbers for stable reporting.
     pending: list[tuple[int, CLITestCase]] = []
-    for index, test_case in enumerate(cases):
-        test_number = index + 1
+    for test_number, test_case in enumerate(cases, start=1):
         if select_test and test_number not in select_test:
             logging.warning(f"Test #{test_number} skipped by user request.")
             counter["skipped"] += 1

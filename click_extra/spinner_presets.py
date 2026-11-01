@@ -63,10 +63,9 @@ Ten frames give a smooth rotation in any UTF-8 terminal. Fall back to
 class SpinnerPreset(NamedTuple):
     """A named spinner animation: its frames and the interval they look best at.
 
-    The {data}`~click_extra.spinner_presets.SPINNERS` catalog is ported from
-    [cli-spinners](https://github.com/sindresorhus/cli-spinners), with intervals
-    converted from milliseconds to seconds. Pass one to
-    {class}`~click_extra.spinner.Spinner` via its `spinner` argument.
+    Pick one from the {data}`~click_extra.spinner_presets.SPINNERS` catalog, or
+    build your own, and pass it to {class}`~click_extra.spinner.Spinner` through
+    its `spinner` argument.
     """
 
     frames: tuple[str, ...]
@@ -746,14 +745,17 @@ SPINNERS: Final = {
 """Named spinner animations ported from cli-spinners, keyed by name.
 
 Each value is a {class}`SpinnerPreset` bundling frames and a tuned interval.
-Select one with {class}`~click_extra.spinner.Spinner`'s `spinner` argument::
+Select one with {class}`~click_extra.spinner.Spinner`'s `spinner` argument:
 
-    from click_extra import Spinner, SPINNERS
+```{code-block} python
 
-    with Spinner("Brewing tea", spinner=SPINNERS["moon"]):
-        ...
+from click_extra import SPINNERS, Spinner
 
-Unlike the upstream `\\b`-based renderers, {class}`~click_extra.spinner.Spinner` redraws the whole
-line, so the multi-character animations (`bouncingBar`, `pong`, `shark`, …)
-render correctly here.
+with Spinner("Brewing tea", spinner=SPINNERS["moon"]):
+    ...
+```
+
+Unlike the upstream `\\b`-based renderers, {class}`~click_extra.spinner.Spinner`
+redraws the whole line, so the multi-character animations (`bouncing-bar`,
+`pong`, `shark`, …) render correctly here.
 """

@@ -23,6 +23,7 @@ import tomllib
 from importlib import metadata
 from operator import itemgetter
 from pathlib import Path
+from typing import cast
 
 import click
 import pytest
@@ -32,7 +33,12 @@ from pygments.filters import get_filter_by_name
 from pygments.formatter import Formatter
 from pygments.formatters import get_formatter_by_name
 from pygments.lexer import Lexer
-from pygments.lexers import find_lexer_class_by_name, get_lexer_by_name
+from pygments.lexers import (
+    _iter_lexerclasses,
+    find_lexer_class_by_name,
+    get_lexer_by_name,
+)
+from pygments.lexers.shell import BashSessionLexer, ShellSessionBaseLexer
 from pygments.token import Text, Token
 
 from click_extra import pygments as extra_pygments
@@ -53,7 +59,7 @@ from click_extra.pygments import (
     _AnsiLinkStart,
     collect_session_lexers,
 )
-from click_extra.styling import _ATTR_CSS, _nearest_256
+from click_extra.styling import _ATTR_CSS
 
 from .conftest import fetch_or_skip, walk_commands
 
@@ -63,9 +69,12 @@ PROJECT_ROOT = Path(__file__).parent.parent
 # --- Helpers ---
 
 
-def lex(text: str) -> list[tuple]:
-    """Shorthand: lex ``text`` and return ``(token_type, value)`` pairs."""
-    return list(AnsiColorLexer().get_tokens(text))
+def lex(text: str, **options) -> list[tuple]:
+    """Shorthand: lex ``text`` and return ``(token_type, value)`` pairs.
+
+    ``options`` go to the `AnsiColorLexer`, like ``true_color=False``.
+    """
+    return list(AnsiColorLexer(**options).get_tokens(text))
 
 
 _CAMEL_BOUNDARY_RE = re.compile(r"((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))")
@@ -92,7 +101,7 @@ def get_pyproject_section(*section_path: str) -> dict[str, str]:
     """Descends into the TOML tree of ``pyproject.toml`` to reach the value specified by
     ``section_path``."""
     toml_path = PROJECT_ROOT.joinpath("pyproject.toml").resolve()
-    section: dict = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+    section: dict = tomllib.loads(toml_path.read_text(encoding="UTF-8"))
     for section_id in section_path:
         section = section[section_id]
     return section
@@ -180,7 +189,7 @@ def test_ansi_lexers_candidates(tmp_path):
             if not file:
                 continue
 
-            content = file.read().decode("utf-8")
+            content = file.read().decode("UTF-8")
 
             # Skip lexers that are rendering generic, terminal-like output tokens.
             if f" {'.'.join(DEFAULT_TOKEN_TYPE)}\n" not in content:
@@ -194,6 +203,22 @@ def test_ansi_lexers_candidates(tmp_path):
     # We cannot test for strict equality yet, as some ANSI-ready lexers do not
     # have any test artifacts producing ``Generic.Output`` tokens.
     assert lexer_classes <= set(collect_session_lexers())
+
+
+@pytest.mark.once
+def test_session_lexers_cover_every_shell_session_lexer():
+    """Every Pygments lexer built on `ShellSessionBaseLexer` has an ANSI variant.
+
+    `collect_session_lexers` names its lexers by hand rather than walking all of
+    Pygments at import time, so this walk is what notices a new one.
+    """
+    shell_sessions = {
+        lexer
+        for lexer in _iter_lexerclasses(plugins=False)
+        if ShellSessionBaseLexer in lexer.__bases__
+    }
+    assert shell_sessions
+    assert shell_sessions <= set(collect_session_lexers())
 
 
 @pytest.mark.once
@@ -513,11 +538,6 @@ def test_256color_bg(index):
 # --- 24-bit RGB (SGR 38;2;r;g;b / 48;2;r;g;b) ---
 
 
-def lex_quantized(text: str) -> list[tuple]:
-    """Shorthand: lex ``text`` with explicit 256-color quantization opt-in."""
-    return list(AnsiColorLexer(true_color=False).get_tokens(text))
-
-
 @pytest.mark.parametrize(
     ("r", "g", "b", "expected_idx"),
     [
@@ -532,7 +552,7 @@ def lex_quantized(text: str) -> list[tuple]:
 )
 def test_24bit_rgb_fg_quantized(r, g, b, expected_idx):
     """SGR 38;2;r;g;b quantizes to nearest 256-color index when true_color=False."""
-    tokens = lex_quantized(f"\x1b[38;2;{r};{g};{b}mtext\x1b[0m")
+    tokens = lex(f"\x1b[38;2;{r};{g};{b}mtext\x1b[0m", true_color=False)
     assert tokens[0] == (getattr(Ansi, f"C{expected_idx}"), "text")
 
 
@@ -545,16 +565,11 @@ def test_24bit_rgb_fg_quantized(r, g, b, expected_idx):
 )
 def test_24bit_rgb_bg_quantized(r, g, b, expected_idx):
     """SGR 48;2;r;g;b quantizes background to nearest 256-color index when true_color=False."""
-    tokens = lex_quantized(f"\x1b[48;2;{r};{g};{b}mtext\x1b[0m")
+    tokens = lex(f"\x1b[48;2;{r};{g};{b}mtext\x1b[0m", true_color=False)
     assert tokens[0] == (getattr(Ansi, f"BGC{expected_idx}"), "text")
 
 
 # --- 24-bit true-color mode ---
-
-
-def lex_truecolor(text: str) -> list[tuple]:
-    """Shorthand: lex ``text`` with true-color enabled."""
-    return list(AnsiColorLexer(true_color=True).get_tokens(text))
 
 
 @pytest.mark.parametrize(
@@ -568,7 +583,7 @@ def lex_truecolor(text: str) -> list[tuple]:
 )
 def test_truecolor_fg_preserves_hex(r, g, b, expected_hex):
     """With ``true_color=True``, SGR 38;2;r;g;b emits ``Token.Ansi.FG_{hex}``."""
-    tokens = lex_truecolor(f"\x1b[38;2;{r};{g};{b}mtext\x1b[0m")
+    tokens = lex(f"\x1b[38;2;{r};{g};{b}mtext\x1b[0m", true_color=True)
     assert tokens[0] == (getattr(Ansi, f"FG_{expected_hex}"), "text")
 
 
@@ -581,21 +596,19 @@ def test_truecolor_fg_preserves_hex(r, g, b, expected_hex):
 )
 def test_truecolor_bg_preserves_hex(r, g, b, expected_hex):
     """With ``true_color=True``, SGR 48;2;r;g;b emits ``Token.Ansi.BG_{hex}``."""
-    tokens = lex_truecolor(f"\x1b[48;2;{r};{g};{b}mtext\x1b[0m")
+    tokens = lex(f"\x1b[48;2;{r};{g};{b}mtext\x1b[0m", true_color=True)
     assert tokens[0] == (getattr(Ansi, f"BG_{expected_hex}"), "text")
 
 
 def test_truecolor_combined_fg_and_bg():
     """Foreground and background 24-bit RGB combine into a single compound token."""
-    tokens = lex_truecolor(
-        "\x1b[38;2;255;165;0;48;2;0;68;136mtext\x1b[0m",
-    )
+    tokens = lex("\x1b[38;2;255;165;0;48;2;0;68;136mtext\x1b[0m", true_color=True)
     assert tokens[0] == (Ansi.FG_ffa500.BG_004488, "text")
 
 
 def test_truecolor_with_attribute():
     """Bold + 24-bit RGB combines into a single compound token."""
-    tokens = lex_truecolor("\x1b[1;38;2;255;128;0mbold-orange\x1b[0m")
+    tokens = lex("\x1b[1;38;2;255;128;0mbold-orange\x1b[0m", true_color=True)
     assert tokens[0] == (Ansi.Bold.FG_ff8000, "bold-orange")
 
 
@@ -608,13 +621,13 @@ def test_truecolor_default_enabled():
 def test_truecolor_explicit_disable_quantizes():
     """``AnsiColorLexer(true_color=False)`` quantizes RGB to the 256-color palette."""
     # 255,165,0 quantizes to C214 (orange in the 6x6x6 cube).
-    tokens = lex_quantized("\x1b[38;2;255;165;0mtext\x1b[0m")
+    tokens = lex("\x1b[38;2;255;165;0mtext\x1b[0m", true_color=False)
     assert tokens[0] == (Ansi.C214, "text")
 
 
 def test_truecolor_invalid_range_ignored():
     """Out-of-range RGB values are skipped in true-color mode too."""
-    tokens = lex_truecolor("\x1b[38;2;300;0;0mtext\x1b[0m")
+    tokens = lex("\x1b[38;2;300;0;0mtext\x1b[0m", true_color=True)
     assert tokens[0] == (Text, "text")
 
 
@@ -624,7 +637,7 @@ def test_truecolor_truncated_params_ignored():
     The stray ``2`` reads as SGR 2 (faint), as in the quantized mode: see
     `test_24bit_truncated_params`.
     """
-    tokens = lex_truecolor("\x1b[38;2;255;128mtext\x1b[0m")
+    tokens = lex("\x1b[38;2;255;128mtext\x1b[0m", true_color=True)
     assert tokens[0] == (Ansi.Faint, "text")
 
 
@@ -646,6 +659,33 @@ def test_truecolor_session_lexer_forwards_flag():
             found_truecolor = True
             break
     assert found_truecolor
+
+
+_TRUE_COLOR_STRINGS = (
+    pytest.param("false", Ansi.C214, id="false"),
+    pytest.param("0", Ansi.C214, id="zero"),
+    pytest.param("off", Ansi.C214, id="off"),
+    pytest.param("True", Ansi.FG_ffa500, id="true"),
+    pytest.param("yes", Ansi.FG_ffa500, id="yes"),
+)
+"""`true_color` strings, as `pygmentize -O` passes them, and the orange they make."""
+
+
+@pytest.mark.parametrize(("value", "expected"), _TRUE_COLOR_STRINGS)
+@pytest.mark.parametrize("alias", ["ansi-color", "ansi-shell-session"])
+def test_true_color_lexer_option_reads_a_string(alias, value, expected):
+    """A lexer reads a `true_color` string as the boolean it spells."""
+    lexer = get_lexer_by_name(alias, true_color=value)
+    tokens = list(lexer.get_tokens("$ peel\n\x1b[38;2;255;165;0morange\x1b[0m\n"))
+    assert (expected, "orange") in tokens
+
+
+@pytest.mark.parametrize(("value", "expected"), _TRUE_COLOR_STRINGS)
+def test_true_color_filter_option_reads_a_string(value, expected):
+    """The filter reads a `true_color` string as the boolean it spells."""
+    ansi_filter = get_filter_by_name("ansi-filter", true_color=value)
+    stream = [(DEFAULT_TOKEN_TYPE, "\x1b[38;2;255;165;0morange\x1b[0m")]
+    assert (expected, "orange") in list(ansi_filter.filter(None, stream))
 
 
 def test_formatter_renders_truecolor_inline_style():
@@ -721,27 +761,6 @@ def test_formatter_osc8_with_truecolor_coexist():
     assert "orange link" in result
 
 
-# --- _nearest_256 quantization ---
-
-
-@pytest.mark.parametrize(
-    ("r", "g", "b", "expected"),
-    [
-        pytest.param(0, 0, 0, 16, id="black-maps-to-cube-not-palette0"),
-        pytest.param(255, 255, 255, 231, id="white-maps-to-cube-not-palette15"),
-        pytest.param(95, 0, 0, 52, id="dark-red-cube"),
-        pytest.param(135, 175, 215, 110, id="mid-range-cube"),
-        pytest.param(8, 8, 8, 232, id="grayscale-start"),
-        pytest.param(238, 238, 238, 255, id="grayscale-end"),
-        pytest.param(118, 118, 118, 243, id="grayscale-mid"),
-        pytest.param(1, 1, 1, 16, id="near-black-closer-to-cube"),
-    ],
-)
-def test_nearest_256_quantization(r, g, b, expected):
-    """Verify RGB-to-256 quantization for representative values."""
-    assert _nearest_256(r, g, b) == expected
-
-
 # --- SGR mapping consistency ---
 
 
@@ -772,6 +791,43 @@ def test_non_sgr_csi_stripped():
     # ESC[2J = clear screen, ESC[H = cursor home.
     tokens = lex("\x1b[2J\x1b[Hvisible")
     assert tokens == [(Text, "visible\n")]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param("\x1b[2~hello", "hello\n", id="insert-key"),
+        pytest.param("\x1b[?25lhidden", "hidden\n", id="private-parameter"),
+        pytest.param(
+            "\x1b[200~pasted\x1b[201~ text", "pasted text\n", id="bracketed-paste"
+        ),
+    ],
+)
+def test_csi_ends_on_its_final_byte(text, expected):
+    """A CSI sequence ends on its ECMA-48 final byte, a letter or not.
+
+    A final byte like the `~` of the bracketed-paste markers ends the sequence:
+    the text after it is kept whole.
+    """
+    assert "".join(value for _, value in lex(text)) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param("\x1b#8grid", "grid\n", id="screen-alignment-test"),
+        pytest.param("\x1b%Gutf", "utf\n", id="select-utf8"),
+        pytest.param("\x1b Fseven", "seven\n", id="seven-bit-controls"),
+    ],
+)
+def test_escape_ends_on_its_final_byte(text, expected):
+    """An escape carrying intermediate bytes is stripped up to its final byte.
+
+    `ESC # 8` is the screen alignment test: the `#` is an intermediate byte and
+    the `8` the final one. A grammar consuming one byte after the escape left
+    that `8` in the text, where {func}`~click_extra.ansi.strip_ansi` removed it.
+    """
+    assert "".join(value for _, value in lex(text)) == expected
 
 
 def test_vt100_charset_stripped():
@@ -1196,6 +1252,28 @@ def test_lexer_map_completeness():
         assert lexer in LEXER_MAP
 
 
+@pytest.mark.parametrize(
+    ("original", "variant"),
+    [pytest.param(*item, id=item[0].__name__) for item in LEXER_MAP.items()],
+)
+def test_ansi_variant_belongs_to_this_module(original, variant):
+    """Each variant lives in `click_extra.pygments`, under the name its entry point
+    resolves, and derives from the lexer it varies."""
+    assert variant.__module__ == extra_pygments.__name__
+    assert getattr(extra_pygments, variant.__name__) is variant
+    assert variant.__name__ == f"Ansi{original.__name__}"
+    assert issubclass(variant, original)
+
+
+def test_ansi_variant_subclass_keeps_its_names():
+    """A subclass of a variant inherits its names and aliases, prefixed once."""
+    parent = LEXER_MAP[BashSessionLexer]
+    subclass = cast("type[Lexer]", type("GreenhouseSessionLexer", (parent,), {}))
+    assert subclass.name == parent.name == "ANSI Bash Session"
+    assert subclass.aliases == parent.aliases
+    assert vars(subclass).keys().isdisjoint({"name", "aliases", "_innerLexerCls"})
+
+
 # --- AnsiFilter integration ---
 
 
@@ -1323,8 +1401,8 @@ def test_formatter_osc8_unsafe_scheme_no_link():
 def test_formatter_osc8_quotes_escaped_in_href():
     """Quotes in a hyperlink URL cannot break out of the href attribute.
 
-    Pygments stopped escaping quotes in token text in 2.21.0, so the formatter
-    escapes them itself, and emits the same entities on both sides of that release.
+    Pygments escapes quotes in token text only before its `2.21.0` release, so
+    the formatter escapes them itself, with the entities older Pygments writes.
     Ampersands are left to Pygments, and are escaped once.
     """
     formatter = AnsiHtmlFormatter(nowrap=True)
@@ -1493,9 +1571,9 @@ def test_ansi_session_decodes_a_styled_input_line():
     r"""An input line arriving styled keeps its colors instead of its escape bytes.
 
     A session lexer reads any line opening on a prompt as a typed command, and
-    a ``--help`` epilog writing ``$ my-cli pick --ripe`` matches. Its escapes
-    used to reach the inner shell lexer, which tokenized ``\x1b[36m`` as an
-    operator between two runs of text and left the raw bytes in the page.
+    a ``--help`` epilog writing ``$ my-cli pick --ripe`` matches. A shell lexer
+    reading its escapes would tokenize ``\x1b[36m`` as an operator between two
+    runs of text, and leave the raw bytes in the page.
     """
     session = "  Sow a crop:\n    $ \x1b[36mgarden\x1b[0m sow\n"
     tokens = list(get_lexer_by_name("ansi-shell-session").get_tokens(session))
@@ -1511,6 +1589,34 @@ def test_ansi_session_leaves_a_plain_input_line_to_the_shell_lexer():
         get_lexer_by_name("ansi-shell-session").get_tokens("$ ls /tmp | grep basket\n")
     )
     assert (Token.Punctuation, "|") in tokens
+
+
+_PLAIN_SESSIONS = (
+    "$ ls\n\nbasket\n\n"
+    ">>> fruit = 'kiwi'\n\nkiwi\n\n"
+    "PS C:\\> dir\n\npear\n\n"
+    "C:\\> dir\n\nplum\n\n"
+    "sqlite> select 1;\n\n1\n\n"
+    "julia> 1 + 1\n\n2\n\n"
+    "> 1 + 1\n\n[1] 2\n\nend\n"
+)
+"""Sessions of several shells and REPLs, each output framed by blank lines."""
+
+
+@pytest.mark.parametrize(
+    ("original", "variant"),
+    [pytest.param(*item, id=item[0].__name__) for item in LEXER_MAP.items()],
+)
+def test_ansi_variant_keeps_the_text_of_its_original(original, variant):
+    """A variant renders a session free of escapes to the text of its original.
+
+    The blank lines opening and closing an output block included: each lexer
+    reads its own prompts in `_PLAIN_SESSIONS`, so it splits the text into input
+    and output blocks at different places.
+    """
+    plain = "".join(value for _, value in original().get_tokens(_PLAIN_SESSIONS))
+    ansi = "".join(value for _, value in variant().get_tokens(_PLAIN_SESSIONS))
+    assert ansi == plain
 
 
 @pytest.mark.once

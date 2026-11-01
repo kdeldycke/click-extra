@@ -15,68 +15,47 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Convert MyST-flavored docstrings to reST for `sphinx.ext.autodoc`.
 
-Lightweight replacement for
+Hooks into `autodoc-process-docstring` to convert the MyST markdown of Python
+docstrings to reStructuredText before Sphinx processes them, so
+`sphinx_autodoc_typehints`, `autodoc_default_options` and every other extension
+built on `sphinx.ext.autodoc` keep working. It replaces
 [`sphinx-autodoc2`](https://github.com/sphinx-extensions2/sphinx-autodoc2),
-which provided native MyST docstring parsing but is abandoned (last release
-`0.5.0`, November 2023; incompatible with current Sphinx and docutils).
-
-Hooks into `autodoc-process-docstring` to transparently convert MyST markdown
-syntax in Python docstrings to reStructuredText before Sphinx processes them.
-Preserves full compatibility with `sphinx_autodoc_typehints`,
-`autodoc_default_options`, and every other extension that builds on
-`sphinx.ext.autodoc`. See {doc}`/myst-docstrings` for setup, usage, and
-limitations.
+whose native MyST parsing does not work with current Sphinx and docutils. See
+{doc}`/myst-docstrings` for setup, the syntax reference and the limitations.
 
 The conversion is idempotent: docstrings already in reST pass through
 unchanged. This allows incremental migration one module at a time.
 
 Supported conversions:
 
-```{list-table}
-:header-rows: 1
+- Cross-references: a MyST role, its name in braces, becomes a reST role, its
+  name between colons.
+- Directive fences, with backticks or colons, become reST directives, their
+  leading option lines right under the directive header.
+- Plain code fences become `code-block` directives. The content of a code block
+  is kept verbatim.
+- A fence longer than three characters can hold fences of its own character, as
+  in any MyST document. {func}`click_extra.markdown.blocks.fence_spans` reads
+  the fences.
+- Inline code spans get the double backticks of reST literals.
+- Markdown links become reST hyperlinks, without the backticks of their label.
+- Footnote references and definitions become auto-numbered reST footnotes.
 
-* - Construct
-  - MyST input
-  - reST output
-* - Cross-references
-  - ``{role}`target```
-  - ``:role:`target```
-* - Fenced directives
-  - `` ```{note} ``
-  - `.. note::`
-* - Plain code fences
-  - ```` ```python ````
-  - `.. code-block:: python`
-* - Markdown links
-  - `[text](url)`
-  - ```text <url>`_``
-* - Footnote references
-  - `[^label]`
-  - `[#label]_`
-* - Footnote definitions
-  - `[^label]: text`
-  - `.. [#label] text`
-```
-
-Inline code (single backtick) is converted to reST double backticks.
 Field list markers (`:param:`, `:return:`) need no conversion; the content
 inside field list entries is converted normally (inline code, cross-references,
 links).
 
-````{note}
 Register this extension in your Sphinx `conf.py`, before
-`sphinx_autodoc_typehints` if present:
+`sphinx_autodoc_typehints` if present, with `click-extra[sphinx]` in your docs
+dependency group:
 
-```{code-block} python
+```python
 extensions = [
     "sphinx.ext.autodoc",
     "click_extra.sphinx.myst_docstrings",
     "sphinx_autodoc_typehints",  # must come after
 ]
 ```
-
-This requires `click-extra[sphinx]` in your docs dependency group.
-````
 """
 
 from __future__ import annotations
@@ -86,34 +65,52 @@ import re
 from sphinx.errors import ExtensionError
 
 from .. import __version__
+from ..markdown.blocks import fence_spans, rewrite_fences, split_options
+from ..markdown.myst import _RST_LITERAL_PATTERN
 
-# {role}`target` -> {role}`target`
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from ..markdown.blocks import FenceSpan
+
+_TYPEHINTS_EXT = "sphinx_autodoc_typehints"
+"""Extension whose `autodoc-process-docstring` hook must run after ours.
+
+`sphinx_autodoc_typehints` hooks at default priority 500, and this extension
+at {data}`_PRIORITY`, so MyST-to-reST conversion always runs first, regardless
+of `conf.py` ordering. The `setup()` check is a belt-and-suspenders safety net:
+it catches misconfiguration early with a clear message rather than letting it
+surface as garbled backticks in the rendered docs.
+"""
+
+_PRIORITY = 400
+"""Event priority for `autodoc-process-docstring`.
+
+Sphinx invokes callbacks in ascending priority order, 500 by default. 400 runs
+the MyST-to-reST conversion before any extension that injects reST markup into
+docstrings (like `sphinx_autodoc_typehints`).
+"""
+
+# A MyST role becomes a reST one: the name moves from braces to colons.
 # Negative lookbehind prevents matching inside double backticks (``{version}``).
 _XREF_RE = re.compile(r"(?<!``)\{([\w-]+)\}`([^`]*?)`")
 
-# Colon fences are recognized for legacy docstrings; new content uses
-# backtick fences (see `_BACKTICK_FENCE_RE` below).
-# :::{directive} optional-title
-# body
-# :::
-_COLON_FENCE_RE = re.compile(
-    r"^( *):::\{([\w-]+)\}[ ]*([^\n]*)\n(.*?)^\1:::\s*$",
-    re.MULTILINE | re.DOTALL,
-)
-_BACKTICK_FENCE_RE = re.compile(
-    r"^( *)```\{([\w-]+)\}[ ]*([^\n]*)\n(.*?)^\1```\s*$",
-    re.MULTILINE | re.DOTALL,
+# The opening line of a directive fence, with colons or backticks: the
+# directive name in braces, then its optional argument. `mdformat` escapes colon
+# fences, so docstrings prefer backtick ones. The fences themselves, and the
+# closing line each pairs with, are read by `click_extra.markdown.blocks`.
+_DIRECTIVE_HEAD_RE = re.compile(
+    r"^(?P<indent> *)(?:`{3,}|:{3,})\{(?P<directive>[\w-]+)\}[ ]*(?P<argument>.*)$"
 )
 
-# ```language           (plain code fence, no {directive})
-# code
-# ```
-# Negative lookahead for `{` prevents matching directive fences that were not
-# consumed by the directive regex (malformed body, etc.).
-_PLAIN_CODE_FENCE_RE = re.compile(
-    r"^( *)```(?!\{)([\w.+-][\w.+-]*)?\s*\n(.*?)^\1```\s*$",
-    re.MULTILINE | re.DOTALL,
-)
+# The opening line of a plain code fence: backticks, then an optional language.
+# The negative lookahead for `{` keeps out a directive fence the directive
+# conversion left alone, like one whose name holds a colon.
+_PLAIN_HEAD_RE = re.compile(r"^(?P<indent> *)`{3,}(?!\{)(?P<language>[\w.+-]+)?\s*$")
+
+_CODE_DIRECTIVES = frozenset(("code", "code-block", "sourcecode"))
+"""Directives whose body is code: a plain backtick fence is one too."""
 
 # [^label] -> [#label]_   (footnote reference, not followed by ":" definition)
 _FOOTNOTE_REF_RE = re.compile(r"\[\^([\w-]+)\](?!:)")
@@ -142,15 +139,14 @@ def _convert_link(match: re.Match[str]) -> str:
 # spans are placeholdered out).
 _INLINE_CODE_RE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
 
-# A reST double-backtick literal on a single line.  The lookarounds pin the
-# match to exactly two backticks on each side, so triple-backtick fence lines
-# and longer backtick runs are never mistaken for literal delimiters.
-_RST_LITERAL_RE = re.compile(r"(?<!`)``(?!`)[^`\n]+``(?!`)")
+# A reST double-backtick literal on a single line, in the grammar the
+# reST-to-MyST converter reads it with.
+_RST_LITERAL_RE = re.compile(_RST_LITERAL_PATTERN)
 
 # Backtick spans that must NOT be treated as plain inline code, lexed in one
 # left-to-right pass so each alternative consumes its span before a later
 # alternative can restart inside it.  In priority order:
-#   {role}`target`   — reST cross-references (from step 1), kept verbatim
+#   a reST role      — a cross-reference converted by step 2, kept verbatim
 #   `text`_          — reST hyperlink references (idempotent pass-through)
 #   `:role-shaped:`  — a code span holding a literal role or option name
 #                      (like `:tag-pattern:`), doubled for reST on the spot
@@ -179,42 +175,137 @@ _PROTECTED_RE = re.compile(
 )
 
 
-def _rst_directive(indent: str, directive: str, argument: str, body: str) -> str:
-    """Write a reST directive at `indent`, its `body` re-indented under it.
+def _rst_directive(
+    indent: str,
+    directive: str,
+    argument: str,
+    options: dict[str, str],
+    content: list[str],
+) -> str:
+    """Write a reST directive at `indent`, its `options` and `content` under it.
 
-    The body keeps the relative indentation it had in the fence, shifted to the
-    four spaces a reST directive body sits at. A blank line separates the header
-    from the body, as reST requires, and another closes the directive.
+    The options sit right under the header, where reST reads them. The content
+    keeps the relative indentation it had in the fence, shifted to the four
+    spaces a reST directive body sits at. A blank line separates the content
+    from what precedes it, as reST requires, and another closes the directive.
     """
     header = f"{indent}.. {directive}::"
     if argument:
         header += f" {argument}"
 
     body_indent = indent + "    "
-    converted_lines: list[str] = []
-    for line in body.split("\n"):
+    lines = [header]
+    lines.extend(
+        f"{body_indent}:{key}: {value}" if value else f"{body_indent}:{key}:"
+        for key, value in options.items()
+    )
+    lines.append("")
+    for line in content:
         if line.strip():
             stripped = line.lstrip()
             extra_spaces = len(line) - len(stripped) - len(indent)
-            converted_lines.append(body_indent + " " * max(0, extra_spaces) + stripped)
+            lines.append(body_indent + " " * max(0, extra_spaces) + stripped)
         else:
-            converted_lines.append("")
+            lines.append("")
 
-    return header + "\n\n" + "\n".join(converted_lines) + "\n"
+    return "\n".join(lines) + "\n"
 
 
-def _convert_plain_code_fence(match: re.Match[str]) -> str:
-    """Convert a plain triple-backtick code fence to a reST `code-block`."""
+def _convert_plain_code_fence(lines: list[str], span: FenceSpan) -> str | None:
+    """Convert a plain backtick code fence to a reST `code-block`.
+
+    The blank lines opening the code are dropped. `None` when the fence opens
+    on anything but a language.
+    """
+    head = _PLAIN_HEAD_RE.match(lines[span.start])
+    if head is None:
+        return None
+    code = lines[span.body]
+    first = next((index for index, line in enumerate(code) if line.strip()), len(code))
     return _rst_directive(
-        match.group(1), "code-block", match.group(2) or "", match.group(3)
+        head.group("indent"),
+        "code-block",
+        head.group("language") or "",
+        {},
+        [*code[first:], ""],
     )
 
 
-def _convert_fence(match: re.Match[str]) -> str:
-    """Convert a single fenced directive, colon or backtick, to reST."""
+def _convert_fence(lines: list[str], span: FenceSpan) -> str | None:
+    """Convert a single fenced directive, colon or backtick, to reST.
+
+    Leading `:key: value` lines of the body are the directive's options, as
+    MyST reads them. `None` when the fence opens on no directive.
+    """
+    head = _DIRECTIVE_HEAD_RE.match(lines[span.start])
+    if head is None:
+        return None
+    options, content = split_options([*lines[span.body], ""])
     return _rst_directive(
-        match.group(1), match.group(2), match.group(3).strip(), match.group(4)
+        head.group("indent"),
+        head.group("directive"),
+        head.group("argument").strip(),
+        options,
+        content,
     )
+
+
+def _convert_fences(
+    text: str,
+    chars: str,
+    convert: Callable[[list[str], FenceSpan], str | None],
+) -> str:
+    """Replace each top-level fence of `chars` in `text` that `convert` turns to reST.
+
+    The reST takes the place of the fence and of the blank lines after it: it
+    ends on the one blank line reST wants after a directive. A fence left
+    unclosed is not converted.
+    """
+    lines = text.split("\n")
+    total = len(lines)
+
+    def replace(index: int, span: FenceSpan | None) -> tuple[list[str], int] | None:
+        if span is None or span.close is None:
+            return None
+        rst = convert(lines, span)
+        if rst is None:
+            return None
+        resume = span.end
+        while resume < total and not lines[resume].strip():
+            resume += 1
+        return rst.split("\n"), resume
+
+    return "\n".join(rewrite_fences(lines, replace, fence_spans(lines, chars=chars)))
+
+
+def _protect_code(lines: list[str], stash: Callable[[str], str]) -> list[str]:
+    """Return `lines` with the code of each code block behind a placeholder.
+
+    A code block is a plain backtick fence, or the fence of a code directive,
+    whose options stay for the fence conversion to read. Each line of code
+    becomes a placeholder behind its indentation, which the fence conversion
+    then shifts like any other body line. The body of a prose directive is
+    prose: only the code blocks nested in it are code.
+    """
+    protected = list(lines)
+    for span in fence_spans(lines, chars="`:").values():
+        head = lines[span.start]
+        directive = _DIRECTIVE_HEAD_RE.match(head)
+        if span.close is None or not (directive or _PLAIN_HEAD_RE.match(head)):
+            continue
+        body = lines[span.body]
+        name = directive.group("directive") if directive else None
+        if name is not None and name not in _CODE_DIRECTIVES:
+            protected[span.body] = _protect_code(body, stash)
+            continue
+        first = span.body.start
+        if name:
+            first += len(body) - len(split_options(body)[1])
+        for index in range(first, span.body.stop):
+            code = lines[index].lstrip()
+            if code:
+                protected[index] = lines[index][: -len(code)] + stash(code)
+    return protected
 
 
 def _double_inline_code(m: re.Match[str]) -> str:
@@ -240,12 +331,9 @@ def myst_to_rst(lines: list[str]) -> None:
     text = "\n".join(lines)
 
     placeholders: dict[str, str] = {}
-    counter = 0
 
     def _stash(value: str) -> str:
-        nonlocal counter
-        key = f"\x00P{counter}\x00"
-        counter += 1
+        key = f"\x00P{len(placeholders)}\x00"
         placeholders[key] = value
         return key
 
@@ -259,56 +347,62 @@ def myst_to_rst(lines: list[str]) -> None:
             return _stash(f"``{m.group(1)}``")
         return _stash(m.group(0))
 
-    # 0. Protect reST double-backtick literals from every following step.
+    # 0. Protect the content of code blocks from every following step. It is
+    # code, so a backtick, a role or a link in it is kept as written.
+    text = "\n".join(_protect_code(text.split("\n"), _stash))
+
+    # 1. Protect reST double-backtick literals from every following step.
     # Their content is verbatim by definition, and a brace-bearing literal
     # abutting its closing backticks (like ``{levelname}:{message}``) would
-    # otherwise be misread by the cross-reference pattern as a {role} with an
+    # otherwise be misread by the cross-reference pattern as a role with an
     # empty target, mangling the literal.
     text = _RST_LITERAL_RE.sub(_save, text)
 
-    # 1. Cross-references: {role}`target` -> {role}`target`.
+    # 2. Cross-references: MyST roles become reST roles.
     text = _XREF_RE.sub(r":\1:`\2`", text)
 
-    # 2. Fenced directives -> reST directives.
+    # 3. Fenced directives -> reST directives.
     # Handles both colon fences (:::) and backtick fences (```).
     # Loop handles nesting (rare in docstrings, but correct).
     prev = None
     while prev != text:
         prev = text
-        text = _COLON_FENCE_RE.sub(_convert_fence, text)
-        text = _BACKTICK_FENCE_RE.sub(_convert_fence, text)
+        text = _convert_fences(text, ":", _convert_fence)
+        text = _convert_fences(text, "`", _convert_fence)
 
-    # 3. Plain code fences -> reST code-block directives.
+    # 4. Plain code fences -> reST code-block directives.
     # Runs after directive fences are consumed so only plain fences remain.
-    text = _PLAIN_CODE_FENCE_RE.sub(_convert_plain_code_fence, text)
+    text = _convert_fences(text, "`", _convert_plain_code_fence)
 
-    # 4. Footnote definitions: [^label]: text -> .. [#label] text.
+    # 5. Footnote definitions: [^label]: text -> .. [#label] text.
     # Runs before inline code so the reST output is not mangled.
     text = _FOOTNOTE_DEF_RE.sub(r".. [#\1] \2", text)
 
-    # 5. Single-backtick inline code -> double-backtick.
-    # Protect reST backtick spans (cross-references from step 1, reST
+    # 6. Single-backtick inline code -> double-backtick.
+    # Protect reST backtick spans (cross-references from step 2, reST
     # hyperlink references in idempotent pass-through, and role-shaped code
     # spans, which are doubled as they are stashed) with placeholders so
     # their backticks are not mistaken for inline code boundaries.
     text = _PROTECTED_RE.sub(_save_protected, text)
     text = _INLINE_CODE_RE.sub(_double_inline_code, text)
 
-    # 6. Footnote references: [^label] -> [#label]_.
+    # 7. Footnote references: [^label] -> [#label]_.
     # Runs after inline code (no backticks involved) and before links so that
     # [^label] is not mistaken for a markdown link with text "^label".
     text = _FOOTNOTE_REF_RE.sub(r"[#\1]_", text)
 
-    # 7. Markdown links -> reST links.
+    # 8. Markdown links -> reST links.
     # Runs after inline code so that the reST links it produces (which use
-    # single backticks: `text <url>`_) are not doubled by step 5.
+    # single backticks: `text <url>`_) are not doubled by step 6.
     # Backticks in link labels are stripped because reST does not support
     # nested markup (inline code inside hyperlinks).  This lets authors write
     # idiomatic MyST like [`sys.platform`](url) and get a clean reST link.
     text = _LINK_RE.sub(_convert_link, text)
 
-    # Restore the spans protected in steps 0 and 5, byte-for-byte.
-    for key, value in placeholders.items():
+    # Restore the protected spans, byte-for-byte. Last in, first out: a span
+    # stashed late can hold the placeholder of one stashed before it, like a
+    # reST literal inside a reST hyperlink reference.
+    for key, value in reversed(placeholders.items()):
         text = text.replace(key, value)
 
     lines[:] = text.split("\n")
@@ -317,25 +411,6 @@ def myst_to_rst(lines: list[str]) -> None:
 def _on_process_docstring(app, what, name, obj, options, lines):
     """`autodoc-process-docstring` event handler."""
     myst_to_rst(lines)
-
-
-_TYPEHINTS_EXT = "sphinx_autodoc_typehints"
-"""Extension whose `autodoc-process-docstring` hook must run after ours.
-
-`sphinx_autodoc_typehints` hooks at default priority 500. We register at 400
-so MyST-to-reST conversion always runs first, regardless of `conf.py`
-ordering. The `setup()` check is a belt-and-suspenders safety net: it catches
-misconfiguration early with a clear message rather than letting it surface as
-garbled backticks in the rendered docs.
-"""
-
-_PRIORITY = 400
-"""Event priority for `autodoc-process-docstring`.
-
-Sphinx invokes callbacks in ascending priority order. The default is 500.
-We use 400 to guarantee MyST-to-reST conversion runs before any extension
-that injects reST markup into docstrings (like `sphinx_autodoc_typehints`).
-"""
 
 
 def setup(app):
@@ -349,7 +424,7 @@ def setup(app):
             f"click_extra.sphinx.myst_docstrings must be listed before"
             f" {_TYPEHINTS_EXT} in conf.py extensions."
             f" Both hook autodoc-process-docstring; while priority"
-            f" ordering (400 vs 500) handles execution order,"
+            f" ordering ({_PRIORITY} vs 500) handles execution order,"
             f" listing myst_docstrings first makes the intent explicit."
         )
         raise ExtensionError(msg)

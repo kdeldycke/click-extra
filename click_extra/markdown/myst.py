@@ -13,20 +13,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Convert reST docstrings to MyST in Python source files.
+"""Convert reST to MyST: the docstrings of Python sources, and `sphinx-apidoc` pages.
 
-Transforms reST markup in docstrings and comments to MyST markdown.  The
-companion Sphinx extension {mod}`click_extra.sphinx.myst_docstrings` converts
-the MyST back to reST at build time, so `sphinx.ext.autodoc` still works.
+{func}`convert_source` transforms the reST markup of docstrings and comments
+to MyST markdown. The companion Sphinx extension
+{mod}`click_extra.sphinx.myst_docstrings` converts the MyST back to reST at
+build time, so `sphinx.ext.autodoc` still works.
 
 Conversions applied (in order):
 
-1. Cross-references: ``:role:`target``` -> ``{role}`target```
-2. Named links: ```text <url>`_` -> `[text](url)``
-3. Inline code: ````code```` -> ```code```
+1. Cross-references: a reST role, its name between colons, becomes a MyST
+   role, its name in braces.
+2. Named links: a reST hyperlink embedding its URL becomes a Markdown link.
+3. Inline code: double-backtick literals become single-backtick code spans.
 4. `#:` comment blocks: strip prefix, convert directives, re-wrap.
-5. Directives: `.. directive::` + indented body -> ```` ```{directive} ```` /
-   ```` ``` ````
+5. Directives: a reST directive and its indented body become a backtick
+   directive fence.
 
 Only docstrings (bare string-expression statements, located with {mod}`ast`)
 and comments (located with {mod}`tokenize`) are transformed.  String
@@ -58,71 +60,45 @@ converting back to reST.
 ```
 
 ```{note}
-**Link labels lose backticks**: ``[`sys.platform`](url)`` is valid MyST
-but reST has no nested markup.  The hook strips backticks from labels
-before emitting the reST link.
+**Link labels lose backticks**: reST has no nested markup, so the hook drops
+the backticks of a code span in a link label before emitting the reST link.
 ```
+
+{func}`convert_apidoc_rst_to_myst` handles only the narrow reST subset that
+`sphinx-apidoc` generates: section headings (title + underline), `automodule`
+directives with indented options, and structural headers like `Submodules`.
+
+```{note}
+Autodoc directives cannot be used as native MyST directives because they
+perform internal rST nested parsing that requires an rST parser context
+only ``{eval-rst}`` provides. See [MyST-Parser #587](https://github.com/executablebooks/MyST-Parser/issues/587).
+```
+
+The patterns are compiled on first use, through the cache of {mod}`re`.
 """
 
 from __future__ import annotations
 
 import ast
 import io
+import logging
 import re
 import tokenize
 from pathlib import Path
 
-from .blocks import fence_spans
-from .prebake import entry_point_package, locate_package_root, read_project_scripts
+from .blocks import rewrite_fences, rewrite_file, walk_fences
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from .blocks import FenceSpan
 
-
-def detect_source_package(pyproject_path: Path | None = None) -> Path:
-    """Locate the project's single source package from its script entry points.
-
-    Reads the console scripts the project declares, through
-    {func}`~click_extra.prebake.read_project_scripts`, and derives the top-level
-    package of each entry point target (`"pkg.cli:main"` gives `pkg`), so the
-    `convert-to-myst` command can run bare from a project root. The package is
-    located under the project root or its `src/` folder, see
-    {func}`~click_extra.prebake.locate_package_root`.
-
-    :param pyproject_path: Path of the `pyproject.toml` to inspect. Defaults
-        to the one in the current working directory.
-    :return: Path of the single detected package directory.
-    :raises ValueError: When `pyproject.toml` is missing, the project declares
-        no script entry point, or several distinct packages are detected.
-    """
-    if pyproject_path is None:
-        pyproject_path = Path("pyproject.toml")
-    if not pyproject_path.is_file():
-        raise ValueError(f"No pyproject.toml found at {pyproject_path}.")
-
-    scripts = read_project_scripts(pyproject_path.parent)
-    source_dirs = {entry_point_package(target) for target in scripts.values()}
-
-    if not source_dirs:
-        raise ValueError(
-            "Cannot auto-detect the source directory: no console script in"
-            " pyproject.toml or setup.cfg. Specify a directory argument."
-        )
-    if len(source_dirs) > 1:
-        raise ValueError(
-            f"Multiple source packages detected: {', '.join(sorted(source_dirs))}."
-            " Specify a directory argument."
-        )
-    package = source_dirs.pop()
-    root = locate_package_root(pyproject_path.parent, package) or pyproject_path.parent
-    return root / package
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# 1. Cross-references
+# Cross-references
 # ---------------------------------------------------------------------------
-# {role}`target` -> {role}`target`
+# A reST role becomes a MyST role: its colon-wrapped name moves into braces.
 # Exclude targets containing { so interpolation placeholders are untouched.
 # The lookbehind rejects role-shaped text preceded by a backtick or a word
 # character.  A backtick means the text sits inside a code span: in prose
@@ -134,43 +110,48 @@ def detect_source_package(pyproject_path: Path | None = None) -> Path:
 # reST entirely, which the build-time extension passes through unchanged.
 # reST forbids inline markup directly after either character, so no
 # legitimate cross-reference is lost.
-XREF_RE = re.compile(r"(?<![\w`]):(\w+):`([^`{]*?)`")
+_XREF_PATTERN = r"(?<![\w`]):(\w+):`([^`{]*?)`"
 
 
 def convert_xrefs(text: str) -> str:
     """Convert reST cross-references to MyST syntax."""
-    return XREF_RE.sub(r"{\1}`\2`", text)
+    return re.sub(_XREF_PATTERN, r"{\1}`\2`", text)
 
 
 # ---------------------------------------------------------------------------
-# 2. Named links
+# Named links
 # ---------------------------------------------------------------------------
-# `text <url>`_ -> [text](url)     (may span lines)
-LINK_RE = re.compile(r"`([^`]+?)\s+<(https?://[^>]+)>`_", re.DOTALL)
+# A reST hyperlink embedding its URL becomes a Markdown link. Its text may wrap
+# over several lines.
+_LINK_PATTERN = r"`([^`]+?)\s+<(https?://[^>]+)>`_"
 
 
-def _link_replacer(m: re.Match) -> str:
+def _link_replacer(m: re.Match[str]) -> str:
     """Collapse internal whitespace (handles multi-line reST links)."""
-    text = re.sub(r"\s+", " ", m.group(1).strip())
-    url = m.group(2)
-    return f"[{text}]({url})"
+    return f"[{' '.join(m.group(1).split())}]({m.group(2)})"
 
 
 def convert_links(text: str) -> str:
     """Convert reST named hyperlinks to markdown links."""
-    return LINK_RE.sub(_link_replacer, text)
+    return re.sub(_LINK_PATTERN, _link_replacer, text)
 
 
 # ---------------------------------------------------------------------------
-# 3. Inline code:  `code`  ->  `code`
+# Inline code: double-backtick literals become single-backtick code spans
 # ---------------------------------------------------------------------------
+# A reST literal on a single line, its content captured. The lookarounds pin
+# the match to exactly two backticks on each side, so triple-backtick fence
+# lines and longer backtick runs are never mistaken for literal delimiters.
+# Both directions read reST literals through this one pattern: this module
+# halves their backticks, and `click_extra.sphinx.myst_docstrings` keeps them
+# verbatim.
 # Matches every well-formed double-backtick literal; the halving decision is
 # made in the replacement callback.  Matching brace-bearing literals too
 # (instead of excluding them from the pattern) is what consumes each literal
 # atomically in the left-to-right scan: an excluded literal would leave its
 # delimiters open for a later match to pair a closing `` with the next
 # literal's opening ``, halving backticks across the gap between them.
-DOUBLE_BACKTICK_RE = re.compile(r"(?<!`)``(?!`)([^`\n]+?)``(?!`)")
+_RST_LITERAL_PATTERN = r"(?<!`)``(?!`)([^`\n]+?)``(?!`)"
 
 
 def _halve_backticks(m: re.Match[str]) -> str:
@@ -188,19 +169,13 @@ def _halve_backticks(m: re.Match[str]) -> str:
 
 def convert_inline_code(text: str) -> str:
     """Convert reST double-backtick literals to single-backtick."""
-    return DOUBLE_BACKTICK_RE.sub(_halve_backticks, text)
+    return re.sub(_RST_LITERAL_PATTERN, _halve_backticks, text)
 
 
 # ---------------------------------------------------------------------------
-# 4. Directives  (.. name:: arg  +  indented body)
+# Directives  (.. name:: arg  +  indented body)
 # ---------------------------------------------------------------------------
-DIRECTIVE_RE = re.compile(r"^(\s*)\.\. ([\w-]+)::\s*(.*)")
-
-
-def _fence_end(lines: list[str], span: FenceSpan) -> int:
-    """Index just past the fence `span` covers, which is the text's end when
-    the fence never closes."""
-    return len(lines) if span.close is None else span.close + 1
+_DIRECTIVE_PATTERN = r"^(\s*)\.\. ([\w-]+)::\s*(.*)"
 
 
 def convert_directives(text: str) -> str:
@@ -216,34 +191,31 @@ def convert_directives(text: str) -> str:
 
     A directive whose body contains a triple-backtick fence is left in reST
     entirely: converting it would produce two same-level fences that
-    markdown cannot tell apart, and a longer outer fence is no better since
-    the build-time hook only recognizes triple-backtick fences.
+    markdown cannot tell apart.
 
     Symmetrically, existing fences are opaque: a reST directive *inside* a
     fence body is exactly what a previous conversion of nested directives
     produces (the inner one stays reST by design), so re-scanning it would
     break idempotency and nest same-level fences.
+
+    ```{todo}
+    Convert a directive whose body holds a fence to a longer outer fence,
+    instead of leaving it in reST: the build-time extension
+    {mod}`click_extra.sphinx.myst_docstrings` reads fences of any length.
+    ```
     """
+    directive_re = re.compile(_DIRECTIVE_PATTERN)
     lines = text.split("\n")
-    spans = fence_spans(lines)
-    result: list[str] = []
-    i = 0
 
-    while i < len(lines):
+    def convert(i: int, span: FenceSpan | None) -> tuple[list[str], int] | None:
         # Emit fences and their interiors verbatim.
-        span = spans.get(i)
         if span is not None:
-            end = _fence_end(lines, span)
-            result.extend(lines[i:end])
-            i = end
-            continue
+            return None
 
-        m = DIRECTIVE_RE.match(lines[i])
+        m = directive_re.match(lines[i])
 
         if not m:
-            result.append(lines[i])
-            i += 1
-            continue
+            return None
 
         indent = m.group(1)
         directive = m.group(2)
@@ -276,8 +248,7 @@ def convert_directives(text: str) -> str:
 
         # Fenced body: emit the whole directive segment verbatim.
         if any(bl.lstrip().startswith("```") for bl in body):
-            result.extend(lines[segment_start:i])
-            continue
+            return lines[segment_start:i], i
 
         # Trim trailing blanks but count them so we can re-emit one as
         # a separator between consecutive directives or paragraphs.
@@ -290,7 +261,7 @@ def convert_directives(text: str) -> str:
         fence = f"{indent}```{{{directive}}}"
         if argument:
             fence += f" {argument}"
-        result.append(fence)
+        result = [fence]
 
         # Dedent body to fence indent level.
         dedent_n = (body_indent - directive_col) if body_indent else 0
@@ -309,11 +280,13 @@ def convert_directives(text: str) -> str:
         if trailing_blanks:
             result.append("")
 
-    return "\n".join(result)
+        return result, i
+
+    return "\n".join(rewrite_fences(lines, convert))
 
 
 # ---------------------------------------------------------------------------
-# 5. #: comment blocks  (strip prefix, convert, re-wrap)
+# #: comment blocks  (strip prefix, convert, re-wrap)
 # ---------------------------------------------------------------------------
 
 
@@ -412,7 +385,6 @@ def _convert_inline_outside_fences(block: str) -> str:
     multi-line constructs (like wrapped reST links) still match.
     """
     lines = block.split("\n")
-    spans = fence_spans(lines)
     result: list[str] = []
     outside: list[str] = []
 
@@ -421,17 +393,12 @@ def _convert_inline_outside_fences(block: str) -> str:
             result.extend(_convert_inline("\n".join(outside)).split("\n"))
             outside.clear()
 
-    i = 0
-    while i < len(lines):
-        span = spans.get(i)
+    for index, span in walk_fences(lines):
         if span is None:
-            outside.append(lines[i])
-            i += 1
+            outside.append(lines[index])
             continue
         _flush()
-        end = _fence_end(lines, span)
-        result.extend(lines[i:end])
-        i = end
+        result.extend(lines[index : span.end])
     _flush()
     return "\n".join(result)
 
@@ -444,7 +411,7 @@ def convert_source(source: str) -> str:
     so that directive bodies are already converted when they are dedented
     into fences.  Comments get the inline conversions only, except
     consecutive full-line `#:` comments, whose directives are also converted
-    through {func}`~click_extra.myst_converter.convert_comment_blocks`.
+    through {func}`~click_extra.markdown.myst.convert_comment_blocks`.
     Everything outside docstrings and comments passes through byte-for-byte.
     """
     docstrings = _docstring_spans(source)
@@ -497,15 +464,10 @@ def convert_source(source: str) -> str:
 def convert_file(filepath: Path) -> bool:
     """Apply all conversions to a single Python file.
 
-    Returns `True` if the file was modified.
+    :param filepath: The Python file to convert in place.
+    :return: `True` if the file was modified.
     """
-    original = filepath.read_text(encoding="utf-8")
-    converted = convert_source(original)
-
-    if converted != original:
-        filepath.write_text(converted, encoding="utf-8")
-        return True
-    return False
+    return rewrite_file(filepath, convert_source)
 
 
 def convert_directory(directory: Path) -> list[Path]:
@@ -514,9 +476,127 @@ def convert_directory(directory: Path) -> list[Path]:
     :param directory: Directory to process recursively.
     :return: List of files that were modified.
     """
-    changed: list[Path] = [
-        filepath
-        for filepath in sorted(directory.glob("**/*.py"))
-        if convert_file(filepath)
-    ]
-    return changed
+    return [path for path in sorted(directory.rglob("*.py")) if convert_file(path)]
+
+
+# ---------------------------------------------------------------------------
+# sphinx-apidoc pages
+# ---------------------------------------------------------------------------
+
+_RST_UNDERLINE_LEVELS: dict[str, str] = {
+    "=": "#",
+    "-": "##",
+    "~": "###",
+    "^": "####",
+}
+"""RST underline characters mapped to Markdown heading levels."""
+
+
+def _clean_heading(title: str) -> str:
+    r"""Normalize an RST heading for markdown.
+
+    Strips RST-specific backslash escapes (like the `\_` preventing reference
+    interpretation) and wraps qualified Python identifiers in backticks so they
+    render as code.
+
+    ```{note}
+    `sphinx-apidoc` produces headings like
+    `weather\_station\_manager.managers.apm module`.  The backslash
+    escapes are necessary in RST but meaningless in markdown, where they
+    cause a tug-of-war with `mdformat` (which strips them on every
+    reformat pass).  Wrapping the identifier in backticks makes the
+    escaping moot and produces cleaner output.
+    ```
+    """
+    # Strip RST backslash-escapes, the one before an underscore.
+    title = title.replace("\\_", "_")
+    # Wrap Python identifiers in backticks when followed by "module" or "package".
+    return re.sub(r"^([\w.]+) (module|package)$", r"`\1` \2", title)
+
+
+def convert_apidoc_rst_to_myst(content: str) -> str:
+    """Convert `sphinx-apidoc` RST to MyST markdown with ``{eval-rst}`` blocks.
+
+    :param content: RST content produced by `sphinx-apidoc`.
+    :return: Equivalent MyST markdown.
+    """
+    lines = content.splitlines()
+    result: list[str] = []
+    i = 0
+
+    while i < len(lines):
+        # Section header: a text line followed by a line of identical underline chars.
+        underline = lines[i + 1] if i + 1 < len(lines) else ""
+        level = _RST_UNDERLINE_LEVELS.get(underline[:1])
+        if level and underline == underline[0] * len(underline):
+            result.append(f"{level} {_clean_heading(lines[i])}")
+            i += 2
+            continue
+
+        # Directive block: starts with ".. directive::" and includes indented body.
+        if lines[i].startswith(".. "):
+            block = [lines[i]]
+            i += 1
+            while i < len(lines):
+                if lines[i].startswith("   "):
+                    block.append(lines[i])
+                    i += 1
+                elif not lines[i].strip():
+                    # Blank line: include if the next line is still indented.
+                    if i + 1 < len(lines) and lines[i + 1].startswith("   "):
+                        block.append(lines[i])
+                        i += 1
+                    else:
+                        break
+                else:
+                    break
+            result.append("```{eval-rst}")
+            result.extend(block)
+            result.append("```")
+            continue
+
+        result.append(lines[i])
+        i += 1
+
+    return "\n".join(result) + "\n"
+
+
+def convert_rst_files_in_directory(directory: Path) -> list[Path]:
+    """Convert `sphinx-apidoc` RST files to MyST markdown in the given directory.
+
+    For each `.rst` file containing `.. automodule::` directives:
+
+    - If a `.md` file with the same stem exists, delete the `.rst` (the
+      existing markdown takes precedence).
+    - Otherwise, convert the RST content to MyST and write a `.md` file,
+      then delete the `.rst`.
+
+    :param directory: Directory to scan for `.rst` files.
+    :return: List of newly created `.md` file paths.
+    """
+    converted: list[Path] = []
+
+    for rst_path in sorted(directory.glob("*.rst")):
+        content = rst_path.read_text(encoding="UTF-8")
+
+        # Only process files that contain automodule directives (sphinx-apidoc stubs).
+        if ".. automodule::" not in content:
+            logger.debug("Skipping %s: no automodule directive found.", rst_path.name)
+            continue
+
+        md_path = rst_path.with_suffix(".md")
+
+        if md_path.exists():
+            logger.info(
+                "Deleting %s: MyST equivalent %s exists.", rst_path.name, md_path.name
+            )
+            rst_path.unlink()
+            continue
+
+        myst_content = convert_apidoc_rst_to_myst(content)
+        md_path.write_text(myst_content, encoding="UTF-8")
+        rst_path.unlink()
+        converted.append(md_path)
+        logger.info("Converted %s to %s", rst_path.name, md_path.name)
+
+    return converted

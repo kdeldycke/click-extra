@@ -18,14 +18,18 @@
 
 from __future__ import annotations
 
+import ast
 import logging
+import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from textwrap import dedent
 from types import SimpleNamespace
 
 import click
 import pytest
 
+import click_extra
 from click_extra import (
     ConfigOption,
     config_option,
@@ -39,13 +43,23 @@ from click_extra import (
 )
 from click_extra.config import (
     CONFIG_PATH_METADATA_KEY,
+    ConfigValidator,
     field_docstrings,
     flatten_config_keys,
     get_tool_config,
     normalize_config_keys,
+    run_config_validation,
     schema_field_infos,
 )
-from click_extra.config.schema import _collect_opaque_paths_from_schema
+from click_extra.config.schema import (
+    _collect_opaque_paths_from_schema,
+    _schema_keys,
+    _select_app_section,
+)
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any
 
 # --- config_schema and fallback_sections tests ---
 
@@ -56,6 +70,12 @@ def test_normalize_config_keys():
     assert normalize_config_keys({"a-b": {"c-d": 2}}) == {"a_b": {"c_d": 2}}
     # Keys without hyphens are unchanged.
     assert normalize_config_keys({"snake_case": 3}) == {"snake_case": 3}
+
+
+def test_normalize_config_keys_keeps_a_key_that_is_not_a_string():
+    """YAML reads `1:` as a number: such a key has no hyphen to replace."""
+    conf: dict[Any, Any] = {1: "x", "a-b": {2: "y"}}
+    assert normalize_config_keys(conf) == {1: "x", "a_b": {2: "y"}}
 
 
 def test_config_schema_dataclass(invoke, create_config):
@@ -119,7 +139,7 @@ def test_config_schema_cascade(invoke, tmp_path, monkeypatch):
 
     # The local file sets one schema field, the parent the other.
     (app_dir / "config.toml").write_text(
-        '[schema-cascade-cli]\nextra-stuff = "from_local"\n', encoding="utf-8"
+        '[schema-cascade-cli]\nextra-stuff = "from_local"\n', encoding="UTF-8"
     )
     (tmp_path / "config.toml").write_text(
         dedent(
@@ -129,7 +149,7 @@ def test_config_schema_cascade(invoke, tmp_path, monkeypatch):
             other-stuff = "parent_other"
             """
         ),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
 
     @group(config_schema=AppConfig)
@@ -273,6 +293,30 @@ def test_fallback_sections(invoke, create_config):
     assert result.exit_code == 0
     assert "value is 'from_legacy'" in result.stdout
     assert "deprecated" in result.stderr.lower()
+
+
+def test_fallback_section_warns_once(invoke, create_config):
+    """A legacy section loaded with its themes is reported once, not per reader."""
+
+    @group(fallback_sections=("old-name",))
+    def legacy_cli():
+        echo("ok")
+
+    @legacy_cli.command()
+    def subcommand():
+        echo("ok")
+
+    conf_path = create_config(
+        "legacy.toml",
+        dedent("""\
+            [old-name.themes.dusk]
+            option = { fg = "bright_cyan" }
+            """),
+    )
+
+    result = invoke(legacy_cli, "--config", str(conf_path), "subcommand", color=False)
+    assert result.exit_code == 0
+    assert result.stderr.count("Config section [old-name] is deprecated") == 1
 
 
 def test_fallback_sections_prefers_current(invoke, create_config):
@@ -658,6 +702,66 @@ def test_config_schema_lax_warns_unknown_when_schema_only(invoke, create_config)
     assert "known_field is 'good'" in result.stdout
 
 
+SCHEMA_ONLY_CONF = dedent("""\
+    [schema-only-cli]
+    known-field = "good"
+    typo-field = "oops"
+    """)
+"""A schema-only section, holding one key its schema does not know."""
+
+
+@dataclass
+class SchemaOnlyConfig:
+    known_field: str = "default"
+
+
+def _schema_only_cli():
+    """A group reading its section through `SchemaOnlyConfig` alone, in strict mode.
+
+    `included_params=()` merges no parameter from the section.
+    """
+
+    @group(config_schema=SchemaOnlyConfig, included_params=(), config_strict=True)
+    @pass_context
+    def schema_only_cli(ctx):
+        echo(f"known_field is {get_tool_config(ctx).known_field!r}")
+
+    @schema_only_cli.command()
+    def subcommand():
+        echo("ok")
+
+    return schema_only_cli
+
+
+def test_schema_only_section_loads_in_strict_mode(invoke, create_config):
+    """The CLI-parameter strict check leaves a schema-only section to the schema.
+
+    No parameter is read from it, so the schema alone reports the key it does not
+    know, which lax mode only warns about.
+    """
+    conf_path = create_config("schema_only.toml", SCHEMA_ONLY_CONF)
+    result = invoke(
+        _schema_only_cli(), "--config", str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert "known_field is 'good'" in result.stdout
+    assert "typo_field" in result.stderr
+
+
+def test_validate_config_warns_unknown_when_schema_only(invoke, create_config):
+    """`--validate-config` accepts a schema-only section, naming its unknown key.
+
+    The file stays valid, as it loads: lax mode only warns.
+    """
+    conf_path = create_config("schema_only.toml", SCHEMA_ONLY_CONF)
+    result = invoke(
+        _schema_only_cli(), "--validate-config", str(conf_path), color=False
+    )
+    assert result.exit_code == 0
+    assert "typo_field" in result.stderr
+    assert f"Configuration file {conf_path} is valid." in result.stderr
+
+
 def test_config_schema_lax_silent_when_params_merged(invoke, create_config):
     """Without ``included_params=()``, lax mode stays silent on unknown keys.
 
@@ -692,6 +796,138 @@ def test_config_schema_lax_silent_when_params_merged(invoke, create_config):
     assert result.exit_code == 0
     assert "typo_field" not in result.stderr
     assert "known_field is 'good'" in result.stdout
+
+
+@dataclass
+class MixedNestedConfig:
+    depth: int = 0
+
+
+@dataclass
+class MixedConfig:
+    extra_stuff: str = ""
+    nested: MixedNestedConfig = field(default_factory=MixedNestedConfig)
+    sub_section_key: int = 0
+
+
+MIXED_CONF = dedent("""\
+    [mixed-cli]
+    fruit = "plum"
+    extra-stuff = "x"
+
+    [mixed-cli.nested]
+    depth = 3
+
+    [mixed-cli.sub-section]
+    key = 2
+    """)
+"""A section mixing the `--fruit` parameter with the fields of `MixedConfig`.
+
+Each field takes a shape a schema reads: a scalar, a nested dataclass table, and a
+table flattened into a field name.
+"""
+
+
+def _mixed_cli(**kwargs):
+    """A group reading its section through both `--fruit` and `MixedConfig`."""
+
+    @group(config_schema=MixedConfig, **kwargs)
+    @option("--fruit", default="apple")
+    @pass_context
+    def mixed_cli(ctx, fruit):
+        config = get_tool_config(ctx)
+        echo(
+            f"fruit={fruit} extra_stuff={config.extra_stuff} "
+            f"depth={config.nested.depth} key={config.sub_section_key}"
+        )
+
+    @mixed_cli.command()
+    def subcommand():
+        echo("ok")
+
+    return mixed_cli
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "args", "expected"),
+    (
+        pytest.param(
+            {},
+            ("--validate-config",),
+            "is valid.",
+            id="validate-config",
+        ),
+        pytest.param(
+            {"config_strict": True},
+            ("--config",),
+            "fruit=plum extra_stuff=x depth=3 key=2",
+            id="config-strict",
+        ),
+    ),
+)
+def test_strict_check_leaves_schema_keys_to_the_schema(
+    invoke, create_config, kwargs, args, expected
+):
+    """The CLI-parameter strict check accepts the keys the dataclass schema reads.
+
+    `--validate-config` always runs the check, and `config_strict=True` runs it as
+    the file loads.
+    """
+    conf_path = create_config("mixed.toml", MIXED_CONF)
+    result = invoke(
+        _mixed_cli(**kwargs), *args, str(conf_path), "subcommand", color=False
+    )
+    assert result.exit_code == 0
+    assert expected in result.output
+    assert "Unknown configuration key" not in result.stderr
+
+
+def test_strict_check_rejects_a_key_neither_reads(invoke, create_config):
+    """A key matching neither a parameter nor a schema field stays an error."""
+    conf_path = create_config(
+        "mixed.toml", MIXED_CONF.replace('fruit = "plum"', 'fruit = "plum"\nkiwi = 1')
+    )
+    result = invoke(_mixed_cli(), "--validate-config", str(conf_path), color=False)
+    assert result.exit_code == 1
+    assert "Unknown configuration key 'kiwi'." in result.stderr
+    assert "extra-stuff" not in result.stderr
+
+
+@dataclass
+class PinnedConfig:
+    extra_stuff: str = ""
+    nested: MixedNestedConfig = field(default_factory=MixedNestedConfig)
+    sub_section_key: int = 0
+    pinned: dict = field(
+        default_factory=dict, metadata={CONFIG_PATH_METADATA_KEY: "deep.pinned"}
+    )
+    axes: dict[str, str] = field(default_factory=dict)
+
+
+@pytest.mark.parametrize(
+    ("section", "expected"),
+    (
+        pytest.param({"extra-stuff": "x"}, {"extra-stuff"}, id="scalar"),
+        pytest.param({"extra_stuff": "x"}, {"extra_stuff"}, id="snake-case"),
+        pytest.param({"nested": {"depth": 3}}, {"nested"}, id="nested-dataclass"),
+        pytest.param({"sub-section": {"key": 2}}, {"sub-section"}, id="flattened"),
+        pytest.param(
+            {"sub-section": {"key": 2, "kiwi": 1}}, set(), id="flattened-with-stray"
+        ),
+        pytest.param({"deep": {"pinned": {"a": 1}}}, {"deep"}, id="pinned-path"),
+        pytest.param({"deep": {"pinned": {}, "kiwi": 1}}, set(), id="pinned-and-stray"),
+        pytest.param({"axes": {"python-version": "3.14"}}, {"axes"}, id="mapping"),
+        pytest.param({"fruit": "plum", 1: "x"}, set(), id="unknown"),
+    ),
+)
+def test_schema_keys(section, expected):
+    """`_schema_keys` returns the keys of a section the dataclass reads in full."""
+    assert _schema_keys(section, PinnedConfig) == expected
+
+
+def test_schema_keys_of_a_callable_schema():
+    """A callable schema does not tell which keys it reads."""
+    assert _schema_keys({"extra-stuff": "x"}, SimpleNamespace) == frozenset()
 
 
 def test_make_schema_callable_warn_unknown(caplog):
@@ -2020,6 +2256,59 @@ def test_run_config_validation_no_schema_no_template():
     assert report.opaque_subtrees == {}
 
 
+def test_select_app_section_of_an_empty_app_name_is_the_document():
+    """An empty app name reads the whole document as the section.
+
+    `_rooted_path` and `_scope_app_sections` already read it that way.
+    """
+    conf = {"extra-stuff": "x", "": {"depth": 3}}
+    assert _select_app_section(conf, "") is conf
+
+
+def test_run_config_validation_of_an_empty_app_name():
+    """An empty app name feeds the whole document to the schema and validators."""
+    seen: list[dict] = []
+
+    report = run_config_validation(
+        {"extra-stuff": "x", "nested": {"depth": 3}, "axes": {"os": "linux"}},
+        app_name="",
+        params_template=None,
+        config_schema=PinnedConfig,
+        config_validators=(
+            ConfigValidator(extension_path="axes", validator=seen.append),
+        ),
+    )
+    assert report.ok
+    assert report.schema_instance == PinnedConfig(
+        extra_stuff="x", nested=MixedNestedConfig(depth=3), axes={"os": "linux"}
+    )
+    assert report.opaque_subtrees == {"axes": {"os": "linux"}}
+    assert seen == [{"os": "linux"}]
+
+
+def test_run_config_validation_reports_a_key_that_is_not_a_string():
+    """A key YAML reads as a number is an invalid key to the strict check, and an
+    unknown option to a strict schema, never a crash."""
+    report = run_config_validation(
+        {"my-cli": {"verbose": True, 1: "x"}},
+        app_name="my-cli",
+        params_template={"my-cli": {"verbose": None}},
+        config_schema=MixedConfig,
+        schema_strict=True,
+        strict=True,
+    )
+    assert [(e.code, e.message) for e in report.errors] == [
+        ("invalid_key", "Configuration key 1 is not a string."),
+        (
+            "schema_error",
+            (
+                "Unknown configuration option(s): 1, verbose. Valid options: "
+                "extra_stuff, nested, sub_section_key"
+            ),
+        ),
+    ]
+
+
 def test_make_schema_callable_coerces_dict_to_dataclass():
     """The public make_schema_callable turns a raw config dict into a dataclass."""
 
@@ -2166,3 +2455,33 @@ def test_schema_field_infos_rejects_non_dataclass():
         schema_field_infos(str)
     with pytest.raises(TypeError, match="must be a dataclass type"):
         schema_field_infos(42)  # type: ignore[arg-type]
+
+
+def test_validation_codes_are_snake_case():
+    """Every code Click Extra raises a `ValidationError` with is in snake case.
+
+    Scans the source of the package for the `code` of each `ValidationError` it
+    builds, so a new check cannot bring another spelling back.
+    """
+    package = Path(click_extra.__file__).parent
+    codes = {}
+    for path in sorted(package.rglob("*.py")):
+        for node in ast.walk(ast.parse(path.read_text(encoding="UTF-8"))):
+            if not isinstance(node, ast.Call):
+                continue
+            callee = getattr(node.func, "id", getattr(node.func, "attr", None))
+            if callee != "ValidationError":
+                continue
+            code = next((kw.value for kw in node.keywords if kw.arg == "code"), None)
+            if code is None and len(node.args) > 2:
+                code = node.args[2]
+            if isinstance(code, ast.Constant) and isinstance(code.value, str):
+                codes[f"{path.name}:{node.lineno}"] = code.value
+    # The scan sees the codes of both the schema checks and the theme validator.
+    assert {"invalid_key", "unknown_parameter", "schema_error"} <= set(codes.values())
+    assert {"invalid_theme", "invalid_theme_shape"} <= set(codes.values())
+    assert {
+        where: code
+        for where, code in codes.items()
+        if not re.fullmatch(r"[a-z]+(?:_[a-z]+)*", code)
+    } == {}

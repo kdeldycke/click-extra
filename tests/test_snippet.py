@@ -14,7 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Tests for `click_extra.snippet`.
+"""Tests for `click_extra.capture.snippet`.
 
 A snippet rides the screenshot renderer, so this module tests the step that is
 new: the colors a Pygments style hands over, and the shape of the text it hands
@@ -25,6 +25,7 @@ them on. What the renderer then does with that text is covered by
 from __future__ import annotations
 
 import re
+import shlex
 from functools import partial
 
 import pytest
@@ -32,19 +33,17 @@ from click import Command, Option, unstyle
 from pygments.styles import get_style_by_name
 from pygments.token import Token
 
-from click_extra.cli_capture import capture_options, screenshot_cmd, snippet_cmd
-from click_extra.screenshot import (
+from click_extra.capture.presets import (
+    CAPTURE_PALETTES,
+    PRESETS,
+    Chrome,
+)
+from click_extra.capture.screenshot import (
     AUTO_COLUMNS,
     DEFAULT_COLUMNS,
     CaptureFormat,
-    Chrome,
 )
-from click_extra.screenshot_presets import (
-    CAPTURE_PALETTES,
-    PRESETS,
-    CaptureBackground,
-)
-from click_extra.snippet import (
+from click_extra.capture.snippet import (
     DEFAULT_SYNTAX_STYLES,
     TAB_WIDTH,
     highlight_code,
@@ -54,6 +53,13 @@ from click_extra.snippet import (
     resolve_style,
     style_palette,
 )
+from click_extra.cli_capture import (
+    SNIPPET_EPILOG,
+    capture_options,
+    screenshot_cmd,
+    snippet_cmd,
+)
+from click_extra.color import TerminalBackground
 from click_extra.styling import split_ansi
 
 from .test_screenshots import svg_to_lines
@@ -72,7 +78,7 @@ def window_paint(svg: str) -> str:
     return match["paint"]
 
 
-@pytest.mark.parametrize("background", CaptureBackground)
+@pytest.mark.parametrize("background", TerminalBackground)
 def test_snippet_wears_the_style_background(background):
     """The window is painted the background the syntax style was designed for.
 
@@ -107,7 +113,7 @@ def test_every_style_paints_a_readable_window(style):
     attributes a style is free to leave unset, and the fallback for each has to
     hold across the whole catalog.
     """
-    palette = style_palette(style, CaptureBackground.DARK)
+    palette = style_palette(style, TerminalBackground.DARK)
     assert re.fullmatch(r"#[0-9a-fA-F]{6}", palette.background)
     assert re.fullmatch(r"#[0-9a-fA-F]{6}", palette.foreground)
     assert palette.background != palette.foreground
@@ -120,7 +126,7 @@ def test_style_without_text_color_keeps_the_chrome_ink():
     ones whose code is meant to be black.
     """
     assert not get_style_by_name("default").style_for_token(Token.Text)["color"]
-    light = style_palette("default", CaptureBackground.LIGHT)
+    light = style_palette("default", TerminalBackground.LIGHT)
     assert light.foreground == "#000000"
 
 
@@ -209,16 +215,16 @@ def test_unknown_language_is_an_error():
 def test_unknown_style_is_an_error():
     """A misspelled style names the ones that exist."""
     with pytest.raises(ValueError, match="not a style Pygments knows"):
-        resolve_style("monokia", CaptureBackground.DARK)
+        resolve_style("monokia", TerminalBackground.DARK)
 
 
-@pytest.mark.parametrize("background", CaptureBackground)
+@pytest.mark.parametrize("background", TerminalBackground)
 def test_style_defaults_to_the_chrome(background):
     """Naming no style takes the one the chrome is drawn for."""
     assert resolve_style(None, background) == DEFAULT_SYNTAX_STYLES[background]
 
 
-@pytest.mark.parametrize("background", CaptureBackground)
+@pytest.mark.parametrize("background", TerminalBackground)
 def test_default_style_sits_close_to_the_capture_chrome(background):
     """The default style's background is a near match for a capture's own.
 
@@ -299,11 +305,11 @@ def test_columns_defaults_differ_by_command():
 def test_snippet_command_writes_a_capture(invoke, tmp_path):
     """The command colors a file and writes the picture where it was told."""
     source = tmp_path / "ripen.py"
-    source.write_text(SAMPLE, encoding="utf-8")
+    source.write_text(SAMPLE, encoding="UTF-8")
     output = tmp_path / "ripen.svg"
     result = invoke(snippet_cmd, ["--output", str(output), str(source)])
     assert result.exit_code == 0
-    assert svg_to_lines(output.read_text(encoding="utf-8")) == SAMPLE.rstrip(
+    assert svg_to_lines(output.read_text(encoding="UTF-8")) == SAMPLE.rstrip(
         "\n"
     ).split("\n")
 
@@ -323,7 +329,7 @@ def test_snippet_command_reads_stdin(invoke, tmp_path):
 def test_snippet_command_rejects_a_fragment_image(invoke, tmp_path):
     """`--fragment` is an HTML notion: an SVG has no page to be pasted into."""
     source = tmp_path / "ripen.py"
-    source.write_text(SAMPLE, encoding="utf-8")
+    source.write_text(SAMPLE, encoding="UTF-8")
     result = invoke(
         snippet_cmd,
         ["--output", str(tmp_path / "ripen.svg"), "--fragment", str(source)],
@@ -335,7 +341,7 @@ def test_snippet_command_rejects_a_fragment_image(invoke, tmp_path):
 def test_snippet_command_reports_an_unknown_language(invoke, tmp_path):
     """A misspelled language is a clean CLI error, not a traceback."""
     source = tmp_path / "ripen.py"
-    source.write_text(SAMPLE, encoding="utf-8")
+    source.write_text(SAMPLE, encoding="UTF-8")
     result = invoke(
         snippet_cmd,
         ["--output", str(tmp_path / "ripen.svg"), "--language", "pythn", str(source)],
@@ -351,7 +357,7 @@ def test_snippet_prints_ansi_to_stdout(invoke, tmp_path):
     the capture was carried in all along.
     """
     source = tmp_path / "ripen.py"
-    source.write_text(SAMPLE, encoding="utf-8")
+    source.write_text(SAMPLE, encoding="UTF-8")
     result = invoke(snippet_cmd, ["--output", "-", "--color=always", str(source)])
     assert result.exit_code == 0
     assert "\x1b[38;2;" in result.stdout
@@ -368,7 +374,7 @@ def test_snippet_stdout_strips_color_when_piped(invoke, tmp_path):
     that captured raw escape sequences would produce a file nobody can read.
     """
     source = tmp_path / "ripen.py"
-    source.write_text(SAMPLE, encoding="utf-8")
+    source.write_text(SAMPLE, encoding="UTF-8")
     result = invoke(snippet_cmd, ["--output", "-", str(source)], color=False)
     assert result.exit_code == 0
     assert "\x1b[" not in result.stdout
@@ -378,7 +384,7 @@ def test_snippet_stdout_strips_color_when_piped(invoke, tmp_path):
 def test_snippet_stdout_closes_on_one_newline(invoke, tmp_path):
     """Exactly one, so the next prompt does not land on the last row."""
     source = tmp_path / "ripen.py"
-    source.write_text(SAMPLE, encoding="utf-8")
+    source.write_text(SAMPLE, encoding="UTF-8")
     result = invoke(snippet_cmd, ["--output", "-", str(source)], color=False)
     assert result.stdout.endswith("\n")
     assert not result.stdout.endswith("\n\n")
@@ -387,8 +393,39 @@ def test_snippet_stdout_closes_on_one_newline(invoke, tmp_path):
 def test_snippet_writes_an_ansi_file(invoke, tmp_path):
     """The `.ansi` extension names the same format, written out."""
     source = tmp_path / "ripen.py"
-    source.write_text(SAMPLE, encoding="utf-8")
+    source.write_text(SAMPLE, encoding="UTF-8")
     output = tmp_path / "ripen.ansi"
     result = invoke(snippet_cmd, ["--output", str(output), str(source)])
     assert result.exit_code == 0
-    assert "\x1b[38;2;" in output.read_text(encoding="utf-8")
+    assert "\x1b[38;2;" in output.read_text(encoding="UTF-8")
+
+
+EPILOG_EXAMPLES = tuple(
+    shlex.split(line.split("$ click-extra snippet", 1)[1])
+    for line in SNIPPET_EPILOG.splitlines()
+    if "$ click-extra snippet" in line
+)
+"""The argument lists the `snippet` help screen closes on, one per example."""
+
+
+@pytest.mark.parametrize("arguments", EPILOG_EXAMPLES, ids=" ".join)
+def test_snippet_epilog_examples_do_what_they_say(invoke, tmp_path, arguments):
+    """Every example of the help screen runs, and a style it names paints the window.
+
+    The `--theme` of every Click Extra command is the help screen's own theme,
+    so an example spelling the syntax style that way ran without complaint and
+    drew the default style instead of the one it named.
+    """
+    (tmp_path / "basket.py").write_text(SAMPLE * 5, encoding="UTF-8")
+    resolved = [
+        str(tmp_path / argument) if argument.startswith("basket.") else argument
+        for argument in arguments
+    ]
+    result = invoke(snippet_cmd, resolved)
+    assert result.exit_code == 0, result.output
+
+    output = tmp_path / resolved[resolved.index("--output") + 1]
+    named = set(arguments) & set(known_styles())
+    for style in named:
+        background = get_style_by_name(style).background_color
+        assert background in output.read_text(encoding="UTF-8"), style

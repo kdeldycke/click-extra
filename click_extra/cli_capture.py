@@ -35,85 +35,92 @@ import click
 from click import BadParameter, Choice, ClickException, FloatRange, IntRange, echo
 from cloup import file_path
 
-from ._utils import missing_extra_message
-from .color import invocation_color
-from .decorators import argument, command, option
-from .highlight import HelpKeywords
-from .output import is_stdout, prep_path
-from .recording import (
+from .capture.presets import (
+    DEFAULT_BORDER_WIDTH,
+    DEFAULT_MARGIN,
+    DEFAULT_PADDING,
+    DEFAULT_RADIUS,
+    DEFAULT_WATERMARK,
+    NO_PAINT,
+    OPAQUE,
+    PRESETS,
+    Chrome,
+    Cursor,
+    CursorShape,
+)
+from .capture.recording import (
     DEFAULT_RECORDING_BLANK,
     DEFAULT_RECORDING_HOLD,
     DEFAULT_ROWS,
     DEFAULT_SUBMIT,
     record_and_render,
 )
-from .screenshot import (
+from .capture.screenshot import (
     AUTO_COLUMNS,
     AUTO_CURSOR,
     AUTO_TRUNCATION,
     AUTO_WRAP_MARKER,
     DEFAULT_COLUMNS,
-    DEFAULT_MARGIN,
-    DEFAULT_PADDING,
     DEFAULT_TRUNCATION,
     DEFAULT_WRAP_MARKER,
     WRAP_MARKER_LABEL,
     CaptureFormat,
-    Chrome,
     capture,
-    format_from_path,
     parse_columns,
-    parse_hold,
 )
-from .screenshot_presets import (
-    PRESETS,
-    CaptureBackground,
-    Cursor,
-    CursorShape,
-)
-from .screenshot_svg import (
-    AUTO_HOLD,
-    DEFAULT_BORDER_WIDTH,
-    DEFAULT_RADIUS,
-    DEFAULT_WATERMARK,
-    NO_PAINT,
-    OPAQUE,
-)
+from .capture.svg import AUTO_HOLD, parse_hold
+from .color import TerminalBackground, invocation_color
+from .decorators import argument, command, option
+from .highlight import HelpKeywords
+from .output import MissingExtraError, is_stdout, prep_path
 from .types import EnumChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any, Unpack
+    from typing import Any, TypeVar, Unpack
 
-    from .screenshot import ChromeArguments, TColumns
-    from .screenshot_presets import TerminalPreset
-    from .screenshot_svg import THold
+    from .capture.presets import ChromeArguments, TerminalPreset
+    from .capture.screenshot import TColumns
+    from .capture.svg import THold
+
+    ParsedT = TypeVar("ParsedT")
 
 logger = logging.getLogger(__name__)
 
 
 def _resolve_preset(name: str | None) -> TerminalPreset | None:
     """The terminal preset `--preset` names, or `None` when it names none."""
-    return None if name is None else PRESETS[name.lower()]
+    return None if name is None else PRESETS[name]
 
 
-def _parse_columns(
-    ctx: click.Context,
-    param: click.Parameter,
-    value: str,
-) -> TColumns:
-    """Read `--columns` into a width, or into the sentinel asking for none.
+def _option_callback(
+    parse: Callable[[str], ParsedT],
+) -> Callable[[click.Context, click.Parameter, str | None], ParsedT | None]:
+    """Turn a reader of option text into the callback reporting against the option.
 
-    A width and {data}`~click_extra.screenshot.AUTO_COLUMNS` are the two things
-    the capture pipeline accepts, and Click has no type spelling "an integer or
-    that one word". {func}`~click_extra.screenshot.parse_columns` reads it, and
-    its complaint is reported against the option.
+    `--columns` takes a width or the word `auto`, and `--hold` takes seconds or
+    the same word: Click has no type spelling "a number or that one word", so
+    the option takes text. {func}`~click_extra.capture.screenshot.parse_columns`
+    and {func}`~click_extra.capture.svg.parse_hold` read it, and the `ValueError`
+    they raise becomes a {class}`~click.BadParameter` naming the option. An
+    unset option stays unset.
+
+    :param parse: reads the text into its value.
+    :return: the option callback.
     """
-    try:
-        return parse_columns(value)
-    except ValueError as error:
-        raise BadParameter(str(error)) from None
+
+    def callback(
+        ctx: click.Context, param: click.Parameter, value: str | None
+    ) -> ParsedT | None:
+        if value is None:
+            return None
+        try:
+            return parse(value)
+        except ValueError as error:
+            raise BadParameter(str(error)) from None
+
+    return callback
 
 
 def _parse_emphasis(
@@ -179,11 +186,12 @@ def resolve_capture_format(output: Path, fragment: bool) -> CaptureFormat:
 
     :param output: where the capture goes; its extension names the format.
     :param fragment: whether the caller asked for the bare block.
+    :return: the format to render.
     :raises ClickException: on an extension no format claims, or on `--fragment`
         against anything but HTML.
     """
     try:
-        capture_format = format_from_path(output)
+        capture_format = CaptureFormat.from_path(output)
     except ValueError as error:
         raise ClickException(str(error)) from error
 
@@ -236,13 +244,13 @@ def capture_options(
             metavar="[auto|INTEGER]",
             default=str(default_columns),
             show_default=True,
-            callback=_parse_columns,
+            callback=_option_callback(parse_columns),
             help=columns_help,
         ),
         option(
             "--background",
-            type=EnumChoice(CaptureBackground),
-            default=CaptureBackground.DARK,
+            type=EnumChoice(TerminalBackground),
+            default=TerminalBackground.DARK,
             show_default=True,
             help="Terminal chrome the capture is drawn on, and the palette its "
             "colors resolve against. Match it to the theme the captured CLI "
@@ -413,24 +421,6 @@ def capture_options(
     return decorate
 
 
-def _parse_hold(
-    ctx: click.Context,
-    param: click.Parameter,
-    value: str | None,
-) -> THold | None:
-    """Read `--hold` into seconds or the `auto` sentinel, keeping unset as-is.
-
-    {func}`~click_extra.screenshot.parse_hold` reads it, and its complaint is
-    reported against the option.
-    """
-    if value is None:
-        return None
-    try:
-        return parse_hold(value)
-    except ValueError as error:
-        raise BadParameter(str(error)) from None
-
-
 #: Sample invocations closing the `screenshot` help screen.
 SCREENSHOT_EPILOG = """\b
 Examples:
@@ -511,7 +501,7 @@ Examples:
     # for a type it was never given. Naming both keeps the accepted values on
     # the help screen, the way a `click.Choice` puts them there.
     metavar="[auto|FLOAT]",
-    callback=_parse_hold,
+    callback=_option_callback(parse_hold),
     help=f"With --record, extra seconds the last frame stays up before the "
     f"animation starts over, or {AUTO_HOLD} to scale them to that frame's line "
     f"count. Defaults to {DEFAULT_RECORDING_HOLD}.",
@@ -580,7 +570,7 @@ def screenshot_cmd(
     command_line: tuple[str, ...],
     output: Path,
     columns: TColumns,
-    background: CaptureBackground,
+    background: TerminalBackground,
     preset: str | None,
     prompt: str | None,
     head: int | None,
@@ -762,11 +752,11 @@ def screenshot_cmd(
                 preset=terminal,
                 chrome=chrome,
             )
-        except ImportError as error:
+        except ValueError as error:
             raise ClickException(str(error)) from error
 
     if returncode:
-        logger.warning(f"{command_line[0]} exited with code {returncode}.")
+        logger.warning("%s exited with code %s.", command_line[0], returncode)
 
     deliver_capture(document, output)
 
@@ -788,8 +778,8 @@ Examples:
     $ click-extra snippet --output basket.svg basket.py
 
 \b
-  Draw it as selectable text, under a named theme:
-    $ click-extra snippet --output basket.html --theme dracula basket.py
+  Draw it as selectable text, under a named syntax style:
+    $ click-extra snippet --output basket.html --syntax-style dracula basket.py
 
 \b
   Number the lines and point at the one that matters:
@@ -830,7 +820,7 @@ def snippet_cmd(
     source: Path,
     output: Path,
     columns: TColumns,
-    background: CaptureBackground,
+    background: TerminalBackground,
     preset: str | None,
     head: int | None,
     tail: int | None,
@@ -868,11 +858,9 @@ def snippet_cmd(
     # module, off the startup path of every CLI, and lets a trimmed install
     # fail here, on the one command that needs it.
     try:
-        from .snippet import render_snippet
+        from .capture.snippet import render_snippet
     except ImportError as error:
-        raise ClickException(
-            missing_extra_message("pygments", subject="Drawing a code snippet"),
-        ) from error
+        raise MissingExtraError("pygments", subject="Drawing a code snippet") from error
 
     capture_format = resolve_capture_format(output, fragment)
 
@@ -880,7 +868,7 @@ def snippet_cmd(
     if reading_stdin:
         code = sys.stdin.read()
     else:
-        code = source.read_text(encoding="utf-8")
+        code = source.read_text(encoding="UTF-8")
 
     try:
         document = render_snippet(

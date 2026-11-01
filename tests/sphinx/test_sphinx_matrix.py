@@ -49,13 +49,14 @@ from click_extra.sphinx.matrix import (
     _column_candidates,
     _dependency_columns,
     _extract_requirement,
+    _latest_locked_version,
     _pypi_releases,
     _python_cell,
     _range_labels,
     _render_block,
     _resolve_root,
-    _same_spec,
     _spec_floor,
+    _spec_identity,
     _to_specifier_set,
     _walk_tags,
     dependency_matrix_groups,
@@ -71,13 +72,11 @@ pytestmark = pytest.mark.skipif(
     shutil.which("git") is None,
     reason="matrix generation walks git tags, so the whole module needs a git binary",
 )
-"""Skip the module when git is missing, instead of failing 155 times.
+"""Skip the module when git is missing, instead of failing every test.
 
-The sibling ``conftest.py`` already spares downstream packagers an
-``--ignore=tests/sphinx`` when Sphinx or MyST-Parser is absent. Git is the third
-thing this tree needs, and the only one that is a binary rather than an import,
-so it escaped that guard: a packager shipping the documentation extras without
-git got a wall of ``FileNotFoundError`` naming no cause.
+The sibling ``conftest.py`` skips the tree when Sphinx or MyST-Parser is absent.
+Git is the third thing this module needs, and the only one that is a binary
+rather than an import, so that guard cannot cover it.
 """
 
 MATRIX_MODULE = "click_extra.sphinx.matrix"
@@ -133,7 +132,7 @@ def declare_widget(repo: Path, spec: str) -> None:
         body = f'[tool.poetry.dependencies]\nwidget = "{spec}"\n'
     else:
         body = f'[project]\ndependencies = ["widget{spec}"]\n'
-    (repo / "pyproject.toml").write_text(body, encoding="utf-8")
+    (repo / "pyproject.toml").write_text(body, encoding="UTF-8")
 
 
 def named_repo(path: Path, pyproject: str | None) -> Path:
@@ -148,7 +147,7 @@ def named_repo(path: Path, pyproject: str | None) -> Path:
     target.write_text(
         '[project]\nrequires-python = ">=3.11"\n'
         'classifiers = ["Programming Language :: Python :: 3.12"]\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v1.0.0", "--quiet")
@@ -156,7 +155,7 @@ def named_repo(path: Path, pyproject: str | None) -> Path:
     if pyproject is None:
         target.unlink()
     else:
-        target.write_text(pyproject, encoding="utf-8")
+        target.write_text(pyproject, encoding="UTF-8")
     return path
 
 
@@ -257,7 +256,7 @@ def synthetic_repo(tmp_path: Path) -> Path:
     # Tag v1.0.0: Poetry-style declaration, no classifiers.
     (repo / "pyproject.toml").write_text(
         '[tool.poetry.dependencies]\npython = "^3.10"\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v1.0.0", "--quiet")
@@ -270,7 +269,7 @@ def synthetic_repo(tmp_path: Path) -> Path:
         '  "Programming Language :: Python :: 3.11",\n'
         '  "Programming Language :: Python :: 3.12",\n'
         "]\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v2.0.0", "--quiet")
@@ -300,6 +299,26 @@ def test_python_matrix_groups_returns_named_tuple(synthetic_repo: Path) -> None:
     assert groups[0].python_versions == groups[0][3]
 
 
+def test_python_matrix_groups_reads_a_tag_that_is_no_utf8(synthetic_repo: Path) -> None:
+    """A tag name that does not decode as UTF-8 leaves the walk going.
+
+    The tag goes in `packed-refs`: a loose ref is a file, and APFS refuses a
+    file name that is no UTF-8.
+    """
+    sha = subprocess.run(
+        ("git", "rev-parse", "HEAD"),
+        cwd=synthetic_repo,
+        capture_output=True,
+        check=True,
+    ).stdout.strip()
+    packed = synthetic_repo / ".git" / "packed-refs"
+    assert not packed.exists()
+    # The `è` of "crème" in Latin-1, a byte UTF-8 cannot decode alone.
+    packed.write_bytes(sha + b" refs/tags/cr\xe8me\n")
+    groups = python_matrix_groups(synthetic_repo)
+    assert [group.first_tag for group in groups] == ["v1.0.0", "v2.0.0"]
+
+
 def test_python_matrix_groups_no_tags(tmp_path: Path) -> None:
     """A repo with no matching tags returns an empty list."""
     repo = tmp_path / "empty"
@@ -327,7 +346,7 @@ def test_python_matrix_groups_ceiling_honored(tmp_path: Path) -> None:
     run = git_repo(repo)
     (repo / "pyproject.toml").write_text(
         '[project]\nrequires-python = ">=3.10,<3.13"\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v1.0.0", "--quiet")
@@ -456,7 +475,7 @@ def test_python_matrix_table_three_states(tmp_path: Path) -> None:
         '  "Programming Language :: Python :: 3.10",\n'
         '  "Programming Language :: Python :: 3.11",\n'
         "]\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v1.0.0", "--quiet")
@@ -470,7 +489,7 @@ def test_python_matrix_table_three_states(tmp_path: Path) -> None:
             f'  "Programming Language :: Python :: 3.{n}",\n' for n in (9, 10, 11, 12)
         )
         + "]\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v2.0.0", "--quiet")
@@ -658,10 +677,10 @@ def test_update_matrix_blocks_populates_empty_block(synthetic_repo, tmp_path) ->
 
             Outro paragraph.
         """),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert update_matrix_blocks([doc]) == [doc]
-    text = doc.read_text(encoding="utf-8")
+    text = doc.read_text(encoding="UTF-8")
     assert "| `my-project`" in text
     assert "✅" in text
     # Options preserved verbatim.
@@ -682,7 +701,7 @@ def test_update_matrix_blocks_idempotent(synthetic_repo, tmp_path) -> None:
             :path: {synthetic_repo}
             ```
         """),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert update_matrix_blocks([doc]) == [doc]
     assert update_matrix_blocks([doc]) == []
@@ -697,9 +716,9 @@ def test_update_matrix_blocks_check_mode(synthetic_repo, tmp_path) -> None:
         :path: {synthetic_repo}
         ```
     """)
-    doc.write_text(original, encoding="utf-8")
+    doc.write_text(original, encoding="UTF-8")
     assert update_matrix_blocks([doc], check=True) == [doc]
-    assert doc.read_text(encoding="utf-8") == original
+    assert doc.read_text(encoding="UTF-8") == original
 
 
 def test_update_matrix_blocks_leaves_bad_path_untouched(tmp_path) -> None:
@@ -711,9 +730,30 @@ def test_update_matrix_blocks_leaves_bad_path_untouched(tmp_path) -> None:
         :path: /nonexistent/not-a-repo
         ```
     """)
-    doc.write_text(original, encoding="utf-8")
+    doc.write_text(original, encoding="UTF-8")
     assert update_matrix_blocks([doc]) == []
-    assert doc.read_text(encoding="utf-8") == original
+    assert doc.read_text(encoding="UTF-8") == original
+
+
+def test_update_matrix_blocks_keeps_other_line_separators(tmp_path) -> None:
+    """Prose holding a line separator other than a newline is copied verbatim.
+
+    A Unicode line separator splits a line for `str.splitlines`, not for a
+    Markdown reader: a refresh writing it back as a newline would rewrite the
+    page, and report it stale on every check.
+    """
+    doc = tmp_path / "page.md"
+    original = dedent("""
+        Apples\u2028and pears.
+
+        ```{matrix} python
+        :path: /nonexistent/not-a-repo
+        ```
+    """)
+    doc.write_text(original, encoding="UTF-8")
+    assert update_matrix_blocks([doc], check=True) == []
+    assert update_matrix_blocks([doc]) == []
+    assert doc.read_text(encoding="UTF-8") == original
 
 
 def test_update_matrix_blocks_leaves_an_unreadable_pypi_untouched(
@@ -737,11 +777,11 @@ def test_update_matrix_blocks_leaves_an_unreadable_pypi_untouched(
         :path: {synthetic_dep_repo}
         ```
     """)
-    doc.write_text(original, encoding="utf-8")
+    doc.write_text(original, encoding="UTF-8")
 
     assert update_matrix_blocks([doc], check=True) == []
     assert update_matrix_blocks([doc]) == []
-    assert doc.read_text(encoding="utf-8") == original
+    assert doc.read_text(encoding="UTF-8") == original
     # The live directive keeps the fallback the docstrings promise.
     assert dependency_matrix_table(synthetic_dep_repo, "proj", "widget")
 
@@ -769,9 +809,9 @@ def test_update_matrix_blocks_skips_examples_nested_in_code_block(
         <!-- matrix-end -->
         ````
     """)
-    doc.write_text(documented, encoding="utf-8")
+    doc.write_text(documented, encoding="UTF-8")
     assert update_matrix_blocks([doc]) == []
-    assert doc.read_text(encoding="utf-8") == documented
+    assert doc.read_text(encoding="UTF-8") == documented
 
 
 def test_refresh_directives_cli(synthetic_repo, tmp_path) -> None:
@@ -784,18 +824,18 @@ def test_refresh_directives_cli(synthetic_repo, tmp_path) -> None:
             :path: {synthetic_repo}
             ```
         """),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     runner = CliRunner()
     # A stale block exits non-zero under --check, without writing.
     result = runner.invoke(refresh_directives_cmd, ["--check", str(doc)])
     assert result.exit_code == 1
-    assert "| `my-project`" not in doc.read_text(encoding="utf-8")
+    assert "| `my-project`" not in doc.read_text(encoding="UTF-8")
     # Write mode refreshes the block and names the file.
     result = runner.invoke(refresh_directives_cmd, [str(doc)])
     assert result.exit_code == 0
     assert "refreshed" in result.output
-    assert "| `my-project`" in doc.read_text(encoding="utf-8")
+    assert "| `my-project`" in doc.read_text(encoding="UTF-8")
     # A freshly refreshed block is clean.
     result = runner.invoke(refresh_directives_cmd, ["--check", str(doc)])
     assert result.exit_code == 0
@@ -804,7 +844,7 @@ def test_refresh_directives_cli(synthetic_repo, tmp_path) -> None:
 def test_refresh_directives_cli_without_sphinx(tmp_path, monkeypatch) -> None:
     """The command fails gracefully (not a traceback) when sphinx is absent."""
     doc = tmp_path / "page.md"
-    doc.write_text("```{matrix} python\n:package: x\n```\n", encoding="utf-8")
+    doc.write_text("```{matrix} python\n:package: x\n```\n", encoding="UTF-8")
     # Simulate the optional sphinx extra being uninstalled: a ``None`` entry in
     # ``sys.modules`` makes the lazy ``import`` raise ImportError.
     monkeypatch.setitem(sys.modules, "click_extra.sphinx.matrix", None)
@@ -903,8 +943,9 @@ def test_to_specifier_set_empty_matches_everything() -> None:
         (">=1.2", "~> 1.2", False),
     ],
 )
-def test_same_spec(spec: str, other: str, expected: bool) -> None:
-    assert _same_spec(spec, other) is expected
+def test_spec_identity(spec: str, other: str, expected: bool) -> None:
+    """Two specifiers share an identity when they accept the same versions."""
+    assert (_spec_identity(spec) == _spec_identity(other)) is expected
 
 
 @pytest.mark.parametrize(
@@ -1078,6 +1119,30 @@ def test_column_candidates(
     assert sorted(map(str, candidates)) == expected
 
 
+@pytest.mark.parametrize(
+    ("dep_name", "expected"),
+    [
+        # The lockfile spells a package by its normalized name, whatever the
+        # spelling the matrix block uses.
+        ("widget-lib", "2.4.0"),
+        ("Widget_Lib", "2.4.0"),
+        ("WIDGET.LIB", "2.4.0"),
+        # A name the lockfile does not hold, even as a prefix, locks nothing.
+        ("widget", ""),
+    ],
+)
+def test_latest_locked_version(tmp_path: Path, dep_name: str, expected: str) -> None:
+    (tmp_path / "uv.lock").write_text(
+        '[[package]]\nname = "widget-lib"\nversion = "2.4.0"\n', encoding="UTF-8"
+    )
+    assert _latest_locked_version(tmp_path, dep_name) == expected
+
+
+def test_latest_locked_version_without_lockfile(tmp_path: Path) -> None:
+    """A project with no `uv.lock` locks nothing, rather than failing."""
+    assert _latest_locked_version(tmp_path, "widget") == ""
+
+
 def stub_releases(monkeypatch: pytest.MonkeyPatch, *versions: str) -> None:
     """Make PyPI list ``versions`` as the stable releases of every dependency."""
     monkeypatch.setattr(
@@ -1226,7 +1291,7 @@ def narrowing_floor_repo(tmp_path: Path) -> Path:
     run = git_repo(repo)
     (repo / "uv.lock").write_text(
         'name = "widget"\nversion = "4.0.0"\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     for tag, spec in (
         ("v1.0.0", "^3.0.1"),
@@ -1308,7 +1373,7 @@ def pinned_widget_repo(tmp_path: Path, name: str, spec: str) -> Path:
     declare_widget(repo, spec)
     (repo / "uv.lock").write_text(
         'name = "widget"\nversion = "2.4.0"\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     run("git", "add", "pyproject.toml")
     run("git", "commit", "-m", "v1.0.0", "--quiet")
@@ -1556,10 +1621,10 @@ def test_update_matrix_blocks_marker_form(synthetic_repo, tmp_path) -> None:
     doc.write_text(
         f"# T\n\n<!-- matrix python package=my-project path={synthetic_repo} -->\n"
         "<!-- matrix-end -->\n\nafter\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert update_matrix_blocks([doc]) == [doc]
-    text = doc.read_text(encoding="utf-8")
+    text = doc.read_text(encoding="UTF-8")
     # Start/end markers preserved; a raw GFM table sits between them.
     assert "<!-- matrix python package=my-project" in text
     assert "<!-- matrix-end -->" in text
@@ -1580,7 +1645,7 @@ def test_walk_tags_dates_an_annotated_tag(tmp_path: Path) -> None:
     repo = tmp_path / "annotated"
     run = git_repo(repo)
     (repo / "pyproject.toml").write_text(
-        '[project]\nrequires-python = ">=3.12"\n', encoding="utf-8"
+        '[project]\nrequires-python = ">=3.12"\n', encoding="UTF-8"
     )
     run("git", "add", "pyproject.toml")
     env = {
@@ -1619,7 +1684,7 @@ def test_walk_tags_dates_an_annotated_tag(tmp_path: Path) -> None:
         cwd=repo,
         check=True,
         capture_output=True,
-        encoding="utf-8",
+        encoding="UTF-8",
     ).stdout.strip()
     assert [(tag, date) for tag, date, *_ in walked] == [
         ("v1.0.0", "2024-02-29"),
@@ -1653,11 +1718,11 @@ def test_update_matrix_blocks_reads_git_twice_per_refresh(
         f"<!-- matrix python path={synthetic_repo} -->\n<!-- matrix-end -->\n\n"
         f"<!-- matrix python path={synthetic_repo} version-floor=2.0 -->\n"
         "<!-- matrix-end -->\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     second = tmp_path / "second.md"
     second.write_text(
-        f"```{{matrix}} python\n:path: {synthetic_repo}\n```\n", encoding="utf-8"
+        f"```{{matrix}} python\n:path: {synthetic_repo}\n```\n", encoding="UTF-8"
     )
     assert update_matrix_blocks([first, second]) == [first, second]
     assert calls == [["git", "for-each-ref"], ["git", "cat-file"]]
@@ -1673,10 +1738,10 @@ def test_update_matrix_blocks_marker_order_options(synthetic_repo, tmp_path) -> 
         f"<!-- matrix python package=my-project path={synthetic_repo} "
         "column-order=oldest-first row-order=oldest-first -->\n"
         "<!-- matrix-end -->\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert update_matrix_blocks([doc]) == [doc]
-    text = doc.read_text(encoding="utf-8")
+    text = doc.read_text(encoding="UTF-8")
     assert text.index("`3.11`") < text.index("`3.12`")
     assert text.index("`1.0.0`") < text.index("`2.0.0`")
 
@@ -1690,10 +1755,10 @@ def test_update_matrix_blocks_marker_show_date(
     doc.write_text(
         f"<!-- matrix python package=my-project path={synthetic_repo}{flag} -->\n"
         "<!-- matrix-end -->\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert update_matrix_blocks([doc]) == [doc]
-    dated = LABEL_DATE_RE.search(doc.read_text(encoding="utf-8"))
+    dated = LABEL_DATE_RE.search(doc.read_text(encoding="UTF-8"))
     assert bool(dated) is bool(flag)
 
 
@@ -1777,9 +1842,9 @@ def test_update_matrix_blocks_label_ignores_checkout_name(tmp_path: Path) -> Non
     repo = named_repo(tmp_path / "orchard", '[project]\nname = "apricot"\n')
     doc = repo / "docs" / "install.md"
     doc.parent.mkdir()
-    doc.write_text("<!-- matrix python -->\n<!-- matrix-end -->\n", encoding="utf-8")
+    doc.write_text("<!-- matrix python -->\n<!-- matrix-end -->\n", encoding="UTF-8")
     assert update_matrix_blocks([doc]) == [doc]
-    assert "| `apricot` " in doc.read_text(encoding="utf-8")
+    assert "| `apricot` " in doc.read_text(encoding="UTF-8")
 
     copy = shutil.copytree(repo, tmp_path / "grove")
     assert update_matrix_blocks([copy / "docs" / "install.md"], check=True) == []
@@ -1803,12 +1868,12 @@ def test_update_matrix_blocks_preserves_table_without_git(tmp_path, monkeypatch)
         "| :------ | :----: |\n"
         "| `1.0.0` |   ✅   |\n"
         "```\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     monkeypatch.setenv("PATH", "")
     assert update_matrix_blocks([doc]) == []
-    assert "| `p`" in doc.read_text(encoding="utf-8")
-    assert "✅" in doc.read_text(encoding="utf-8")
+    assert "| `p`" in doc.read_text(encoding="UTF-8")
+    assert "✅" in doc.read_text(encoding="UTF-8")
 
 
 def test_matrix_directive_renders_embedded_without_git(sphinx_app_myst, monkeypatch):

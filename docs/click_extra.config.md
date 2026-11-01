@@ -19,6 +19,24 @@
    :undoc-members:
 ```
 
+## `click_extra.config.discovery` module
+
+```{eval-rst}
+.. automodule:: click_extra.config.discovery
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.config.export` module
+
+```{eval-rst}
+.. automodule:: click_extra.config.export
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `click_extra.config.flags` module
 
 ```{eval-rst}

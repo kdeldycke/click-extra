@@ -31,19 +31,19 @@ from docutils import nodes
 from pygments.styles import get_style_by_name
 
 from click_extra import strip_ansi, verbosity_option
-from click_extra.screenshot_presets import CAPTURE_PALETTES, CaptureBackground
-from click_extra.snippet import DEFAULT_SYNTAX_STYLES
+from click_extra.capture.presets import CAPTURE_PALETTES
+from click_extra.capture.snippet import DEFAULT_SYNTAX_STYLES
+from click_extra.color import TerminalBackground
 from click_extra.sphinx.click import (
     SCREENSHOT_MARKER_END,
     SCREENSHOT_MARKER_START,
     ClickDirective,
-    ClickRunner,
     _code_fence,
-    _rewrite_screenshot_regions,
     _screenshot_background,
     _screenshot_opacity,
-    program_from_command_line,
+    rewrite_screenshot_regions,
 )
+from click_extra.sphinx.click_runner import ClickRunner, program_from_command_line
 from click_extra.spinner_presets import SPINNERS
 
 from .conftest import (
@@ -1392,6 +1392,34 @@ def test_clickrunner_hide_prompt_drops_the_invocation(monkeypatch):
     assert lines == ["18 degrees."]
 
 
+@pytest.mark.parametrize("terminate_input", (False, True))
+def test_clickrunner_prompt_past_the_input_aborts(monkeypatch, terminate_input):
+    """A prompt reading past the end of the input aborts, as it does under Click.
+
+    The read past the end returns no byte at all, which the echoing stream has
+    to pass through rather than look for a `^D` in.
+    """
+    monkeypatch.setenv("FORCE_COLOR", "0")
+
+    @click.command()
+    def basket():
+        first = click.prompt("First fruit")
+        second = click.prompt("Second fruit")
+        click.echo(f"{first} and {second}")
+
+    lines: list[str] = []
+    result = ClickRunner().invoke(
+        basket,
+        input=["apple"],
+        terminate_input=terminate_input,
+        _output_lines=lines,
+    )
+    assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)
+    assert "First fruit: apple" in lines
+    assert "Aborted!" in lines
+
+
 @pytest.mark.parametrize(
     ("options", "prompted"),
     (
@@ -1497,7 +1525,7 @@ def test_click_run_hide_prompt_reaches_the_screenshot(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "bare-greet-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     assert "Hello," in svg
     # Neither this platform's sigil nor the one the preset would have swapped in.
     assert "$&#160;greet" not in svg
@@ -1529,7 +1557,7 @@ def test_click_run_screenshot_writes_the_asset(sphinx_app_myst):
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "greet-screen.svg"
     assert asset.exists(), "the capture was not written"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     # `unique_id` is pinned to the asset name, so a regenerated capture diffs
     # line by line instead of renaming every CSS class.
     assert "greet-screen-r1" in svg
@@ -1571,7 +1599,7 @@ def test_click_run_screenshot_animate_stacks_a_spinner(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "steeping-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     frame_count = len(SPINNERS["moon"].frames)
     assert len(re.findall(r'class="steeping-screen-f\d+"', svg)) == frame_count
     assert svg.count("@keyframes ") == frame_count
@@ -1601,7 +1629,7 @@ def test_click_run_screenshot_animate_defines_every_class_it_uses(sphinx_app_mys
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "styled-steeping-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     block = re.search(r"<style>(.*?)</style>", svg, re.DOTALL)
     assert block
     stylesheet = block.group(1)
@@ -1625,7 +1653,7 @@ def test_click_run_screenshot_animate_accepts_bare_frames(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "pears-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     assert len(re.findall(r'class="pears-screen-f\d+"', svg)) == 3
     # Three frames of a quarter second each cycle in three quarters of one.
     assert "0.75s" in svg
@@ -1675,17 +1703,18 @@ def test_click_run_screenshot_animate_is_deterministic(sphinx_app_myst):
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "stable-screen.svg"
     sphinx_app_myst.build_document(content)
-    first = asset.read_text(encoding="utf-8")
+    first = asset.read_text(encoding="UTF-8")
     sphinx_app_myst.build_document(content)
-    assert asset.read_text(encoding="utf-8") == first
+    assert asset.read_text(encoding="UTF-8") == first
 
 
 def test_click_run_screenshot_animate_rewrites_a_declared_asset(sphinx_app_myst):
     """A declared animation is regenerated on every build, like any capture.
 
-    It composes the same lines every time, so rewriting costs nothing and is
-    what keeps the asset from drifting away from the code. Gating the write on
-    what the animation *is* would freeze out every change to how it is *drawn*.
+    It composes the same lines every time, so the file only changes with the
+    code, and regenerating it is what keeps the asset from drifting away from
+    that code. Gating the write on what the animation *is* would freeze out
+    every change to how it is *drawn*.
     """
     content = dedent(ANIMATED_SOURCE) + dedent("""
         ```{click:run}
@@ -1697,11 +1726,11 @@ def test_click_run_screenshot_animate_rewrites_a_declared_asset(sphinx_app_myst)
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "declared-screen.svg"
 
     sphinx_app_myst.build_document(content)
-    first = asset.read_text(encoding="utf-8")
-    asset.write_text(first + "<!-- stale -->", encoding="utf-8")
+    first = asset.read_text(encoding="UTF-8")
+    asset.write_text(first + "<!-- stale -->", encoding="UTF-8")
 
     sphinx_app_myst.build_document(content)
-    assert asset.read_text(encoding="utf-8") == first, "the asset was not rewritten"
+    assert asset.read_text(encoding="UTF-8") == first, "the asset was not rewritten"
 
 
 def test_click_run_screenshot_animate_carries_a_presentation_change(sphinx_app_myst):
@@ -1724,15 +1753,53 @@ def test_click_run_screenshot_animate_carries_a_presentation_change(sphinx_app_m
                 ```
             """)
         )
-        return asset.read_text(encoding="utf-8")
+        return asset.read_text(encoding="UTF-8")
 
     assert build(8) != build(48)
+
+
+@pytest.mark.parametrize(
+    ("name", "options"),
+    (
+        pytest.param("unchanged-screen", (), id="still"),
+        pytest.param(
+            "unchanged-steeping-screen",
+            (":screenshot-animate: steeping",),
+            id="animation",
+        ),
+    ),
+)
+def test_click_run_screenshot_leaves_an_unchanged_asset_alone(
+    sphinx_app_myst, name, options
+):
+    """A rebuild drawing the same capture does not write the file again.
+
+    Writing the same bytes would still move the modification time of the file,
+    which a tool watching the documentation tree reads as a change. A capture
+    that differs is still written.
+    """
+    block = ("```{click:run}", f":screenshot: {name}", *options, "invoke(greet)", "```")
+    content = dedent(ANIMATED_SOURCE) + "\n" + "\n".join(block) + "\n"
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / f"{name}.svg"
+
+    sphinx_app_myst.build_document(content)
+    drawn = asset.read_text(encoding="UTF-8")
+    # A timestamp far in the past, so a rewrite shows on a coarse clock too.
+    past = 1_000_000_000 * 10**9
+    os.utime(asset, ns=(past, past))
+
+    sphinx_app_myst.build_document(content)
+    assert asset.stat().st_mtime_ns == past, "the unchanged capture was written"
+
+    asset.write_text(drawn + "<!-- stale -->", encoding="UTF-8")
+    sphinx_app_myst.build_document(content)
+    assert asset.read_text(encoding="UTF-8") == drawn, "the stale capture was kept"
 
 
 RECORDED_SOURCE = """
     ```{click:source}
     :hide-source:
-    from click_extra.recording import Frame
+    from click_extra.capture.recording import Frame
 
     kettle = [Frame("filling", 0.2), Frame("boiled", 0.2)]
     ```
@@ -1758,13 +1825,13 @@ def test_click_run_screenshot_record_writes_once(sphinx_app_myst):
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "kettle-screen.svg"
 
     sphinx_app_myst.build_document(content)
-    marked = asset.read_text(encoding="utf-8").replace(
+    marked = asset.read_text(encoding="UTF-8").replace(
         "</svg>", "<!-- as it was recorded --></svg>"
     )
-    asset.write_text(marked, encoding="utf-8")
+    asset.write_text(marked, encoding="UTF-8")
 
     sphinx_app_myst.build_document(content)
-    assert asset.read_text(encoding="utf-8") == marked
+    assert asset.read_text(encoding="UTF-8") == marked
 
 
 def test_click_run_screenshot_record_holds_its_last_frame(sphinx_app_myst):
@@ -1787,7 +1854,7 @@ def test_click_run_screenshot_record_holds_its_last_frame(sphinx_app_myst):
     )
 
     # Two frames of 0.2s, the last held two seconds, then a 0.6s blank beat.
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     assert "period=3s" in svg
     assert "3s step-end" in svg
 
@@ -1809,7 +1876,7 @@ def test_click_run_screenshot_hold_overrides_the_pause(sphinx_app_myst):
     )
 
     # The recorded frames alone, plus the blank beat closing the cycle.
-    assert "period=1s" in asset.read_text(encoding="utf-8")
+    assert "period=1s" in asset.read_text(encoding="UTF-8")
 
 
 def test_click_run_screenshot_blank_closes_the_cycle(sphinx_app_myst):
@@ -1831,7 +1898,7 @@ def test_click_run_screenshot_blank_closes_the_cycle(sphinx_app_myst):
         """)
     )
 
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     frames = re.findall(r'<g class="blanked-screen-f(\d+)"([^>]*)>(.*?)</g>', svg)
     empty = [index for index, _, body in frames if not body.strip()]
     assert empty, "the cycle closes on nothing"
@@ -1861,7 +1928,7 @@ def test_click_run_screenshot_speed_scales_the_recorded_frames(sphinx_app_myst):
     )
 
     # Two 0.2s frames replayed at double speed, then the 2s hold and 0.6s blank.
-    assert "period=2.8s" in asset.read_text(encoding="utf-8")
+    assert "period=2.8s" in asset.read_text(encoding="UTF-8")
 
 
 def test_click_run_screenshot_emphasize_lines_bands_a_still(sphinx_app_myst):
@@ -1886,7 +1953,7 @@ def test_click_run_screenshot_emphasize_lines_bands_a_still(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "banded-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     group = re.search(r'<g clip-path="url\(#[\w-]+-window\)">(.*?)</g>', svg)
     assert group, "the bands are clipped to the window"
     bands = re.findall(r'<rect fill="(#[0-9a-f]+)"[^>]*\by="([\d.]+)"', group.group(1))
@@ -1916,7 +1983,7 @@ def test_click_run_screenshot_emphasize_lines_bands_an_animation(sphinx_app_myst
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "banded-animation-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     banded = {
         int(index)
         for index, drawn in re.findall(
@@ -1977,9 +2044,9 @@ def test_click_run_screenshot_background(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "pale-greet-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
-    assert CAPTURE_PALETTES[CaptureBackground.LIGHT].background in svg
-    assert CAPTURE_PALETTES[CaptureBackground.DARK].background not in svg
+    svg = asset.read_text(encoding="UTF-8")
+    assert CAPTURE_PALETTES[TerminalBackground.LIGHT].background in svg
+    assert CAPTURE_PALETTES[TerminalBackground.DARK].background not in svg
 
 
 def test_click_run_screenshot_columns_auto(sphinx_app_myst):
@@ -2015,7 +2082,7 @@ def test_click_run_screenshot_columns_auto(sphinx_app_myst):
 
     widths = {}
     for name in ("pinned-chant-screen", "wide-chant-screen"):
-        svg = (assets / f"{name}.svg").read_text(encoding="utf-8")
+        svg = (assets / f"{name}.svg").read_text(encoding="UTF-8")
         match = re.search(r'viewBox="0 0 (?P<width>[\d.]+)', svg)
         assert match
         widths[name] = float(match["width"])
@@ -2062,7 +2129,7 @@ def test_click_run_screenshot_frame_options(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "framed-greet-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     assert 'stroke="red"' in svg
     assert 'stroke-width="3"' in svg
     assert 'rx="0"' in svg
@@ -2096,7 +2163,7 @@ def test_click_run_screenshot_preset_swaps_the_prompt(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "windows-greet-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     assert "PS&#160;C:\\&gt;&#160;greet" in svg
     assert "Cascadia Code" in svg
     # Campbell's background, and the square corners Windows draws.
@@ -2125,7 +2192,7 @@ def test_click_run_screenshot_preset_defaults_to_the_project_wide_one(sphinx_app
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "gnome-greet-screen.svg"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     assert "Ubuntu Mono" in svg
     # Tango's dark background, and the strip GNOME paints over it.
     assert 'fill="#2e3436"' in svg
@@ -2157,7 +2224,7 @@ def test_click_run_screenshot_carries_no_watermark_by_default(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "unmarked-greet-screen.svg"
-    assert "watermark" not in asset.read_text(encoding="utf-8")
+    assert "watermark" not in asset.read_text(encoding="UTF-8")
 
 
 def test_click_run_screenshot_watermark(sphinx_app_myst):
@@ -2187,11 +2254,11 @@ def test_click_run_screenshot_watermark(sphinx_app_myst):
     )
 
     assets = Path(sphinx_app_myst.app.srcdir) / "assets"
-    project_wide = (assets / "credited-greet-screen.svg").read_text(encoding="utf-8")
+    project_wide = (assets / "credited-greet-screen.svg").read_text(encoding="UTF-8")
     assert '<text class="watermark"' in project_wide
     assert "pantry 1.4.2" in project_wide
     # A block naming its own mark keeps it.
-    per_block = (assets / "recredited-greet-screen.svg").read_text(encoding="utf-8")
+    per_block = (assets / "recredited-greet-screen.svg").read_text(encoding="UTF-8")
     assert "shot on a Tuesday" in per_block
     assert "pantry 1.4.2" not in per_block
 
@@ -2217,7 +2284,7 @@ def test_click_run_screenshot_opacity(sphinx_app_myst):
     )
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "glassy-greet-screen.svg"
-    assert 'fill-opacity="0.4"' in asset.read_text(encoding="utf-8")
+    assert 'fill-opacity="0.4"' in asset.read_text(encoding="UTF-8")
 
 
 @pytest.mark.parametrize("argument", ("-0.1", "1.5", "opaque"))
@@ -2225,6 +2292,38 @@ def test_click_run_screenshot_opacity_rejects_what_is_not_one(argument):
     """Anything outside the zero-to-one range fails the build instead of clamping."""
     with pytest.raises(ValueError):
         _screenshot_opacity(argument)
+
+
+@pytest.mark.parametrize(
+    "option",
+    (
+        "screenshot-interval",
+        "screenshot-quantum",
+        "screenshot-speed",
+        "screenshot-submit",
+        "screenshot-typing",
+    ),
+)
+@pytest.mark.parametrize(
+    ("argument", "expected"),
+    (
+        ("0.25", 0.25),
+        ("2", 2.0),
+        ("0", None),
+        ("-1", None),
+        ("brisk", None),
+    ),
+)
+def test_click_run_screenshot_timing_options_take_a_positive_number(
+    option, argument, expected
+):
+    """A duration, a pace or a speed of zero or less fails the build."""
+    parse = ClickDirective.option_spec[option]
+    if expected is None:
+        with pytest.raises(ValueError):
+            parse(argument)
+    else:
+        assert parse(argument) == expected
 
 
 def test_click_run_screenshot_background_rejects_an_unknown_chrome():
@@ -2247,13 +2346,13 @@ def test_click_run_mirror_region_round_trips():
         Trailing prose.
     """)
 
-    once = _rewrite_screenshot_regions(source)
+    once = rewrite_screenshot_regions(source)
     assert SCREENSHOT_MARKER_START in once
     assert "![greet-screen](assets/greet-screen.svg)" in once
     assert SCREENSHOT_MARKER_END in once
     assert "Trailing prose." in once
     # Idempotent: a second pass over an already-refreshed region is a no-op.
-    assert _rewrite_screenshot_regions(once) == once
+    assert rewrite_screenshot_regions(once) == once
 
 
 def test_click_run_mirror_needs_both_options():
@@ -2269,7 +2368,7 @@ def test_click_run_mirror_needs_both_options():
             result = invoke(greet)
             ```
         """)
-        assert _rewrite_screenshot_regions(source) == source
+        assert rewrite_screenshot_regions(source) == source
 
 
 def test_click_run_mirror_skips_a_nested_example():
@@ -2283,7 +2382,7 @@ def test_click_run_mirror_skips_a_nested_example():
         ```
         ````
     """)
-    assert _rewrite_screenshot_regions(source) == source
+    assert rewrite_screenshot_regions(source) == source
 
 
 def test_click_source_screenshot_pictures_its_own_code(sphinx_app_myst):
@@ -2307,14 +2406,14 @@ def test_click_source_screenshot_pictures_its_own_code(sphinx_app_myst):
 
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "ripen-source.svg"
     assert asset.exists(), "the source capture was not written"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     assert "ripen-source-r1" in svg
     assert "papaya" in svg
     # Painted the background its syntax style was designed against, rather than
     # the terminal chrome a captured command is drawn on.
     assert (
         get_style_by_name(
-            DEFAULT_SYNTAX_STYLES[CaptureBackground.DARK]
+            DEFAULT_SYNTAX_STYLES[TerminalBackground.DARK]
         ).background_color
         in svg
     )
@@ -2339,7 +2438,7 @@ def test_click_source_screenshot_takes_a_syntax_style(sphinx_app_myst):
     svg = (
         Path(sphinx_app_myst.app.srcdir) / "assets" / "dracula-source.svg"
     ).read_text(
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert get_style_by_name("dracula").background_color in svg
 
@@ -2366,8 +2465,8 @@ def test_click_source_screenshot_bands_its_emphasized_lines(sphinx_app_myst):
         "```{click:source}\n:screenshot: banded-source\n:emphasize-lines: 2\n" + body,
     )
 
-    plain = (assets / "plain-source.svg").read_text(encoding="utf-8")
-    banded = (assets / "banded-source.svg").read_text(encoding="utf-8")
+    plain = (assets / "plain-source.svg").read_text(encoding="UTF-8")
+    banded = (assets / "banded-source.svg").read_text(encoding="UTF-8")
     # The band is drawn in a clipped group of its own, which the unmarked
     # capture of the same code does not carry at all.
     assert '<g clip-path="url(#plain-source-window)">' not in plain
@@ -2392,9 +2491,9 @@ def test_click_source_screenshot_is_deterministic(sphinx_app_myst):
     """)
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "stable-source.svg"
     sphinx_app_myst.build_document(document)
-    first = asset.read_text(encoding="utf-8")
+    first = asset.read_text(encoding="UTF-8")
     sphinx_app_myst.build_document(document)
-    assert asset.read_text(encoding="utf-8") == first
+    assert asset.read_text(encoding="UTF-8") == first
 
 
 def test_click_source_mirror_shows_the_snippet():
@@ -2410,10 +2509,10 @@ def test_click_source_mirror_shows_the_snippet():
         from click_extra import command
         ```
     """)
-    once = _rewrite_screenshot_regions(source)
+    once = rewrite_screenshot_regions(source)
     assert "![ripen-source](assets/ripen-source.svg)" in once
     assert SCREENSHOT_MARKER_END in once
-    assert _rewrite_screenshot_regions(once) == once
+    assert rewrite_screenshot_regions(once) == once
 
 
 def test_python_render_mirror_is_left_to_its_own_refresher():
@@ -2429,4 +2528,4 @@ def test_python_render_mirror_is_left_to_its_own_refresher():
         print("The papaya is ready.")
         ```
     """)
-    assert _rewrite_screenshot_regions(source) == source
+    assert rewrite_screenshot_regions(source) == source

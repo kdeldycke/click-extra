@@ -18,7 +18,7 @@
 Monkey-patches Click's decorator functions before importing (or running) a
 target module so its `@click.command()` / `@click.group()` produce
 colorized, keyword-highlighted, themed variants. Also resolves and invokes the
-target, and introspects it for `--params`, `--man` and `--tree`
+target, and introspects it for `--params`, `--man`, `--tree` and `--help-format`
 without firing its callbacks.
 
 Not to be confused with text wrapping: that is {func}`click.wrap_text`, exposed
@@ -55,23 +55,19 @@ from .command_doc import (
     render_help,
     write_manpages,
 )
-from .commands import ColorizedCommand, ColorizedGroup, Group
+from .commands import ColorizedCommand, ColorizedGroup, Context, LazyGroup
 from .config.flags import config_table_to_flags
-from .context import Context
 from .decorators import columns_option, option
 from .highlight import HelpFormatter, HelpKeywords, _HelpColorsMixin
-from .parameters import (
-    ShowParamsOption,
-    make_resilient_context,
-    render_params_table,
-)
-from .prebake import entry_point_package, locate_package_root, read_project_scripts
-from .table import TableFormat, TableFormatOption
+from .param_tools import child_context, make_resilient_context
+from .project import resolve_entry_point
+from .show_params import ShowParamsOption, render_params_table
+from .table import TableFormat
+from .table_options import TableFormatOption
 from .theme import (
-    BUILTIN_THEMES,
-    NOCOLOR_THEME,
     HelpTheme,
     get_current_theme,
+    get_default_theme,
     set_default_theme,
 )
 from .tree import render_command_tree
@@ -80,6 +76,7 @@ from .types import EnumChoice
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from types import ModuleType
     from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -89,13 +86,14 @@ _original_click_command = click.decorators.command
 _original_click_group = click.decorators.group
 _original_get_help = click.Command.get_help
 _original_format_help = click.Command.format_help
+_original_default_theme = get_default_theme()
 
 
-class WrapperGroup(Group):
+class WrapperGroup(LazyGroup):
     """Group that falls back to the `wrap` subcommand for unknown names.
 
-    Known subcommands and their aliases are dispatched normally. Anything
-    else is treated as a target script and forwarded to `wrap`.
+    Known subcommands and their aliases are dispatched normally, the lazy ones
+    included. Anything else is treated as a target script and forwarded to `wrap`.
     """
 
     def resolve_command(
@@ -104,8 +102,12 @@ class WrapperGroup(Group):
         args: list[str],
     ) -> tuple[str | None, click.Command | None, list[str]]:
         cmd_name = make_str(args[0])
-        # Cloup's resolve_command_name handles both direct names and aliases.
+        # Cloup's resolve_command_name handles both direct names and aliases, but
+        # knows only the subcommands registered so far: a lazy one not imported
+        # yet answers to its name alone.
         resolved = super().resolve_command_name(ctx, cmd_name)
+        if resolved is None and cmd_name in self.lazy_subcommands:
+            resolved = cmd_name
         if resolved is not None:
             cmd = self.get_command(ctx, resolved)
             if cmd is not None:
@@ -165,8 +167,7 @@ def patch_click(
     it. One carrying an explicit `cls=` (like Flask's `FlaskGroup`) keeps its own
     class and a stock `click.Context`, and is served by the `get_help` patch
     further down instead. Cover a single route and the flag silently works for
-    half the CLIs in the wild, which is what `--color=always` did until it was
-    pinned here too.
+    half the CLIs in the wild.
     ```
 
     :param theme: Color theme to use. `None` keeps the current default.
@@ -209,13 +210,11 @@ def patch_click(
     # explicit `cls=` (like Flask's `FlaskGroup`). Commands that already
     # have `_HelpColorsMixin` skip this path to avoid double-processing: the
     # context class installed above is what carries the color decision to them.
-    color_flag = color
-
     def _patched_get_help(self, ctx):
         if not isinstance(self, _HelpColorsMixin):
             ctx.formatter_class = HelpFormatter
             if not ctx.parent and ctx.color is None:
-                ctx.color = color_flag
+                ctx.color = color
         return _original_get_help(self, ctx)
 
     def _patched_format_help(self, ctx, formatter):
@@ -227,8 +226,8 @@ def patch_click(
                 type(self).__name__,
                 self.name,
             )
-            # collect_keywords() now works on any command: static methods are
-            # class-qualified and extra_keywords uses getattr with defaults.
+            # collect_keywords() works on any command: its static methods are
+            # class-qualified and it reads extra_keywords with a default.
             formatter.keywords = _HelpColorsMixin.collect_keywords(self, ctx)
             formatter.excluded_keywords = _HelpColorsMixin._collect_excluded_keywords(
                 ctx
@@ -262,59 +261,39 @@ def unpatch_click() -> None:
     click.decorators.group = _original_click_group
     click.Command.get_help = _original_get_help  # type: ignore[method-assign]
     click.Command.format_help = _original_format_help  # type: ignore[method-assign]
-    # Reset context classes to defaults.
     ColorizedCommand.context_class = Context
     ColorizedGroup.context_class = Context
-
-    # Restore the default theme. Fall back to the colorless theme when
-    # themes.toml is absent (some packaging setups drop the data file, so the
-    # built-in "dark" palette is unavailable).
-    set_default_theme(BUILTIN_THEMES.get("dark", NOCOLOR_THEME))
+    set_default_theme(_original_default_theme)
 
 
 def _resolve_project_dir(directory: Path) -> tuple[str, str, Path]:
     """Resolve a local project directory to an importable target.
 
-    Reads the project's packaging metadata to find its console-script entry
-    point, with {func}`~click_extra.prebake.read_project_scripts`, then locates
-    the top-level package on disk, with
-    {func}`~click_extra.prebake.locate_package_root`, so it can be imported
-    without an install step. This lets `wrap` target a checked-out project by
-    its directory, the way an editable install plus its console script would.
+    Reads the project's console-script entry point from its packaging metadata,
+    with {func}`~click_extra.project.resolve_entry_point`, which also locates
+    the top-level package on disk, so it can be imported without an install
+    step. This lets `wrap` target a checked-out project by its directory, the
+    way an editable install plus its console script would.
 
-    :returns: `(module_path, function_name, syspath_entry)`. *syspath_entry*
+    :return: `(module_path, function_name, syspath_entry)`. *syspath_entry*
         is the directory to prepend to `sys.path` so *module_path* resolves.
     :raises click.ClickException: when no entry point can be determined, or the
         package backing it cannot be found on disk.
     """
-    scripts = read_project_scripts(directory)
-    if not scripts:
+    try:
+        entry_point = resolve_entry_point(directory)
+    except ValueError as error:
         raise click.ClickException(
-            f"No console-script entry point found in {directory}. Looked for "
-            f"[project.scripts] in pyproject.toml and console_scripts in "
-            f"setup.cfg. Pass the target explicitly as module:function."
-        )
+            f"{error} Pass the target explicitly as module:function."
+        ) from error
 
-    targets = sorted(set(scripts.values()))
-    if len(targets) > 1:
-        listing = ", ".join(
-            f"{name} = {target}" for name, target in sorted(scripts.items())
-        )
+    if entry_point.root is None:
         raise click.ClickException(
-            f"Multiple console scripts in {directory}: {listing}. "
-            f"Pass one explicitly as module:function."
+            f"Found entry point {entry_point.target!r} in {directory}, but its "
+            f"top-level package {entry_point.package!r} is not under {directory} "
+            f"or {directory / 'src'}."
         )
-
-    module_path, _, function_name = targets[0].partition(":")
-    top_package = entry_point_package(targets[0])
-    syspath_entry = locate_package_root(directory, top_package)
-    if syspath_entry is None:
-        raise click.ClickException(
-            f"Found entry point {targets[0]!r} in {directory}, but its top-level "
-            f"package {top_package!r} is not under {directory} or "
-            f"{directory / 'src'}."
-        )
-    return module_path, function_name, syspath_entry
+    return entry_point.module, entry_point.function, entry_point.root
 
 
 def resolve_target(script: str) -> tuple[str, str]:
@@ -330,7 +309,7 @@ def resolve_target(script: str) -> tuple[str, str]:
     4. Explicit `module:function` notation.
     5. Bare Python module or package name.
 
-    :returns: `(module_path, function_name)` tuple. *function_name* is
+    :return: `(module_path, function_name)` tuple. *function_name* is
         empty when the target should be invoked as a module or script file.
     :raises click.ClickException: If the script cannot be resolved.
 
@@ -376,25 +355,23 @@ def resolve_target(script: str) -> tuple[str, str]:
     # 3. .py file path. Checked before the module:function heuristic so that
     # Windows absolute paths (like `C:\...\foo.py`) are not mistaken for
     # `module:function` notation: the drive-letter colon would otherwise
-    # split the path at the wrong position.
+    # split the path at the wrong position. A .py path that does not exist
+    # falls through to the bare module lookup, skipping the module:function
+    # check: a .py name is never valid module:function notation.
     if script.endswith(".py"):
-        if Path(script).is_file():
+        if script_path.is_file():
             logger.info("Resolved %r as .py file.", script)
             return script, ""
-        # .py path that does not exist: fall through to bare module lookup.
-        # Skip the module:function check below: a .py name is never valid
-        # module:function notation.
-    else:
-        # 4. Explicit module:function notation.
-        if ":" in script:
-            module_path, function_name = script.rsplit(":", 1)
-            logger.info(
-                "Resolved %r as module:function: %s:%s.",
-                script,
-                module_path,
-                function_name,
-            )
-            return module_path, function_name
+    # 4. Explicit module:function notation.
+    elif ":" in script:
+        module_path, function_name = script.rsplit(":", 1)
+        logger.info(
+            "Resolved %r as module:function: %s:%s.",
+            script,
+            module_path,
+            function_name,
+        )
+        return module_path, function_name
 
     # 5. Bare module name. Check existence without importing so the module
     # is not loaded before patch_click() runs.
@@ -430,12 +407,11 @@ def invoke_target(
     A target whose Click command is invoked without an explicit `prog_name`
     falls back to `click.utils._detect_program_name()`, which reads
     `__main__.__package__`. That attribute states how *click-extra itself*
-    was launched: a documentation build running `python -m sphinx` leaked
-    `python -m sphinx.flask` into a wrapped usage line, and
-    `python -m click_extra` leaks `python -m click_extra.flask` the same
-    way. Emptying it for the call pins the detection on its file-execution
-    branch, which answers the basename of `sys.argv[0]`: the script name
-    set above.
+    was launched: under a documentation build running `python -m sphinx`, a
+    wrapped usage line would read `python -m sphinx.flask`, and under
+    `python -m click_extra` it would read `python -m click_extra.flask`.
+    Emptying it for the call pins the detection on its file-execution branch,
+    which answers the basename of `sys.argv[0]`: the script name set above.
     ```
 
     :param script: Original script name (used as `sys.argv[0]`).
@@ -475,6 +451,39 @@ def invoke_target(
         main_module.__package__ = original_package
 
 
+def _scan_for_command(mod: ModuleType, module_path: str) -> click.Command:
+    """The one Click command a module defines at its top level, groups first.
+
+    An entry point can be a plain function wrapping the command, so the module's
+    namespace is scanned instead: a single group wins, then a single command.
+
+    :raises click.ClickException: when the module defines several candidates
+        of the winning kind, or none at all.
+    """
+    groups: dict[str, click.Command] = {}
+    commands: dict[str, click.Command] = {}
+    for attr_name in dir(mod):
+        obj = getattr(mod, attr_name, None)
+        if isinstance(obj, click.Group):
+            groups[attr_name] = obj
+        elif isinstance(obj, click.Command):
+            commands[attr_name] = obj
+
+    for kind, found in (("command groups", groups), ("commands", commands)):
+        if len(found) == 1:
+            return next(iter(found.values()))
+        if found:
+            raise click.ClickException(
+                f"Multiple {kind} in {module_path}: {', '.join(sorted(found))}. "
+                "Specify the correct one with module:name notation."
+            )
+    raise click.ClickException(
+        f"No Click command found in {module_path}. If its entry point imports "
+        "the command lazily, point at the module that defines it with "
+        "module:function notation (for example, mypackage.cli:cli)."
+    )
+
+
 def resolve_target_command(
     script: str,
     subcommands: tuple[str, ...] = (),
@@ -488,9 +497,9 @@ def resolve_target_command(
     `subcommands` navigate into nested groups, mirroring the path a user would
     type.
 
-    Shared by the `wrap` command's introspection modes (`--params`,
-    `--man`, `--carapace`, `--tree`) so all describe the exact same
-    resolved command.
+    Shared by the introspection modes of the `wrap` command (`--params`,
+    `--man`, `--tree` and `--help-format`) and by the man page hook of the
+    Sphinx extension, so all describe the exact same resolved command.
 
     :raises click.ClickException: when no unambiguous Click command can be
         found, or a requested subcommand does not exist.
@@ -510,56 +519,22 @@ def resolve_target_command(
     else:
         mod = importlib.import_module(module_path)
     cli_obj = getattr(mod, function_name) if function_name else None
+    cmd = (
+        cli_obj
+        if isinstance(cli_obj, click.Command)
+        else _scan_for_command(mod, module_path)
+    )
 
-    if not isinstance(cli_obj, click.Command):
-        # The entry point might be a wrapper function. Scan the module
-        # for Click command instances, preferring groups.
-        groups = {}
-        commands = {}
-        for attr_name in dir(mod):
-            obj = getattr(mod, attr_name, None)
-            if isinstance(obj, click.Group):
-                groups[attr_name] = obj
-            elif isinstance(obj, click.Command):
-                commands[attr_name] = obj
-
-        if len(groups) == 1:
-            cli_obj = next(iter(groups.values()))
-        elif groups:
-            names = ", ".join(sorted(groups))
-            raise click.ClickException(
-                f"Multiple command groups in {module_path}: {names}. "
-                f"Specify the correct one with module:name notation."
-            )
-        elif len(commands) == 1:
-            cli_obj = next(iter(commands.values()))
-        elif commands:
-            names = ", ".join(sorted(commands))
-            raise click.ClickException(
-                f"Multiple commands in {module_path}: {names}. "
-                f"Specify the correct one with module:name notation."
-            )
-        else:
-            raise click.ClickException(
-                f"No Click command found in {module_path}. If its entry point "
-                f"imports the command lazily, point at the module that defines "
-                f"it with module:function notation (for example, mypackage.cli:cli)."
-            )
-
-    # Navigate to the requested subcommand, if any.
-    assert isinstance(cli_obj, click.Command)
-    cmd: click.Command = cli_obj
-    # Propagate `context_settings` (notably `auto_envvar_prefix`) so
-    # introspection sees the same envvar layout the CLI exposes at runtime.
-    # Click reads these only through `make_context`; the raw `Context`
-    # constructor ignores them. Build through `cmd.context_class` (not
-    # `click.Context`) exactly as `make_context` does: a Cloup command's
-    # `context_settings` carry Cloup-only keys (`align_option_groups`,
-    # `show_constraints`, …) that a plain `click.Context` rejects with a
-    # `TypeError`. Child contexts inherit `auto_envvar_prefix` from their
-    # parent automatically.
+    # Each context is built from its command's own `context_settings` (notably
+    # `auto_envvar_prefix`), so introspection sees the same environment
+    # variables the CLI reads at runtime. Click applies these only through
+    # `make_context`, which would also parse arguments. Build through
+    # `cmd.context_class` (not `click.Context`) exactly as `make_context` does:
+    # a Cloup command's `context_settings` carry Cloup-only keys
+    # (`align_option_groups`, `show_constraints`, …) that a plain
+    # `click.Context` rejects with a `TypeError`.
     cmd_ctx = cmd.context_class(
-        cmd, info_name=cmd.name or script, **dict(cmd.context_settings)
+        cmd, info_name=cmd.name or script, **cmd.context_settings
     )
     for sub in subcommands:
         if not isinstance(cmd, click.Group):
@@ -569,7 +544,7 @@ def resolve_target_command(
         child = cmd.get_command(cmd_ctx, sub)
         if child is None:
             raise click.ClickException(f"No subcommand {sub!r} in {cmd.name!r}.")
-        cmd_ctx = child.context_class(child, parent=cmd_ctx, info_name=sub)
+        cmd_ctx = child_context(child, cmd_ctx, sub)
         cmd = child
 
     return cmd, cmd_ctx
@@ -589,19 +564,21 @@ class _WrapCommand(_HelpColorsMixin, cloup.Command):  # type: ignore[misc]
     carries only the options that act on the *target* CLI rather than on
     click-extra itself:
 
-    - **Action flags** (`--params`, `--man`, `--tree`) describe
-      and exit without running the target. Their group-level twins
+    - **Action flags** (`--params`, `--man`, `--tree`, `--help-format`)
+      describe the target and exit without running it. Their group-level twins
       (`click-extra --params`) introspect the `click-extra` CLI
       itself, so they cannot reach a wrapped foreign command: the subject
       differs, which is why these are *not* redundant with the group
       versions. They route through the same rendering cores as the
-      group-level options ({func}`~click_extra.parameters.render_params_table`,
-      {func}`~click_extra.command_doc.render_manpage`,
-      {func}`~click_extra.tree.render_command_tree`), so a new introspection
+      group-level options ({func}`~click_extra.show_params.render_params_table`,
+      {func}`~click_extra.command_doc.read_manpage`,
+      {func}`~click_extra.tree.render_command_tree`,
+      {func}`~click_extra.command_doc.render_help`), so a new introspection
       feature only has to add one option here, never a parallel subcommand.
 
-    - **Modifiers** (`--table-format`, `--columns`, `--output-dir`)
-      shape the action output and are inert in the default run mode.
+    - **Modifiers** (`--table-format`, `--columns`, `--output-dir`,
+      `--install`) shape the action output and are inert in the default run
+      mode.
 
     Presentation flags that style the *wrapping* (`--color`, `--theme`,
     `--verbosity`) stay on the parent {class}`WrapperGroup` and are
@@ -632,11 +609,10 @@ def _split_navigation(args: tuple[str, ...]) -> tuple[tuple[str, ...], tuple[str
 
     `("run", "--port", "8080")` splits into `(("run",), ("--port", "8080"))`.
     """
-    nav = []
-    rest = list(args)
-    while rest and not rest[0].startswith("-"):
-        nav.append(rest.pop(0))
-    return tuple(nav), tuple(rest)
+    split = next(
+        (index for index, arg in enumerate(args) if arg.startswith("-")), len(args)
+    )
+    return args[:split], args[split:]
 
 
 def _wrap_params(
@@ -650,7 +626,7 @@ def _wrap_params(
 
     Re-roots the parameter walk at the resolved (sub)command while preserving
     the `auto_envvar_prefix` computed along the navigation path, then defers
-    to the shared {func}`~click_extra.parameters.render_params_table` core.
+    to the shared {func}`~click_extra.show_params.render_params_table` core.
 
     The table format resolves in priority order: the `wrap --table-format`
     flag when given explicitly, then the click-extra group's `--table-format`
@@ -660,9 +636,13 @@ def _wrap_params(
 
     # `render_params_table` walks from `subject_ctx.command` downward, so a
     # fresh root context scopes the table to the resolved node (matching what
-    # the user navigated to). The drilled context already carries the nested
-    # envvar prefix, so copy it over.
-    subject_ctx = click.Context(cmd, info_name=cmd.name or script)
+    # the user navigated to). It is built from the command's own context class
+    # and settings, like the one a run gets: the help option spellings, the
+    # `default_map` and the subcommand order all read from them. The drilled
+    # context already carries the nested envvar prefix, so copy it over.
+    subject_ctx = cmd.context_class(
+        cmd, info_name=cmd.name or script, **cmd.context_settings
+    )
     subject_ctx.auto_envvar_prefix = drill_ctx.auto_envvar_prefix
 
     # An explicit `wrap --table-format` wins; otherwise defer to the group's
@@ -738,15 +718,17 @@ def _wrap_help_format(
     """Resolve a foreign target and render it in one of the {class}`HelpFormat` formats.
 
     The target needs no cooperation for this: it is loaded, walked and described
-    from the outside, exactly like `--params` and `--man` already do. A CLI whose
-    author never heard of Click Extra is therefore as machine-readable as one
-    that ships `--help-format` itself.
+    from the outside, like `--params` and `--man`. A CLI whose author never heard
+    of Click Extra is therefore as machine-readable as one that ships
+    `--help-format` itself.
 
     Stdout is the default destination. `output_dir` and `install` redirect it for
     the two formats that exist to be *installed* somewhere a consumer reads them
     from: a man page under a `man` directory, a Carapace spec under Carapace's.
     The other formats are documents, with no such place to be put, and both flags
-    are refused for them by the caller.
+    are refused for them by the caller. Each format's own module owns where it
+    installs, and resolves that directory at call time, so an XDG override set
+    for one invocation is honored.
     """
     cmd, _ = resolve_target_command(script, nav)
 
@@ -764,25 +746,20 @@ def _wrap_help_format(
         if output_dir:
             written = write_carapace_spec(
                 cmd,
-                Path(output_dir) / f"{prog_name}.yaml",
+                output_dir / f"{prog_name}.yaml",
                 prog_name=prog_name,
                 invocation=invocation,
             )
-            click.echo(str(written))
         elif install:
-            # Each format's own module owns where it belongs, and resolves it at
-            # call time so an XDG override set for one invocation is honored.
-            click.echo(
-                str(
-                    install_carapace_spec(
-                        cmd, prog_name=prog_name, invocation=invocation
-                    )
-                )
+            written = install_carapace_spec(
+                cmd, prog_name=prog_name, invocation=invocation
             )
         else:
             click.echo(
                 dump_carapace_spec(cmd, prog_name=prog_name, invocation=invocation)
             )
+            return
+        click.echo(str(written))
         return
 
     if help_format is HelpFormat.MAN and (output_dir or install):
@@ -950,8 +927,8 @@ Examples:
 @option(
     # Reuses the canonical option, so its name, type, metavar and default are
     # declared once. This copy exposes its value and drops the class callback:
-    # `render_foreign_params` resolves the format against the group's pick and
-    # sets it on the target's own context, which the callback would preempt.
+    # `_wrap_params` resolves the format against the group's pick and sets it on
+    # the target's own context, which the callback would preempt.
     cls=TableFormatOption,
     expose_value=True,
     is_eager=False,

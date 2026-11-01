@@ -265,7 +265,7 @@ del pantry
 @pytest.fixture
 def kitchen_script(tmp_path):
     script = tmp_path / "kitchen.py"
-    script.write_text(KITCHEN_SCRIPT, encoding="utf-8")
+    script.write_text(KITCHEN_SCRIPT, encoding="UTF-8")
     return str(script)
 
 

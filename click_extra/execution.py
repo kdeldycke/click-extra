@@ -17,10 +17,9 @@
 
 Two altitudes live here. The higher one governs the CLI *being authored*: the
 pre-configured {class}`~click_extra.parameters.ExtraOption` subclasses
-({class}`JobsOption`, {class}`TimerOption`, {class}`ZeroExitOption`) publish
-their resolved value on `ctx.meta`, and the fan-out primitives
-({func}`run_jobs`, {func}`run_lanes`) parallelize work per the resolved
-`--jobs` count.
+{class}`TimerOption` and {class}`ZeroExitOption` publish their resolved value on
+`ctx.meta`. The `--jobs` option, and the fan-out primitives that parallelize
+work per its count, are in {mod}`click_extra.jobs`.
 
 The lower one runs *foreign* CLIs in subprocesses, for tools that wrap other
 programs: {func}`run_cli` spawns one command, disclosing its invocation to the
@@ -29,13 +28,6 @@ and {func}`terminate_live_processes` make Ctrl+C abort in-flight children
 cleanly. {func}`args_cleanup` and {func}`format_cli_prompt` are the shared
 serialization and disclosure atoms both altitudes (and
 {mod}`click_extra.testing`) build upon.
-
-```{todo}
-Stop turning a {exc}`RuntimeError` of the wait in `_wait_result()` back into the
-{exc}`KeyboardInterrupt` it replaced, once
-[python/cpython#118433](https://github.com/python/cpython/issues/118433) is fixed
-in every free-threaded Python Click Extra supports.
-```
 """
 
 from __future__ import annotations
@@ -44,34 +36,30 @@ import logging
 import os
 import shlex
 import signal
-import subprocess
 import sys
 import threading
 import time
-from collections import deque
 from contextlib import contextmanager
 from contextvars import ContextVar
+from functools import partial
 from gettext import gettext as _, ngettext
-from itertools import chain, islice
 from time import perf_counter
-from typing import Final, NoReturn, TypeVar, cast
+from typing import Final, NoReturn
 
 import click
 from click import echo
-from click.core import ParameterSource
-from click.shell_completion import CompletionItem
 
 from . import context
 from ._utils import IS_WINDOWS, exception_chain, flatten
+from .ansi import strip_ansi
 from .envvar import env_copy
 from .parameters import ExtraOption
-from .styling import strip_ansi
 from .theme import get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable, Sequence
-    from concurrent.futures import Future, ThreadPoolExecutor
+    import subprocess
+    from collections.abc import Generator, Iterable, Sequence
     from pathlib import Path
     from types import FrameType
     from typing import IO, Any
@@ -83,13 +71,8 @@ if TYPE_CHECKING:
     TNestedArgs = Iterable[TArg | Iterable["TNestedArgs"]]
     """Type for arbitrary nested CLI arguments.
 
-    Arguments can be `str`, :py:class:`pathlib.Path` objects or `None` values.
+    Arguments can be `str`, {class}`pathlib.Path` objects or `None` values.
     """
-
-logger = logging.getLogger(__name__)
-
-T = TypeVar("T")
-R = TypeVar("R")
 
 
 def is_windows() -> bool:
@@ -106,602 +89,31 @@ def is_windows() -> bool:
     return platform_is_windows()
 
 
-def _logical_cpu_count() -> int | None:
-    """The logical CPU count this process can actually use, if determinable.
-
-    {func}`os.process_cpu_count` (Python 3.13+) is preferred: it honors the
-    process's CPU affinity mask and, on Linux, the cgroup quota, so a
-    container limited to two CPUs reports `2` instead of the host's full
-    core count. {func}`os.cpu_count` is cgroup-blind, which is exactly what
-    lets a quota-limited container oversubscribe its allocation, so it only
-    serves as the fallback for older runtimes and platforms where the
-    process-aware count is unavailable.
-    """
-    if hasattr(os, "process_cpu_count"):
-        count: int | None = os.process_cpu_count()
-        if count is not None:
-            return count
-    return os.cpu_count()
-
-
-CPU_COUNT = _logical_cpu_count()
-"""Number of **logical** CPUs available to this process, or `None` if undetermined.
-
-A count of *logical* processors (hardware threads), resolved by
-{func}`_logical_cpu_count`: {func}`os.process_cpu_count` on Python 3.13+,
-falling back to {func}`os.cpu_count` on older runtimes. On a CPU with
-simultaneous multi-threading (Intel Hyper-Threading, AMD SMT) a
-4-physical-core chip reports `8`. It is therefore **not** a count of
-*physical* cores, and is usually larger than what physical-core tools report,
-such as `psutil.cpu_count(logical=False)` or pytest-xdist's `-n auto` (which
-counts physical cores). Parallelism here is keyed on the logical count on
-purpose: subprocess- and I/O-bound work overlaps well across hardware
-threads.
-"""
-
-DEFAULT_JOBS = CPU_COUNT - 1 if CPU_COUNT and CPU_COUNT >= 3 else (CPU_COUNT or 1)
-"""Default number of parallel jobs: {data}`CPU_COUNT` minus one reserved core.
-
-Leaves one logical CPU free for the main process and system tasks, but only
-on hosts with three logical CPUs or more: on smaller hosts the reservation
-would collapse the pool to a single (sequential) worker, and threads waiting
-on subprocesses and I/O cost nothing there, so the whole machine is used
-instead. Falls back to `1` (sequential) when the count cannot be determined.
-
-```{caution}
-On a **single-CPU host** this still resolves to `1` and the default silently
-runs sequentially. {meth}`JobCount.convert` logs whenever a parallel-intent
-keyword collapses to a single job this way: as a warning for an explicit
-request, at info level for the option's own default.
-```
-"""
-
-
-class JobCount(click.ParamType):
-    """Parse a `--jobs` value: an integer or the `auto`/`max` keyword.
-
-    Resolves the symbolic keywords against the host's logical CPU count
-    ({data}`CPU_COUNT`), counting hardware threads, not physical cores:
-
-    - `auto` resolves to {data}`DEFAULT_JOBS` (one fewer than the available
-      logical CPUs, except on hosts with fewer than three, where reserving a
-      core would leave a single worker), the same heuristic used as the
-      option's default.
-    - `max` resolves to {data}`CPU_COUNT` (every available logical CPU).
-
-    Any other token is parsed as an integer and left to
-    {meth}`JobsOption.validate_jobs` for clamping and range-checking. Resolving
-    the keywords here keeps the value handed downstream a plain {class}`int`,
-    so consumers never have to know about the keywords.
-    """
-
-    name = "jobs"
-
-    #: Symbolic keywords accepted besides an integer count, in render order.
-    #:
-    #: Exposed as `choices` so the help colorizer highlights them like
-    #: `click.Choice` values: the keyword collector duck-types on this
-    #: attribute (see the `getattr(param.type, "choices", ...)` branch in
-    #: `_HelpColorsMixin._collect_params`). It is
-    #: also the single source of truth reused by {meth}`get_metavar` and
-    #: {meth}`convert`, so the metavar and the parser never drift apart.
-    choices = ("auto", "max")
-
-    def get_metavar(self, param, ctx=None):
-        """Render `[auto|max|INTEGER]` (brackets included, as `Choice` does)."""
-        return f"[{'|'.join(self.choices)}|INTEGER]"
-
-    def convert(
-        self,
-        value: Any,
-        param: click.Parameter | None,
-        ctx: click.Context | None,
-    ) -> int:
-        """Resolve a keyword to a logical-core count, else parse as an integer.
-
-        An already-resolved integer is returned untouched, so option defaults
-        and re-validation can flow back through conversion unharmed. When a
-        parallel-intent keyword (`auto`/`max`) resolves to a single job,
-        the collapse is logged: the request reads as "use several cores", but
-        the host has too few logical CPUs, so execution is silently sequential.
-        An explicit request (command line, environment variable, config file)
-        logs a warning; the option's own default only logs at info level, else
-        every bare invocation on a 1-CPU host would emit a warning the user
-        never asked for, polluting captured runner streams and the CLI output
-        rendered in Sphinx docs.
-        """
-        if isinstance(value, int):
-            return value
-
-        normalized = str(value).strip().lower()
-        if normalized in self.choices:
-            resolved = DEFAULT_JOBS if normalized == "auto" else (CPU_COUNT or 1)
-            # A parallel-intent keyword that collapses to a single job runs
-            # sequentially: surface it so it is not mistaken for parallel
-            # execution. See the docstring for the warning-vs-info split.
-            if resolved <= 1 and not (ctx is not None and ctx.resilient_parsing):
-                if CPU_COUNT is None:
-                    cpu_desc = "the number of logical CPUs could not be determined"
-                elif CPU_COUNT == 1:
-                    cpu_desc = "only 1 logical CPU is available"
-                else:
-                    cpu_desc = f"only {CPU_COUNT} logical CPUs are available"
-                implicit_default = (
-                    ctx is not None
-                    and param is not None
-                    and param.name is not None
-                    and ctx.get_parameter_source(param.name) is ParameterSource.DEFAULT
-                )
-                log = logger.info if implicit_default else logger.warning
-                log(
-                    "'--jobs %s' resolved to a single job: %s, so execution "
-                    "will be sequential, not parallel.",
-                    normalized,
-                    cpu_desc,
-                )
-            return resolved
-
-        try:
-            return int(normalized)
-        except ValueError:
-            self.fail(
-                f"{value!r} is not a valid job count: use an integer, 'auto' or 'max'.",
-                param,
-                ctx,
-            )
-
-    def shell_complete(
-        self,
-        ctx: click.Context,
-        param: click.Parameter,
-        incomplete: str,
-    ) -> list[CompletionItem]:
-        """Suggest the `auto`/`max` keywords; an integer count is free-form.
-
-        Completion proposes only the symbolic keywords, matched
-        case-insensitively to mirror how {meth}`convert` lower-cases its input.
-        An integer has no finite set to enumerate, so none is offered, yet
-        {meth}`convert` still accepts one.
-        """
-        prefix = incomplete.lower()
-        return [
-            CompletionItem(keyword)
-            for keyword in self.choices
-            if keyword.startswith(prefix)
-        ]
-
-
-class JobsOption(ExtraOption):
-    """A pre-configured `--jobs` option to control parallel execution.
-
-    Accepts an integer or one of two keywords resolved by
-    {class}`~click_extra.execution.JobCount`: `auto` (the default: one fewer
-    than the available logical CPU cores, leaving a core free for the main
-    process and system tasks, except on hosts with fewer than three logical
-    CPUs, where reserving one would leave a single worker) and `max` (every
-    available logical CPU core). A value of `0` disables parallelism and runs
-    sequentially.
-
-    The core count is the number of *logical* CPUs (hardware threads)
-    available to the process, not physical cores: see
-    {data}`~click_extra.execution.CPU_COUNT`. On a host with a single logical
-    CPU, `auto`/`max` resolve to a single job and
-    {class}`~click_extra.execution.JobCount` logs that execution will be
-    sequential: as a warning when the keyword was requested explicitly, at info
-    level when it came from the option's own default.
-
-    The resolved value is stored as an {class}`int` in
-    `ctx.meta[click_extra.context.JOBS]`.
-
-    ```{warning}
-    `JobsOption` only resolves and publishes the job count: it does not
-    drive any concurrency by itself. Pass it to {func}`run_jobs` (which
-    reads the resolved `ctx.meta[click_extra.context.JOBS]` count), or
-    read that value yourself and act on it.
-    ```
-    """
-
-    def validate_jobs(
-        self,
-        ctx: click.Context,
-        param: click.Parameter,
-        value: int,
-    ) -> None:
-        """Validate the resolved job count and store it in context metadata.
-
-        {class}`~click_extra.execution.JobCount` has already resolved any
-        `auto`/`max` keyword to an integer by the time this runs. A value of
-        `0` disables parallelism: it is rounded up to `1` (sequential
-        execution) with a warning. Negative values are likewise clamped to
-        `1`. A count above the available cores is honored: the pool is a
-        {class}`~concurrent.futures.ThreadPoolExecutor`, and oversubscription
-        is how I/O- and subprocess-bound work overlaps, so the warning only
-        flags the CPU-bound case where extra threads just contend for the
-        GIL. The resolved count is then logged at info level next to the
-        host's logical CPU count ({data}`~click_extra.execution.CPU_COUNT`),
-        so a CLI's parallelism is visible under `--verbosity INFO`.
-        """
-        if ctx.resilient_parsing:
-            return
-
-        effective = value
-
-        if value == 0:
-            effective = 1
-            logger.warning(
-                "Requested 0 jobs: parallelism disabled, running sequentially.",
-            )
-        elif value < 0:
-            effective = 1
-            logger.warning(
-                "Requested %d jobs, clamping to minimum of 1.",
-                value,
-            )
-        elif CPU_COUNT and value > CPU_COUNT:
-            logger.warning(
-                "Requested %d jobs exceeds the %d logical CPUs: honored, "
-                "but pays only for I/O-bound work.",
-                value,
-                CPU_COUNT,
-            )
-
-        context.set(ctx, context.JOBS, effective)
-
-        # Surface the resolved worker count so any CLI using --jobs can show its
-        # parallelism (and how it maps to the logical CPU count) under -v/INFO.
-        logger.info(
-            "Resolved --jobs to %d (%s logical CPUs).",
-            effective,
-            CPU_COUNT if CPU_COUNT is not None else "unknown",
-        )
-
-    def __init__(
-        self,
-        param_decls: Sequence[str] | None = None,
-        *,
-        default: int | str = "auto",
-        expose_value: bool = False,
-        show_default: bool | str = True,
-        type: click.ParamType | Any = JobCount(),
-        help: str = _(
-            "Number of parallel jobs. Accepts an integer, auto (the host's "
-            "logical CPUs, minus one when there are three or more) or max (all "
-            "logical CPUs). --jobs 0 runs sequentially."
-        ),
-        **kwargs: Any,
-    ) -> None:
-        if not param_decls:
-            param_decls = ("--jobs",)
-
-        kwargs.setdefault("callback", self.validate_jobs)
-
-        super().__init__(
-            param_decls=param_decls,
-            default=default,
-            expose_value=expose_value,
-            show_default=show_default,
-            type=type,
-            help=help,
-            **kwargs,
-        )
-
-
-def resolve_jobs(
-    ctx: click.Context | None,
-    count: int,
-    *,
-    serial_at_debug: bool = False,
-) -> int:
-    """Resolve how many worker threads to use for a batch of `count` items.
-
-    Returns the number of items to process in parallel; `1` means run
-    sequentially in the calling thread. This is the policy shared by
-    {func}`run_jobs` and {func}`run_lanes`, exposed on its own for callers that
-    must know the resolved count *before* they fan out (for example to pick a
-    progress-rendering mode). It collapses to sequential when:
-
-    - there is no active CLI context (programmatic or test use),
-    - a single item leaves nothing to parallelize, or
-    - the resolved {class}`JobsOption` count
-      (`ctx.meta[click_extra.context.JOBS]`) is `1` or less.
-
-    Otherwise that count wins, capped at `count`: there is no point spinning up
-    more workers than there are items.
-
-    :param ctx: the active Click context, read for the resolved `--jobs` count
-        (and, with `serial_at_debug`, the verbosity). `None` forces sequential.
-    :param count: how many items are about to be scheduled.
-    :param serial_at_debug: when set, also collapse to sequential at `DEBUG`
-        verbosity, where coherent per-worker log narration matters more than the
-        speed-up (interleaved threads would scramble it). Off by default.
-    """
-    if count <= 1 or ctx is None:
-        return 1
-    # Compared against the stdlib level rather than click_extra.logging.LogLevel
-    # (which mirrors it) to keep this module free of a logging-module import cycle.
-    if serial_at_debug and context.get(ctx, context.VERBOSITY_LEVEL) == logging.DEBUG:
-        return 1
-    jobs = context.get(ctx, context.JOBS, 1)
-    return min(jobs, count) if jobs > 1 else 1
-
-
-def _resolve_worker_cap(ctx: click.Context | None, serial_at_debug: bool) -> int:
-    """The resolved `--jobs` count, before it is capped by the number of items.
-
-    {func}`resolve_jobs` caps its answer at the item count, which a lazy stream
-    cannot report without being drained first. Asking for an unbounded count
-    keeps every other part of the policy (no context, `--jobs 1`, or `DEBUG`
-    under `serial_at_debug` all still collapse to sequential) and leaves the
-    sizing to the pool: a {class}`~concurrent.futures.ThreadPoolExecutor` spawns
-    its threads on demand, so a ceiling above the number of items costs nothing.
-    """
-    return resolve_jobs(ctx, sys.maxsize, serial_at_debug=serial_at_debug)
-
-
 _JOIN_POLL: Final = 0.1
 """Seconds between two checks while the main thread waits on another thread.
 
 A bounded wait returns to the interpreter that often, which is when a pending
 Ctrl+C is handled. Two cases need it. On Windows, no signal interrupts a wait on
-a lock. On every platform, a signal that lands after the interpreter last checked
-for one and before the thread blocked in the C library interrupts nothing: its
-handler runs only when the wait returns. {func}`_exit_interrupted` joins the
-running threads in such slices, and {func}`_wait_result` waits on each task of
-{func}`run_jobs` and {func}`run_lanes` the same way.
+a lock or on a process. On every platform, a signal that lands after the
+interpreter last checked for one and before the thread blocked in the C library
+interrupts nothing: its handler runs only when the wait returns.
+{func}`_exit_interrupted` joins the running threads in such slices,
+{func}`~click_extra.jobs._wait_result` waits on each task of
+{func}`~click_extra.jobs.run_jobs` and {func}`~click_extra.jobs.run_lanes` the
+same way, and {func}`run_cli` waits so on its child and on the threads reading
+its output.
 """
 
 
-def _wait_result(future: Future[R]) -> R:
-    """The result of `future`, waited for in slices of {data}`_JOIN_POLL` seconds.
+def _poll_slice(deadline: float | None) -> float:
+    """Seconds the next slice of a wait lasts, to stop at `deadline`.
 
-    A Ctrl+C that lands as the main thread enters the wait is then handled within
-    one slice. An unbounded wait would hand it to the handler only once the task
-    returns, however long it runs: see {data}`_JOIN_POLL`.
-
-    The future is read once it is done, never with a timeout of its own. A timed
-    read that runs out raises the {exc}`TimeoutError` a task may raise itself,
-    like a {exc}`socket.timeout`, and the two could not be told apart.
-
-    A free-threaded CPython can raise the Ctrl+C after the wait releases its lock
-    and before it takes the lock back, then fail to release a lock it no longer
-    holds: the {exc}`KeyboardInterrupt` comes out as a {exc}`RuntimeError`
-    ([python/cpython#118433](https://github.com/python/cpython/issues/118433)).
-    The interrupt is raised again in its place.
+    {data}`_JOIN_POLL`, or what remains before the {func}`time.monotonic`
+    `deadline` when that is less: `0` once it passed. `None` sets no deadline.
     """
-    # Deferred import: keeps concurrent.futures off the startup path of every CLI.
-    from concurrent.futures import wait
-
-    while not future.done():
-        try:
-            wait((future,), timeout=_JOIN_POLL)
-        except RuntimeError as exc:
-            if isinstance(exc.__context__, KeyboardInterrupt):
-                raise exc.__context__ from None
-            raise
-    return future.result()
-
-
-@contextmanager
-def _interruptible_pool(
-    max_workers: int,
-    stop: threading.Event | None = None,
-) -> Generator[ThreadPoolExecutor, None, None]:
-    """Yield a thread pool whose teardown honors a prompt interrupt.
-
-    Wraps a {class}`~concurrent.futures.ThreadPoolExecutor` for a `with` body
-    that submits and drains work. On a normal exit, or when a task raises, the
-    pool shuts down with `wait=True`, keeping the drain-then-propagate
-    semantics of a plain `with ThreadPoolExecutor(...)` block. But on a prompt
-    abort (a {class}`KeyboardInterrupt` from Ctrl+C, or a {class}`GeneratorExit`
-    from a caller closing the generator early) it shuts down with
-    `wait=False, cancel_futures=True`: queued items are dropped and control
-    returns at once, without blocking on the tasks already in flight.
-
-    A running thread cannot be cancelled, so those in-flight tasks keep going
-    until they return; a caller that needs them to stop sooner (killing a
-    subprocess, say) must arrange that itself. This is why a plain `with` block
-    is not used: its `shutdown(wait=True)` teardown would block until every
-    in-flight task finished, defeating the interrupt. The `stop` event, set on
-    that same abort, lets a task made of several steps quit between two of them.
-
-    Shared by {func}`run_jobs` and {func}`run_lanes`, the two parallel drivers.
-    """
-    # Deferred import: keeps concurrent.futures off the startup path of every CLI.
-    from concurrent.futures import ThreadPoolExecutor
-
-    executor = ThreadPoolExecutor(max_workers=max_workers)
-    try:
-        yield executor
-    except (KeyboardInterrupt, GeneratorExit):
-        if stop is not None:
-            stop.set()
-        executor.shutdown(wait=False, cancel_futures=True)
-        raise
-    except BaseException:
-        # A task raised: keep the drain-then-propagate semantics of `with`.
-        executor.shutdown(wait=True)
-        raise
-    else:
-        executor.shutdown(wait=True)
-
-
-_WORKER_WINDOW_FACTOR: Final = 4
-"""How many tasks {func}`run_jobs` and {func}`run_lanes` keep in flight per worker.
-
-One task per worker would leave it idle between finishing its own and the caller
-pulling the next result. A few queued behind each keeps them fed, while staying a
-multiple of the worker count rather than growing with the stream.
-"""
-
-
-def _windowed_map(
-    executor: ThreadPoolExecutor,
-    func: Callable[[T], R],
-    items: Iterable[T],
-    window: int,
-) -> Generator[R, None, None]:
-    """Map `func` over `items`, keeping at most `window` tasks in flight.
-
-    The lazy counterpart of {meth}`~concurrent.futures.Executor.map`, which
-    submits every item up front and so drains whatever iterable it is handed.
-    Here the stream is pulled one item at a time as a slot frees, keeping both
-    the queue and the unread tail of `items` bounded however long the stream is.
-    Results still come out in submission order.
-
-    A caller that stops early therefore leaves the rest of the stream unread and
-    unscheduled, matching what the sequential path already promised.
-    """
-    stream = iter(items)
-    pending: deque[Future[R]] = deque(
-        executor.submit(func, item) for item in islice(stream, window)
-    )
-    while pending:
-        result = _wait_result(pending.popleft())
-        # Refill the freed slot before handing the result over, so a worker does
-        # not sit idle while the caller processes what it just got.
-        for item in islice(stream, 1):
-            pending.append(executor.submit(func, item))
-        yield result
-
-
-def run_jobs(
-    func: Callable[[T], R],
-    items: Iterable[T],
-    *,
-    jobs: int | None = None,
-    serial_at_debug: bool = False,
-) -> Generator[R, None, None]:
-    """Run `func` over `items`, parallelized per the resolved `--jobs` count.
-
-    The worker count is taken from `jobs` when given, else resolved from the
-    active command's {class}`JobsOption` value by {func}`resolve_jobs`, else `1`.
-    With a single worker (or at most one item) the items run **sequentially and
-    lazily**, so a caller can stop early on the first result (for example to abort
-    on the first failure); otherwise they run in a thread pool. Either way results
-    are yielded in submission order, like {func}`map`.
-
-    This is the single-task-per-item special case of {func}`run_lanes` (every item
-    is its own lane). Reach for {func}`run_lanes` when some items must run serially
-    relative to one another while others run concurrently.
-
-    The pool is thread-based, which suits the I/O- and subprocess-bound work CLI
-    tools usually parallelize (each child releases the GIL). The count is a
-    number of logical CPUs: see {data}`~click_extra.execution.CPU_COUNT`.
-
-    `items` is never materialized: only a bounded window of tasks is queued at a
-    time, so an unbounded or expensive-to-produce stream stays memory-flat and is
-    read no further than the caller consumes.
-
-    :param func: Called once per item; its return value is yielded.
-    :param items: The work items. Read lazily, a window at a time.
-    :param jobs: Override the worker count instead of reading it from the
-        context. `1` or fewer forces sequential execution.
-    :param serial_at_debug: forwarded to {func}`resolve_jobs` when `jobs` is not
-        given: collapse to sequential at `DEBUG` verbosity.
-    :return: An iterator over `func`'s results, in the order of `items`.
-    """
-    stream = iter(items)
-    # Two items is all it takes to tell an empty or single-item run, which stays
-    # sequential, from a real batch. The rest of the stream is left unread.
-    head = list(islice(stream, 2))
-    if jobs is None:
-        ctx = click.get_current_context(silent=True)
-        jobs = _resolve_worker_cap(ctx, serial_at_debug) if len(head) > 1 else 1
-
-    if jobs <= 1 or len(head) <= 1:
-        # Sequential and lazy: the caller can break early (for example on the
-        # first failure) and the remaining items never run.
-        for item in chain(head, stream):
-            yield func(item)
-    else:
-        # Parallel: a windowful of tasks is kept in flight and results are yielded
-        # in submission order. The pool teardown drops queued work on a prompt
-        # interrupt instead of blocking on it (see {func}`_interruptible_pool`).
-        with _interruptible_pool(jobs) as executor:
-            yield from _windowed_map(
-                executor,
-                func,
-                chain(head, stream),
-                jobs * _WORKER_WINDOW_FACTOR,
-            )
-
-
-def run_lanes(
-    func: Callable[[T], R],
-    lanes: Iterable[Iterable[T]],
-    *,
-    jobs: int | None = None,
-    serial_at_debug: bool = False,
-) -> Generator[R, None, None]:
-    """Run `func` over grouped items: serial within a lane, concurrent across.
-
-    Each *lane* is an iterable of items. `func` is mapped over every item, but a
-    lane's own items run **serially and in order** on a single worker, while distinct
-    lanes run **concurrently** up to the resolved `--jobs` count. This is the right
-    primitive when some work must be serialized relative to itself (a shared lock, a
-    rate limit, one mailbox file, one package-manager backend) yet still overlap with
-    unrelated work.
-
-    {func}`run_jobs` is the degenerate case where every lane holds a single item.
-    Concurrency is sized by the *number of lanes* (one worker per lane), since a
-    lane never splits across workers.
-
-    Results are yielded in lane-submission order, a lane's items in order, like
-    {func}`map`. The run stays lazy at any worker count: a lane is materialized
-    only when it is about to be scheduled, and only a bounded window of lanes is
-    in flight, so a caller can break early and the lanes behind it are never read.
-    A lane runs entirely on one worker, so a stateful resource bound to the lane
-    (a per-lane cache, a connection) is touched by only that one thread and needs
-    no lock.
-
-    :param func: Called once per item; its return value is yielded.
-    :param lanes: The lanes, each an iterable of items. Read lazily, a window of
-        lanes at a time; a lane's own items are materialized when it is scheduled.
-    :param jobs: Override the worker count instead of reading it from the context.
-        `1` or fewer forces fully sequential execution.
-    :param serial_at_debug: forwarded to {func}`resolve_jobs` when `jobs` is not
-        given: collapse to sequential at `DEBUG` verbosity.
-    :return: An iterator over `func`'s results, lane by lane in submission order.
-    """
-    # Each lane is materialized only as it is pulled, never all of them at once.
-    lane_stream = (list(lane) for lane in lanes)
-    head = list(islice(lane_stream, 2))
-    if not head:
-        return
-    if jobs is None:
-        ctx = click.get_current_context(silent=True)
-        jobs = _resolve_worker_cap(ctx, serial_at_debug) if len(head) > 1 else 1
-
-    if jobs <= 1:
-        # Sequential and lazy across every lane and item: the caller can break early.
-        for lane in chain(head, lane_stream):
-            for item in lane:
-                yield func(item)
-    else:
-        # Each lane is a serial chain run on one worker; chains run concurrently and
-        # their results are yielded in submission order.
-        stop = threading.Event()
-
-        def run_chain(lane: list[T]) -> list[R]:
-            results = []
-            for item in lane:
-                # An interrupted or abandoned run stops each running lane after
-                # its current item, instead of running the lane to its end.
-                if stop.is_set():
-                    break
-                results.append(func(item))
-            return results
-
-        # The pool teardown drops queued lanes on a prompt interrupt instead of
-        # blocking on the in-flight ones (see {func}`_interruptible_pool`).
-        with _interruptible_pool(jobs, stop=stop) as executor:
-            for chain_results in _windowed_map(
-                executor,
-                run_chain,
-                chain(head, lane_stream),
-                jobs * _WORKER_WINDOW_FACTOR,
-            ):
-                yield from chain_results
+    if deadline is None:
+        return _JOIN_POLL
+    return min(_JOIN_POLL, max(0.0, deadline - time.monotonic()))
 
 
 class TimerOption(ExtraOption):
@@ -712,16 +124,19 @@ class TimerOption(ExtraOption):
     `ctx.meta[click_extra.context.START_TIME]`.
     """
 
-    def print_timer(self) -> None:
-        """Compute and print elapsed execution time.
+    def print_timer(self, start_time: float) -> None:
+        """Print the time elapsed since `start_time`.
 
         Always prints, even when a sibling eager option (`--version`,
         `--params`, `--show-config`…) short-circuited the command
         body via `ctx.exit()`. That makes `--time` a usable probe for
         the cost of Click Extra's own machinery (option parsing, config
         loading, eager callbacks), not just user command bodies.
+
+        :param start_time: the {func}`time.perf_counter` reading the run started
+            at.
         """
-        echo(f"Execution time: {perf_counter() - self.start_time:0.3f} seconds.")
+        echo(f"Execution time: {perf_counter() - start_time:0.3f} seconds.")
 
     def init_timer(
         self,
@@ -733,19 +148,23 @@ class TimerOption(ExtraOption):
 
         Captures {func}`time.perf_counter` as the start time, stores it on
         `ctx.meta` under {data}`click_extra.context.START_TIME`, and queues
-        :py:meth:`print_timer` as a context-close callback so the elapsed
+        {meth}`print_timer` as a context-close callback so the elapsed
         duration is printed even when a sibling eager option (`--version`,
         `--params`…) short-circuits the command body.
+
+        The start time belongs to the run, not to the option: a run started from
+        within another run of the same command times itself, and leaves the outer
+        one its own start.
         """
         if not value or ctx.resilient_parsing:
             return
 
         # Only capture the start time when the user requested timing.
-        self.start_time = perf_counter()
-        context.set(ctx, context.START_TIME, self.start_time)
+        start_time = perf_counter()
+        context.set(ctx, context.START_TIME, start_time)
 
         # Register printing at the end of execution.
-        ctx.call_on_close(self.print_timer)
+        ctx.call_on_close(partial(self.print_timer, start_time))
 
     def __init__(
         self,
@@ -782,9 +201,7 @@ class ZeroExitOption(ExtraOption):
     execution failures.
 
     The resolved value is stored in
-    {data}`ctx.meta[click_extra.context.ZERO_EXIT] <click_extra.context.ZERO_EXIT>`,
-    aligning with every other Click Extra option's per-invocation context-meta
-    storage pattern.
+    {data}`ctx.meta[click_extra.context.ZERO_EXIT] <click_extra.context.ZERO_EXIT>`.
 
     ```{warning}
     This option is a placeholder: it does not alter the CLI's exit code by
@@ -853,17 +270,17 @@ Use ASCII characters to avoid issues with Windows terminals.
 
 
 INDENT = " " * len(PROMPT)
-"""Constants for rendering of CLI execution."""
+"""Blank prefix as wide as {data}`PROMPT`, to indent what a run prints under the
+line of its command."""
 
 
 def args_cleanup(*args: TArg | TNestedArgs) -> tuple[str, ...]:
     """Flatten recursive iterables, remove all `None`, and cast each element to
     strings.
 
-    Helps serialize :py:class:`pathlib.Path` and other objects.
-
-    It also allows for nested iterables and `None` values as CLI arguments for
-    convenience. We just need to flatten and filters them out.
+    Serializes {class}`pathlib.Path` and other objects. Nested iterables and
+    `None` values are accepted as CLI arguments for convenience: they are
+    flattened and filtered out.
     """
     return tuple(str(arg) for arg in flatten(args) if arg is not None)
 
@@ -969,8 +386,9 @@ _LIVE_PROCESSES: Final[set[subprocess.Popen[str]]] = set()
 Populated by {func}`run_cli` for the lifetime of each child (added right after
 spawn, discarded in its `finally`). Read by {func}`terminate_live_processes` to
 interrupt them all at once. Guarded by {data}`_LIVE_PROCESSES_LOCK`, since a
-concurrent fan-out ({func}`run_jobs`, {func}`run_lanes`) calls {func}`run_cli`
-from several worker threads at once.
+concurrent fan-out ({func}`~click_extra.jobs.run_jobs`,
+{func}`~click_extra.jobs.run_lanes`) calls {func}`run_cli` from several worker
+threads at once.
 """
 
 
@@ -1054,6 +472,10 @@ def _posix_process_table() -> dict[int, tuple[int, int]]:
             if parsed is not None:
                 table[int(name)] = parsed
         return table
+
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
     try:
         listing = subprocess.run(
             ("ps", "-A", "-o", "pid=", "-o", "ppid=", "-o", "pgid="),
@@ -1188,6 +610,33 @@ def _kill_posix_process_group(
     return delivered
 
 
+def _signal_posix_child(
+    process: subprocess.Popen[str],
+    signum: signal.Signals,
+    table: dict[int, tuple[int, int]],
+    *,
+    leader: bool,
+) -> None:
+    """Send `signum` to a child of {func}`run_cli`, on POSIX.
+
+    A `leader` child, spawned with `start_new_session`, gets it through its
+    process groups: see {func}`_kill_posix_process_group`. Any other child, or a
+    leader whose group is gone, gets it directly. When the signal is
+    {data}`_KILL_SIGNAL`, the descendants of that child get it too, one PID at a
+    time: a killed child cannot stop what it started. See
+    {func}`_kill_descendants`.
+    """
+    if leader and _kill_posix_process_group(process, signum, table):
+        return
+    try:
+        process.send_signal(signum)
+    except OSError:
+        # Reaped since the table was read: nothing left to stop.
+        pass
+    if signum == _KILL_SIGNAL:
+        _kill_descendants(process.pid, table, signum)
+
+
 def terminate_live_processes(signum: signal.Signals = signal.SIGTERM) -> None:
     """Send `signum` to every subprocess currently running through {func}`run_cli`.
 
@@ -1244,15 +693,7 @@ def terminate_live_processes(signum: signal.Signals = signal.SIGTERM) -> None:
         for pid in _descendant_pids(process.pid, table):
             if table[pid][1] != pid:
                 strays[pid] = table[pid][1]
-        if process in leaders and _kill_posix_process_group(process, signum, table):
-            continue
-        try:
-            process.send_signal(signum)
-        except OSError:
-            # Reaped between the snapshot and the signal: nothing left to stop.
-            pass
-        if kill:
-            _kill_descendants(process.pid, table, signum)
+        _signal_posix_child(process, signum, table, leader=process in leaders)
     if kill:
         for pid in strays:
             try:
@@ -1331,9 +772,10 @@ def _run_end_watch() -> Generator[None, None, None]:
 
     A Click Extra command wraps the two ways out of its run in it: building the
     root context, and closing it. Click's `main()` handles the exception past
-    that point, then exits with a status that carries no cause: since
-    [pallets/click#3818](https://github.com/pallets/click/pull/3818), the exit
-    happens outside the handler, so it no longer chains to what was handled.
+    that point, then exits with a status that need not carry its cause: from
+    Click `8.5.1` on ([pallets/click#3818](https://github.com/pallets/click/pull/3818)),
+    the exit happens outside the handler, so it does not chain to what was
+    handled.
     """
     try:
         yield
@@ -1481,7 +923,7 @@ def install_interrupt_handler(ctx: click.Context) -> None:
     Installs a `SIGINT` handler for the duration of the CLI run that calls
     {func}`terminate_live_processes` before re-raising {class}`KeyboardInterrupt`
     (exactly what Python's default handler raises). The abort then proceeds
-    normally, but a concurrent fan-out no longer hangs on surviving children. The
+    normally, and a concurrent fan-out does not hang on surviving children. The
     previous handler is restored when `ctx` closes.
 
     Must run in the main thread: {func}`signal.signal` refuses to install a handler
@@ -1528,6 +970,10 @@ def _kill_windows_process_tree(pid: int) -> None:
     """
     if not is_windows():
         return
+
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
     subprocess.run(
         ("taskkill", "/F", "/T", "/PID", str(pid)),
         capture_output=True,
@@ -1563,21 +1009,116 @@ def _pump_stream(
             log.log(level, text, extra=extra)
 
 
-def _drain_readers(readers: Iterable[threading.Thread], timeout: float | None) -> bool:
-    """Join the reader threads, bounded by `timeout` seconds shared among them.
+def _wait_process(process: subprocess.Popen[str], deadline: float | None) -> None:
+    """Wait for `process` to exit, by the {func}`time.monotonic` `deadline`.
+
+    Waits in slices of {data}`_JOIN_POLL` seconds, so a Ctrl+C reaching the main
+    thread is handled within one slice. `None` waits for as long as the process
+    runs.
+
+    :raises subprocess.TimeoutExpired: when the deadline passes first.
+    """
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
+    while True:
+        try:
+            process.wait(timeout=_poll_slice(deadline))
+        except subprocess.TimeoutExpired:
+            if deadline is not None and time.monotonic() >= deadline:
+                raise
+        else:
+            return
+
+
+def _track(process: subprocess.Popen[Any], *, leader: bool = False) -> None:
+    """Add `process` to the live-process registry, so Ctrl+C reaches it.
+
+    {func}`terminate_live_processes` signals every process in the registry, which
+    is how a Ctrl+C reaching the main thread stops a child that another thread
+    waits on. A `leader`, spawned with `start_new_session`, is signalled through
+    its process group. Pair each call with {func}`_untrack`.
+    """
+    with _LIVE_PROCESSES_LOCK:
+        _LIVE_PROCESSES.add(process)
+        if leader:
+            _GROUP_LEADERS.add(process)
+
+
+def _untrack(process: subprocess.Popen[Any]) -> None:
+    """Remove `process` from the live-process registry, once it is reaped.
+
+    A later Ctrl+C then does not try to signal a process that is gone.
+    """
+    with _LIVE_PROCESSES_LOCK:
+        _LIVE_PROCESSES.discard(process)
+        _GROUP_LEADERS.discard(process)
+
+
+def _kill_process(process: subprocess.Popen[Any], *, leader: bool = False) -> None:
+    """Kill `process` and the descendants it started, then reap it.
+
+    Kills its whole tree on Windows. On POSIX it kills the process group it
+    leads plus the groups its descendants moved to when `leader`, and the child
+    followed by each of its descendants otherwise: the process table is read
+    first, because {func}`_descendant_pids` needs the child alive to find them.
+    A second Ctrl+C waits for the kill to land: see {func}`_deferred_interrupt`.
+    """
+    with _deferred_interrupt():
+        if is_windows():
+            # `taskkill /F /T` covers the whole tree and `process.kill()` backs it
+            # up. Windows has no process group to signal.
+            _kill_windows_process_tree(process.pid)
+            process.kill()
+        else:
+            _signal_posix_child(
+                process, _KILL_SIGNAL, _posix_process_table(), leader=leader
+            )
+    process.wait()
+
+
+def _stop_process(process: subprocess.Popen[Any], grace: float) -> int:
+    """Ask `process` to stop, kill it once `grace` seconds run out, and reap it.
+
+    `SIGTERM` comes first, so the child gets to clean up after itself. A child
+    still running when `grace` runs out is killed with its descendants, see
+    {func}`_kill_process`, and so is one whose wait a Ctrl+C interrupts. The wait
+    is sliced like the one of {func}`run_cli`, so a Ctrl+C reaching the main
+    thread is handled within one slice.
+
+    :return: the exit status of `process`.
+    """
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
+    if process.poll() is None:
+        process.terminate()
+        try:
+            _wait_process(process, time.monotonic() + grace)
+        except subprocess.TimeoutExpired:
+            _kill_process(process)
+        except KeyboardInterrupt:
+            _kill_process(process)
+            raise
+    return process.wait()
+
+
+def _drain_readers(readers: Iterable[threading.Thread], deadline: float | None) -> bool:
+    """Join the reader threads, by the {func}`time.monotonic` `deadline`.
 
     Returns `True` when every reader finished, `False` when the deadline
     passed with at least one still alive (an orphaned grandchild keeping a pipe
     open). `None` waits forever, like {meth}`subprocess.Popen.communicate`
-    without a timeout.
+    without a timeout. Each join waits in slices of {data}`_JOIN_POLL` seconds,
+    like {func}`_wait_process`.
     """
-    readers = tuple(readers)
-    deadline = time.monotonic() + timeout if timeout is not None else None
     for reader in readers:
-        reader.join(
-            None if deadline is None else max(0.0, deadline - time.monotonic()),
-        )
-    return not any(reader.is_alive() for reader in readers)
+        while reader.is_alive():
+            wait = _poll_slice(deadline)
+            if not wait:
+                return False
+            reader.join(wait)
+    return True
 
 
 def run_cli(
@@ -1686,12 +1227,9 @@ def run_cli(
         this flag has that Windows equivalent, and the other half has none: a
         POSIX session also detaches the child from the controlling terminal,
         where a Windows child keeps sharing the parent's console and can still
-        reach back into it. A subprocess-heavy test suite is where that
-        surfaces. `meta-package-manager`'s Windows CI saw a package manager's
-        own teardown land in the parent `pytest` process as a mid-run
-        {exc}`KeyboardInterrupt`. A console control event on the shared console
-        explains it, and no POSIX runner showed it.
-        The lever there is `windows_creation_flags`
+        reach back into it: a console control event the child raises, as a
+        package manager's own teardown can, lands in the parent as a
+        {exc}`KeyboardInterrupt`. The lever there is `windows_creation_flags`
         (`CREATE_NEW_PROCESS_GROUP`), left to the caller because it also
         changes how a real Ctrl-C reaches the child.
     :param command_level: logging level of the invocation-disclosure line.
@@ -1702,6 +1240,9 @@ def run_cli(
     :param log: destination logger. Defaults to the root logger, whose level the
         {class}`~click_extra.logging.VerbosityOption` family manages.
     """
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
     if log is None:
         log = logging.getLogger()
     clean_args = args_cleanup(args)
@@ -1732,9 +1273,9 @@ def run_cli(
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
-        encoding="utf-8",
+        encoding="UTF-8",
         errors=errors,
-        env=cast("subprocess._ENV", env_copy(extra_env)),
+        env=env_copy(extra_env),
         cwd=cwd,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
         | windows_creation_flags,
@@ -1747,10 +1288,7 @@ def run_cli(
     # Ctrl+C (see terminate_live_processes): a worker thread never receives the
     # interrupt itself. A session-isolated child is also flagged as the leader of
     # its own process group, so every kill path signals the group as a whole.
-    with _LIVE_PROCESSES_LOCK:
-        _LIVE_PROCESSES.add(process)
-        if start_new_session:
-            _GROUP_LEADERS.add(process)
+    _track(process, leader=start_new_session)
 
     # One reader thread per captured pipe streams the output live while the
     # calling thread blocks in wait(). Daemon threads, so an abandoned reader (an
@@ -1784,39 +1322,18 @@ def run_cli(
         """Forcibly stop the child and its descendants, reap it and collect what
         its pipes still hold.
 
-        Kills its whole tree on Windows. On POSIX it kills the process group it
-        leads plus the groups its descendants moved to when session-isolated,
-        and the child followed by each of its descendants otherwise: the process
-        table is read first, because {func}`_descendant_pids` needs the child
-        alive to find them.
+        See {func}`_kill_process` for what the kill reaches.
         """
         log.debug(f"PID {process.pid} {reason}; sending kill.")
-        # A second Ctrl+C waits for the kill to land: see _deferred_interrupt.
-        with _deferred_interrupt():
-            if is_windows():
-                # `taskkill /F /T` covers the whole tree and `process.kill()`
-                # backs it up. None of the POSIX branch below can even be
-                # evaluated here: Windows has no `SIGKILL`, and no `os.killpg`
-                # to signal a group.
-                _kill_windows_process_tree(process.pid)
-                process.kill()
-            else:
-                table = _posix_process_table()
-                if not (
-                    start_new_session
-                    and _kill_posix_process_group(process, signal.SIGKILL, table)
-                ):
-                    process.kill()
-                    _kill_descendants(process.pid, table, signal.SIGKILL)
-        process.wait()
-        _drain_readers(readers, _KILL_DRAIN_GRACE)
+        _kill_process(process, leader=start_new_session)
+        _drain_readers(readers, time.monotonic() + _KILL_DRAIN_GRACE)
 
     deadline = time.monotonic() + timeout if timeout is not None else None
     timeout_desc = "none" if timeout is None else f"{timeout}s"
     try:
         try:
             log.debug(f"Waiting for PID {process.pid} (timeout={timeout_desc}).")
-            process.wait(timeout=timeout)
+            _wait_process(process, deadline)
         except subprocess.TimeoutExpired:
             abort("timed out")
             log.debug(f"PID {process.pid} killed; exit {process.returncode}.")
@@ -1827,15 +1344,12 @@ def run_cli(
     finally:
         # The child is no longer live: drop it so a later Ctrl+C does not try to
         # signal an already-reaped process.
-        with _LIVE_PROCESSES_LOCK:
-            _LIVE_PROCESSES.discard(process)
-            _GROUP_LEADERS.discard(process)
+        _untrack(process)
 
     # The child exited: drain the readers within what remains of the deadline. A
     # reader can outlive the child when a grandchild inherited the pipe and keeps
     # writing; communicate() times out on that same shape, so mirror it.
-    remaining = None if deadline is None else max(0.0, deadline - time.monotonic())
-    if not _drain_readers(readers, remaining):
+    if not _drain_readers(readers, deadline):
         log.debug(f"PID {process.pid} exited but its output drain timed out.")
         raise timeout_expired() from None
 

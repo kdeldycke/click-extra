@@ -25,6 +25,7 @@ import click
 import cloup
 import pytest
 from click.testing import CliRunner
+from cloup._util import identity
 
 from click_extra import (
     Choice,
@@ -32,6 +33,7 @@ from click_extra import (
     Command,
     Context,
     ExtraOption,
+    Group,
     HelpFormatter,
     HelpTheme,
     IntRange,
@@ -47,19 +49,18 @@ from click_extra import (
     option_group,
     strip_ansi,
 )
-from click_extra.highlight import HelpKeywords, highlight
+from click_extra.highlight import HelpKeywords, highlight, style_choice_metavar
 from click_extra.pytest import (
     command_decorators,
     default_options_colored_help,
 )
 from click_extra.styling import split_ansi
-from click_extra.theme import get_default_theme
-
-theme = get_default_theme()
+from click_extra.theme import BUILTIN_THEMES, get_default_theme
 from click_extra.types import ChoiceSource, EnumChoice
 
-# Click 8.4.0 (PR pallets/click#3423) inserts a space between an option's help text
-# and the "(DEPRECATED)" label it injects.
+theme = get_default_theme()
+
+# Click writes a space between an option's help text and its "(DEPRECATED)" label.
 DEPRECATED_LABEL_SEP = " "
 
 
@@ -99,6 +100,33 @@ def test_extra_theme():
     second_theme = new_theme.with_(choice=Style(fg=Color.magenta))
     assert second_theme == new_theme
     assert second_theme is new_theme
+
+
+def test_cloup_theme_lends_its_slots_to_the_active_theme(invoke):
+    """A plain `cloup.HelpTheme` in the formatter settings renders a help screen.
+
+    Cloup's slots come from it, and the slots click-extra adds from the active
+    theme.
+    """
+    cloup_theme = cloup.HelpTheme.dark()
+
+    @command(context_settings={"formatter_settings": {"theme": cloup_theme}})
+    @option("--fruit", help="Pick a fruit.")
+    def basket(fruit):
+        echo(fruit)
+
+    result = invoke(basket, "--help", color=True)
+    assert result.exit_code == 0
+    assert cloup_theme.heading("Options:") in result.stdout
+    # Cloup's first-column style opens the cell of the option.
+    assert cloup_theme.col1("--fruit TEXT").partition("TEXT")[0] in result.stdout
+    assert theme.metavar("[OPTIONS]") in result.stdout
+
+    formatter = HelpFormatter(theme=cloup_theme)
+    assert isinstance(formatter.theme, HelpTheme)
+    assert isinstance(formatter.theme.heading, Style)
+    assert formatter.theme.heading == cloup_theme.heading
+    assert formatter.theme.metavar == theme.metavar
 
 
 class HashType(Enum):
@@ -977,10 +1005,6 @@ def test_bracket_field_inner_slot_fallback_to_bracket():
     bracket field with the bracket styling: value tokens inherit it
     rather than rendering plain. Specific inner slots override piecemeal.
     """
-    from cloup._util import identity
-
-    from click_extra import Style
-    from click_extra.theme import HelpTheme
 
     # Minimal theme: only ``bracket`` is set; the four inner slots stay at
     # identity. The whole bracket-field content should render bracket-dim.
@@ -1031,10 +1055,6 @@ def test_bracket_field_inner_slot_override_takes_precedence():
     the dedicated style and fall back to ``bracket`` for the envvar and
     default values.
     """
-    from cloup._util import identity
-
-    from click_extra import Style
-    from click_extra.theme import HelpTheme
 
     partial = HelpTheme(
         bracket=Style(dim=True),
@@ -1092,7 +1112,6 @@ def test_cross_ref_highlight_disabled():
     styled (bracket fields, deprecated messages, subcommands, choice metavars).
     Options, choices in free-form text, metavars, arguments, and CLI names are
     left plain."""
-    from click_extra.theme import BUILTIN_THEMES
 
     no_xref_theme = BUILTIN_THEMES["dark"].with_(
         cross_ref_highlight=False,
@@ -1165,6 +1184,24 @@ def test_choice_does_not_override_default_style():
     assert bracket_start != -1, "bracket field not found"
     bracket_region = help_text[bracket_start:]
     assert theme.choice("outline") not in bracket_region
+
+
+def test_keyword_wrapped_at_its_dash_is_highlighted_whole():
+    """A keyword the renderer wraps after its dash is painted as one run."""
+    cli = Command(
+        "test",
+        params=[
+            ExtraOption(
+                ["--style"],
+                type=click.Choice(["plain", "rounded-outline"]),
+                help="Pick a table style, like the default rounded-outline one.",
+            ),
+        ],
+    )
+    help_text = cli.get_help(Context(cli, formatter_settings={"width": 55}))
+
+    assert "rounded-\n" in strip_ansi(help_text)
+    assert theme.choice("rounded-\n          outline") in help_text
 
 
 @pytest.mark.parametrize(
@@ -1467,7 +1504,6 @@ def test_no_false_positive_highlight(
 def test_parent_keywords_highlighted_in_subcommand_help():
     """Parent group names, options, and choices must be highlighted in
     subcommand help text."""
-    from click_extra.commands import Group
 
     grp = Group(
         "myapp",
@@ -1497,7 +1533,6 @@ def test_parent_keywords_highlighted_in_subcommand_help():
 def test_parent_choice_case_with_custom_metavar():
     """Parent choices with custom metavar must use original-case strings in
     subcommand help, not normalized (lowercased) forms."""
-    from click_extra.commands import Group
 
     grp = Group(
         "myapp",
@@ -1536,7 +1571,6 @@ def test_parent_choice_case_with_custom_metavar():
 
 def test_command_aliases_collected():
     """Command aliases are collected as keywords for highlighting."""
-    from click_extra.commands import Group
 
     grp = Group("cli")
 
@@ -1757,7 +1791,6 @@ def test_help_keywords_subtract(base_kwargs, removals_kwargs, checks):
 
 def test_extra_keywords_merged():
     """extra_keywords injects additional strings into the collected set."""
-    from click_extra.commands import Group
 
     grp = Group(
         "cli",
@@ -1878,11 +1911,10 @@ def test_excluded_keywords_suppresses_highlighting():
     ),
 )
 def test_style_choice_metavar(metavar, choices, expected):
-    """_style_choice_metavar styles known choices inside bracket-delimited
+    """style_choice_metavar styles known choices inside bracket-delimited
     metavar strings, styles non-choice parts (type placeholders) as metavars,
     and returns None for non-bracket strings."""
-    fmt = HelpFormatter()
-    assert fmt._style_choice_metavar(metavar, choices) == expected
+    assert style_choice_metavar(metavar, choices, theme) == expected
 
 
 def test_multiple_choice_options_metavar_styled():
@@ -2540,7 +2572,6 @@ def test_invoked_subcommand_is_highlighted_and_prose_is_not():
     a subcommand often carries the name of what it does, and reading a whole
     help screen for it colors plain English.
     """
-    from click_extra.commands import Group
 
     grp = Group(
         "basket",
@@ -2566,7 +2597,6 @@ def test_subcommand_options_are_highlighted_on_the_group_screen():
 
     An example invoking one names options the group itself never declares.
     """
-    from click_extra.commands import Group
 
     grp = Group("basket", help="Sort fruit.\n\n\b\n  $ basket pick --ripe\n")
     grp.add_command(
@@ -2590,7 +2620,7 @@ def test_end_of_options_separator_is_styled():
 def test_bracket_field_closes_on_a_bracketed_default():
     """A default value that is itself bracketed closes its own field.
 
-    The content pattern used to stop at the first `]` on screen, which left the
+    A content pattern stopping at the first `]` on screen would leave the
     field's real closing bracket outside the styled run.
     """
     cli = Command(

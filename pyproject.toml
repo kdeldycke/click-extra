@@ -83,20 +83,19 @@ classifiers = [
 # - aligns minimal Python requirements to ours,
 # - adds new explicit support Python version.
 dependencies = [
-  # Click 8.4.1 records a parameter's source before process_value (PR
-  # pallets/click#3484), the contract every eager callback in parameters.py reads,
-  # and normalizes Choice completion (PR pallets/click#3471). Release 8.4.0 added
-  # NoSuchCommand, get_pager_file and an ANSI-aware TextWrapper, consumed by
-  # __init__.py and highlight.py.
-  "click>=8.4.1",
-  # Cloup 3.0.7 fix issues with metavars: https://github.com/kdeldycke/click-extra/pull/1281
-  "cloup>=3.0.7",
-  # >=8 for _recursive_update/_remove_blanks (extra_platforms._utils); raised to
-  # 13.4 for the skip_hermetic_build pytest decorator cited in docs/packaging.md.
-  "extra-platforms>=13.4",
-  # tabulate 0.9 is widely packaged; the `colon_grid` format added in 0.10 is
-  # backported in table.py by aliasing it to `grid` when missing.
-  "tabulate[widechars]>=0.9",
+  # Click 8.5.0 adds `custom_version_option`, which the package root re-exports,
+  # and makes `ProgressBar.render_finish()` apply pending steps
+  # (pallets/click#3769), which progress.progressbar() relies on.
+  "click>=8.5.0",
+  # Cloup 4.0.0 hashes `Style` by value (janluke/cloup#224), builds the themes of
+  # `HelpTheme` subclasses (janluke/cloup#225), and exports the `ArgumentKwargs`
+  # and `OptionKwargs` the package root re-exports.
+  "cloup>=4.0.0",
+  # 14.0.0 requires Python 3.11 like click-extra, and stops importing `typing`
+  # at runtime, which every click-extra run that detects a platform paid for.
+  "extra-platforms>=14",
+  # tabulate 0.10 adds the `colon_grid` format that --table-format offers.
+  "tabulate[widechars]>=0.10",
   # wcmatch 10.0 fix some inconsistencies in globbing and symlinks.
   "wcmatch>=10",
   # wcwidth 0.8.3 fixed wrap() looping forever on an OSC 8 hyperlink followed by
@@ -142,8 +141,11 @@ optional-dependencies.sphinx = [
   # docutils 0.20 is the minimal version for Sphinx 8.0.0.
   "docutils>=0.20",
   # myst-parser 5.1 ships the "alert" syntax extension that renders GitHub
-  # alerts, which click_extra.sphinx no longer converts itself.
+  # alerts on the pages click_extra.sphinx builds.
   "myst-parser>=5.1",
+  # packaging parses the versions and specifiers of the `{matrix}` directive.
+  # 23.0 is the floor Sphinx 8.0.0 itself requires.
+  "packaging>=23",
   # Pygments 2.18.0 added `Formatter.__class_getitem__`. Sphinx 8.0.0 evaluates
   # `HtmlFormatter[str]` at import, which raises a `TypeError` on any older
   # Pygments.
@@ -203,8 +205,8 @@ test = [
   # `[tool.coverage] run.patch = ["subprocess"]`: older versions write it into
   # site-packages at run time, which fails when that directory is read-only.
   "coverage[toml]>=7.13",
-  # Matches the runtime extra-platforms>=13.4 floor; the [pytest] extra adds fixtures.
-  "extra-platforms[pytest]>=13.4",
+  # Matches the runtime extra-platforms>=14 floor; the [pytest] extra adds fixtures.
+  "extra-platforms[pytest]>=14",
   # jsonschema validates the generated Carapace spec against the vendored
   # carapace-spec schema in test_carapace; 4.18 added the 2020-12 dialect.
   "jsonschema>=4.18",
@@ -217,6 +219,8 @@ test = [
   # myst-parser 5.1 ships the "alert" syntax extension the Sphinx test builds
   # enable.
   "myst-parser>=5.1",
+  # Mirrors the sphinx extra floor; test_pyproject.py also reads specifiers with it.
+  "packaging>=23",
   # pymdown-extensions 10.0 is the first version with stable highlight extension API.
   "pymdown-extensions>=10",
   # pytest 9.0.0 is the first supporting native TOML configuration files.
@@ -288,15 +292,15 @@ typing = [
   "types-jsonschema>=4.18",
   "types-pygments>=2.19.0.20251121",
   "types-pyyaml>=6.0.12.9",
-  "types-tabulate>=0.9.0.2",
+  "types-tabulate>=0.10.0.20260308",
 ]
 
 [tool.setuptools]
 # Distributors like Guix that lack uv-build fall back to setuptools, which
-# installs only *.py and would drop the bundled themes.toml and py.typed. This
-# section is a compatibility shim for those builds; uv-build ignores it (it uses
+# installs only *.py and would drop the bundled py.typed marker. This section is
+# a compatibility shim for those builds; uv-build ignores it (it uses
 # [tool.uv].build-backend.module-root instead).
-package-data.click_extra = [ "*.toml", "py.typed" ]
+package-data.click_extra = [ "py.typed" ]
 
 [tool.uv]
 required-version = ">=0.12.22"
@@ -306,6 +310,10 @@ dependency-groups.docs = { requires-python = ">= 3.14" }
 # Relative dates are fine here because the sync-uv-lock autofix job reverts
 # uv.lock when the only diff is timestamp noise.
 exclude-newer = "1 week"
+# extra-platforms is published by this repository's own maintainer: the cooldown
+# guards against a compromised upstream, which does not apply here, and it
+# otherwise holds each release back a week from the projects that consume it.
+exclude-newer-package = { extra-platforms = "0 days" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 build-backend.source-exclude = [
@@ -330,13 +338,10 @@ build-backend.source-include = [
 ]
 
 [tool.nuitka]
-# Bundle the package's data files (themes.toml) into the standalone binary.
-# Nuitka's import analysis only follows `import` statements, so data files
-# read at runtime through importlib.resources are invisible to it and must be
-# listed explicitly. Without this, the onefile binary aborts at startup when
-# click_extra.theme loads themes.toml. repomatic translates this key into the
-# --include-package-data CLI flag.
-include-package-data = "click_extra"
+# The click-extra CLI imports its lazily mounted subcommands from a string, which
+# Nuitka's import analysis cannot follow: each module is included by name.
+# repomatic forwards every key of this table as a Nuitka CLI flag.
+include-module = [ "click_extra.cli_capture", "click_extra.cli_prebake" ]
 
 [tool.ruff]
 preview = true
@@ -743,7 +748,7 @@ minimum-release-age = "7 days"
 # into pdb and asyncio. Pin the exclusions to the bare tkinter default so a
 # leaner repomatic default never strips the debugger stack this binary needs.
 nuitka.nofollow-imports = [ "tkinter" ]
-# Full test matrix (24 jobs; runs on push-to-main and the monthly schedule,
+# Full test matrix (22 jobs; runs on push-to-main and the monthly schedule,
 # never on PRs). It composes from two parts: a shipped cross-product for
 # cross-platform coverage, and explicit `full-include` rows for forward-looking
 # dependency coverage. Everything forward-looking runs on the single fastest
@@ -755,10 +760,9 @@ nuitka.nofollow-imports = [ "tkinter" ]
 #     rows below. 10 jobs.
 #   - every direct dependency at its declared floor: ubuntu-26.04-arm ×
 #     Python 3.11, resolved again with `lowest-direct`. 1 job.
-#   - {8.4.1, 8.4.2} click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.11
-#     (the floor corner), covering the declared >=8.4.1 range. 2 jobs.
-#   - released click × cloup 3.1.0: ubuntu-26.04-arm × Python 3.15, the
-#     cloup 3.x line on the newest Click. 1 job.
+#   - the 8.5.0 click floor × released cloup: ubuntu-26.04-arm × Python 3.11
+#     (the floor corner), which stays covered once `released` moves past it.
+#     1 job.
 #   - {stable, main} click × released cloup: ubuntu-26.04-arm × {3.15, 3.15t}.
 #     4 jobs, unstable.
 #   - {released, stable, main} click × master cloup: ubuntu-26.04-arm ×
@@ -768,7 +772,7 @@ nuitka.nofollow-imports = [ "tkinter" ]
 # the released Click the project ships with. Click 8.5.0 shipped exactly that,
 # giving positional arguments a section of their own. Left gating, every such
 # upstream change reddens the whole workflow until someone chases it.
-# The last five slices (14 jobs) are the `full-include` rows below.
+# The last four slices (12 jobs) are the `full-include` rows below.
 # Runner selection favors measured speed over architecture: on Linux the ARM
 # runner beat its x86 twin by ~2x back when the axis carried ubuntu-24.04-arm
 # and ubuntu-slim, before repomatic 7.10.0 moved it to the 26.04 pair. Per OS
@@ -807,14 +811,9 @@ test-matrix.full-include = [
   # another requirement holds higher: the `sphinx` extra keeps Pygments at 2.18,
   # above the 2.14 of the `pygments` and `mkdocs` extras.
   { os = "ubuntu-26.04-arm", python-version = "3.11", resolution = "lowest-direct" },
-  # Every Click release from the >=8.4.1 floor through 8.4.2 (8.5.0 ships as
-  # `released`), each on the floor Python 3.11. Cloup 4.0.0 requires Click
-  # 8.5.0, and the Click overlay does not re-resolve the locked Cloup, so these
-  # rows pin Cloup 3.1.0: the newest release a Click 8.4 install resolves to.
-  { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.4.1", cloup-version = "v3.1.0" },
-  { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.4.2", cloup-version = "v3.1.0" },
-  # Cloup 3.x on the released Click: an install that pins cloup below 4.0.0.
-  { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "released", cloup-version = "v3.1.0" },
+  # Every Click release the >=8.5.0 floor allows, except the one `released`
+  # covers, each on the floor Python 3.11.
+  { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.5.0" },
   # Click's stable and main dev branches on released Cloup, latest Pythons.
   { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "stable", cloup-version = "released", state = "unstable" },
   { os = "ubuntu-26.04-arm", python-version = "3.15t", click-version = "stable", cloup-version = "released", state = "unstable" },

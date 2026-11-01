@@ -72,7 +72,7 @@ def test_prep_path_creates_parents_and_writes_utf8(tmp_path) -> None:
         # Non-ASCII payload exercises the forced UTF-8 encoding.
         stream.write("café — smörgåsbord")
     assert target.parent.is_dir()
-    assert target.read_text(encoding="utf-8") == "café — smörgåsbord"
+    assert target.read_text(encoding="UTF-8") == "café — smörgåsbord"
 
 
 def test_prep_path_stdout(capsys) -> None:

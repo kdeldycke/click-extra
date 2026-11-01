@@ -15,16 +15,17 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """MkDocs plugin for ANSI color rendering in code blocks.
 
-Patches [pymdownx.highlight](https://facelessuser.github.io/pymdown-extensions/
-extensions/highlight/)'s formatter classes so that `Token.Ansi.*` tokens produced by
-Click Extra's {doc}`Pygments lexers <pygments>` are decomposed into individual CSS classes
-and styled with the correct colors.
+Patches the formatter classes of
+[pymdownx.highlight](https://facelessuser.github.io/pymdown-extensions/extensions/highlight/)
+so that `Token.Ansi.*` tokens produced by Click Extra's
+{doc}`Pygments lexers <pygments>` are decomposed into individual CSS classes and
+styled with the correct colors.
 
 Decomposing tokens into classes only strips the raw escape codes: the classes carry no
 color until a matching stylesheet is present. Unlike Sphinx's `PygmentsBridge`, which
 regenerates `pygments.css` from the active formatter on every build, MkDocs never emits
 one for these classes. The plugin therefore writes the ANSI rules to a dedicated
-stylesheet (`_ansi_stylesheet`) and registers it in `extra_css` so every page
+stylesheet, {data}`ANSI_STYLESHEET`, and registers it in `extra_css` so every page
 links it.
 
 When [mkdocs-click](https://pypi.org/project/mkdocs-click/) is installed, the plugin
@@ -40,7 +41,6 @@ This is the MkDocs counterpart of the Sphinx integration in
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
 from functools import wraps
 from pathlib import Path
 
@@ -56,6 +56,13 @@ import pymdownx.highlight
 from .color import forced_color
 from .pygments import AnsiHtmlFormatter
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+
+    from mkdocs.config.defaults import MkDocsConfig
+
+
 ANSI_OUTPUT_FENCE = "```ansi-output"
 """Fenced code-block opening that triggers the ANSI-aware Pygments lexer."""
 
@@ -70,31 +77,26 @@ Registered in the MkDocs config's `extra_css` by
 output by {meth}`AnsiColorPlugin.on_post_build`.
 """
 
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    from mkdocs.config.defaults import MkDocsConfig
-
-
-def _ansi_lines(gen: Iterator[str]) -> Iterator[str]:
-    """Replace `TEXT_FENCE` with `ANSI_OUTPUT_FENCE` in a line iterator."""
-    for line in gen:
-        yield ANSI_OUTPUT_FENCE if line == TEXT_FENCE else line
-
 
 def _wrap_ansi(orig: Callable[..., Iterator[str]]) -> Callable[..., Iterator[str]]:
     """Wrap an `mkdocs-click` line generator to capture its help in color.
 
-    The generator is drained inside {func}`~click_extra.color.forced_color`, so
-    the escape codes are produced while the override is active rather than once
-    the caller iterates and the environment has been restored, and its `text`
-    fences are swapped for the ANSI-aware one through `_ansi_lines`.
+    `mkdocs-click` builds help from `ctx.make_formatter()` rather than running
+    the command, so the environment override of
+    {func}`~click_extra.color.forced_color` is the only way to color it. The
+    generator is drained inside that override, so the escape codes are produced
+    while it is active, not once the caller iterates and the environment is
+    restored. Its `text` fences are swapped for {data}`ANSI_OUTPUT_FENCE`.
     """
 
     @wraps(orig)
-    def ansi_lines(*args, **kwargs):
+    def ansi_lines(*args, **kwargs) -> Iterator[str]:
         with forced_color():
-            lines = list(orig(*args, **kwargs))
-        return _ansi_lines(iter(lines))
+            lines = [
+                ANSI_OUTPUT_FENCE if line == TEXT_FENCE else line
+                for line in orig(*args, **kwargs)
+            ]
+        return iter(lines)
 
     return ansi_lines
 
@@ -102,17 +104,12 @@ def _wrap_ansi(orig: Callable[..., Iterator[str]]) -> Callable[..., Iterator[str
 def _patch_mkdocs_click() -> None:
     """Patch `mkdocs-click` code blocks to use the `ansi-output` lexer.
 
-    Wraps `_make_usage` and `_make_plain_options` so that their fenced code blocks
-    use the ANSI-aware lexer instead of plain `text`, and so that the help they
-    capture is rendered with color forced on. `mkdocs-click` builds help from
-    `ctx.make_formatter()` rather than executing the command, so the environment
-    override ({func}`~click_extra.color.forced_color`) is the only lever available
-    here, and the capture is materialized inside it: the wrapped generators read their
-    formatter eagerly so the escape codes are produced while the override is active, not
-    lazily once the caller iterates and the environment has been restored. The patch is
-    idempotent: calling it twice has no additional effect.
+    Wraps `_make_usage` and `_make_plain_options` with {func}`_wrap_ansi`, so
+    the help they capture renders in color. Does nothing when `mkdocs-click` is
+    not installed, and nothing more when called twice.
     """
     try:
+        # Deferred import: mkdocs-click is optional, even with the mkdocs extra.
         from mkdocs_click import _docs
     except ImportError:
         return
@@ -182,12 +179,10 @@ class AnsiColorPlugin(BasePlugin):
     def on_post_build(self, config: MkDocsConfig) -> None:
         """Write the ANSI color stylesheet into the built site.
 
-        The formatters patched in {meth}`on_config` emit `-Ansi-*` CSS classes, but
-        MkDocs, unlike Sphinx's `PygmentsBridge`, never regenerates a Pygments
-        stylesheet from the active formatter. Without this file the classes have no
-        color rules and terminal output renders colorless. Runs after the theme has
-        copied its own assets, so the file survives the site-directory cleanup.
+        Without it, the `-Ansi-*` classes the formatters patched in
+        {meth}`on_config` emit carry no color. Runs after the theme copied its own
+        assets, so the file survives the site-directory cleanup.
         """
         css_path = Path(config["site_dir"]) / ANSI_STYLESHEET
         css_path.parent.mkdir(parents=True, exist_ok=True)
-        css_path.write_text(_ansi_stylesheet(), encoding="utf-8")
+        css_path.write_text(_ansi_stylesheet(), encoding="UTF-8")

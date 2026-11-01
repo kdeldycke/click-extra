@@ -50,12 +50,11 @@ try:
 except ImportError as err:
     raise ImportError(missing_extra_message("pygments", subject="This module")) from err
 
-from pygments import lexers
 from pygments.filter import Filter
 from pygments.filters import TokenMergeFilter
 from pygments.formatter import _lookup_style  # type: ignore[attr-defined]
 from pygments.formatters import HtmlFormatter
-from pygments.lexer import Lexer, LexerMeta
+from pygments.lexer import Lexer
 from pygments.lexers.algebra import GAPConsoleLexer
 from pygments.lexers.dylan import DylanConsoleLexer
 from pygments.lexers.erlang import ElixirConsoleLexer, ErlangShellLexer
@@ -65,24 +64,32 @@ from pygments.lexers.php import PsyshConsoleLexer
 from pygments.lexers.python import PythonConsoleLexer
 from pygments.lexers.r import RConsoleLexer
 from pygments.lexers.ruby import RubyConsoleLexer
-from pygments.lexers.shell import ShellSessionBaseLexer
+from pygments.lexers.shell import (
+    BashSessionLexer,
+    MSDOSSessionLexer,
+    PowerShellSessionLexer,
+    TcshSessionLexer,
+)
 from pygments.lexers.special import OutputLexer
 from pygments.lexers.sql import PostgresConsoleLexer, SqliteConsoleLexer
 from pygments.style import Style, StyleMeta
 from pygments.token import Generic, Text, Token, string_to_tokentype
+from pygments.util import get_bool_opt
 
-from .styling import (
-    _ANSI_16_RGB,
-    _ANSI_NAMES,
-    _ATTR_CSS,
-    _SGR_ATTRIBUTES,
-    _apply_sgr_codes,
-    _is_rgb,
-    _nearest_256,
-    _palette_to_rgb,
-    _rgb_to_hex,
-    _sgr_params,
+from .ansi import (
+    ANSI_16_RGB,
+    ANSI_ESCAPE_PATTERN,
+    ANSI_NAMES,
+    ANSI_SGR_RE,
+    SGR_ATTRIBUTES,
+    apply_sgr_codes,
+    is_rgb,
+    nearest_256,
+    palette_to_rgb,
+    rgb_to_hex,
+    sgr_params,
 )
+from .styling import _ATTR_CSS
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -95,24 +102,24 @@ if TYPE_CHECKING:
 # --- Color palettes ---
 
 _NAMED_COLORS: dict[str, str] = {
-    prefix + name.capitalize(): _rgb_to_hex(_ANSI_16_RGB[offset + i])
+    prefix + name.capitalize(): rgb_to_hex(ANSI_16_RGB[offset + i])
     for prefix, offset in (("", 0), ("Bright", 8))
-    for i, name in enumerate(_ANSI_NAMES)
+    for i, name in enumerate(ANSI_NAMES)
 }
 """Standard 8 colors and their bright variants, mapped to hex values.
 
 Keyed by `Token.Ansi` component name (`Red`, `BrightRed`, ...) and derived
-from the canonical {data}`click_extra.styling._ANSI_16_RGB` palette, so the
+from the canonical {data}`click_extra.ansi.ANSI_16_RGB` palette, so the
 documentation renders named ANSI colors with the exact values `Style` uses
 for CSS output and contrast math.
 """
 
 _PALETTE_256: dict[int, str] = {
-    idx: _rgb_to_hex(_palette_to_rgb(idx)) for idx in range(256)
+    idx: rgb_to_hex(palette_to_rgb(idx)) for idx in range(256)
 }
 """256-color indexed palette mapped to hex values.
 
-Derived index by index from {func}`click_extra.styling._palette_to_rgb`:
+Derived index by index from {func}`click_extra.ansi.palette_to_rgb`:
 indices 0-15 are the system colors (the canonical named palette, like real
 terminals which render those slots with their theme), 16-231 the 6x6x6 color
 cube, and 232-255 the grayscale ramp.
@@ -121,12 +128,12 @@ cube, and 232-255 the grayscale ramp.
 
 _ATTR_COMPONENTS: dict[str, str] = {
     attr: "Faint" if attr == "dim" else attr.capitalize()
-    for attr in _SGR_ATTRIBUTES.values()
+    for attr in SGR_ATTRIBUTES.values()
 }
 """`Token.Ansi` component name of each boolean text attribute.
 
 Keyed by the {class}`~click_extra.styling.Style` field names the SGR decoder of
-{mod}`click_extra.styling` fills, in SGR code order, so the lexer and
+{mod}`click_extra.ansi` fills, in SGR code order, so the lexer and
 {meth}`~click_extra.styling.Style.from_ansi` cannot disagree on which code
 switches which attribute on. The component names appear in `EXTRA_ANSI_CSS`,
 the Pygments token hierarchy, and CSS class names. `dim` is spelled `Faint`
@@ -198,12 +205,12 @@ def _color_component(color: object, ground: str, *, true_color: bool) -> str | N
     """
     if isinstance(color, str):
         name = "".join(part.capitalize() for part in color.split("_"))
-    elif _is_rgb(color):
+    elif is_rgb(color):
         if not all(0 <= channel <= 255 for channel in color):
             return None
         if true_color:
-            return f"{ground.upper()}_{_rgb_to_hex(color)[1:]}"
-        name = f"C{_nearest_256(*color)}"
+            return f"{ground.upper()}_{rgb_to_hex(color)[1:]}"
+        name = f"C{nearest_256(*color)}"
     elif isinstance(color, int) and 0 <= color <= 255:
         name = f"C{color}"
     else:
@@ -268,26 +275,39 @@ module takes: {class}`AnsiColorLexer`, {class}`AnsiFilter`, and the session
 lexers of {data}`LEXER_MAP`, which hand the option down to the lexers they wrap.
 """
 
-_ANSI_ESCAPE_RE = re.compile(
-    r"\x1b\[(?P<sgr_params>[0-9;]*)m"
-    r"|\x1b\[[^a-zA-Z]*[a-zA-Z]"
+
+def _true_color(options: dict[str, Any]) -> bool:
+    """Read the `true_color` option, {data}`DEFAULT_TRUE_COLOR` when unset.
+
+    {func}`pygments.util.get_bool_opt` parses it like any other Pygments
+    option, so the `true_color=false` string of a `pygmentize -O` command line
+    turns it off.
+    """
+    return get_bool_opt(options, "true_color", DEFAULT_TRUE_COLOR)
+
+
+_ANSI_TOKEN_RE = re.compile(
+    rf"{ANSI_SGR_RE.pattern}"
     r"|\x1b\]8;[^;]*;(?P<osc8_uri>[^\x07\x1b]*)(?:\x07|\x1b\\)"
-    r"|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)"
-    r"|\x1b[()][A-B012]"
+    rf"|{ANSI_ESCAPE_PATTERN}"
     r"|\x1b.?"
     r"|(?P<text>[^\x1b]+)",
 )
-"""Single-pass regex for ANSI escape sequence parsing.
+"""Single-pass tokenizer for text carrying ANSI escape sequences.
 
-Alternatives in priority order:
+Composed from the grammar of {mod}`click_extra.ansi`, so the lexer reads an
+escape the way {func}`~click_extra.ansi.strip_ansi` does. Alternatives in
+priority order:
 
-1. CSI SGR sequence (`ESC [` + params + `m`): captured for SGR processing.
-2. Other CSI sequences (`ESC [` + params + final byte): consumed and stripped.
-3. OSC 8 hyperlink (`ESC ] 8 ; params ; URI ST`): URI captured for link rendering.
-4. Other OSC sequences (`ESC ]` + payload + `BEL` or `ST`): consumed and stripped.
-5. VT100 charset selection (`ESC (` or `ESC )` + designator): consumed and stripped.
-6. Any other escape sequence: consumed and stripped.
-7. Plain text: captured and emitted with the current styling token.
+1. SGR sequence ({data}`~click_extra.ansi.ANSI_SGR_RE`): parameters captured
+   for SGR processing.
+2. OSC 8 hyperlink (`ESC ] 8 ; params ; URI ST`): URI captured for link rendering.
+3. Any other escape sequence ({data}`~click_extra.ansi.ANSI_ESCAPE_PATTERN`):
+   other CSI and OSC sequences, and two-byte forms like the `ESC # 8` of a
+   screen alignment test. Consumed and stripped.
+4. An escape that opens no sequence of that grammar, like one cut off at the end
+   of the text: consumed with the character after it, and stripped.
+5. Plain text: captured and emitted with the current styling token.
 """
 
 
@@ -305,7 +325,8 @@ class AnsiColorLexer(Lexer):
       reverse video (7), strikethrough (9), overline (53), and their resets.
     - Named colors: standard (30-37, 40-47) and bright (90-97, 100-107).
     - 256-color indexed palette (38;5;n, 48;5;n).
-    - 24-bit RGB (38;2;r;g;b, 48;2;r;g;b), quantized to the nearest 256-color entry.
+    - 24-bit RGB (38;2;r;g;b, 48;2;r;g;b), kept as is, or quantized to the
+      nearest 256-color entry with `true_color=False`.
 
     Supported OSC sequences:
 
@@ -316,7 +337,7 @@ class AnsiColorLexer(Lexer):
     name = "ANSI Color"
     aliases = ("ansi-color", "ansi", "ansi-terminal")
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, **options) -> None:
         """Initialize the lexer.
 
         :param true_color: Default {data}`DEFAULT_TRUE_COLOR`. 24-bit RGB sequences
@@ -328,8 +349,8 @@ class AnsiColorLexer(Lexer):
             emit ``Token.Ansi.C{n}`` / ``Token.Ansi.BGC{n}`` tokens that map to CSS
             classes via the style dict.
         """
-        self.true_color = bool(kwargs.pop("true_color", DEFAULT_TRUE_COLOR))
-        super().__init__(*args, **kwargs)
+        super().__init__(**options)
+        self.true_color = _true_color(options)
         self._reset_state()
 
     def _reset_state(self) -> None:
@@ -376,35 +397,26 @@ class AnsiColorLexer(Lexer):
             self._token_state = dict(self._state)
         return self._cached_token
 
-    def _process_sgr(self, params: str) -> None:
-        r"""Update the SGR state from a semicolon-separated parameter string.
-
-        The decoding is the one of {mod}`click_extra.styling`, so an escape reads
-        the same here as in {func}`~click_extra.styling.split_ansi`: an empty
-        parameter is `0`, a full reset, and `\x1b[;31m` is a reset followed by
-        a red foreground. The state is keyed by
-        {class}`~click_extra.styling.Style` field names, and `_components` maps
-        it onto the token hierarchy.
-        """
-        _apply_sgr_codes(_sgr_params(params), self._state)
-
     def get_tokens_unprocessed(
         self, text: str
     ) -> Iterator[tuple[int, _TokenType, str]]:
-        """Parse ANSI escape sequences from `text` and yield styled tokens.
+        r"""Parse ANSI escape sequences from `text` and yield styled tokens.
 
-        SGR sequences update the styling state. OSC 8 hyperlinks emit structural
-        `Token.AnsiLinkStart` / `Token.AnsiLinkEnd` tokens. All other escape
-        sequences are consumed and stripped.
+        SGR sequences update the styling state, through the decoder of
+        {mod}`click_extra.ansi`: an escape reads the same here as in
+        {func}`~click_extra.styling.split_ansi`, so an empty parameter is a `0`
+        reset and `\x1b[;31m` is a reset followed by a red foreground. OSC 8
+        hyperlinks emit structural `Token.AnsiLinkStart` / `Token.AnsiLinkEnd`
+        tokens. All other escape sequences are consumed and stripped.
         """
         self._reset_state()
-        for match in _ANSI_ESCAPE_RE.finditer(text):
-            sgr_params = match.group("sgr_params")
+        for match in _ANSI_TOKEN_RE.finditer(text):
+            sgr = match.group("sgr_params")
             osc8_uri = match.group("osc8_uri")
             plain = match.group("text")
 
-            if sgr_params is not None:
-                self._process_sgr(sgr_params)
+            if sgr is not None:
+                apply_sgr_codes(sgr_params(sgr), self._state)
             elif osc8_uri is not None:
                 pos = match.start()
                 if osc8_uri:
@@ -453,9 +465,8 @@ class AnsiFilter(Filter):
         related discussions.
         ```
         """
-        true_color = bool(options.pop("true_color", DEFAULT_TRUE_COLOR))
         super().__init__(**options)
-        self.ansi_lexer = AnsiColorLexer(true_color=true_color)
+        self.ansi_lexer = AnsiColorLexer(true_color=_true_color(options))
         self.token_type = string_to_tokentype(
             options.get("token_type", DEFAULT_TOKEN_TYPE),
         )
@@ -463,10 +474,18 @@ class AnsiFilter(Filter):
     def filter(
         self, lexer: Lexer | None, stream: Iterable[tuple[_TokenType, str]]
     ) -> Iterator[tuple[_TokenType, str]]:
-        """Transform each token of `token_type` type into a stream of ANSI tokens."""
+        """Transform each token of `token_type` type into a stream of ANSI tokens.
+
+        The token value is lexed as is: the lexer emitting it already normalized
+        the text, and a second pass would strip the blank lines opening or closing
+        each output block.
+        """
         for ttype, value in stream:
             if ttype == self.token_type:
-                yield from self.ansi_lexer.get_tokens(value)
+                for _, ansi_ttype, ansi_value in self.ansi_lexer.get_tokens_unprocessed(
+                    value
+                ):
+                    yield ansi_ttype, ansi_value
             else:
                 yield ttype, value
 
@@ -500,10 +519,9 @@ def _ansi_input_lexer(inner_cls: type[Lexer]) -> type[Lexer]:
         name = f"ANSI-aware {inner_cls.name}"
 
         def __init__(self, **options) -> None:
-            true_color = bool(options.pop("true_color", DEFAULT_TRUE_COLOR))
             super().__init__(**options)
             self.plain_lexer = inner_cls(**options)
-            self.ansi_lexer = AnsiColorLexer(true_color=true_color)
+            self.ansi_lexer = AnsiColorLexer(true_color=_true_color(options))
 
         def get_tokens_unprocessed(
             self, text: str
@@ -523,32 +541,11 @@ def _ansi_input_lexer(inner_cls: type[Lexer]) -> type[Lexer]:
     return _AnsiInputLexer
 
 
-class _AnsiSessionMeta(LexerMeta):
-    """Metaclass that creates ANSI-capable variants of session lexers."""
-
-    def __new__(cls, name, bases, dct):
-        """Set up class properties for new ANSI-capable lexers.
-
-        - Adds an `ANSI` prefix to the lexer's name.
-        - Replaces all `aliases` IDs from the parent lexer with variants prefixed with
-            `ansi-`.
-        - Wraps the inner lexer of a shell session so ANSI survives an input line,
-            see {func}`_ansi_input_lexer`. Only the shell-session family has one.
-        """
-        new_cls = super().__new__(cls, name, bases, dct)
-        new_cls.name = f"ANSI {new_cls.name}"
-        new_cls.aliases = tuple(f"ansi-{alias}" for alias in new_cls.aliases)
-        inner_cls = getattr(new_cls, "_innerLexerCls", None)
-        if inner_cls is not None:
-            new_cls._innerLexerCls = _ansi_input_lexer(inner_cls)
-        return new_cls
-
-
 class _AnsiFilterMixin(Lexer):
     """Mixin appending `TokenMergeFilter` and `AnsiFilter` to a session
     lexer's filter chain so its terminal output renders ANSI colors."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, **options) -> None:
         """Add `TokenMergeFilter` and `AnsiFilter` to the filter chain.
 
         Session lexers parse code blocks line by line to differentiate inputs and outputs.
@@ -556,62 +553,85 @@ class _AnsiFilterMixin(Lexer):
         `TokenMergeFilter` consolidates contiguous output lines into a single token,
         then `AnsiFilter` transforms the merged output into ANSI-styled tokens.
 
-        :param true_color: Forwarded to `AnsiFilter`. Default
+        :param true_color: Forwarded to `AnsiFilter`, and to the inner lexer a
+            shell session builds from its options. Default
             {data}`DEFAULT_TRUE_COLOR`: 24-bit RGB renders via inline styles. Pass
             `False` to quantize to the 256-color palette.
         """
-        true_color = bool(kwargs.pop("true_color", DEFAULT_TRUE_COLOR))
-        super().__init__(*args, **kwargs)
-        # Put the option back where Pygments builds the inner lexer from, as
-        # ShellSessionBaseLexer instantiates it with `**self.options`.
-        self.options["true_color"] = true_color
+        super().__init__(**options)
         self.filters.append(TokenMergeFilter())
-        self.filters.append(AnsiFilter(true_color=true_color))
+        self.filters.append(AnsiFilter(true_color=_true_color(options)))
+
+
+def _ansi_session_lexer(lexer: type[Lexer]) -> type[Lexer]:
+    """Derive the ANSI-capable variant of the session `lexer`.
+
+    The variant is named after `lexer` with an `Ansi` prefix, answers to each of
+    its aliases with an `ansi-` prefix, and renders its terminal output through
+    {class}`AnsiFilter`. A shell session also has its inner lexer wrapped by
+    {func}`_ansi_input_lexer`, so ANSI survives an input line.
+
+    A factory rather than a metaclass, so a subclass of a variant keeps the
+    names and the inner lexer it inherits instead of prefixing them again.
+    """
+    attributes: dict[str, Any] = {
+        "__doc__": (
+            "ANSI-capable variant of"
+            f" {{class}}`~{lexer.__module__}.{lexer.__qualname__}`."
+        ),
+        "__module__": __name__,
+        "name": f"ANSI {lexer.name}",
+        "aliases": tuple(f"ansi-{alias}" for alias in lexer.aliases),
+    }
+    inner_cls = getattr(lexer, "_innerLexerCls", None)
+    if inner_cls is not None:
+        attributes["_innerLexerCls"] = _ansi_input_lexer(inner_cls)
+    return cast(
+        "type[Lexer]",
+        type(f"Ansi{lexer.__name__}", (_AnsiFilterMixin, lexer), attributes),
+    )
 
 
 def collect_session_lexers() -> Iterator[type[Lexer]]:
     """Retrieve all lexers producing shell-like sessions in Pygments.
 
-    This function contains a manually-maintained list of lexers, to which we dynamically
-    add lexers inheriting from `ShellSessionBaseLexer`.
+    The list is maintained by hand, and imports only the lexer modules it names:
+    discovering it at import time would load every lexer Pygments ships.
 
     ```{hint}
-
-    To help maintain this list, there is [a test that will fail](https://github.com/kdeldycke/click-extra/blob/main/tests/test_pygments.py)
-    if a new REPL/terminal-like lexer is added to Pygments but not referenced here.
+    [`tests/test_pygments.py`](https://github.com/kdeldycke/click-extra/blob/main/tests/test_pygments.py)
+    fails when Pygments adds a shell session lexer, or a REPL or terminal lexer
+    emitting `Generic.Output`, missing from this list.
     ```
     """
-    yield from [
+    yield from (
+        BashSessionLexer,
         DylanConsoleLexer,
         ElixirConsoleLexer,
         ErlangShellLexer,
         GAPConsoleLexer,
         JuliaConsoleLexer,
+        MSDOSSessionLexer,
         MatlabSessionLexer,
         OutputLexer,
         PostgresConsoleLexer,
+        PowerShellSessionLexer,
         PsyshConsoleLexer,
         PythonConsoleLexer,
         RConsoleLexer,
         RubyConsoleLexer,
         SqliteConsoleLexer,
-    ]
-
-    for lexer in lexers._iter_lexerclasses():
-        if ShellSessionBaseLexer in lexer.__bases__:
-            yield lexer
+        TcshSessionLexer,
+    )
 
 
-LEXER_MAP: dict[type[Lexer], type[Lexer]] = {}
+LEXER_MAP: dict[type[Lexer], type[Lexer]] = {
+    lexer: _ansi_session_lexer(lexer) for lexer in collect_session_lexers()
+}
 """Map original session lexers to their ANSI-capable variants."""
 
-
-# Auto-generate the ANSI variant of all session lexers.
-for _original_lexer in collect_session_lexers():
-    _new_name = f"Ansi{_original_lexer.__name__}"
-    _new_lexer = _AnsiSessionMeta(_new_name, (_AnsiFilterMixin, _original_lexer), {})
-    locals()[_new_name] = _new_lexer
-    LEXER_MAP[_original_lexer] = _new_lexer  # type: ignore[assignment]
+# Bind each variant to its name, the attribute its entry point resolves.
+globals().update((variant.__name__, variant) for variant in LEXER_MAP.values())
 
 
 # --- Formatter ---
@@ -756,12 +776,11 @@ class AnsiHtmlFormatter(HtmlFormatter):
     def _link_marker_to_anchor(match: re.Match) -> str:
         """Replace a link-open marker with an `<a>` tag pointing to the captured URL.
 
-        Pygments escapes `&`, `<` and `>` in token text. It stopped escaping quotes in
-        2.21.0, where `escape_html()` gave way to `html.escape(value, quote=False)`.
-        Quotes are escaped here, at the point the URL enters an attribute value: a bare
-        `"` closes `href` and lets the rest of the URL through as markup. The entities
-        are the ones older Pygments produced, so the rendered link is the same on both
-        sides of that release.
+        Pygments escapes `&`, `<` and `>` in token text, but quotes only before
+        its `2.21.0` release. Quotes are escaped here, where the URL enters an
+        attribute value: a bare `"` closes `href` and lets the rest of the URL
+        through as markup. The entities are the ones older Pygments writes, so a
+        link renders the same whatever the Pygments release.
         """
         url = match.group(1).replace('"', "&quot;").replace("'", "&#39;")
         return f'<a href="{url}">'

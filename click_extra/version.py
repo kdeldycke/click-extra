@@ -25,21 +25,20 @@ shelling out to `git`, with three fallbacks for `git`-less environments: a
 pre-baked `__<field>__` dunder in the CLI module or its package (injected before
 build by {mod}`click_extra.prebake`), then a committed `.git_archival.json`
 populated by `git archive`, then the commit an installer records for a
-distribution installed from a Git URL.
+distribution installed from a Git URL. The resolvers behind each field live in
+{mod}`click_extra.version_facts`.
 """
 
 from __future__ import annotations
 
 import copy
 import inspect
-import json
 import logging
 import os
 import re
 import shutil
 import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from functools import cached_property
 from gettext import gettext as _
 from pathlib import Path
@@ -59,6 +58,36 @@ from .layout import cell_width, pad_to
 from .parameters import ExtraOption
 from .styling import Style
 from .theme import get_current_theme
+from .version_facts import (
+    GIT_RESOLVERS,
+    archival_field,
+    default_facts,
+    direct_url_field,
+    distribution_of,
+    dunder_name,
+    find_archival_file,
+    find_git_root,
+    read_archival,
+    read_direct_url,
+    resolve_author,
+    resolve_license,
+    run_git,
+)
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+    from importlib.metadata import PackageMetadata
+    from types import FrameType, ModuleType
+    from typing import Any, ClassVar, TypeAlias
+
+    from click import Command
+    from cloup.styling import IStyle
+
+    Facts: TypeAlias = Mapping[str, str]
+    """Label-to-value rows of a version screen, in the order they are drawn."""
+
+logger = logging.getLogger(__name__)
 
 MUTED = Style(fg="bright_black")
 """The recessive style of what a version message says beside its name and version.
@@ -81,64 +110,28 @@ def is_main_module(module_name: str) -> bool:
     return module_name == "__main__" or module_name.endswith(".__main__")
 
 
-def distribution_of(package_name: str | None) -> str | None:
-    """Resolve an import package name to the installed distribution providing it.
+def _is_plumbing(module_name: str) -> bool:
+    """Whether *module_name* is plumbing between a stack walk and the CLI.
 
-    An import (top-level module) name may differ from the distribution name
-    (`PIL` vs `Pillow`, `jwt` vs `PyJWT`). A name already matching an installed
-    distribution is returned as-is; otherwise it is resolved through
-    {func}`importlib.metadata.packages_distributions`. Ambiguous mappings (one
-    import name to several distributions) return `None`: pass `package_name`
-    explicitly to disambiguate.
-
-    Returns `None` when nothing installed provides the name, which is what makes
-    it usable as a test of whether a module belongs to a real distribution.
+    A module of `CLI_ECOSYSTEM_PACKAGES` is, unless it is an entry point
+    {func}`is_main_module` recognizes.
     """
-    if not package_name:
-        logger.debug("No package name provided.")
-        return None
-
-    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
-    from importlib import metadata
-
-    # `package_name` already matches an installed distribution.
-    try:
-        metadata.distribution(package_name)
-    except metadata.PackageNotFoundError:
-        pass
-    else:
-        return package_name
-
-    # The given name didn't match an installed distribution. Try resolving it as
-    # an import (top-level module) name.
-    distributions = metadata.packages_distributions().get(package_name, [])
-    if len(distributions) == 1:
-        return distributions[0]
-    if len(distributions) > 1:
-        logger.debug(
-            f"{package_name!r} maps to multiple installed distributions "
-            f"({', '.join(distributions)}); pass 'package_name' to disambiguate."
-        )
-        return None
-    logger.debug(f"{package_name!r} package not found or not installed.")
-    return None
+    top_level = module_name.partition(".")[0]
+    return top_level in _CLI_ECOSYSTEM_PACKAGES and not is_main_module(module_name)
 
 
 def theme_slot(slot: str) -> IStyle:
     """A style reading its palette slot off the active theme, on every call.
 
-    The version template's fields used to hold a style captured from the `dark`
-    palette at import, on the reasoning that a default binds once anyway. That
-    froze the message to one palette: `--theme light` recolored every help screen
-    and left `--version` painting the program name bright white, which on a light
-    terminal is white on white. Deferring the lookup to call time is what makes the
-    message follow `--theme`, `CLICK_EXTRA_THEME` and the background-sniffing
-    `auto` alike, and what drops its color entirely under the monochrome `manpage`
-    palette.
+    The lookup happens at call time, so the message follows `--theme`,
+    `CLICK_EXTRA_THEME` and the background-sniffing `auto` alike, and drops its
+    color under the monochrome `manpage` palette. A style captured at import would
+    paint every theme with one palette: the bright white program name of `dark` is
+    white on white on a light terminal.
 
-    {func}`~click_extra.theme.get_current_theme` already answers with the colorless
-    theme outside an invocation, and with a full palette inside one, so no slot can
-    come back missing.
+    {func}`~click_extra.theme.get_current_theme` answers with the colorless theme
+    outside an invocation, and with a full palette inside one, so no slot can come
+    back missing.
     """
 
     def apply(text: str) -> str:
@@ -152,565 +145,12 @@ def unstyled(text: str) -> str:
     return text
 
 
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
-    from importlib.metadata import PackageMetadata
-    from types import FrameType, ModuleType
-    from typing import Any, ClassVar, TypeAlias
-
-    from click import Command
-    from cloup.styling import IStyle
-
-    Facts: TypeAlias = Mapping[str, str]
-    """Label-to-value rows of a version screen, in the order they are drawn."""
-
-logger = logging.getLogger(__name__)
-
-
-GIT_FIELDS: dict[str, tuple[str, ...]] = {
-    "git_branch": ("rev-parse", "--abbrev-ref", "HEAD"),
-    "git_long_hash": ("rev-parse", "HEAD"),
-    "git_short_hash": ("rev-parse", "--short", "HEAD"),
-    "git_date": ("show", "-s", "--format=%ci", "HEAD"),
-    "git_tag": ("describe", "--tags", "--exact-match", "HEAD"),
-}
-"""Git fields whose live value *is* the stripped output of one static `git`
-subcommand, mapped to that subcommand's args.
-
-`git_tag_sha`, `git_distance` and `git_dirty` are excluded: their
-resolution is not a single static `git` invocation whose stripped output is
-the value. `git_tag_sha` dereferences the tag (`git rev-list -1 <tag>`),
-`git_distance` parses `git describe` and `git_dirty` maps the porcelain
-status to a label. See {func}`resolve_git_tag_sha`, {func}`resolve_git_distance`
-and {func}`resolve_git_dirty`.
-
-For the resolver of *every* pre-bakeable git field (these five plus the three
-computed ones), keyed uniformly by field ID, see {data}`GIT_RESOLVERS`.
-"""
-
-
-def run_git(
-    *args: str,
-    cwd: Path | None = None,
-    allow_empty: bool = False,
-) -> str | None:
-    """Run a `git` command and return its stripped output, or `None`.
-
-    *cwd* defaults to the current working directory when not provided.
-
-    By default an empty output is collapsed to `None` (treated like a
-    failure). Set *allow_empty* to keep an empty string instead, which some
-    commands use meaningfully: `git status --porcelain` prints nothing for a
-    clean work tree, and that is distinct from the command failing.
-    """
-    # Deferred import: keeps subprocess off the startup path of every CLI.
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["git", *args],
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            # Git prints a ref name as the bytes it stores, which a repository
-            # can hold in any encoding, and UTF-8 for the rest by default.
-            encoding="UTF-8",
-            errors="replace",
-            check=True,
-            timeout=5,
-        )
-    except (
-        subprocess.CalledProcessError,
-        FileNotFoundError,
-        subprocess.TimeoutExpired,
-    ):
-        return None
-    output = result.stdout.strip()
-    if output or allow_empty:
-        return output
-    return None
-
-
-def resolve_git_dirty(cwd: Path | None = None) -> str | None:
-    """Report the work-tree state as `"dirty"`, `"clean"` or `None`.
-
-    Returns `"dirty"` when `git status --porcelain` reports uncommitted
-    changes, `"clean"` when it reports none, and `None` when the state
-    cannot be determined (not a Git repository, or `git` is unavailable).
-
-    The empty output of a clean work tree is meaningful here, so the command is
-    run with `allow_empty` to tell it apart from a failure.
-    """
-    status = run_git("status", "--porcelain", cwd=cwd, allow_empty=True)
-    if status is None:
-        return None
-    return "dirty" if status else "clean"
-
-
-_DESCRIBE_DISTANCE_RE = re.compile(r"-(\d+)-g[0-9a-f]+$")
-"""The distance in a `git describe --tags --long` line, `<tag>-<distance>-g<hash>`."""
-
-
-def resolve_git_distance(cwd: Path | None = None) -> str | None:
-    """Count commits since the most recent tag, as a string, or `None`.
-
-    Parses `git describe --tags --long`, whose output has the form
-    `<tag>-<distance>-g<short_hash>`. Returns `None` when no tag is
-    reachable, the directory is not a Git repository, or `git` is
-    unavailable.
-    """
-    described = run_git("describe", "--tags", "--long", cwd=cwd)
-    if described is None:
-        return None
-    match = _DESCRIBE_DISTANCE_RE.search(described)
-    return match.group(1) if match else None
-
-
-def resolve_git_tag_sha(cwd: Path | None = None) -> str | None:
-    """Resolve the commit SHA the tag at `HEAD` points at, or `None`.
-
-    Runs `git describe --tags --exact-match HEAD` to find the tag, then
-    `git rev-list -1 <tag>` to dereference it to a commit SHA. Returns
-    `None` when `HEAD` is not at a tagged commit, the directory is not a
-    Git repository, or `git` is unavailable.
-    """
-    tag = run_git(*GIT_FIELDS["git_tag"], cwd=cwd)
-    if not tag:
-        return None
-    return run_git("rev-list", "-1", tag, cwd=cwd)
-
-
-def _direct_git_resolver(
-    field_id: str,
-) -> Callable[[Path | None], str | None]:
-    """Build a `cwd`-taking resolver for a direct {data}`GIT_FIELDS` field.
-
-    The returned callable runs the field's static `git` subcommand and
-    returns its stripped output. Defined as a named factory (rather than an
-    inline `lambda`) so each resolver binds its own `field_id`.
-    """
-    args = GIT_FIELDS[field_id]
-
-    def resolver(cwd: Path | None = None) -> str | None:
-        return run_git(*args, cwd=cwd)
-
-    return resolver
-
-
-GIT_RESOLVERS: dict[str, Callable[[Path | None], str | None]] = {
-    **{field_id: _direct_git_resolver(field_id) for field_id in GIT_FIELDS},
-    "git_tag_sha": resolve_git_tag_sha,
-    "git_distance": resolve_git_distance,
-    "git_dirty": resolve_git_dirty,
-}
-"""Canonical live resolver for every pre-bakeable `git_*` field.
-
-Maps each field ID to a callable that takes an optional working directory and
-returns the field's value by shelling out to `git` (or `None` when it
-cannot be resolved). This is the single source of truth for *how each git field
-is computed live*, shared by two consumers:
-
-- {class}`VersionOption`'s runtime accessors, which wrap each resolver with the
-  pre-baked-dunder and `.git_archival.json` fallbacks.
-- the `click-extra prebake all` command, which calls every resolver to bake
-  values into source files at build time.
-
-Keeping it here means adding a new git field is a one-line edit in this module,
-with no matching change needed in the CLI.
-"""
-
-
-SOURCE_DATE_EPOCH = "SOURCE_DATE_EPOCH"
-"""Environment variable a reproducible build sets to pin every timestamp it writes.
-
-See the [reproducible-builds.org specification](https://reproducible-builds.org/docs/source-date-epoch/).
-"""
-
-
-def build_moment() -> datetime:
-    """The instant a build happens, in UTC.
-
-    Reads `SOURCE_DATE_EPOCH` when the build sets it, so two runs of a
-    reproducible build stamp the same instant. Falls back to the current time.
-    """
-    epoch = os.environ.get(SOURCE_DATE_EPOCH)
-    if epoch:
-        return datetime.fromtimestamp(int(epoch), tz=UTC)
-    return datetime.now(tz=UTC)
-
-
-def resolve_build_time() -> str:
-    """The moment the distribution is built, as an RFC 3339 UTC timestamp.
-
-    See {func}`build_moment` for where the instant comes from.
-    """
-    return build_moment().isoformat(timespec="seconds").replace("+00:00", "Z")
-
-
-def resolve_build_os() -> str:
-    """The operating system the build runs on."""
-    # Deferred import: keeps extra_platforms off the startup path of every CLI.
-    from extra_platforms import current_platform
-
-    return current_platform().name
-
-
-def resolve_build_target() -> str:
-    """The platform a distribution built here installs on.
-
-    This is the wheel platform tag (`macosx-15.0-arm64`, `linux-x86_64`,
-    `win-amd64`), which is Python's answer to the target triple shadow-rs bakes
-    into a Rust binary. It states an ABI floor the two fields beside it cannot:
-    `macosx-15.0-arm64` says the binary needs macOS 15, where
-    {func}`~click_extra.version.resolve_build_os` only says it was built on macOS.
-    """
-    # Deferred import: keeps sysconfig off the startup path of every CLI.
-    import sysconfig
-
-    return sysconfig.get_platform()
-
-
-def resolve_build_target_arch() -> str:
-    """The CPU architecture the build runs on."""
-    # Deferred import: keeps extra_platforms off the startup path of every CLI.
-    from extra_platforms import current_architecture
-
-    return current_architecture().name
-
-
-BUILD_RESOLVERS: dict[str, Callable[[], str]] = {
-    "build_time": resolve_build_time,
-    "build_os": resolve_build_os,
-    "build_target": resolve_build_target,
-    "build_target_arch": resolve_build_target_arch,
-}
-"""Canonical resolver for every pre-bakeable `build_*` field.
-
-These describe the machine and moment a distribution was *built*, which
-{data}`GIT_RESOLVERS` and {func}`env_summary` both leave unanswered: git states
-what source went in, {func}`env_summary` states where the binary is running now,
-and neither one identifies the host that produced it. That gap is what a
-cross-built binary turns into a support question, and what shadow-rs answers for
-Rust with its `BUILD_TIME`, `BUILD_OS` and `BUILD_TARGET` constants.
-
-A build fact has no live fallback, unlike a git one: nothing at runtime can
-recover the host a binary was compiled on, so `click-extra prebake all` is the
-only thing that ever writes these. A field left unbaked stays empty, and its
-{class}`VersionOption` accessor answers `None`.
-
-Adding a field here is a one-line edit, with no matching change in the CLI.
-"""
-
-
-def dunder_name(field_id: str) -> str:
-    """The module-level name a pre-baked template field is stored under.
-
-    `git_branch` is baked as `__git_branch__`: the one spelling
-    {class}`VersionOption` reads back, and `click-extra prebake` writes. Keeping
-    the contract in one place is what lets the two sides stay agreed.
-    """
-    return f"__{field_id}__"
-
-
-def find_archival_file(start: Path) -> Path | None:
-    """Walk up from *start* to find a `.git_archival.json` file.
-
-    Returns the first match in *start* or any of its parents, or `None`.
-    """
-    for path in (start, *start.parents):
-        candidate = path / ".git_archival.json"
-        if candidate.is_file():
-            return candidate
-    return None
-
-
-def read_archival(path: Path) -> dict[str, str]:
-    """Parse a `.git_archival.json` file into a string mapping.
-
-    Returns an empty mapping when the file is missing, unreadable, or not a
-    valid JSON object.
-    """
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-    if not isinstance(data, dict):
-        return {}
-    return {str(key): str(value) for key, value in data.items()}
-
-
-def archival_field(data: Mapping[str, str], field_id: str) -> str | None:
-    """Resolve a `git_*` field from parsed `.git_archival.json` data.
-
-    *data* follows the [setuptools-scm archival schema](https://setuptools-scm.readthedocs.io/latest/usage/#git-archives):
-    `node` (full hash), `node-date`, `describe-name` and `ref-names`.
-    The same file is read by setuptools-scm and Dunamai, so a single committed
-    `.git_archival.json` serves all three.
-
-    Returns `None` when the field is absent, empty, or still holds an
-    unsubstituted `$Format:…$` placeholder. That last case is what a plain
-    checkout contains: `git archive` performs the substitution, so values are
-    real only inside an exported archive (including GitHub's source tarballs).
-
-    There is no entry for `git_dirty`: an archive has no work tree, so its
-    state is unknowable.
-    """
-
-    def value(key: str) -> str | None:
-        raw = data.get(key, "").strip()
-        if not raw or "$Format" in raw:
-            return None
-        return raw
-
-    if field_id == "git_long_hash":
-        return value("node")
-    if field_id == "git_short_hash":
-        node = value("node")
-        return node[:7] if node else None
-    if field_id == "git_date":
-        return value("node-date")
-    if field_id == "git_branch":
-        refs = value("ref-names")
-        if refs:
-            for ref in refs.split(", "):
-                # "HEAD -> main" names the checked-out branch.
-                if " -> " in ref:
-                    return ref.split(" -> ", 1)[1]
-        return None
-    if field_id == "git_tag":
-        refs = value("ref-names")
-        if refs:
-            for ref in refs.split(", "):
-                if ref.startswith("tag: "):
-                    return ref[len("tag: ") :]
-        return None
-    if field_id == "git_tag_sha":
-        # A tag among the refs points at the archived commit itself.
-        if archival_field(data, "git_tag"):
-            return value("node")
-        return None
-    if field_id == "git_distance":
-        described = value("describe-name")
-        if described is None:
-            return None
-        # A bare "<tag>" means distance zero.
-        match = _DESCRIBE_DISTANCE_RE.search(described)
-        return match.group(1) if match else "0"
-    return None
-
-
-def read_direct_url(distribution: str | None) -> dict[str, Any]:
-    """Parse the `direct_url.json` record of an installed distribution.
-
-    [PEP 610](https://peps.python.org/pep-0610/) has installers write this record
-    beside the metadata of a distribution installed from a URL, like
-    `uvx --from git+https://...` or `pip install git+https://...`.
-
-    Returns an empty mapping when the distribution is not installed, carries no
-    record, or holds a record that is not a JSON object.
-    """
-    if not distribution:
-        return {}
-
-    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
-    from importlib import metadata
-
-    try:
-        text = metadata.distribution(distribution).read_text("direct_url.json")
-    except metadata.PackageNotFoundError:
-        return {}
-    try:
-        data = json.loads(text) if text else None
-    except ValueError:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def direct_url_field(data: Mapping[str, Any], field_id: str) -> str | None:
-    """Resolve a `git_*` field from a parsed `direct_url.json` record.
-
-    Only an install from a Git URL records a commit: the full hash of the checkout
-    the installer built, in `vcs_info.commit_id`. It answers `git_long_hash`, and
-    its first 7 characters `git_short_hash`.
-
-    Every other field answers `None`. The `vcs_info.requested_revision` the record
-    may also hold names a branch, a tag or a commit, with nothing to tell which.
-    """
-    vcs_info = data.get("vcs_info")
-    if not isinstance(vcs_info, dict) or vcs_info.get("vcs") != "git":
-        return None
-    commit = vcs_info.get("commit_id")
-    if not isinstance(commit, str) or not commit:
-        return None
-    if field_id == "git_long_hash":
-        return commit
-    if field_id == "git_short_hash":
-        return commit[:7]
-    return None
-
-
-def resolve_distribution(names: Iterable[str]) -> str | None:
-    """Return the first installed distribution among *names*, or `None`.
-
-    Probes each candidate name in order with {func}`importlib.metadata.distribution`
-    and returns the first that resolves to an installed distribution. Used to
-    pick a distribution from a set of plausible spellings (for example the
-    program name with `-` / `_` variants) before reading its metadata.
-    """
-    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
-    from importlib import metadata
-
-    for name in names:
-        if not name:
-            continue
-        try:
-            metadata.distribution(name)
-        except metadata.PackageNotFoundError:
-            continue
-        return name
-    return None
-
-
-def meta_value(meta: PackageMetadata, *keys: str) -> str | None:
-    """Return the first non-empty value among core-metadata *keys*.
-
-    Accessed through `in` + `[]` (rather than `.get()`) to dodge the
-    deprecated implicit-`None` return on missing keys.
-    """
-    for key in keys:
-        if key in meta:
-            value = meta[key]
-            if value:
-                return value
-    return None
-
-
-def resolve_author(meta: PackageMetadata | None) -> str | None:
-    """Return the author(s) from *meta*'s core metadata, or `None`.
-
-    Prefers the `Author` field, then the `Maintainer` field, then the
-    display name parsed out of the `Author-email` / `Maintainer-email`
-    fields (`Name <email>`). Returns `None` when *meta* is `None` or no
-    author can be determined.
-    """
-    if not meta:
-        return None
-
-    # Plain-name fields, in order of preference.
-    name = meta_value(meta, "Author", "Maintainer")
-    if name:
-        return name
-
-    # `Name <email>` combined fields: keep only the display names, falling
-    # back to the raw value when no name part is present.
-    contact = meta_value(meta, "Author-email", "Maintainer-email")
-    if contact:
-        # Deferred import: keeps email.utils off the startup path of every CLI.
-        from email.utils import getaddresses
-
-        names = [n for n, _addr in getaddresses([contact]) if n]
-        return ", ".join(names) if names else contact
-
-    return None
-
-
-def resolve_license(meta: PackageMetadata | None) -> str | None:
-    """Return the license from *meta*'s core metadata, or `None`.
-
-    Prefers the SPDX `License-Expression` field ([core metadata 2.4+](https://packaging.python.org/en/latest/specifications/core-metadata/#license-expression)).
-    Falls back to the human-readable name of the first `License ::` trove
-    classifier, then to the free-form `License` field (which may hold the
-    full license text). Returns `None` when *meta* is `None` or no license
-    can be determined.
-    """
-    if not meta:
-        return None
-
-    # SPDX expression (core metadata 2.4+), the modern canonical field.
-    expression = meta_value(meta, "License-Expression")
-    if expression:
-        return expression
-
-    # `License :: OSI Approved :: GNU GPL v3 (GPLv3)` → `GNU GPL v3 (GPLv3)`.
-    for classifier in meta.get_all("Classifier") or []:
-        text = str(classifier)
-        if text.startswith("License ::"):
-            return text.rsplit("::", maxsplit=1)[-1].strip()
-
-    # Free-form legacy field (may hold the full license text).
-    return meta_value(meta, "License")
-
-
-def platform_label() -> str:
-    """Current platform and CPU architecture, as displayed to the user."""
-    # Deferred import: keeps extra_platforms off the startup path of every CLI.
-    from extra_platforms import current_architecture, current_platform
-
-    return f"{current_platform().name} {current_architecture().name}"
-
-
-def env_summary() -> str:
-    """One-line interpreter and platform summary.
-
-    Reads `Python 3.14.7, macOS ARM64 (AArch64)` on an Apple Silicon Mac: the
-    same two facts {func}`default_facts` puts on the version screen, joined for a
-    CLI that would rather spend one line of its plain `--version` on them than
-    draw a screen at all:
-    `@version_option(message="{prog_name} {version} (" + env_summary() + ")")`.
-    """
-    # Deferred import: keeps platform off the startup path of every CLI.
-    import platform
-
-    return f"Python {platform.python_version()}, {platform_label()}"
-
-
-def dependency_versions() -> str:
-    """The Click and Cloup releases this install is sitting on.
-
-    Worth a row on a screen whose main job is to be pasted into a bug report: Click
-    Extra subclasses both, so which of the three is at fault is the first question
-    any such report raises. Not a default fact, since a CLI built on Click Extra may
-    reasonably consider that its own business rather than its user's.
-
-    Read from the installed distributions rather than the packages' own
-    `__version__`, which Click deprecated in `8.4.0` and removes in `9.1`.
-    """
-    # Deferred import: keeps importlib.metadata off the startup path of every CLI.
-    from importlib import metadata
-
-    return ", ".join(
-        f"{name.capitalize()} {metadata.version(name)}" for name in ("click", "cloup")
-    )
-
-
-def default_facts() -> dict[str, str]:
-    """The facts every version screen carries, as an ordered label-to-value map.
-
-    A mapping rather than a sequence of pairs so a CLI can adjust one row without
-    restating the rest, `dict` preserving insertion order and replacement keeping a
-    key where it already sat:
-
-    ```{code-block} python
-    default_facts() | {"Platform": my_own_label}   # replaces, in place
-    default_facts() | {"Docs": DOCS_URL}           # appends, at the end
-    ```
-    """
-    # Deferred import: keeps platform off the startup path of every CLI.
-    import platform
-
-    return {
-        "Python": platform.python_version(),
-        "Platform": platform_label(),
-    }
-
-
 @dataclass(frozen=True)
 class VersionScreen:
     """A logo, and the facts to seat beside it, as `--version` should draw them.
 
-    Owns the layout only. The artwork arrives already rendered — a string, or the
-    lines of one — so a CLI is free to draw its mark however it likes, in ASCII line
+    Owns the layout only. The artwork arrives already rendered, as a string or the
+    lines of one, so a CLI is free to draw its mark however it likes, in ASCII line
     art, half-blocks or anything else, without this class knowing. Hand one to
     {class}`VersionOption` through its `screen` argument, or to a whole CLI through
     `default_params(screen=…)`.
@@ -743,6 +183,15 @@ class VersionScreen:
         logo = self.logo() if callable(self.logo) else self.logo
         return logo.split("\n") if isinstance(logo, str) else list(logo)
 
+    def _block(self) -> tuple[tuple[str, ...], int]:
+        """The mark's lines padded out to its width, and that width.
+
+        Draws the mark once, a callable `logo` included, for both answers.
+        """
+        raw = self._artwork()
+        width = max(map(cell_width, raw), default=0)
+        return tuple(pad_to(line, width) for line in raw), width
+
     @property
     def lines(self) -> tuple[str, ...]:
         """The mark's lines, every one padded out to {attr}`width`.
@@ -753,16 +202,16 @@ class VersionScreen:
         cannot repair that afterwards: {func}`~click_extra.layout.pad_to` is
         what measures a styled line right and closes the style it left open.
         """
-        raw = self._artwork()
-        width = max((cell_width(line) for line in raw), default=0)
-        return tuple(pad_to(line, width) for line in raw)
+        return self._block()[0]
 
     @property
     def width(self) -> int:
         """Columns the mark occupies, taken from its widest line."""
-        return max((cell_width(line) for line in self._artwork()), default=0)
+        return max(map(cell_width, self._artwork()), default=0)
 
-    def rows(self, prog_name: str, version: str, styles: Mapping[str, IStyle | None]):
+    def rows(
+        self, prog_name: str, version: str, styles: Mapping[str, IStyle | None]
+    ) -> tuple[tuple[str, str], ...]:
         """The column of facts, as (plain, styled) pairs.
 
         Both forms are built together because the styled one cannot be measured: its
@@ -820,17 +269,13 @@ class VersionScreen:
         run still gets the screen it asked for.
         """
         rows = self.rows(prog_name, version, styles)
-        needed = (
-            self.width
-            + len(self.gutter)
-            + max((len(plain) for plain, _ in rows), default=0)
-        )
+        logo, width = self._block()
+        needed = width + len(self.gutter) + max(len(plain) for plain, _ in rows)
         if needed > shutil.get_terminal_size().columns:
             return None
 
-        logo = self.lines
         offset = max(0, (len(logo) - len(rows)) // 2)
-        blank = " " * self.width
+        blank = " " * width
         lines = []
         for index in range(max(len(logo), offset + len(rows))):
             left = logo[index] if index < len(logo) else blank
@@ -851,13 +296,11 @@ def colors_reach_output() -> bool:
     whether to strip the codes itself.
 
     ```{note}
-    The stream probed is {data}`sys.stdout`, not Click's own resolution of it:
-    `click.echo` reaches stdout through a private cached wrapper, whose public
-    alias Click deprecated in `8.5.0` for removal in `9.0`. That wrapper exists
-    to fix the output encoding and delegates `isatty()` to the stream beneath
-    it, so both answer alike. Checked against Click `8.5.0` on a pipe, a
-    {class}`io.StringIO`, a stream faking `isatty()`, a real terminal, and
-    inside `CliRunner.invoke`.
+    The stream probed is {data}`sys.stdout`, not Click's own resolution of it.
+    `click.echo` reaches stdout through a private cached wrapper, which fixes the
+    output encoding and delegates `isatty()` to the stream beneath it, so both
+    answer alike. Click deprecates the public accessor of that wrapper,
+    `click.get_text_stream()`.
     ```
     """
     color = invocation_color()
@@ -891,13 +334,12 @@ def template_segments(
 
 
 class VersionOption(ExtraOption):
-    """Gather CLI metadata and prints a colored version string.
+    """Gathers CLI metadata and prints a colored version string.
 
     ```{note}
-    This started as a [copy of the standard @click.version_option() decorator](https://github.com/pallets/click/blob/cdab890/src/click/decorators.py#L421-L524),
-    but is **no longer a drop-in replacement**. Hence the `Extra` prefix.
+    This is **not a drop-in replacement** for the [standard `@click.version_option()` decorator](https://github.com/pallets/click/blob/cdab890/src/click/decorators.py#L421-L524).
 
-    This address the following Click issues:
+    It addresses the following Click issues:
 
     - [click#2324](https://github.com/pallets/click/issues/2324),
       to allow its use with the declarative `params=` argument.
@@ -969,12 +411,10 @@ class VersionOption(ExtraOption):
     back to `message_style` (or no color when that is unset). User-provided
     `styles` are merged over these defaults.
 
-    The name and version fields defer to the active palette through
-    {func}`~click_extra.version.theme_slot` rather than naming a color. Both
-    slots render exactly what the literals they replaced did under the `dark`
-    default — `invoked_command` is bright white bold, `success` is green — so
-    nothing moves for a CLI that never touches `--theme`, while one that does
-    finally gets a version message to match.
+    The name and version fields read their style off the active palette through
+    {func}`~click_extra.version.theme_slot` rather than naming a color, so the
+    message follows `--theme`. Under the default `dark` palette, `invoked_command`
+    is bright white bold and `success` is green.
     """
 
     def __init__(
@@ -1011,7 +451,10 @@ class VersionOption(ExtraOption):
 
         :param screen: a {class}`~click_extra.version.VersionScreen` to draw instead
             of the one-line message, whenever the terminal can take it. Left unset,
-            `--version` behaves exactly as it always has.
+            `--version` prints the one-line message.
+
+        :raises TypeError: when a key of `fields` or `styles` names no template
+            field.
         """
         if not param_decls:
             param_decls = ("--version",)
@@ -1021,37 +464,22 @@ class VersionOption(ExtraOption):
         self.message_style = message_style
         self.screen = screen
 
-        field_overrides = dict(fields) if fields else {}
-        style_overrides = dict(styles) if styles else {}
-
-        # Reject unknown field names early to catch typos.
-        valid_fields = set(self.template_fields)
-        for label, mapping in (
-            ("fields", field_overrides),
-            ("styles", style_overrides),
-        ):
-            unknown = set(mapping) - valid_fields
-            if unknown:
-                msg = (
-                    f"Unknown {label}: {sorted(unknown)}. "
-                    f"Must be among {self.template_fields}."
-                )
-                raise ValueError(msg)
-
         self._field_overrides: frozenset[str] = frozenset()
         """Fields the caller pinned, which no later resolution may reconsider.
 
         An override lands in the instance dict under the name of the
         `cached_property` it shadows, so nothing distinguishes the two by
-        inspection. {meth}`reset_resolution` needs the difference: it drops a
-        resolved field and must leave a pinned one alone.
+        inspection. {meth}`reset_resolution` and {meth}`__deepcopy__` need the
+        difference: they drop a resolved field and must keep a pinned one.
         """
 
         # A field value override shadows the cached_property of the same name.
-        for field_id, field_value in field_overrides.items():
+        for field_id, field_value in (fields or {}).items():
             self.pin_field(field_id, field_value)
 
         # Per-field styles: class defaults overridden by user-provided styles.
+        style_overrides = dict(styles or {})
+        self._reject_unknown(style_overrides)
         self.styles: dict[str, IStyle | None] = {
             **self.default_styles,
             **style_overrides,
@@ -1081,14 +509,32 @@ class VersionOption(ExtraOption):
         :param value: Value the field reports from now on.
         :raises TypeError: when `field_id` names no template field.
         """
-        if field_id not in self.template_fields:
-            msg = (
-                f"Unknown version field {field_id!r}."
-                f" Must be one of {self.template_fields}."
-            )
-            raise TypeError(msg)
+        self._reject_unknown((field_id,))
         setattr(self, field_id, value)
         self._field_overrides = self._field_overrides | {field_id}
+
+    def _reject_unknown(self, field_ids: Iterable[str]) -> None:
+        """Raise on the first of *field_ids* that names no template field.
+
+        :raises TypeError: naming the unknown field, and the known ones.
+        """
+        for field_id in field_ids:
+            if field_id not in self.template_fields:
+                msg = (
+                    f"Unknown version field {field_id!r}."
+                    f" Must be one of {self.template_fields}."
+                )
+                raise TypeError(msg)
+
+    def _is_resolved(self, key: str) -> bool:
+        """Whether the instance dict entry *key* holds a memoized resolution.
+
+        A pinned field lands under the same name as the `cached_property` it
+        shadows, but holds the caller's value: see {attr}`_field_overrides`.
+        """
+        return key not in self._field_overrides and isinstance(
+            getattr(type(self), key, None), cached_property
+        )
 
     def reset_resolution(self) -> None:
         """Drop every memoized field, so the next read resolves from scratch.
@@ -1108,98 +554,84 @@ class VersionOption(ExtraOption):
         A field the caller pinned through `fields=` is not a resolution and
         survives: see {attr}`_field_overrides`.
         """
-        cls = type(self)
-        for key in list(self.__dict__):
-            if key in self._field_overrides:
-                continue
-            if isinstance(getattr(cls, key, None), cached_property):
-                del self.__dict__[key]
+        for key in [key for key in self.__dict__ if self._is_resolved(key)]:
+            del self.__dict__[key]
 
     def __deepcopy__(self, memo: dict[int, Any]) -> VersionOption:
-        """Copy the option, dropping every cached field value.
+        """Copy the option, dropping every memoized field value.
 
         {mod}`~click_extra.multicall` deep-copies a group's parameters to
-        build each personality, and the cache cannot travel along: the
+        build each personality, and the memo cannot travel along: the
         `module` entry holds a module object `copy.deepcopy` cannot
         reconstruct, and a copy is a new option anyway, free to resolve its
-        fields against its own invocations. Only the configuration state
-        (message template, styles, screen, field overrides) is carried over.
+        fields against its own invocations. The configuration state is carried
+        over: message template, styles, screen, and the fields the caller
+        pinned, which keep the caller's own objects.
         """
         cls = type(self)
         clone = cls.__new__(cls)
         memo[id(self)] = clone
         for key, value in self.__dict__.items():
-            if isinstance(getattr(cls, key, None), cached_property):
+            if self._is_resolved(key):
                 continue
-            setattr(clone, key, copy.deepcopy(value, memo))
+            if key not in self._field_overrides:
+                value = copy.deepcopy(value, memo)
+            setattr(clone, key, value)
         return clone
 
     @staticmethod
     def cli_frame() -> FrameType:
         """Returns the frame in which the CLI is implemented.
 
-        Inspects the execution stack frames to find the package in which the user's CLI
-        is implemented.
+        Walks the execution stack from the innermost frame outwards, to find the
+        package in which the user's CLI is implemented. The walk reads the module
+        and the function name of each frame off the frame itself, with no source
+        lookup: `--version` is eager, so every CLI pays for this walk at startup.
 
         Returns the frame itself. When every frame belongs to the Click ecosystem
         and none is an entry point, returns the outermost frame, which has no
         caller: {attr}`module` then defers to the module of the root command's
         callback.
         """
+        # No runner exists until its module is imported, which test tooling does
+        # and a CLI does not: importing it here would load it for every CLI.
+        runner_class = getattr(sys.modules.get("click.testing"), "CliRunner", None)
+
         # Keep a list of all frames inspected for debugging.
         frame_chain: list[tuple[str | None, str]] = []
 
         candidate: FrameType | None = None
-
-        # Walk the execution stack from bottom to top. No source context is
-        # asked for: the walk reads each frame's module and function name only,
-        # and `--version` is eager, so every CLI pays for this walk at startup.
-        for frame_info in inspect.stack(0):
-            frame = frame_info.frame
-
-            # Get the current package name from the frame's globals.
+        frame = sys._getframe()
+        while True:
             frame_name = frame.f_globals.get("__name__")
-
-            # Get the current function name.
-            func_name = frame_info.function
-
-            # Keep track of the inspected frames.
+            func_name = frame.f_code.co_name
             frame_chain.append((frame_name, func_name))
 
-            # Stop at the invoke() function of any CliRunner class, which is used for
-            # testing.
-            if func_name == "invoke" and isinstance(
-                frame.f_locals.get("self"),
-                click.testing.CliRunner,
-            ):
-                # Because click_extra.testing.CliRunner inherits from
-                # click.testing.CliRunner, we'd like to keep looking for candidate as
-                # long as the frame is an invoke() function of a CliRunner class.
-                candidate = frame
-                continue
-
-            # We found the top-most frame that is an invoke() function.
-            if candidate:
-                return candidate
-
-            # Skip the intermediate frames added by the `@cached_property` decorator
-            # and the Click ecosystem. An entry point is never plumbing, whichever
-            # package it sits under: `click_extra.__main__` is Click Extra's own CLI.
+            # The invoke() of a CliRunner, which tests drive a CLI with. The runner
+            # of Click Extra subclasses the one of Click, so the walk goes on while
+            # it meets one, to stop on the outermost.
             if (
-                frame_name
-                and frame_name.split(".", 1)[0] in _CLI_ECOSYSTEM_PACKAGES
-                and not is_main_module(frame_name)
+                runner_class is not None
+                and func_name == "invoke"
+                and isinstance(frame.f_locals.get("self"), runner_class)
             ):
-                continue
+                candidate = frame
+            # The frame past the outermost invoke() of a runner.
+            elif candidate is not None:
+                return candidate
+            # A frame outside the Click ecosystem, or an entry point: the frame in
+            # which the user's CLI is implemented. The ones in between are
+            # plumbing, like the frames `@cached_property` adds.
+            elif not (frame_name and _is_plumbing(frame_name)):
+                return frame
 
-            # We found a frame that is not part of the Click ecosystem, and is not an
-            # intermediate frame added by a decorator. We assume this is the frame in
-            # which the user's CLI is implemented.
-            return frame
+            if frame.f_back is None:
+                break
+            frame = frame.f_back
 
-        # Our heuristics to locate the CLI implementation failed: every frame
-        # belongs to the Click ecosystem, and none is an entry point. Fall back to
-        # the outermost frame in the stack, the last one the walk visited.
+        # The heuristics failed: every frame belongs to the Click ecosystem, and
+        # none is an entry point. Fall back to the outermost frame in the stack, the
+        # last one the walk visited.
         count_size = len(str(len(frame_chain)))
         for counter, (p_name, f_name) in enumerate(frame_chain):
             logger.debug(f"Frame {counter:<{count_size}} # {p_name}:{f_name}")
@@ -1220,10 +652,9 @@ class VersionOption(ExtraOption):
         no user frame at all and stops on the runner's own `invoke()`, inside the
         Click ecosystem.
 
-        The Sphinx `click:run` directive is exactly that shape, so a documented
-        `--version` used to render the version of whichever ecosystem package
-        owned the runner (`None`, once `click_extra.sphinx` resolved to no
-        installed distribution) in place of the CLI's own.
+        The Sphinx `click:run` directive is that shape: without this, a documented
+        `--version` would render the version of the ecosystem package owning the
+        runner in place of the CLI's own.
 
         A launcher is the other shape. A console script or a compiled binary whose
         entry point is a command object, like `orchard.cli:cli`, leaves no frame of
@@ -1245,11 +676,12 @@ class VersionOption(ExtraOption):
         """Returns the module in which the CLI resides."""
         frame = self.cli_frame()
 
-        # `inspect.getmodule()` matches a frame to a module by file name, and code
-        # run by `python -c` has no file. The frame's globals still name its module.
-        module = inspect.getmodule(frame) or sys.modules.get(
-            frame.f_globals.get("__name__", "")
-        )
+        # The globals of a frame name its module, for the cost of a dictionary
+        # lookup. `inspect.getmodule()` matches a frame by file name instead, and
+        # scans every loaded module on its first call: it only gets asked about
+        # code whose globals name no loaded module, like code run by `exec()`.
+        name = frame.f_globals.get("__name__", "")
+        module = sys.modules.get(name) or inspect.getmodule(frame)
         if not module:
             raise RuntimeError(f"Cannot find module of {frame!r}")
 
@@ -1269,10 +701,10 @@ class VersionOption(ExtraOption):
         # case: the walk ran out of user frames and stopped on the runner that
         # invoked an imported command. Both halves of that test matter. A runner
         # living in a real distribution (`click.testing`, `click_extra.testing`)
-        # still answers as it always has, which is what a CLI declared in the
-        # module driving the runner relies on. Among runners, only one under a
-        # subpackage that resolves to nothing (`click_extra.sphinx`, which the
-        # `click:run` directive invokes through) reaches the fallback.
+        # keeps its own module, which is what a CLI declared in the module driving
+        # the runner relies on. Among runners, only one under a subpackage that
+        # resolves to nothing (`click_extra.sphinx`, which the `click:run`
+        # directive invokes through) reaches the fallback.
         #
         # Ecosystem plumbing with no caller is deferred whatever its distribution:
         # the walk ran out of frames and fell back to the outermost one. That is
@@ -1287,11 +719,9 @@ class VersionOption(ExtraOption):
         # exemption `_package_dunder()` needs to read the pre-baked `__version__`
         # off the parent package.
         launcher = module.__name__ == "__main__" and not module.__package__
-        stdlib = module.__name__.split(".", 1)[0] in sys.stdlib_module_names
-        plumbing = (
-            not is_main_module(module.__name__)
-            and module.__name__.split(".", 1)[0] in _CLI_ECOSYSTEM_PACKAGES
-            and (frame.f_back is None or distribution_of(module.__package__) is None)
+        stdlib = module.__name__.partition(".")[0] in sys.stdlib_module_names
+        plumbing = _is_plumbing(module.__name__) and (
+            frame.f_back is None or distribution_of(module.__package__) is None
         )
         if launcher or stdlib or plumbing:
             ctx = click.get_current_context(silent=True)
@@ -1320,30 +750,28 @@ class VersionOption(ExtraOption):
         """Returns the string found in the local `__version__` variable.
 
         ```{hint}
-        `__version__` is an old pattern from early Python packaging. It is not a
+        `__version__` is a convention from early Python packaging. It is not a
         standard variable and is not defined in the packaging PEPs.
 
-        You should prefer using the `package_version` property below instead,
-        which uses the standard library `importlib.metadata` API.
+        Prefer the `package_version` property below, which uses the standard
+        library `importlib.metadata` API.
 
-        We're still supporting it for backward compatibility with existing
-        codebases, as [Click removed it in version 8.2.0](https://github.com/pallets/click/issues/2598).
+        Click's own `version_option` reads the package metadata only
+        ([pallets/click#2598](https://github.com/pallets/click/issues/2598)).
+        Click Extra reads `__version__` too, for the scripts and codebases that
+        set it.
         ```
         """
         # First, try to get __version__ from the detected module.
         version = getattr(self.module, "__version__", None)
 
-        # If not found, try to get it from the command's callback globals.
-        # This handles cases where the command is defined in a different context
-        # (like Sphinx documentation blocks, or standalone scripts).
+        # If not found, read it off the globals of the command's callback, for a
+        # command defined in another context (like Sphinx documentation blocks, or
+        # standalone scripts).
         if version is None:
             ctx = get_current_context(silent=True)
-            if ctx and ctx.command and hasattr(ctx.command, "callback"):
-                callback = ctx.command.callback
-                if callback is not None:
-                    # Get the callback's globals (where __version__ might be defined).
-                    callback_globals = getattr(callback, "__globals__", {})
-                    version = callback_globals.get("__version__")
+            callback = ctx.command.callback if ctx is not None else None
+            version = getattr(callback, "__globals__", {}).get("__version__")
 
         # If still not found, read it off the package, whose `__init__.py` holds
         # it for a CLI that sits in a sibling module.
@@ -1374,28 +802,18 @@ class VersionOption(ExtraOption):
         `CliRunner` lands in the ecosystem, and reading the package there would
         report Click Extra's own values for the CLI under test.
         """
-        if not self.package_name or not (
-            is_main_module(self.module_name)
-            or self.module_name.split(".", 1)[0] not in _CLI_ECOSYSTEM_PACKAGES
-        ):
+        if not self.package_name or _is_plumbing(self.module_name):
             return None
         parent = sys.modules.get(self.package_name)
         return getattr(parent, name, None) if parent else None
 
     @cached_property
     def _distribution_name(self) -> str | None:
-        """Resolve {attr}`package_name` to an installed distribution name.
+        """{attr}`package_name`, an *import* name, resolved to the installed
+        distribution name {mod}`importlib.metadata` looks up.
 
-        {attr}`package_name` is an *import* (top-level module) name, which
-        may differ from the *distribution* name (`PIL` vs `Pillow`,
-        `jwt` vs `PyJWT`). This resolves it to the distribution name
-        used for {mod}`importlib.metadata` lookups.
-
-        If {attr}`package_name` already matches an installed distribution
-        it is returned as-is. Otherwise it is resolved as an import name
-        via {func}`importlib.metadata.packages_distributions`. Ambiguous
-        mappings (one import name to several distributions) return
-        `None`: pass `package_name` explicitly to disambiguate.
+        See {func}`~click_extra.version_facts.distribution_of` for the resolution
+        rules.
         """
         return distribution_of(self.package_name)
 
@@ -1433,11 +851,8 @@ class VersionOption(ExtraOption):
     def author(self) -> str | None:
         """Returns the package author(s) from its core metadata.
 
-        Delegates to {func}`~click_extra.version.resolve_author`: prefers the
-        `Author` field,
-        then the `Maintainer` field, then the display name parsed out of the
-        `Author-email` / `Maintainer-email` fields (`Name <email>`).
-        Returns `None` if no author can be determined.
+        See {func}`~click_extra.version_facts.resolve_author` for the fields read, in
+        order. `None` if no author can be determined.
         """
         return resolve_author(self._package_metadata)
 
@@ -1445,10 +860,8 @@ class VersionOption(ExtraOption):
     def license(self) -> str | None:
         """Returns the package license from its core metadata.
 
-        Delegates to {func}`~click_extra.version.resolve_license`: prefers the SPDX
-        `License-Expression` field, falls back to the human-readable name of
-        the first `License ::` trove classifier, then to the free-form
-        `License` field. Returns `None` if no license can be determined.
+        See {func}`~click_extra.version_facts.resolve_license` for the fields read, in
+        order. `None` if no license can be determined.
         """
         return resolve_license(self._package_metadata)
 
@@ -1524,19 +937,9 @@ class VersionOption(ExtraOption):
         """Find the Git repository root directory.
 
         Walks up from `_search_start` to the first directory holding a `.git`
-        entry.
+        entry: see {func}`~click_extra.version_facts.find_git_root`.
         """
-        start = self._search_start
-        for path in (start, *start.parents):
-            if (path / ".git").exists():
-                return path
-        return None
-
-    def _run_git_command(self, *args: str) -> str | None:
-        """Run a `git` command and return its output, or `None`."""
-        if not self.git_repo_path:
-            return None
-        return run_git(*args, cwd=self.git_repo_path)
+        return find_git_root(self._search_start)
 
     def _get_prebaked(self, field_id: str) -> str | None:
         """Read a pre-baked `__<field_id>__` dunder of the CLI.
@@ -1584,13 +987,14 @@ class VersionOption(ExtraOption):
         """Resolve a `git_*` field through the shared precedence.
 
         A pre-baked `__<field_id>__` dunder first, then the live value from
-        {data}`GIT_RESOLVERS` (run inside {attr}`git_repo_path`), then the
-        `.git_archival.json` fallback, then the `direct_url.json` record of an
-        install from a Git URL. Both fallbacks answer `None` for a field they do
-        not carry.
+        {data}`~click_extra.version_facts.GIT_RESOLVERS` (run inside
+        {attr}`git_repo_path`), then the `.git_archival.json` fallback, then the
+        `direct_url.json` record of an install from a Git URL. Both fallbacks
+        answer `None` for a field they do not carry.
 
-        Valid for every field in {data}`GIT_RESOLVERS` but {attr}`git_tag_sha`,
-        whose live value derives from a tag that may itself be pre-baked.
+        Valid for every field in {data}`~click_extra.version_facts.GIT_RESOLVERS`
+        but {attr}`git_tag_sha`, whose live value derives from a tag that may
+        itself be pre-baked.
         """
         live = None
         if self.git_repo_path:
@@ -1673,8 +1077,8 @@ class VersionOption(ExtraOption):
         if prebaked:
             return prebaked
         tag = self.git_tag
-        if tag:
-            live = self._run_git_command("rev-list", "-1", tag)
+        if tag and self.git_repo_path:
+            live = run_git("rev-list", "-1", tag, cwd=self.git_repo_path)
             if live:
                 return live
         return archival_field(self._archival_data, "git_tag_sha")
@@ -1701,54 +1105,42 @@ class VersionOption(ExtraOption):
         """
         return self._resolve_uniform_git_field("git_dirty")
 
-    def _resolve_build_field(self, field_id: str) -> str | None:
-        """Resolve a `build_*` field, which only a pre-bake can answer.
-
-        A git field falls back to a live `git` call and then to
-        `.git_archival.json`; a build field has neither, because no runtime
-        can recover the host that produced the binary it is running. So this
-        reads the pre-baked `__<field_id>__` dunder and stops there, answering
-        `None` when `click-extra prebake all` never wrote one.
-
-        Only valid for the fields in {data}`BUILD_RESOLVERS`.
-        """
-        return self._get_prebaked(field_id)
-
     @cached_property
     def build_time(self) -> str | None:
         """When the distribution was built, as an RFC 3339 UTC timestamp.
 
-        Reads the pre-baked `__build_time__` dunder. See
-        {func}`~click_extra.version.resolve_build_time`.
+        Reads the pre-baked `__build_time__` dunder, the only source of a build
+        fact: see {data}`~click_extra.version_facts.BUILD_RESOLVERS` and
+        {func}`~click_extra.version_facts.resolve_build_time`.
         """
-        return self._resolve_build_field("build_time")
+        return self._get_prebaked("build_time")
 
     @cached_property
     def build_os(self) -> str | None:
         """The operating system the build ran on.
 
         Reads the pre-baked `__build_os__` dunder. See
-        {func}`~click_extra.version.resolve_build_os`.
+        {func}`~click_extra.version_facts.resolve_build_os`.
         """
-        return self._resolve_build_field("build_os")
+        return self._get_prebaked("build_os")
 
     @cached_property
     def build_target(self) -> str | None:
         """The platform a distribution built here installs on.
 
         Reads the pre-baked `__build_target__` dunder. See
-        {func}`~click_extra.version.resolve_build_target`.
+        {func}`~click_extra.version_facts.resolve_build_target`.
         """
-        return self._resolve_build_field("build_target")
+        return self._get_prebaked("build_target")
 
     @cached_property
     def build_target_arch(self) -> str | None:
         """The CPU architecture the build ran on.
 
         Reads the pre-baked `__build_target_arch__` dunder. See
-        {func}`~click_extra.version.resolve_build_target_arch`.
+        {func}`~click_extra.version_facts.resolve_build_target_arch`.
         """
-        return self._resolve_build_field("build_target_arch")
+        return self._get_prebaked("build_target_arch")
 
     @property
     def prog_name(self) -> str | None:
@@ -1777,9 +1169,8 @@ class VersionOption(ExtraOption):
     def prog_name(self, value: str | None) -> None:
         """Pin a forced value, the way `fields={"prog_name": …}` does.
 
-        Field overrides are applied with `setattr()`, which needs a setter
-        now that the field is a property instead of a `@cached_property` its
-        instance `__dict__` entry could shadow.
+        Field overrides are applied with `setattr()`, and no instance `__dict__`
+        entry can shadow a property: this setter takes the value instead.
         """
         self.__dict__["_prog_name_override"] = value
 
@@ -1799,10 +1190,9 @@ class VersionOption(ExtraOption):
         Accepts a custom `template` as parameter, otherwise uses the default message
         defined on the Option instance.
 
-        This step is necessary because we need to linearize the template to apply the
-        ANSI codes on the string segments. This is a consequence of the nature of ANSI,
-        directives which cannot be encapsulated within another (unlike markup tags
-        like HTML).
+        The template is linearized so the ANSI codes apply to its string segments:
+        an ANSI directive cannot be nested within another, unlike a markup tag of
+        HTML.
         """
         if template is None:
             template = self.message
@@ -1840,11 +1230,10 @@ class VersionOption(ExtraOption):
         guarantee rather than a default: that form is the one every machine
         reader parses.
 
-        - **Color reaches the output.** Not because a mark needs it — a good one
-          survives having its escapes stripped — but because it is the one lever a
-          caller already has. A redirected `--version`, or one run under
-          `--no-color` or [`NO_COLOR`](https://no-color.org), is asking for
-          something parseable.
+        - **Color reaches the output.** A flat-shaded mark carries its shape in its
+          colors, and color is the one lever a caller already has. A redirected
+          `--version`, or one run under `--no-color` or
+          [`NO_COLOR`](https://no-color.org), is asking for something parseable.
         - **The terminal is wide enough** to seat the facts beside the mark without
           wrapping them.
         - **Accessible mode is off.** A mark read out character by character is
@@ -1876,7 +1265,7 @@ class VersionOption(ExtraOption):
 
     def print_debug_message(self) -> None:
         """Render in debug logs all template fields in color."""
-        if logger.getEffectiveLevel() != logging.DEBUG:
+        if not logger.isEnabledFor(logging.DEBUG):
             return
 
         # Double the braces: the label renders as a literal `{field_id}`, naming the
@@ -1903,8 +1292,8 @@ class VersionOption(ExtraOption):
         Also stores all version string elements in the Context's `meta` `dict`.
         """
         # Install a lazy dict so that version fields in ctx.meta are only
-        # evaluated when actually accessed, avoiding unnecessary git calls,
-        # environment profiling, and stack inspection on every invocation.
+        # evaluated when actually accessed, sparing every invocation the git calls
+        # and the metadata lookups.
         ctx._meta = _LazyMetaDict(ctx._meta, self, self.template_fields)
 
         # Eagerly resolve `module` now: cli_frame() relies on stack
@@ -1937,6 +1326,14 @@ def reset_version_resolution(command: Command) -> None:
     Written for a documentation build, which renders many commands in one
     process where a CLI renders one. See that method for what a stale
     resolution costs a published page.
+
+    ```{note}
+    The walk reads the subcommands each group has registered, rather than going
+    through {func}`~click_extra.param_tools.iter_subcommand_contexts` like the
+    renderers do. A lazy subcommand not imported yet holds no resolution to
+    reset, and the context that function builds for each subcommand runs its
+    `--version` callback, which resolves the very chain this function clears.
+    ```
     """
     seen: set[int] = set()
 

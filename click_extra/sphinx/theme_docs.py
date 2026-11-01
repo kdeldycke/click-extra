@@ -31,8 +31,9 @@ import re
 
 from cloup._util import identity
 
-from .styling import _ATTR_CSS, Style, _color_to_css, _rgb_to_hex
-from .theme import BUILTIN_THEMES, HelpTheme
+from ..ansi import is_rgb, rgb_to_hex
+from ..styling import _ATTR_CSS, Style, _color_to_css
+from ..theme import BUILTIN_THEMES, HelpTheme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -49,8 +50,6 @@ _PALETTE_SKIP_SLOTS: frozenset[str] = frozenset({
     # Log-level slot intentionally left unstyled by every built-in (INFO is
     # the default verbosity and shouldn't stand out).
     "info",
-    # Internal cache from cloup; never rendered.
-    "_style_kwargs",
     # Boolean toggle, not a Style.
     "cross_ref_highlight",
 })
@@ -230,7 +229,7 @@ def inject_slot_example_docstring(
 
     ```{code-block} python
 
-    from click_extra.theme_docs import inject_slot_example_docstring
+    from click_extra.sphinx.theme_docs import inject_slot_example_docstring
 
 
     def setup(app):
@@ -246,8 +245,8 @@ def inject_slot_example_docstring(
     if not name.startswith(prefix):
         return
     slot = name[len(prefix) :]
-    # Skip the example when themes.toml is absent: there is no built-in
-    # "dark" palette to render the slot with.
+    # Skip the example when the built-in "dark" palette was removed: there is
+    # nothing to render the slot with.
     default_theme = BUILTIN_THEMES.get("dark")
     if default_theme is None:
         return
@@ -320,16 +319,15 @@ def palette_html(theme: HelpTheme) -> str:
     .. code-block:: markdown
 
         ```{python:render}
-        from click_extra.theme_docs import palette_html
+        from click_extra.sphinx.theme_docs import palette_html
         from my_app.themes import MY_THEME
         print(palette_html(MY_THEME))
         ```
 
     Slots that hold `identity` (no styling applied), the boolean
-    {attr}`~click_extra.theme.HelpTheme.cross_ref_highlight` toggle, the
-    internal `_style_kwargs` cache, and a handful of inherited cloup slots
-    that built-ins never style are skipped: every emitted row corresponds to
-    a real palette choice in the theme.
+    {attr}`~click_extra.theme.HelpTheme.cross_ref_highlight` toggle, and a
+    handful of inherited cloup slots that built-ins never style are skipped:
+    every emitted row corresponds to a real palette choice in the theme.
     """
     rows: list[str] = []
     for f in dataclasses.fields(theme):
@@ -341,13 +339,10 @@ def palette_html(theme: HelpTheme) -> str:
         fg = getattr(value, "fg", None)
         cell_parts: list[str] = []
         if fg is not None:
-            css = _color_to_css(fg)
-            if isinstance(fg, tuple) and len(fg) == 3:
-                color_label = _rgb_to_hex(fg)
-            else:
-                color_label = str(fg)
+            color_label = rgb_to_hex(fg) if is_rgb(fg) else str(fg)
             cell_parts.append(
-                _PALETTE_SWATCH.format(css=css) + f"<code>{color_label}</code>"
+                _PALETTE_SWATCH.format(css=_color_to_css(fg))
+                + f"<code>{color_label}</code>"
             )
         attrs = [
             f'<span style="{css}">{name}</span>'

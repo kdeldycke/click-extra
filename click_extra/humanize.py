@@ -50,10 +50,10 @@ def format_size(
     """Render a byte count as a compact, human-readable string.
 
     :param size: The number of bytes. A negative value keeps a leading `-`.
-    :param units: The unit system to render in, one of {data}`_UNIT_SYSTEMS`:
-        `iec` (the default) for binary powers with the unambiguous `KiB`/`MiB`
-        symbols, `si` for decimal powers with `kB`/`MB`, or `jedec` for binary
-        powers with the customary but imprecise `KB`/`MB`.
+    :param units: The unit system to render in: `iec` (the default) for binary
+        powers with the unambiguous `KiB`/`MiB` symbols, `si` for decimal powers
+        with `kB`/`MB`, or `jedec` for binary powers with the customary but
+        imprecise `KB`/`MB`.
     :param precision: Number of fractional digits for every unit above bytes. A
         byte count is always rendered as a whole number.
     :return: The size followed by a space and its unit, like `1.5 KiB`. The

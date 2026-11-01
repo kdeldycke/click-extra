@@ -18,6 +18,8 @@
 from __future__ import annotations
 
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -26,18 +28,20 @@ import pytest
 
 from click_extra.cli import demo
 from click_extra.cli_wrapper import (
+    WrapperGroup,
     _config_args_for_target,
+    _split_navigation,
+    patch_click,
     resolve_target,
     resolve_target_command,
     target_prog_name,
     unpatch_click,
     wrap,
 )
-from click_extra.commands import ColorizedCommand, ColorizedGroup
-from click_extra.context import Context
+from click_extra.commands import ColorizedCommand, ColorizedGroup, Context
 from click_extra.highlight import _HelpColorsMixin
 from click_extra.testing import CliRunner
-from click_extra.theme import BUILTIN_THEMES, THEME_ENVVAR
+from click_extra.theme import BUILTIN_THEMES, THEME_ENVVAR, get_default_theme
 
 GREET_SCRIPT = (
     "import click\n"
@@ -107,6 +111,24 @@ PACKAGE_GROUP_SRC = (
 )
 """Module-level Click group, exposed by a package inside a project directory."""
 
+ORCHARD_SCRIPT = (
+    "import click\n"
+    "\n"
+    '@click.group(context_settings={"auto_envvar_prefix": "ORCHARD"})\n'
+    "def orchard():\n"
+    '    """Tend the orchard."""\n'
+    "\n"
+    '@orchard.command(context_settings={"auto_envvar_prefix": "PRESS"})\n'
+    '@click.option("--batch", type=int, default=3, help="Apples per batch.")\n'
+    "def press(batch):\n"
+    '    """Press apples into cider."""\n'
+    '    click.echo(f"Pressing {batch} apples")\n'
+    "\n"
+    'if __name__ == "__main__":\n'
+    "    orchard()\n"
+)
+"""Group whose subcommand sets an environment variable prefix of its own."""
+
 
 @pytest.fixture(autouse=True)
 def _restore_click():
@@ -125,7 +147,7 @@ def runner():
 def greet_script(tmp_path):
     """A minimal Click CLI script for wrapping tests."""
     script = tmp_path / "greet.py"
-    script.write_text(GREET_SCRIPT)
+    script.write_text(GREET_SCRIPT, encoding="UTF-8")
     return str(script)
 
 
@@ -133,7 +155,7 @@ def greet_script(tmp_path):
 def custom_cls_script(tmp_path):
     """A Click CLI with explicit ``cls=CustomGroup`` (like Flask's FlaskGroup)."""
     script = tmp_path / "kitchen.py"
-    script.write_text(CUSTOM_CLS_SCRIPT)
+    script.write_text(CUSTOM_CLS_SCRIPT, encoding="UTF-8")
     return str(script)
 
 
@@ -141,7 +163,7 @@ def custom_cls_script(tmp_path):
 def weather_script(tmp_path):
     """A Click CLI with multiple options for config tests."""
     script = tmp_path / "weather.py"
-    script.write_text(MULTI_OPTION_SCRIPT)
+    script.write_text(MULTI_OPTION_SCRIPT, encoding="UTF-8")
     return str(script)
 
 
@@ -162,20 +184,23 @@ def make_project(tmp_path):
         root = project / "src" if layout == "src" else project
         pkg_dir = root / package
         pkg_dir.mkdir(parents=True)
-        (pkg_dir / "__init__.py").write_text("")
-        (pkg_dir / "cli.py").write_text(PACKAGE_GROUP_SRC)
+        (pkg_dir / "__init__.py").write_text("", encoding="UTF-8")
+        (pkg_dir / "cli.py").write_text(PACKAGE_GROUP_SRC, encoding="UTF-8")
 
         scripts = scripts or {package: f"{package}.cli:cli"}
         if metadata == "pyproject":
             lines = [f'[project]\nname = "{package}"\n', "[project.scripts]"]
             lines += [f'{name} = "{target}"' for name, target in scripts.items()]
-            (project / "pyproject.toml").write_text("\n".join(lines) + "\n")
+            (project / "pyproject.toml").write_text(
+                "\n".join(lines) + "\n", encoding="UTF-8"
+            )
         else:
             entries = "\n".join(
                 f"    {name} = {target}" for name, target in scripts.items()
             )
             (project / "setup.cfg").write_text(
-                f"[options.entry_points]\nconsole_scripts =\n{entries}\n"
+                f"[options.entry_points]\nconsole_scripts =\n{entries}\n",
+                encoding="UTF-8",
             )
         return project
 
@@ -193,7 +218,7 @@ def create_config(tmp_path):
     def _create_config(filename, content):
         config_path = tmp_path / filename
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(content, encoding="utf-8")
+        config_path.write_text(content, encoding="UTF-8")
         return config_path
 
     return _create_config
@@ -253,7 +278,7 @@ def test_resolve_target(script, expected_module, expected_func):
 
 def test_resolve_py_file(tmp_path):
     script = tmp_path / "hello.py"
-    script.write_text("print('hello')")
+    script.write_text("print('hello')", encoding="UTF-8")
     module_path, function_name = resolve_target(str(script))
     assert module_path == str(script)
     assert function_name == ""
@@ -335,7 +360,9 @@ def test_resolve_directory_introspect(make_project):
 
 def test_resolve_directory_no_scripts(tmp_path):
     """A project without console scripts raises an actionable error."""
-    (tmp_path / "pyproject.toml").write_text('[project]\nname = "empty"\n')
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "empty"\n', encoding="UTF-8"
+    )
     with pytest.raises(click.ClickException, match="No console-script entry point"):
         resolve_target(str(tmp_path))
 
@@ -353,7 +380,8 @@ def test_resolve_directory_multiple_scripts(make_project):
 def test_resolve_directory_package_not_found(tmp_path):
     """An entry point whose package is absent on disk raises."""
     (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname = "ghost"\n[project.scripts]\nghost = "ghost.cli:main"\n'
+        '[project]\nname = "ghost"\n[project.scripts]\nghost = "ghost.cli:main"\n',
+        encoding="UTF-8",
     )
     with pytest.raises(click.ClickException, match="is not under"):
         resolve_target(str(tmp_path))
@@ -467,6 +495,159 @@ def test_resolve_target_command_drills_subcommand(custom_cls_script):
     assert cmd.name == "bake"
 
 
+@pytest.mark.parametrize(
+    ("path", "message"),
+    (
+        (("bake", "glaze"), "'bake' is not a group; cannot navigate to 'glaze'."),
+        (("roast",), "No subcommand 'roast' in 'kitchen'."),
+    ),
+)
+def test_resolve_target_command_rejects_a_wrong_path(custom_cls_script, path, message):
+    with pytest.raises(click.ClickException, match=re.escape(message)):
+        resolve_target_command(custom_cls_script, path)
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    (
+        pytest.param(
+            "import click\n"
+            "@click.group()\ndef fruits(): pass\n"
+            "@click.command()\ndef pick(): pass\n",
+            "fruits",
+            id="group-before-command",
+        ),
+        pytest.param(
+            "import click\n@click.command()\ndef pick(): pass\n",
+            "pick",
+            id="single-command",
+        ),
+    ),
+)
+def test_module_scan_finds_the_one_command(tmp_path, source, expected):
+    """A module without an entry point is scanned for its one command."""
+    script = tmp_path / "orchard.py"
+    script.write_text(source, encoding="UTF-8")
+    cmd, _ = resolve_target_command(str(script))
+    assert cmd.name == expected
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    (
+        pytest.param(
+            "import click\n"
+            "@click.group()\ndef pears(): pass\n"
+            "@click.group()\ndef apples(): pass\n"
+            "@click.command()\ndef pick(): pass\n",
+            r"Multiple command groups in .+: apples, pears\.",
+            id="groups",
+        ),
+        pytest.param(
+            "import click\n"
+            "@click.command()\ndef prune(): pass\n"
+            "@click.command()\ndef pick(): pass\n",
+            r"Multiple commands in .+: pick, prune\.",
+            id="commands",
+        ),
+        pytest.param("BASKETS = 3\n", "No Click command found in", id="none"),
+    ),
+)
+def test_module_scan_refuses_an_ambiguous_module(tmp_path, source, message):
+    script = tmp_path / "orchard.py"
+    script.write_text(source, encoding="UTF-8")
+    with pytest.raises(click.ClickException, match=message):
+        resolve_target_command(str(script))
+
+
+def test_params_follow_a_subcommands_own_context_settings(runner, tmp_path):
+    """A subcommand's own `context_settings` shape the context it is described in.
+
+    Click applies them when it invokes the subcommand, so the environment
+    variable the parameter table names is the one the run reads.
+    """
+    script = tmp_path / "orchard.py"
+    script.write_text(ORCHARD_SCRIPT, encoding="UTF-8")
+
+    run = runner.invoke(demo, ["wrap", str(script), "press"], env={"PRESS_BATCH": "7"})
+    assert run.exit_code == 0
+    assert "Pressing 7 apples" in run.output
+
+    _, ctx = resolve_target_command(str(script), ("press",))
+    assert ctx.auto_envvar_prefix == "PRESS"
+    table = runner.invoke(
+        demo,
+        ["wrap", "--params", "--columns", "id,envvars", "--", str(script), "press"],
+        color=False,
+    )
+    assert table.exit_code == 0
+    assert "PRESS_BATCH" in table.output
+    assert "ORCHARD_PRESS_BATCH" not in table.output
+
+
+def test_wrapper_group_runs_a_lazy_subcommand(runner, tmp_path):
+    """A lazy subcommand not imported yet runs, rather than being wrapped."""
+    (tmp_path / "plum_cmd.py").write_text(
+        "from click_extra import command, echo\n"
+        "@command\n"
+        "def plum_cli():\n"
+        "    echo('plums = 4')\n",
+        encoding="UTF-8",
+    )
+
+    @click.group(cls=WrapperGroup, lazy_subcommands={"plum": "plum_cmd.plum_cli"})
+    def orchard():
+        pass
+
+    orchard.add_command(wrap)
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        result = runner.invoke(orchard, ["plum"], color=False)
+    finally:
+        sys.path.remove(str(tmp_path))
+        sys.modules.pop("plum_cmd", None)
+    assert result.exit_code == 0
+    assert result.stdout == "plums = 4\n"
+
+
+def test_params_follow_the_targets_own_context_settings(runner, tmp_path):
+    """Every `context_settings` key of the target reaches the parameter table.
+
+    A target answering to `-h` as well as `--help` lists both spellings, as its
+    own help screen does.
+    """
+    script = tmp_path / "pantry.py"
+    script.write_text(
+        "import click\n"
+        "@click.command(context_settings={'help_option_names': ['-h', '--help']})\n"
+        "def pantry(): pass\n",
+        encoding="UTF-8",
+    )
+    table = runner.invoke(
+        demo,
+        ["wrap", "--params", "--columns", "id,spec", "--", str(script)],
+        color=False,
+    )
+    assert table.exit_code == 0
+    assert "-h, --help" in table.output
+
+
+@pytest.mark.parametrize(
+    ("args", "nav", "rest"),
+    (
+        ((), (), ()),
+        (("press",), ("press",), ()),
+        (("press", "--batch", "7"), ("press",), ("--batch", "7")),
+        (("--batch", "7"), (), ("--batch", "7")),
+        (("orchard", "press", "-b", "7"), ("orchard", "press"), ("-b", "7")),
+    ),
+)
+def test_split_navigation(args, nav, rest):
+    """Leading words navigate, and everything from the first option is replayed."""
+    assert _split_navigation(args) == (nav, rest)
+
+
 # -- wrap --man: man page generation for an external CLI ----------------------
 
 
@@ -545,7 +726,7 @@ def test_wrap_man_output_dir_writes_tree(runner, custom_cls_script, tmp_path):
     assert any(name.endswith("-bake.1") for name in names), names
     # Each generated file is a valid roff document.
     for path in target.iterdir():
-        assert path.read_text(encoding="utf-8").startswith('.\\" Generated')
+        assert path.read_text(encoding="UTF-8").startswith('.\\" Generated')
 
 
 def test_wrap_man_output_dir_creates_missing_directory(runner, greet_script, tmp_path):
@@ -562,19 +743,52 @@ def test_wrap_man_output_dir_creates_missing_directory(runner, greet_script, tmp
     assert list(target.iterdir())
 
 
-def test_wrap_man_output_dir_rejects_subcommand(runner, custom_cls_script, tmp_path):
-    """``--output-dir`` always emits the full tree; mixing in a SUBCOMMAND arg
+@pytest.mark.parametrize(
+    "destination",
+    (
+        pytest.param(("--output-dir", "{target}"), id="output-dir"),
+        pytest.param(("--install",), id="install"),
+    ),
+)
+def test_wrap_man_pages_reject_subcommand(
+    runner, custom_cls_script, tmp_path, monkeypatch, destination
+):
+    """Writing man pages always emits the full tree; mixing in a SUBCOMMAND arg
     is rejected so the user cannot accidentally produce a tree of pages named
     after a partial path."""
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
     target = tmp_path / "man"
     result = runner.invoke(
         demo,
-        ["wrap", "--man", "--output-dir", str(target), custom_cls_script, "bake"],
+        [
+            "wrap",
+            "--help-format",
+            "man",
+            *(arg.format(target=target) for arg in destination),
+            custom_cls_script,
+            "bake",
+        ],
         color=False,
     )
-    assert result.exit_code != 0
-    assert "--output-dir" in result.output
-    assert not target.exists() or not any(target.iterdir())
+    assert result.exit_code == 1
+    assert "cannot be combined with extra SUBCOMMAND arguments" in result.output
+    assert not target.exists()
+    assert not (tmp_path / "data").exists()
+
+
+def test_wrap_man_flag_refuses_a_destination(runner, greet_script, tmp_path):
+    """``--man`` reads the manual: the roff to write somewhere is a format's."""
+    target = tmp_path / "man"
+    result = runner.invoke(
+        demo,
+        ["wrap", "--man", "--output-dir", str(target), greet_script],
+        color=False,
+    )
+    assert result.exit_code == 2
+    assert "--output-dir requires --help-format with one of: carapace, man." in (
+        result.output
+    )
+    assert not target.exists()
 
 
 # -- WrapperGroup default-to-run -----------------------------------------------
@@ -658,7 +872,7 @@ def test_wrap_honors_group_theme(runner, greet_script, theme, styled_heading):
     )
     assert result.exit_code == 0
     assert styled_heading in result.output
-    # Not the 16-color bright-blue heading of the dark default it used to leak.
+    # Not the 16-color bright-blue heading of the dark default.
     assert "\x1b[94m\x1b[4mUsage:" not in result.output
 
 
@@ -693,8 +907,8 @@ def test_wrap_pins_group_color_on_every_target_kind(
     Both kinds of target must obey it: one built by the patched
     ``@click.command()`` decorator (so it *is* a ``_HelpColorsMixin``) and one
     carrying an explicit ``cls=`` (so it stays plain Click). They travel
-    different code paths inside ``patch_click``, and the forcing direction used
-    to reach the second only.
+    different code paths inside ``patch_click``, so each direction of the flag
+    is checked on both.
 
     The runner is left on its own auto-detection here: forcing colors at the
     stream level would paint the output whatever the flag decided.
@@ -714,6 +928,40 @@ def test_group_known_subcommands_not_wrapped(runner, subcommand):
     """Known demo subcommands are dispatched directly, not to wrap."""
     result = runner.invoke(demo, [subcommand, "--help"])
     assert result.exit_code == 0
+
+
+@pytest.mark.once
+def test_cli_startup_leaves_the_test_tooling_alone():
+    """Loading the CLI imports neither the test-suite engine nor `click.testing`.
+
+    Only the `test-suite` command needs them, and `click.testing` drags `pdb` and
+    `asyncio` in behind it: every other command would pay for them at startup.
+    """
+    tooling = ("click.testing", "click_extra.test_suite", "click_extra.testing", "pdb")
+    probe = (
+        "import sys\n"
+        "import click_extra.cli\n"
+        f"print(sorted(name for name in {tooling!r} if name in sys.modules))\n"
+    )
+    process = subprocess.run(
+        (sys.executable, "-c", probe),
+        capture_output=True,
+        text=True,
+        encoding="UTF-8",
+        check=False,
+    )
+    assert process.returncode == 0, process.stderr
+    assert process.stdout == "[]\n"
+
+
+def test_unpatch_click_restores_the_default_theme():
+    """Unpatching hands back the process-wide theme patching replaced."""
+    unpatch_click()
+    original = get_default_theme()
+    patch_click(theme=BUILTIN_THEMES["nord"])
+    assert get_default_theme() is BUILTIN_THEMES["nord"]
+    unpatch_click()
+    assert get_default_theme() is original
 
 
 # -- Config integration --------------------------------------------------------
@@ -1057,7 +1305,7 @@ def test_every_rendering_agrees_on_the_target_name(runner, tmp_path):
     holding it, so a renderer picking the wrong source shows it.
     """
     script = tmp_path / "kettle.py"
-    script.write_text(GREET_SCRIPT, encoding="utf-8")
+    script.write_text(GREET_SCRIPT, encoding="UTF-8")
 
     renders = {
         fmt: runner.invoke(

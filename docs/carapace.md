@@ -2,7 +2,7 @@
 
 ## Generating a spec
 
-[Carapace](https://carapace.sh) is a multi-shell completion engine: one spec file drives identical completions across Bash, Zsh, Fish, Nushell, PowerShell, Elvish, Xonsh and more. `click_extra.carapace` walks a Click command tree and serializes it to the [carapace-spec](https://github.com/carapace-sh/carapace-spec) YAML format, so a CLI gets completion everywhere Carapace runs. This is Click Extra's answer to [`click#3188`](https://github.com/pallets/click/issues/3188), the request for native Carapace support that fell outside the scope of core Click.
+[Carapace](https://carapace.sh) is a multi-shell completion engine: one spec file drives identical completions across Bash, Zsh, Fish, Nushell, PowerShell, Elvish, Xonsh and more. `click_extra.carapace` walks a Click command tree and serializes it to the [carapace-spec](https://github.com/carapace-sh/carapace-spec) YAML format, so a CLI gets completion everywhere Carapace runs. This is Click Extra's answer to [pallets/click#3188](https://github.com/pallets/click/issues/3188), the request for native Carapace support that fell outside the scope of core Click.
 
 The spec is produced mechanically from the command itself, on any Click command *object* (no `console_scripts` entry point required). Take a small CLI:
 
@@ -209,7 +209,7 @@ Three entry points cover the Python side, from a string to an installed file:
 YAML serialization (`dump_carapace_spec`, `write_carapace_spec`, `install_carapace_spec`, and `wrap --help-format carapace`) needs PyYAML, pulled by the `carapace` extra:
 
 ```{code-block} shell-session
-$ pip install "click-extra[carapace]"
+$ uv pip install "click-extra[carapace]"
 ```
 
 `to_carapace_spec` and the `carapace` completion class work without it.

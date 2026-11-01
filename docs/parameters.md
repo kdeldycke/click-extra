@@ -36,12 +36,12 @@ Every command built with `@command` or `@group` captures the pre-parsed `argv` s
 ```
 
 ```{hint}
-`--params` always displays all parameters, even those marked as not *allowed in conf*. In effect bypassing the {py:attr}`excluded_params <click_extra.parameters.ParamStructure.excluded_params>` argument. So you can still see the `--help`, `--version`, `-C`/`--config` and `--params` options in the table.
+`--params` always displays all parameters, even those marked as not *allowed in conf*, bypassing the {py:attr}`excluded_params <click_extra.param_tools.ParamStructure.excluded_params>` argument. So you can still see the `--help`, `--version`, `--config` and `--params` options in the table.
 ```
 
 ### Available columns
 
-Each row in the table mirrors a single [`click.Parameter`](https://click.palletsprojects.com/en/stable/api/#click.Parameter) instance. The columns map to its public attributes (plus a handful of Click Extra-specific fields). The table below is auto-generated at build time from {py:attr}`ShowParamsOption.TABLE_HEADERS <click_extra.parameters.ShowParamsOption.TABLE_HEADERS>`: edit the {py:attr}`ColumnSpec.description <click_extra.columns.ColumnSpec.description>` entries in `click_extra/parameters.py` to update it.
+Each row in the table mirrors a single [`click.Parameter`](https://click.palletsprojects.com/en/stable/api/#click.Parameter) instance. The columns map to its public attributes (plus a handful of Click Extra-specific fields). The table below is auto-generated at build time from {py:attr}`ShowParamsOption.TABLE_HEADERS <click_extra.show_params.ShowParamsOption.TABLE_HEADERS>`: edit the {py:attr}`ColumnSpec.description <click_extra.columns.ColumnSpec.description>` entries in `click_extra/show_params.py` to update it.
 
 {{ show_params_columns_table }}
 
@@ -209,7 +209,7 @@ assert "-p, --port INTEGER" in result.output
 
 ## Parameter structure
 
-The table `--params` prints is the flattened view of a tree, and {py:class}`~click_extra.parameters.ParamStructure` is what builds it. The same tree is what [`--config`](config.md) maps a configuration file's sections onto: a node is a subcommand, a leaf is a parameter, and the path from the root spells the fully-qualified ID.
+The table `--params` prints is the flattened view of a tree, and {py:class}`~click_extra.param_tools.ParamStructure` is what builds it. The same tree is what [`--config`](config.md) maps a configuration file's sections onto: a node is a subcommand, a leaf is a parameter, and the path from the root spells the fully-qualified ID.
 
 Take a group with two subcommands:
 
@@ -240,7 +240,7 @@ def history(since):
 `ParamStructure` is a mixin: it expects the class using it to settle which parameters the tree covers. Freezing both filters open covers everything.
 
 ```{python:source}
-from click_extra.parameters import ParamStructure
+from click_extra.param_tools import ParamStructure
 
 
 class Structure(ParamStructure):
@@ -248,7 +248,7 @@ class Structure(ParamStructure):
     included_params = None
 ```
 
-{py:attr}`~click_extra.parameters.ParamStructure.params_template` then returns the command tree with every leaf nulled out, which is the skeleton a configuration file is expected to fill:
+{py:attr}`~click_extra.param_tools.ParamStructure.params_template` then returns the command tree with every leaf nulled out, which is the skeleton a configuration file is expected to fill:
 
 ```{python:run}
 :show-source:
@@ -261,7 +261,7 @@ with click.Context(weather):
 
 The walk resolves its root command from the active context, which a CLI callback already sits in. Outside of one, a bare {py:class}`click.Context` around the group is enough, as above.
 
-{py:attr}`~click_extra.parameters.ParamStructure.params_objects` is the same tree with the parameter objects kept at the leaves, which is what a consumer needs to coerce a configuration value or report where one came from:
+{py:attr}`~click_extra.param_tools.ParamStructure.params_objects` is the same tree with the parameter objects kept at the leaves, which is what a consumer needs to coerce a configuration value or report where one came from:
 
 ```{python:run}
 :show-source:
@@ -271,15 +271,15 @@ with click.Context(weather):
     print(ParamStructure.get_tree_value(structure.params_objects, "weather", "forecast", "days"))
 ```
 
-{py:meth}`~click_extra.parameters.ParamStructure.get_tree_value` descends a path in one call, and raises a `KeyError` when the path leads nowhere. Its counterpart {py:meth}`~click_extra.parameters.ParamStructure.init_tree_dict` builds a nested dict from a path and a leaf, which is how the tree gets assembled one parameter at a time.
+{py:meth}`~click_extra.param_tools.ParamStructure.get_tree_value` descends a path in one call, and raises a `KeyError` when the path leads nowhere. Its counterpart {py:meth}`~click_extra.param_tools.ParamStructure.init_tree_dict` builds a nested dict from a path and a leaf.
 
 ### Fully-qualified IDs
 
-Joining a path with {py:data}`~click_extra.parameters.PARAM_PATH_SEP` produces the ID shown in the `ID` column of `--params`, and the same string [`excluded_params` and `included_params`](config.md#excluding-parameters) are matched against. {py:meth}`~click_extra.parameters.ParamStructure.walk_params` yields those paths directly, unfiltered and flat:
+Joining a path with {py:data}`~click_extra.param_tools.PARAM_PATH_SEP` produces the ID shown in the `ID` column of `--params`, and the same string [`excluded_params` and `included_params`](config.md#excluding-parameters) are matched against. {py:meth}`~click_extra.param_tools.ParamStructure.walk_params` yields those paths directly, unfiltered and flat:
 
 ```{python:run}
 :show-source:
-from click_extra.parameters import PARAM_PATH_SEP
+from click_extra.param_tools import PARAM_PATH_SEP
 
 with click.Context(weather):
     for keys, param in Structure().walk_params():
@@ -287,7 +287,7 @@ with click.Context(weather):
         print(f"{PARAM_PATH_SEP.join(keys):26} {param_type.__name__}")
 ```
 
-The second column is {py:meth}`~click_extra.parameters.ParamStructure.get_param_type`, which reduces a Click type to the Python type a configuration file has to carry, through the {py:attr}`~click_extra.parameters.ParamStructure.TYPE_MAP` table. A repeatable parameter is a `list` whatever its items are, a boolean flag is a `bool`, and an unrecognized custom type falls back to `str`, since a command line carries nothing else.
+The second column is {py:meth}`~click_extra.param_tools.ParamStructure.get_param_type`, which reduces a Click type to the Python type a configuration file has to carry, through the {py:attr}`~click_extra.param_tools.ParamStructure.TYPE_MAP` table. A repeatable parameter is a `list` whatever its items are, a boolean flag is a `bool`, and an unrecognized custom type falls back to `str`, since a command line carries nothing else.
 
 `--help` sits in that tree like any other option, and a subcommand sharing its name with a parameter of the same level is left out of it, since a single path cannot address both. What a consumer does with the tree is its own decision: `--params` reports every node, while `--config` narrows it down through [`excluded_params`](config.md#excluding-parameters).
 
@@ -298,6 +298,29 @@ The second column is {py:meth}`~click_extra.parameters.ParamStructure.get_param_
    :strict:
 
 .. automodule:: click_extra.parameters
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.param_tools` API
+
+```{eval-rst}
+.. automodule:: click_extra.param_tools
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.show_params` API
+
+```{eval-rst}
+.. autoclasstree:: click_extra.show_params
+   :strict:
+
+.. automodule:: click_extra.show_params
    :no-index:
    :members:
    :undoc-members:

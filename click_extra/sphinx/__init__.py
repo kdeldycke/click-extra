@@ -23,9 +23,9 @@ ANSI color rendering by patching `pymdownx.highlight`'s formatter classes.
 ```{todo}
 Split the documentation stack into a standalone `extra-docs` project, should it
 keep growing away from the CLI framework hosting it. It would take this package,
-{mod}`click_extra.pygments`, {mod}`click_extra.mkdocs`, the MyST converters in
-{mod}`click_extra.myst_converter` and {mod}`click_extra.rst_to_myst`, and the
-marker-region primitives repomatic keeps in its own `docs/docs_update.py`. The
+{mod}`click_extra.pygments`, {mod}`click_extra.mkdocs`, the
+{mod}`click_extra.markdown` package with its MyST converters and marker-region
+primitives, and the ones repomatic keeps in its own `docs/docs_update.py`. The
 open question is the `click:source` and `click:run` directives: they invoke a
 Click CLI, so either they stay here, or `extra-docs` depends on click-extra.
 ```
@@ -44,23 +44,10 @@ from sphinx.highlighting import PygmentsBridge
 from sphinx.util import logging
 
 from .. import __version__
-from ..blocks import (
-    marker_res as marker_res,
-    replace_region as replace_region,
-    update_blocks as update_blocks,
-)
 from ..pygments import AnsiHtmlFormatter
 from . import fail_on_warnings, manpages, matrix, tables, todos
-from .click import (
-    RUN_CAPTURE_CONFIG as RUN_CAPTURE_CONFIG,
-    SCREENSHOT_DIR_CONFIG as SCREENSHOT_DIR_CONFIG,
-    SCREENSHOT_PRESET_CONFIG as SCREENSHOT_PRESET_CONFIG,
-    SCREENSHOT_SYNTAX_STYLE_CONFIG as SCREENSHOT_SYNTAX_STYLE_CONFIG,
-    SCREENSHOT_WATERMARK_CONFIG as SCREENSHOT_WATERMARK_CONFIG,
-    ClickDomain,
-    cleanup_runner,
-    register_config,
-)
+from .click import cleanup_runner, register_config
+from .click_reference import ClickDomain
 from .python import (
     PythonDomain,
     cleanup_python_runner,
@@ -85,7 +72,7 @@ Default is `False`. A project that adds `click_extra.sphinx` to its
 does *not* gain access to either the `click:*` or the
 `python:*` directive families until the maintainer opts in explicitly.
 Both families `exec` user-supplied Python at build time with full
-Sphinx-process privileges; gating them behind a single explicit flag keeps
+Sphinx-process privileges: gating them behind a single explicit flag keeps
 a transitive import or a doc-only pull request from silently expanding
 the build's attack surface.
 """
@@ -96,10 +83,10 @@ def _register_exec_directives(app: Sphinx, config: Config) -> None:
 
     Connected to the `config-inited` event so the user's `conf.py`
     value is merged before this runs. Without the opt-in, neither
-    {class}`~click_extra.sphinx.click.ClickDomain` nor
+    {class}`~click_extra.sphinx.click_reference.ClickDomain` nor
     {class}`~click_extra.sphinx.python.PythonDomain` is registered:
     referencing any of their directives in a document raises an
-    "Unknown directive type" warning, exactly as if the extension were
+    "Unknown directive type" warning, as if the extension were
     not installed.
 
     ```{danger}
@@ -185,9 +172,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     in `conf.py` to register them.
 
     ```{caution}
-    This function forces the Sphinx app to use
-    `sphinx.highlighting.PygmentsBridge` instead of the default
-    HTML formatter to add support for ANSI colors in code blocks.
+    This function replaces the HTML formatter of
+    `sphinx.highlighting.PygmentsBridge` with
+    {class}`~click_extra.pygments.AnsiHtmlFormatter`, for every Sphinx app of
+    the process, so that code blocks render ANSI colors.
     ```
     """
     # Set Sphinx's default HTML formatter to an ANSI capable one.

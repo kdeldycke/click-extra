@@ -59,7 +59,7 @@ def test_import_without_myst_parser():
         (sys.executable, "-c", NO_MYST_PARSER_SCRIPT),
         capture_output=True,
         text=True,
-        encoding="utf-8",
+        encoding="UTF-8",
         check=False,
     )
     assert result.returncode == 0, result.stderr
@@ -128,7 +128,7 @@ def test_imports_outside_this_tree_skip_without_sphinx():
         for path in sorted(tests_root.rglob("*.py"))
         if tests_root / "sphinx" not in path.parents
         for line in unguarded_sphinx_imports(
-            ast.parse(path.read_text(encoding="utf-8"))
+            ast.parse(path.read_text(encoding="UTF-8"))
         )
     ]
     assert not offenders, f"unguarded click_extra.sphinx imports: {offenders}"

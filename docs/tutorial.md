@@ -128,7 +128,7 @@ assert result.output.startswith(dedent("""\
 That's it!
 
 ```{tip}
-`click_extra` is proxy-ing the whole `click` and `cloud` namespace, so you can use it as a [drop-in replacement](commands.md#click-and-cloup-inheritance).
+`click_extra` is proxy-ing the whole `click` and `cloup` namespace, so you can use it as a [drop-in replacement](commands.md#click-and-cloup-inheritance).
 ```
 
 ## Mix and match

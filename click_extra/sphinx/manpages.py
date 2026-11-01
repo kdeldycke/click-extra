@@ -35,29 +35,31 @@ The hook only fires for HTML-class builders (`html`, `dirhtml`,
 semantics, and writing roff into a `linkcheck` `output/` directory
 serves no purpose.
 
-Configuration shape::
+Configuration shape:
 
-    click_extra_manpages = [
-        {
-            "script": "meta_package_manager.cli:mpm",  # required
-            "prog_name": "mpm",  # optional, see below
-            "output_dir": "man",  # optional, defaults to "man"
-            "render_html": True,  # optional, see below
-        },
-    ]
+```python
+click_extra_manpages = [
+    {
+        "script": "meta_package_manager.cli:mpm",  # required
+        "prog_name": "mpm",  # optional, see below
+        "output_dir": "man",  # optional, defaults to "man"
+        "render_html": True,  # optional, see below
+    },
+]
+```
 
-* `script` is resolved by {func}`click_extra.cli_wrapper.resolve_target_command`
+- `script` is resolved by {func}`click_extra.cli_wrapper.resolve_target_command`
   exactly as it would be from the `click-extra man` CLI: a
   `console_scripts` entry-point name, a `module:function` path, a
   `.py` file, or a plain module name.
-* `prog_name` is the basename used for both the man-page `.TH` header
+- `prog_name` is the basename used for both the man-page `.TH` header
   and the generated filenames. When omitted, it falls back to the resolved
   Click command's own `name` attribute (`mpm` for the
   `meta_package_manager.cli:mpm` target), matching the default the
   `click-extra man --output-dir` CLI uses.
-* `output_dir` is a relative path under `app.outdir`. It is created
+- `output_dir` is a relative path under `app.outdir`. It is created
   on demand and reused across builds.
-* `render_html` toggles the HTML sibling pass. Defaults to `True`.
+- `render_html` toggles the HTML sibling pass. Defaults to `True`.
   When no renderer is on `PATH`, the build still produces the `.1`
   files and logs a single info-level notice; set `render_html` to
   `False` to suppress that notice.
@@ -69,9 +71,11 @@ Cross-referencing the generated pages from prose
 ================================================
 
 To make ``:manpage:`myprog(1)``` resolve to the HTML sibling this hook
-emits, set Sphinx's `manpages_url` to the same `output_dir`::
+emits, set Sphinx's `manpages_url` to the same `output_dir`:
 
-    manpages_url = "man/{page}.{section}.html"
+```python
+manpages_url = "man/{page}.{section}.html"
+```
 
 Sphinx's role provides ``{page}``, ``{section}`` and ``{path}``
 placeholders; the file layout produced here is ``{page}.{section}`` plus
@@ -82,7 +86,6 @@ file regardless of how deep the subcommand tree goes.
 from __future__ import annotations
 
 import posixpath
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -93,8 +96,15 @@ from sphinx.util import logging
 from sphinx.util.osutil import relative_uri
 
 from ..cli_wrapper import resolve_target_command
-from ..command_doc import MAN_SECTION, iter_command_contexts, write_manpages
-from ..parameters import full_short_help, iter_inline_literals
+from ..command_doc import (
+    MAN_SECTION,
+    MAN_TYPESETTERS,
+    find_typesetters,
+    iter_command_contexts,
+    run_typesetter,
+    write_manpages,
+)
+from ..param_tools import full_short_help, iter_inline_literals
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -129,24 +139,9 @@ writing roff into their build trees would either be redundant or
 confusing."""
 
 
-HTML_RENDERERS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("mandoc", ("-Thtml",)),
-    ("groff", ("-Thtml", "-mandoc")),
-)
-"""External roff → HTML renderers, tried in order.
-
-`mandoc` is preferred: its HTML output ships semantic `id` anchors on
-every section and option (`#NAME`, `#SYNOPSIS`, `#config`…), which
-makes deep-linking from prose work. `groff -Thtml -mandoc` is the GNU
-fallback. If neither is on `PATH`, the HTML pass is skipped and only
-the `.1` files are emitted.
-"""
-
-
 _RENDERER_TIMEOUT_S = 30
-"""Per-file ceiling on the renderer invocation. mandoc finishes a typical
-CLI page in under 100 ms; the timeout exists to bound damage from a
-pathological page or a hung external process."""
+"""Per-file ceiling on a renderer run, bounding a pathological page or a hung
+process."""
 
 
 _ROFF_PROBE = ".TH TEST 1\n.SH NAME\ntest \\- probe\n"
@@ -160,64 +155,69 @@ caller can fall through to the next candidate.
 """
 
 
-def _find_renderer() -> tuple[str, tuple[str, ...]] | None:
-    """Locate the first available roff → HTML renderer on `PATH`.
+MANPAGE_LIST_DIRECTIVE = "click-extra-manpages"
+"""Name of the directive that renders an auto-generated index of every
+man page declared in {data}`MANPAGES_CONFIG_KEY`. The hyphenated form
+mirrors the `click_extra_manpages` config key it surfaces."""
 
-    Returns `(executable, extra_argv)` so the caller can append a file
-    path and run it. Returns `None` when no candidate is available or
-    when the candidate is installed but cannot produce HTML output (like
-    `groff` present but `groff-html` absent).
+
+_MANPAGE_URI_ATTRIBUTE = "click_extra_manpage_uri"
+"""Node attribute carrying a man page's URI relative to the build root.
+
+The `href` a reader needs depends on where the builder publishes the page
+hosting the directive: `html` writes a nested document to `<docname>.html`,
+`dirhtml` writes `<docname>/index.html` one directory deeper, and `singlehtml`
+folds every document into one page at the root. So the directive stamps the
+build-root-relative URI here and `_rebase_manpage_links` rewrites it into a
+page-relative one at write time.
+
+Resolving it in the directive instead would freeze one builder's layout into
+the pickled doctree, and a build reusing that cache never re-runs the
+directive: an `html` build followed by a `dirhtml` build sharing a doctree
+directory would publish the `html` links."""
+
+
+def _find_renderer() -> list[str] | None:
+    """Locate the first available roff to HTML renderer on `PATH`.
+
+    Tries each `html` typesetter of
+    {data}`~click_extra.command_doc.MAN_TYPESETTERS`, best first. Returns its
+    command line, so the caller can append a file path and run it. Returns
+    `None` when no candidate is available or when the candidate is installed but
+    cannot produce HTML output (like `groff` present but `groff-html` absent).
 
     A quick probe with a trivial roff snippet guards against the latter
     case: if the renderer exits non-zero or produces empty output, it is
     treated as absent.
     """
-    for name, extra in HTML_RENDERERS:
-        path = shutil.which(name)
-        if not path:
-            continue
+    for argv in find_typesetters("html"):
         # Verify the renderer actually works rather than just existing.
         try:
-            result = subprocess.run(
-                [path, *extra],
-                input=_ROFF_PROBE,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=_RENDERER_TIMEOUT_S,
-            )
+            output = run_typesetter(argv, _ROFF_PROBE, timeout=_RENDERER_TIMEOUT_S)
         except (subprocess.SubprocessError, OSError):
             continue
-        if result.stdout.strip():
-            return path, extra
+        if output.strip():
+            return argv
     return None
 
 
-def _render_html(renderer: tuple[str, tuple[str, ...]], roff_path: Path) -> str | None:
+def _render_html(renderer: list[str], roff_path: Path) -> str | None:
     """Run `renderer` on `roff_path` and return its captured `stdout`.
 
     Returns `None` if the subprocess fails for any reason. Failure is
     logged at warning level but does not abort the build: a broken HTML
     pass on one page must not lose the rest of the docs.
     """
-    executable, extra = renderer
     try:
-        result = subprocess.run(
-            [executable, *extra, str(roff_path)],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=_RENDERER_TIMEOUT_S,
-        )
+        return run_typesetter([*renderer, str(roff_path)], timeout=_RENDERER_TIMEOUT_S)
     except (subprocess.SubprocessError, OSError) as exc:
         logger.warning(
             "click_extra.sphinx: %s failed on %s: %s",
-            Path(executable).name,
+            Path(renderer[0]).name,
             roff_path.name,
             exc,
         )
         return None
-    return result.stdout
 
 
 def _resolved_entries(
@@ -310,7 +310,7 @@ def _emit_manpages(app: Sphinx) -> None:
                     "click_extra.sphinx: no roff renderer found on PATH "
                     "(tried %s); skipping HTML man-page rendering. Set "
                     "render_html=False to suppress this notice.",
-                    ", ".join(name for name, _ in HTML_RENDERERS),
+                    ", ".join(program for program, *_ in MAN_TYPESETTERS["html"]),
                 )
                 renderer_notice_logged = True
             continue
@@ -321,7 +321,7 @@ def _emit_manpages(app: Sphinx) -> None:
             if html is None:
                 continue
             roff_path.with_suffix(roff_path.suffix + ".html").write_text(
-                html, encoding="utf-8"
+                html, encoding="UTF-8"
             )
             html_written += 1
         logger.info(
@@ -330,28 +330,6 @@ def _emit_manpages(app: Sphinx) -> None:
             prog_name,
             Path(renderer[0]).name,
         )
-
-
-MANPAGE_LIST_DIRECTIVE = "click-extra-manpages"
-"""Name of the directive that renders an auto-generated index of every
-man page declared in {data}`MANPAGES_CONFIG_KEY`. The hyphenated form
-mirrors the `click_extra_manpages` config key it surfaces."""
-
-
-_MANPAGE_URI_ATTRIBUTE = "click_extra_manpage_uri"
-"""Node attribute carrying a man page's URI relative to the build root.
-
-The `href` a reader needs depends on where the builder publishes the page
-hosting the directive: `html` writes a nested document to `<docname>.html`,
-`dirhtml` writes `<docname>/index.html` one directory deeper, and `singlehtml`
-folds every document into one page at the root. So the directive stamps the
-build-root-relative URI here and `_rebase_manpage_links` rewrites it into a
-page-relative one at write time.
-
-Resolving it in the directive instead would freeze one builder's layout into
-the pickled doctree, and a build reusing that cache never re-runs the
-directive: an `html` build followed by a `dirhtml` build sharing a doctree
-directory would publish the `html` links."""
 
 
 class ManpageListDirective(SphinxDirective):

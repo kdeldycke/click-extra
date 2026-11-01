@@ -17,8 +17,7 @@
 
 Separated from the root ``tests/conftest.py`` so that the Sphinx dependency
 (and its ecosystem: myst-parser, docutils, etc.) is only imported when running
-the tests in this subdirectory.  Downstream packagers can skip these tests with
-``--ignore=tests/sphinx`` without affecting the rest of the test suite.
+the tests in this subdirectory.
 """
 
 from __future__ import annotations
@@ -37,8 +36,7 @@ import pytest
 # The Sphinx test tree needs the documentation extras (Sphinx, MyST-Parser and
 # their ecosystem). Hermetic builders (Guix, Nixpkgs) ship none of them, so skip
 # the whole tree through ``collect_ignore_glob`` rather than failing collection
-# on the imports below. Downstream packagers therefore no longer need
-# ``--ignore=tests/sphinx``.
+# on the imports below: no ``--ignore=tests/sphinx`` is needed.
 if any(importlib.util.find_spec(m) is None for m in ("sphinx", "myst_parser")):
     collect_ignore_glob = ["*.py"]
 else:
@@ -106,7 +104,7 @@ class SphinxAppWrapper:
 
         # Write the conf.py file.
         config_content = "\n".join(f"{key} = {value!r}" for key, value in conf.items())
-        (srcdir / "conf.py").write_text(config_content, encoding="utf-8")
+        (srcdir / "conf.py").write_text(config_content, encoding="UTF-8")
 
         with docutils_namespace():
             app = Sphinx(
@@ -131,7 +129,7 @@ class SphinxAppWrapper:
         file_extension = self.format_type.value
 
         index_file = Path(self.app.srcdir) / f"index{file_extension}"
-        index_file.write_text(content, encoding="utf-8")
+        index_file.write_text(content, encoding="UTF-8")
 
         # Build the documentation.
         self.app.build()
@@ -139,7 +137,7 @@ class SphinxAppWrapper:
         # Read the generated HTML.
         output_file = Path(self.app.outdir) / "index.html"
         if output_file.exists():
-            html_output = output_file.read_text(encoding="utf-8")
+            html_output = output_file.read_text(encoding="UTF-8")
             assert html_output
             return html_output
 

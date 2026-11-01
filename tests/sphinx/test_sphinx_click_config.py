@@ -26,6 +26,7 @@ import pytest
 
 from click_extra import group
 from click_extra.config import CONFIG_PATH_METADATA_KEY
+from click_extra.sphinx.click_reference import _format_default, _toml_value
 
 
 @dataclass
@@ -83,6 +84,29 @@ def _plain_text(html: str) -> str:
     readable and independent of the lexer's token boundaries.
     """
     return unescape(re.sub(r"<[^>]+>", "", html))
+
+
+@pytest.mark.parametrize(
+    ("value", "default", "literal"),
+    (
+        (None, "*(none)*", None),
+        (True, "`true`", "true"),
+        (False, "`false`", "false"),
+        (3, "`3`", "3"),
+        ("Lisbon", '`"Lisbon"`', '"Lisbon"'),
+        ("Lisbon\nPorto", "*(see example)*", "'''\nLisbon\nPorto\n'''"),
+        ([], "`[]`", "[]"),
+        (["figs", "plums"], "`['figs', 'plums']`", '["figs", "plums"]'),
+        # A list holding a value TOML cannot spell has no example either.
+        (["figs", None], "`['figs', None]`", None),
+        # No literal for a value of another type, which renders as it prints.
+        (2.5, "2.5", None),
+    ),
+)
+def test_click_config_default_and_toml_literal(value, default, literal):
+    """A default renders in the table, and as the literal of its TOML example."""
+    assert _format_default(value) == default
+    assert _toml_value(value) == literal
 
 
 def test_click_config_renders_table_and_sections(sphinx_app_myst):

@@ -31,14 +31,11 @@ render the same docstring several times:
   package and once under the module that defines it. Both renderings can even
   land on the same page.
 
-The two multiply. On click-extra's own documentation the untreated list showed
-35 entries for 17 distinct `{todo}` directives, one of them repeated four
-times.
-
-Nothing upstream deduplicates: {class}`sphinx.ext.todo.TodoListProcessor`
-flattens the whole `todo` domain into the page in read order. This module
-removes the surplus nodes from that domain just before the processor reads it,
-so the rendered list carries one entry per directive.
+The two multiply, and nothing upstream deduplicates:
+{class}`sphinx.ext.todo.TodoListProcessor` flattens the whole `todo` domain into
+the page in read order. This module removes the surplus nodes from that domain
+just before the processor reads it, so the rendered list carries one entry per
+directive.
 
 The same cause has the opposite effect on a docstring that no page renders: the
 docstring of a private module, of a private member that `:members:` skips, or
@@ -81,7 +78,7 @@ from pathlib import Path
 from sphinx.ext.todo import todo_node, todolist
 from sphinx.util import logging
 
-from ..blocks import fence_spans
+from ..markdown.blocks import walk_fences
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -279,7 +276,7 @@ def deduplicate_todos(app: Sphinx, doctree: nodes.document, docname: str) -> Non
 
     if removed:
         logger.info(
-            "click_extra.sphinx.todos: collapsed %d duplicate todo %s into "
+            "click_extra.sphinx: collapsed %d duplicate todo %s into "
             "%d unique %s on %s.",
             removed,
             "entries" if removed > 1 else "entry",
@@ -297,23 +294,17 @@ def _todo_lines(lines: list[str]) -> Iterator[int]:
     a `todo` nested in it counts. The body of a code block is literal text, so
     a `todo` quoted in it as an example does not.
     """
-    spans = fence_spans(lines)
-    index = 0
-    while index < len(lines):
-        span = spans.get(index)
+    for index, span in walk_fences(lines):
         if span is None:
             if _TODO_LINE_RE.match(lines[index]):
                 yield index
-            index += 1
             continue
-        end = len(lines) if span.close is None else span.close
         info = lines[index].strip().lstrip("`")
         if _TODO_INFO_RE.match(info):
             yield index
         if info.startswith("{"):
-            body = index + 1
-            yield from (body + nested for nested in _todo_lines(lines[body:end]))
-        index = end + 1
+            body = span.body
+            yield from (body.start + nested for nested in _todo_lines(lines[body]))
 
 
 def _string_literal(statement: ast.stmt) -> ast.Constant | None:
@@ -530,7 +521,7 @@ def report_unrendered_todos(app: Sphinx, env: BuildEnvironment) -> None:
     for package in packages:
         for module, path in _package_modules(package):
             try:
-                found = list(docstring_todos(path.read_text(encoding="utf-8"), module))
+                found = list(docstring_todos(path.read_text(encoding="UTF-8"), module))
             except (OSError, SyntaxError, ValueError):
                 continue
             for owner, line in found:

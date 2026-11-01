@@ -99,7 +99,7 @@ def lychee_excludes() -> tuple[re.Pattern[str], ...]:
     the raw Markdown can see them.
     """
     config = tomllib.loads(
-        (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"),
+        (PROJECT_ROOT / "pyproject.toml").read_text(encoding="UTF-8"),
     )
     return tuple(
         re.compile(pattern) for pattern in config["tool"]["lychee"].get("exclude", ())
@@ -179,7 +179,7 @@ def readable_anchors(path: Path) -> set[str]:
     """
     anchors: set[str] = set()
     seen: dict[str, int] = {}
-    for _number, line in uncoded_lines(path.read_text(encoding="utf-8")):
+    for _number, line in uncoded_lines(path.read_text(encoding="UTF-8")):
         anchors.update(HTML_ANCHOR.findall(uncoded_spans(line)))
         heading = ATX_HEADING.match(line)
         if not heading:
@@ -201,7 +201,7 @@ def unresolved_fragments(paths=MARKDOWN_FILES) -> list[str]:
     anchors: dict[Path, set[str]] = {}
     misses = []
     for path in paths:
-        for number, line in uncoded_lines(path.read_text(encoding="utf-8")):
+        for number, line in uncoded_lines(path.read_text(encoding="UTF-8")):
             for link in FRAGMENT_LINK.finditer(uncoded_spans(line)):
                 page, fragment = link.group("page"), link.group("fragment")
                 target = (path.parent / page).resolve() if page else path
@@ -228,7 +228,7 @@ def rendered_prose(path: Path) -> list[tuple[int, str]]:
     its indentation after the first line, so a fence opens at the margin as it
     does in a page.
     """
-    source = path.read_text(encoding="utf-8")
+    source = path.read_text(encoding="UTF-8")
     prose = [
         (number, comment.group("text"))
         for number, line in enumerate(source.splitlines(), 1)
@@ -318,7 +318,7 @@ def test_code_spans_hold_no_link_and_no_anchor(tmp_path):
         "# Pond\n\n"
         'Quote `<a name="lily"></a>` or `[the reeds](#reeds)` in prose.\n'
         "Then [go back up](#pond).\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert readable_anchors(page) == {"pond"}
     assert unresolved_fragments([page]) == []
@@ -365,7 +365,7 @@ def test_docstring_page_links_are_found(tmp_path):
         "    [a duck](ducks.md)\n"
         "    ```\n"
         '    """\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert docstring_page_links([module]) == [
         (module, 1, "pond.md#frogs"),

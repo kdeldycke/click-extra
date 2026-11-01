@@ -16,6 +16,7 @@
 """Shared scaffolding of the `click:*`, `python:*` and `matrix` directives.
 
 Holds the small bits of plumbing that {mod}`click_extra.sphinx.click`,
+{mod}`click_extra.sphinx.click_runner`, {mod}`click_extra.sphinx.click_reference`,
 {mod}`click_extra.sphinx.python` and {mod}`click_extra.sphinx.matrix` need
 verbatim: directive-content compilation, the line-offset arithmetic of
 {class}`ContentOffsetMixin`, per-document runner cleanup, and the stateless
@@ -25,13 +26,13 @@ verbatim: directive-content compilation, the line-offset arithmetic of
 The offline self-updating block toolkit those directives share (fence-aware
 Markdown scanning, the `<!-- name … --> / <!-- name-end -->` marker grammar,
 and the walk-rewrite-write loop behind the `click-extra refresh-directives`
-command) lives in the dependency-light {mod}`click_extra.blocks` module, so it
-stays importable without the `sphinx` extra.
+command) lives in the dependency-light {mod}`click_extra.markdown.blocks`
+module, so it stays importable without the `sphinx` extra.
 """
 
 from __future__ import annotations
 
-from functools import cached_property
+from functools import cache, cached_property
 
 from docutils import nodes
 from docutils.statemachine import StringList
@@ -68,11 +69,13 @@ offline refresh of a `:mirror:` region.
 """
 
 
+@cache
 def myst_version() -> Version | None:
     """The installed `myst-parser` release, or `None` when there is none.
 
     Every MyST-specific behavior of the extension is keyed on this answer, so a
-    project without `myst-parser` takes none of them.
+    project without `myst-parser` takes none of them. Cached: the answer cannot
+    change during a build, and every directive asks for it.
     """
     return None if myst_parser is None else Version(myst_parser.__version__)
 
@@ -117,10 +120,8 @@ def _myst_content_offset_inflation(directive: SphinxDirective) -> int:
     version = myst_version()
     if version is None or version > MYST_CONTENT_OFFSET_INFLATED_MAX:
         return 0
-    body = list(directive.content)
-    if directive.options and body and not body[-1].strip():
-        return 1
-    return 0
+    content = directive.content
+    return int(bool(directive.options and content and not content[-1].strip()))
 
 
 class ContentOffsetMixin(SphinxDirective):
@@ -136,8 +137,9 @@ class ContentOffsetMixin(SphinxDirective):
 
     @cached_property
     def is_myst_syntax(self) -> bool:
-        """Check if the current directive is written with MyST syntax."""
-        return bool(self.state.__module__.split(".", 1)[0] == "myst_parser")
+        """Whether the directive is written with MyST syntax."""
+        module: str = self.state.__module__
+        return module.partition(".")[0] == "myst_parser"
 
     @cached_property
     def abs_content_offset(self) -> int:
@@ -148,7 +150,7 @@ class ContentOffsetMixin(SphinxDirective):
         from the directive's own first line. Everything naming a document line
         reads this property instead, so the two conventions are reconciled in
         one place: the variable-conflict error of
-        {meth}`~click_extra.sphinx.click.ClickRunner.run_cli`, and the
+        {meth}`~click_extra.sphinx.click_runner.ClickRunner.run_cli`, and the
         source-line labels {func}`parse_into_section` attaches to a generated
         block.
 
@@ -176,18 +178,11 @@ def directive_source(directive: SphinxDirective) -> tuple[str, str]:
     package, so callers needing the raw source (for an AST conflict check, say)
     do not re-derive it independently of {func}`compile_directive`.
     """
-    # Use directive.content, not directive.block_text: block_text is body-only
-    # in myst-parser <= 5.1.0, and includes the directive header and options in
-    # rST. executablebooks/MyST-Parser#1164 (merged, not yet released) aligns
-    # MyST's block_text with rST's full-directive form. Once a myst-parser
-    # release ships #1164, block_text could anchor a robust line-number
-    # computation and retire the content_offset workaround of
-    # ContentOffsetMixin (see MYST_CONTENT_OFFSET_INFLATED_MAX); until then,
-    # stay on directive.content.
-    source_code = "\n".join(directive.content)
-    # The location string Sphinx reports in tracebacks for this directive.
-    location = directive.get_location()
-    return source_code, location
+    # Read directive.content, not directive.block_text: block_text is body-only
+    # in myst-parser <= 5.1.0, and holds the directive header and options in
+    # rST. See the `{todo}` of the click_extra.sphinx.click module for the
+    # release that aligns the two.
+    return "\n".join(directive.content), directive.get_location()
 
 
 def compile_directive(directive: SphinxDirective) -> CodeType:
@@ -204,7 +199,7 @@ def compile_directive(directive: SphinxDirective) -> CodeType:
     and any secrets the build environment holds. There is no sandbox.
 
     Only build documentation from trusted source. Both the
-    {class}`~click_extra.sphinx.click.ClickDomain` and the
+    {class}`~click_extra.sphinx.click_reference.ClickDomain` and the
     {class}`~click_extra.sphinx.python.PythonDomain` are gated behind
     the `click_extra_enable_exec_directives` opt-in for exactly this
     reason. See `docs/sphinx.md` under the Setup section for the

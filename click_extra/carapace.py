@@ -19,7 +19,7 @@
 spec file drives identical completions across Bash, Zsh, Fish, Nushell,
 PowerShell, Elvish, Xonsh, Oil and more. This module walks a Click/Cloup command
 tree and serializes it to the YAML [carapace-spec](https://github.com/carapace-sh/carapace-spec) format, answering the request
-for native Carapace support in [Click issue #3188](https://github.com/pallets/click/issues/3188) (closed as out of scope for core
+for native Carapace support in [pallets/click#3188](https://github.com/pallets/click/issues/3188) (closed as out of scope for core
 Click, redirected here).
 
 Two completion strategies cooperate:
@@ -72,18 +72,16 @@ from click.shell_completion import (
 )
 from cloup.constraints import mutually_exclusive
 
-# Imported first for its side effect: context, color and parameters import each other,
-# and only an import chain starting from context resolves that cycle.
-from . import context  # noqa: F401
-from ._utils import generator_tag, missing_extra_message
-from .parameters import (
+from ._utils import DOCS_URL, GENERATOR_TAG
+from .output import MissingExtraError
+from .param_tools import (
     choice_values,
     clean_help,
     full_short_help,
     is_repeatable,
     iter_inline_literals,
     iter_params_for_display,
-    iter_subcommands,
+    iter_subcommand_contexts,
     make_resilient_context,
     option_value_kind,
     resolve_param_help,
@@ -96,23 +94,19 @@ if TYPE_CHECKING:
     from types import ModuleType
 
     from click import Command, Context, Parameter
+    from click.shell_completion import CompletionItem
 
 
 _CARAPACE_SPECS_DIR = Path("~/.config/carapace/specs")
-"""The `~` form of {data}`CARAPACE_SPECS_DIR`, for {func}`xdg_dir` to expand at
-call time."""
+"""User spec directory Carapace loads on startup, when `XDG_CONFIG_HOME` is unset.
 
-CARAPACE_SPECS_DIR = _CARAPACE_SPECS_DIR.expanduser()
-"""User spec directory Carapace loads on startup.
-
-Writing `<prog>.yaml` here (see {func}`install_carapace_spec`) is all it takes
+Writing `<prog>.yaml` there (see {func}`install_carapace_spec`) is all it takes
 for Carapace to pick up a CLI's completions. Mirrors the `$XDG_CONFIG_HOME`
-default documented by Carapace, expanded against the `HOME` of the process at
-import. {func}`install_carapace_spec` reads `XDG_CONFIG_HOME` and `HOME` at call
-time instead, through {func}`xdg_dir`.
+default documented by Carapace. Kept in its `~` form, for {func}`xdg_dir` to
+expand against the `HOME` in force at the call.
 """
 
-CARAPACE_DOCS_URL = "https://kdeldycke.github.io/click-extra/carapace.html"
+CARAPACE_DOCS_URL = f"{DOCS_URL}/carapace.html"
 """Documentation page stamped into every generated spec's header comment, so a
 reader of the raw YAML knows where the feature is documented."""
 
@@ -174,14 +168,18 @@ def _require_yaml() -> ModuleType:
 
     PyYAML ships behind the `carapace` extra, and only the YAML-serializing
     entry points need it.
+
+    :raises ~click_extra.output.MissingExtraError: PyYAML is not installed. A
+        command reports it without a traceback, and other code catches it as
+        the {exc}`ImportError` it also is.
     """
     # Deferred import: keeps PyYAML off the startup path of every CLI, installed
     # or not.
     try:
         import yaml
     except ImportError:
-        raise ImportError(
-            missing_extra_message("carapace", subject="Carapace spec serialization")
+        raise MissingExtraError(
+            "carapace", subject="Carapace spec serialization"
         ) from None
     return yaml
 
@@ -189,7 +187,7 @@ def _require_yaml() -> ModuleType:
 def _clean_description(text: str | None) -> str:
     r"""Collapse a help string to a single Carapace-friendly description line.
 
-    Normalizes the prose with {func}`~click_extra.parameters.clean_help`, which
+    Normalizes the prose with {func}`~click_extra.param_tools.clean_help`, which
     drops Click's `\b` no-rewrap marker, then keeps only the first paragraph, strips
     the reST inline-literal backticks while keeping the text they wrap (Click
     stores docstrings verbatim, so `"`...`"` markup leaks through) and squashes
@@ -318,7 +316,7 @@ def _static_action(param_type: click.ParamType) -> list[str] | None:
     Carapace's `$files` / `$directories` macros, mirroring how Click's own
     {meth}`Choice.shell_complete <click.Choice.shell_complete>` and
     {meth}`Path.shell_complete <click.Path.shell_complete>` behave. The choices
-    are spelled by {func}`~click_extra.parameters.choice_values`, so an `Enum`
+    are spelled by {func}`~click_extra.param_tools.choice_values`, so an `Enum`
     member completes by the name Click accepts.
     """
     choices = choice_values(param_type)
@@ -334,10 +332,13 @@ def _static_action(param_type: click.ParamType) -> list[str] | None:
 
 
 def _overrides_shell_complete(param_type: click.ParamType) -> bool:
-    """Whether a type provides a non-static custom `shell_complete` override."""
+    """Whether a type completes through a `shell_complete` override of its own.
+
+    Click's `Choice`, `Path` and `File` override it too, with the static
+    completion {func}`_static_action` inlines instead: an empty `Choice`, the one
+    of them left for this check, completes nothing.
+    """
     if isinstance(param_type, (click.Choice, click.Path, click.File)):
-        return False
-    if getattr(param_type, "choices", None):
         return False
     return type(param_type).shell_complete is not click.ParamType.shell_complete
 
@@ -560,10 +561,9 @@ def _add_option(
     can resolve the right flag's value (see {func}`_dynamic_action`).
 
     The description goes through
-    {func}`~click_extra.parameters.resolve_param_help`, like every other render
-    of this help text: an option computing its own help leaves `param.help` at
-    `None`, and reading the attribute shipped `-v` and `-q` with an empty
-    description in the spec.
+    {func}`~click_extra.param_tools.resolve_param_help`, like every other render
+    of this help text: an option computing its own help, like `-v` and `-q`,
+    leaves `param.help` at `None`.
 
     A required option is marked `!`, and a required *pair* is not: either
     spelling satisfies Click there, and Carapace marks one flag at a time with
@@ -577,8 +577,8 @@ def _add_option(
     optarg = kind == "optional"
     repeatable = is_repeatable(param)
     hidden = bool(getattr(param, "hidden", False))
-    secondary = getattr(param, "secondary_opts", None)
-    required = bool(getattr(param, "required", False)) and not secondary
+    secondary = param.secondary_opts
+    required = param.required and not secondary
 
     node.flags[
         _flag_key(
@@ -592,14 +592,7 @@ def _add_option(
     ] = description
     # Boolean flags expose their negative spelling as a separate switch.
     if secondary:
-        node.flags[
-            _flag_key(
-                param.secondary_opts,
-                value=False,
-                repeatable=False,
-                hidden=hidden,
-            )
-        ] = description
+        node.flags[_flag_key(secondary, value=False, hidden=hidden)] = description
 
     if value:
         short, long = short_long_opts(param.opts)
@@ -629,7 +622,6 @@ def extract_carapace_command(
     command, grown by one name per recursion and baked into dynamic callback
     macros (see {func}`_dynamic_action`).
     """
-
     node = CarapaceCommand(
         name=ctx.info_name or command.name or "",
         description=_clean_description(full_short_help(command)),
@@ -637,36 +629,30 @@ def extract_carapace_command(
         hidden=bool(getattr(command, "hidden", False)),
     )
 
-    positional: list[list[str]] = []
-    positional_docs: list[str] = []
     for param in iter_params_for_display(command, ctx):
-        if isinstance(param, click.Argument):
-            action = _param_action(param, command_path)
+        if not isinstance(param, click.Argument):
+            _add_option(node, param, ctx, command_path=command_path)
+            continue
+        action = _param_action(param, command_path)
+        doc = _clean_description(resolve_param_help(param, ctx))
+        if param.nargs == -1:
+            node.completion.positionalany = action
+            node.documentation.positionalany = doc
+        else:
             # One entry per slot the operand occupies, so the documentation
             # stays index-aligned with the actions beside it.
-            doc = _clean_description(resolve_param_help(param, ctx))
-            if param.nargs == -1:
-                node.completion.positionalany = action
-                node.documentation.positionalany = doc
-            else:
-                slots = max(param.nargs, 1)
-                positional.extend([action] * slots)
-                positional_docs.extend([doc] * slots)
-            continue
+            slots = max(param.nargs, 1)
+            node.completion.positional.extend([action] * slots)
+            node.documentation.positional.extend([doc] * slots)
 
-        _add_option(node, param, ctx, command_path=command_path)
-
-    node.completion.positional = positional
-    node.documentation.positional = positional_docs
     node.exclusiveflags = _exclusive_flag_groups(command)
 
-    for sub_name, sub in iter_subcommands(command, ctx, skip_hidden=False):
-        sub_ctx = make_resilient_context(sub, sub_name, parent=ctx)
+    for sub_name, sub, sub_ctx in iter_subcommand_contexts(
+        command, ctx, skip_hidden=False
+    ):
         node.commands.append(
             extract_carapace_command(
-                sub,
-                sub_ctx,
-                command_path=command_path + (sub_name,),
+                sub, sub_ctx, command_path=(*command_path, sub_name)
             )
         )
 
@@ -687,11 +673,7 @@ def to_carapace_spec(
     name = prog_name or command.name or ""
     if ctx is None:
         ctx = make_resilient_context(command, prog_name)
-    node = extract_carapace_command(
-        command,
-        ctx,
-        command_path=(name,),
-    )
+    node = extract_carapace_command(command, ctx, command_path=(name,))
     # The root node's name follows the program name, not the context's.
     node.name = name
     return node.to_dict()
@@ -715,7 +697,7 @@ def dump_carapace_spec(
     yaml = _require_yaml()
     spec = to_carapace_spec(command, prog_name, ctx)
     body: str = yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=88)
-    header_lines = [f"# Generated by {generator_tag()}. Do not edit by hand."]
+    header_lines = [f"# Generated by {GENERATOR_TAG}. Do not edit by hand."]
     if invocation:
         header_lines.append(f"# $ {invocation}")
     header_lines.append(f"# Documentation: {CARAPACE_DOCS_URL}")
@@ -739,7 +721,7 @@ def write_carapace_spec(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         dump_carapace_spec(command, prog_name, invocation=invocation),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     return path
 
@@ -752,10 +734,9 @@ def install_carapace_spec(
 ) -> Path:
     """Write the spec into Carapace's user spec directory.
 
-    Targets `$XDG_CONFIG_HOME/carapace/specs/<prog>.yaml` (honoring an explicit
-    `XDG_CONFIG_HOME`, else the default behind {data}`CARAPACE_SPECS_DIR`, both
-    resolved at call time by {func}`xdg_dir`), which Carapace loads on startup.
-    Returns the path.
+    Targets `$XDG_CONFIG_HOME/carapace/specs/<prog>.yaml` when that variable is
+    set, else `~/.config/carapace/specs/<prog>.yaml`, both resolved at call time
+    by {func}`xdg_dir`: Carapace loads either on startup. Returns the path.
     """
     name = prog_name or command.name or "cli"
     base = xdg_dir("XDG_CONFIG_HOME", _CARAPACE_SPECS_DIR, "carapace", "specs")
@@ -795,14 +776,13 @@ class CarapaceComplete(ShellComplete):
     def get_completion_args(self) -> tuple[list[str], str]:
         """Read the words Carapace passed via `COMP_WORDS` (program name first).
 
-        Returns the typed arguments with an empty incomplete value; Carapace
-        applies its own prefix filtering to the candidates we return.
+        Returns the typed arguments with an empty incomplete value: Carapace
+        applies its own prefix filtering to the candidates returned.
         """
         words = split_arg_string(os.environ.get("COMP_WORDS", ""))
-        args = words[1:] if words else []
-        return args, ""
+        return words[1:], ""
 
-    def format_completion(self, item) -> str:
+    def format_completion(self, item: CompletionItem) -> str:
         r"""Render one completion as Carapace's `value` or `value\tdescription`."""
         if item.help:
             return f"{item.value}\t{item.help}"

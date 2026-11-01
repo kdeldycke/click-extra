@@ -18,10 +18,16 @@
 from __future__ import annotations
 
 import os
+import tomllib
+from pathlib import Path
 from textwrap import dedent
 
 import click
+import pymdownx.highlight
 import pytest
+from mkdocs.commands.build import build
+from mkdocs.config import load_config
+from mkdocs_click import _docs
 from pygments.formatters.html import HtmlFormatter
 
 from click_extra.mkdocs import (
@@ -38,8 +44,6 @@ from click_extra.pygments import AnsiHtmlFormatter
 @pytest.fixture()
 def _clean_pymdownx():
     """Save and restore pymdownx.highlight formatter classes around each test."""
-    import pymdownx.highlight
-
     orig_block = pymdownx.highlight.BlockHtmlFormatter
     orig_inline = pymdownx.highlight.InlineHtmlFormatter
     yield
@@ -50,8 +54,6 @@ def _clean_pymdownx():
 @pytest.fixture()
 def _clean_mkdocs_click():
     """Save and restore mkdocs-click functions around each test."""
-    from mkdocs_click import _docs
-
     orig_usage = _docs._make_usage
     orig_plain = _docs._make_plain_options
     orig_patched = getattr(_docs, "_click_extra_patched", False)
@@ -64,11 +66,8 @@ def _clean_mkdocs_click():
 @pytest.mark.once
 def test_mkdocs_entry_point():
     """Verify the ``mkdocs.plugins`` entry point is declared in ``pyproject.toml``."""
-    import tomllib
-    from pathlib import Path
-
     toml_path = Path(__file__).parent.parent.parent / "pyproject.toml"
-    config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+    config = tomllib.loads(toml_path.read_text(encoding="UTF-8"))
     ep = config["project"]["entry-points"]["mkdocs.plugins"]
     assert ep == {"click-extra": "click_extra.mkdocs:AnsiColorPlugin"}
 
@@ -76,8 +75,6 @@ def test_mkdocs_entry_point():
 @pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_on_config_patches_formatters():
     """After ``on_config``, both formatter classes inherit from ``AnsiHtmlFormatter``."""
-    import pymdownx.highlight
-
     # Before patching: standard HtmlFormatter subclasses.
     assert not issubclass(pymdownx.highlight.BlockHtmlFormatter, AnsiHtmlFormatter)
     assert not issubclass(pymdownx.highlight.InlineHtmlFormatter, AnsiHtmlFormatter)
@@ -92,8 +89,6 @@ def test_on_config_patches_formatters():
 @pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_on_config_idempotent():
     """Calling ``on_config`` twice does not create a new class each time."""
-    import pymdownx.highlight
-
     plugin = AnsiColorPlugin()
     plugin.on_config({"extra_css": []})  # type: ignore[arg-type]
     block_cls = pymdownx.highlight.BlockHtmlFormatter
@@ -107,8 +102,6 @@ def test_on_config_idempotent():
 @pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_patched_formatter_preserves_pymdownx_mro():
     """The patched formatters still inherit from the original pymdownx classes."""
-    import pymdownx.highlight
-
     orig_block = pymdownx.highlight.BlockHtmlFormatter
     orig_inline = pymdownx.highlight.InlineHtmlFormatter
 
@@ -125,8 +118,6 @@ def test_patched_formatter_preserves_pymdownx_mro():
 @pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_patched_formatter_renders_ansi():
     """The patched block formatter decomposes compound ANSI tokens into CSS classes."""
-    import pymdownx.highlight
-
     plugin = AnsiColorPlugin()
     plugin.on_config({"extra_css": []})  # type: ignore[arg-type]
 
@@ -178,7 +169,7 @@ def test_on_post_build_writes_stylesheet(tmp_path):
 
     written = tmp_path / ANSI_STYLESHEET
     assert written.is_file()
-    assert ".highlight .-Ansi-Cyan" in written.read_text(encoding="utf-8")
+    assert ".highlight .-Ansi-Cyan" in written.read_text(encoding="UTF-8")
 
 
 @click.command()
@@ -190,8 +181,6 @@ def _hello_cmd(name):
 @pytest.mark.usefixtures("_clean_mkdocs_click")
 def test_patch_mkdocs_click_usage():
     """After patching, ``_make_usage`` yields ``ansi-output`` fences."""
-    from mkdocs_click import _docs
-
     ctx = click.Context(_hello_cmd, info_name="hello")
     lines_before = list(_docs._make_usage(ctx))
     assert TEXT_FENCE in lines_before
@@ -207,8 +196,6 @@ def test_patch_mkdocs_click_usage():
 @pytest.mark.usefixtures("_clean_mkdocs_click")
 def test_patch_mkdocs_click_plain_options():
     """After patching, ``_make_plain_options`` yields ``ansi-output`` fences."""
-    from mkdocs_click import _docs
-
     ctx = click.Context(_hello_cmd, info_name="hello")
     lines_before = list(_docs._make_plain_options(ctx))
     assert TEXT_FENCE in lines_before
@@ -224,8 +211,6 @@ def test_patch_mkdocs_click_plain_options():
 @pytest.mark.usefixtures("_clean_mkdocs_click")
 def test_patch_mkdocs_click_idempotent():
     """Calling ``_patch_mkdocs_click`` twice does not double-wrap."""
-    from mkdocs_click import _docs
-
     _patch_mkdocs_click()
     usage_fn = _docs._make_usage
     plain_fn = _docs._make_plain_options
@@ -246,8 +231,6 @@ def test_patch_mkdocs_click_forces_color_during_capture(monkeypatch):
     color) proves ``FORCE_COLOR`` is set and the disabling vars are cleared at capture
     time, and that the surrounding environment is restored once the capture completes.
     """
-    from mkdocs_click import _docs
-
     monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.delenv("FORCE_COLOR", raising=False)
 
@@ -276,8 +259,6 @@ def test_patch_mkdocs_click_forces_color_during_capture(monkeypatch):
 @pytest.mark.usefixtures("_clean_pymdownx", "_clean_mkdocs_click")
 def test_on_config_patches_mkdocs_click():
     """``on_config`` patches mkdocs-click alongside pymdownx.highlight."""
-    from mkdocs_click import _docs
-
     assert not getattr(_docs, "_click_extra_patched", False)
 
     plugin = AnsiColorPlugin()
@@ -299,16 +280,13 @@ def test_full_build_renders_ansi_colors(tmp_path):
     in, and class-decorated spans backed by a linked stylesheet come out, with no
     raw escape codes left behind.
     """
-    from mkdocs.commands.build import build
-    from mkdocs.config import load_config
-
     esc = "\x1b"
     ansi = f"{esc}[1mgreet{esc}[0m [{esc}[1;36mOPTIONS{esc}[0m]"
     docs = tmp_path / "docs"
     docs.mkdir()
     (docs / "index.md").write_text(
         f"# CLI\n\n```ansi-output\n{ansi}\n```\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     config_file = tmp_path / "mkdocs.yml"
     config_file.write_text(
@@ -321,7 +299,7 @@ def test_full_build_renders_ansi_colors(tmp_path):
               - search
               - click-extra
             """),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     site = tmp_path / "site"
 
@@ -330,9 +308,9 @@ def test_full_build_renders_ansi_colors(tmp_path):
     # The color stylesheet is generated and contains the cyan rule used above.
     stylesheet = site / ANSI_STYLESHEET
     assert stylesheet.is_file()
-    assert ".highlight .-Ansi-Cyan { color:" in stylesheet.read_text(encoding="utf-8")
+    assert ".highlight .-Ansi-Cyan { color:" in stylesheet.read_text(encoding="UTF-8")
 
-    index = (site / "index.html").read_text(encoding="utf-8")
+    index = (site / "index.html").read_text(encoding="UTF-8")
     # The page links the stylesheet, carries the decomposed class, and no longer
     # contains any raw escape byte.
     assert ANSI_STYLESHEET in index

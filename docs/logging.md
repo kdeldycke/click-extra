@@ -41,7 +41,7 @@ Default behavior of the option:
 - color the log's `{levelname}` variable.
 
 ```{tip}
-The reconciled log level chosen between `--verbosity` and `--verbose`/`-v` is published on `ctx.meta` as `VERBOSITY_LEVEL`, alongside the raw `VERBOSITY` and `VERBOSE` values from each option. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
+The log level reconciled from `--verbosity`, `-v`, `-q` and `--debug` is published on `ctx.meta` as `VERBOSITY_LEVEL`, alongside the raw `VERBOSITY`, `VERBOSE`, `QUIET` and `DEBUG` values from each option. See the [available keys](context.md#available-keys) table to read them from your own callbacks.
 ```
 
 ```{important}

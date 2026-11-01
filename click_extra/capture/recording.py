@@ -48,24 +48,23 @@ import select
 import struct
 import subprocess
 import time
+from itertools import pairwise
 from typing import NamedTuple, cast
 
-from .color import forced_color
-from .envvar import env_copy
-from .execution import args_cleanup
-from .layout import RESET, cell_width, number_lines
+from ..ansi import CSI_PATTERN, CSI_PREFIX_PATTERN, RESET
+from ..color import TerminalBackground, forced_color
+from ..envvar import env_copy
+from ..execution import _stop_process, _track, _untrack, args_cleanup
+from ..layout import cell_width, number_lines
+from .presets import Chrome
 from .screenshot import (
     DEFAULT_COLUMNS,
-    Chrome,
     append_prompt,
     capture_environment,
     prompt_line,
     render,
 )
-from .screenshot_presets import (
-    CaptureBackground,
-)
-from .screenshot_svg import AUTO_HOLD
+from .svg import AUTO_HOLD
 
 # A pseudo-terminal is what makes a CLI checking `isatty` animate for a
 # recorder, and `pty` reaches for `termios`, which Windows does not ship. The
@@ -86,18 +85,21 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from .execution import TArg, TNestedArgs
-    from .screenshot_presets import Cursor, TerminalPreset
-    from .screenshot_svg import THold
+    from ..execution import TArg, TNestedArgs
+    from .presets import Cursor, TerminalPreset
+    from .svg import THold
 
-CSI_RE = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
-"""One control sequence, from the escape that opens it to the letter ending it.
+CSI_RE = re.compile(CSI_PATTERN)
+"""One control sequence, from the escape that opens it to the final byte ending it.
 
 Broad on purpose: the sequences this screen ignores have to be *recognized* to
-be dropped, or their parameter digits would land on the screen as text.
+be dropped, or their parameter digits would land on the screen as text. The
+grammar is the one {data}`~click_extra.ansi.CSI_PATTERN` states, so a sequence
+with an intermediate byte, like the `ESC [ 2 SP q` setting the cursor's shape,
+is dropped whole too.
 """
 
-PARTIAL_CSI_RE = re.compile(r"\x1b(\[[0-9;?]*)?$")
+PARTIAL_CSI_RE = re.compile(rf"(?:{CSI_PREFIX_PATTERN}|\x1b)$")
 """The opening of a control sequence the rest of which has not arrived yet.
 
 A recorder reads whatever the terminal hands it, on boundaries that answer to
@@ -121,7 +123,7 @@ A recording ends somewhere, and the end is usually its point: the trail filled
 in, the bar run out, the outcome landed. Looping straight back gives a reader no
 time to read any of it, and how much time reading takes depends on how much the
 ending shows, so the default scales with it: see
-{func}`~click_extra.screenshot_svg.auto_hold`. A declared animation cycles in place
+{func}`~click_extra.capture.svg.auto_hold`. A declared animation cycles in place
 and ends nowhere, so it holds for nothing unless a page asks.
 """
 
@@ -176,7 +178,8 @@ TERMINATE_GRACE = 2.0
 
 A command still running when the recording ends, by its `duration` or by a
 Ctrl+C, gets `SIGTERM` first, to clean up after itself. One that ignores it is
-killed once this grace runs out, so the recording never waits forever.
+killed with its descendants once this grace runs out, so the recording never
+waits forever: see `click_extra.execution._stop_process`.
 """
 
 ERASE_IN_LINE = "K"
@@ -384,15 +387,14 @@ class ScreenRecorder(io.TextIOBase):
             lasted. Defaults to now.
         :return: the frames, in the order they were drawn.
         """
-        kept = self._samples
         finish = self._clock() if end is None else end
-        frames = []
-        for index, (at, display) in enumerate(kept):
-            following = kept[index + 1][0] if index + 1 < len(kept) else finish
-            span = following - at
-            if display.strip() and span > 0:
-                frames.append(Frame(display, span))
-        return tuple(frames)
+        # A blank sample at the stop time closes the last screen's span.
+        samples = [*self._samples, (finish, "")]
+        return tuple(
+            Frame(display, until - at)
+            for (at, display), (until, _) in pairwise(samples)
+            if display.strip() and until > at
+        )
 
 
 def _pin_window_size(descriptor: int, rows: int, columns: int) -> None:
@@ -416,7 +418,7 @@ def record_command(
     *,
     columns: int = DEFAULT_COLUMNS,
     rows: int = DEFAULT_ROWS,
-    background: CaptureBackground = CaptureBackground.DARK,
+    background: TerminalBackground = TerminalBackground.DARK,
     duration: float | None = None,
     clock: Callable[[], float] = time.monotonic,
 ) -> tuple[Frame, ...]:
@@ -431,12 +433,12 @@ def record_command(
     ```{caution}
     Unix only. A pseudo-terminal is `termios` and `pty`, neither of which
     Windows ships, and reaching ConPTY means a dependency. Recording a spinner
-    this process *hosts* needs none of that: hand a {class}`ScreenRecorder` to
+    this process *hosts* needs none of that: hand a {class}`~click_extra.capture.recording.ScreenRecorder` to
     its `stream` and it animates on any platform.
     ```
 
     The terminal this runs *from* is hidden from the command, see
-    {data}`~click_extra.screenshot.CAPTURE_HIDDEN_TERMINAL_VARS`, so one
+    {data}`~click_extra.capture.screenshot.CAPTURE_HIDDEN_TERMINAL_VARS`, so one
     machine's recording matches another's.
 
     Both the command's output and its errors are read, the spinner drawing on
@@ -449,7 +451,7 @@ def record_command(
     :param rows: height of that terminal, in characters.
     :param background: chrome the recording is headed for, stated to the command
         the way a terminal would, see
-        {data}`~click_extra.screenshot.CAPTURE_TERMINAL_HINTS`.
+        {data}`~click_extra.capture.screenshot.CAPTURE_TERMINAL_HINTS`.
     :param duration: seconds to record before stopping the command. `None`
         records until it exits on its own.
     :param clock: what the recorder reads the time off.
@@ -471,7 +473,7 @@ def _record_process(
     *,
     columns: int = DEFAULT_COLUMNS,
     rows: int = DEFAULT_ROWS,
-    background: CaptureBackground = CaptureBackground.DARK,
+    background: TerminalBackground = TerminalBackground.DARK,
     duration: float | None = None,
     clock: Callable[[], float] = time.monotonic,
 ) -> tuple[tuple[Frame, ...], int]:
@@ -520,6 +522,9 @@ def _record_process(
     # The parent holds the only reading end from here on: leaving the child's
     # open would keep the read blocking forever after the command exits.
     os.close(child)
+    # Registered like a child of run_cli, so the Ctrl+C handlers stop it even
+    # while another thread records it: see terminate_live_processes.
+    _track(process)
     try:
         while True:
             if duration is not None and clock() - started >= duration:
@@ -543,13 +548,10 @@ def _record_process(
         if tail:
             recorder.write(tail)
         os.close(parent)
-        if process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=TERMINATE_GRACE)
-            except subprocess.TimeoutExpired:
-                process.kill()
-        returncode = process.wait()
+        try:
+            returncode = _stop_process(process, TERMINATE_GRACE)
+        finally:
+            _untrack(process)
 
     return recorder.frames(end=clock()), returncode
 
@@ -569,7 +571,7 @@ def quantize(
     This settles jitter and nothing else. A frame the scheduler dropped leaves a
     shorter recording of the same frames, which no rounding recovers. That case
     is answered a layer up, by
-    {func}`~click_extra.screenshot_svg.animation_digest`, which fingerprints the
+    {func}`~click_extra.capture.svg.animation_digest`, which fingerprints the
     frames a cycle holds rather than how many of them were caught.
     ```
 
@@ -635,10 +637,10 @@ def type_line(
     ```{note}
     Ordinary frames, carrying no mechanism of their own: they prepend to a
     recording's and travel through
-    {func}`~click_extra.screenshot_svg.render_svg` like any others. Everything the
+    {func}`~click_extra.capture.svg.render_svg` like any others. Everything the
     picture does for a frame therefore reaches these too, the gutter numbering
     them and the cursor following the text along, see
-    {func}`~click_extra.screenshot_svg.cursor_cell`.
+    {func}`~click_extra.capture.svg.cursor_cell`.
     ```
 
     The last frame holds the finished line for `submit`, which is the beat
@@ -675,7 +677,7 @@ def record_and_render(
     *,
     columns: int = DEFAULT_COLUMNS,
     rows: int = DEFAULT_ROWS,
-    background: CaptureBackground = CaptureBackground.DARK,
+    background: TerminalBackground = TerminalBackground.DARK,
     prompt: str | None = None,
     duration: float | None = None,
     quantum: float = DEFAULT_QUANTUM,
@@ -696,8 +698,8 @@ def record_and_render(
     """Record a command under a pseudo-terminal and render it as an animated SVG.
 
     Chains {func}`record_command`, {func}`quantize` and
-    {func}`~click_extra.screenshot.render`, the way
-    {func}`~click_extra.screenshot.capture` chains the still pipeline. The
+    {func}`~click_extra.capture.screenshot.render`, the way
+    {func}`~click_extra.capture.screenshot.capture` chains the still pipeline. The
     invocation is drawn above every frame as a shell prompt, styled by the
     active theme through {func}`~click_extra.execution.format_cli_prompt`, so
     the recording shows what to type to reproduce it.
@@ -716,7 +718,7 @@ def record_and_render(
     :param quantum: grid the frame durations are rounded onto, see
         {func}`quantize`.
     :param hold: extra seconds the last frame stays up, or
-        {data}`~click_extra.screenshot_svg.AUTO_HOLD` (the default here) to scale
+        {data}`~click_extra.capture.svg.AUTO_HOLD` (the default here) to scale
         them to that frame's line count.
     :param blank: seconds of empty screen closing the cycle.
     :param speed: how much faster to play than recorded. The typed opening is
@@ -731,19 +733,19 @@ def record_and_render(
     :param line_numbers: draw each line's number in a gutter, the prompt
         counting as the first of them.
     :param emphasize: lines to draw a band behind, see
-        {func}`~click_extra.screenshot_svg.render_svg`.
+        {func}`~click_extra.capture.svg.render_svg`.
     :param cursor: the terminal cursor to draw, see
-        {class}`~click_extra.screenshot_presets.Cursor`. It follows the text
+        {class}`~click_extra.capture.presets.Cursor`. It follows the text
         from screen to screen on its own, so a typed opening gets its caret
         from this and nothing else.
     :param closing_prompt: draw the shell's prompt under the last frame, which
         is where it comes back once the command exits, see
-        {func}`~click_extra.screenshot.append_prompt`. Only that frame carries
+        {func}`~click_extra.capture.screenshot.append_prompt`. Only that frame carries
         it: the shell has not returned while the command is still drawing.
-    :param title: see {func}`~click_extra.screenshot.render`.
-    :param unique_id: see {func}`~click_extra.screenshot.render`.
-    :param preset: see {func}`~click_extra.screenshot.render`.
-    :param chrome: see {func}`~click_extra.screenshot.render`.
+    :param title: see {func}`~click_extra.capture.screenshot.render`.
+    :param unique_id: see {func}`~click_extra.capture.screenshot.render`.
+    :param preset: see {func}`~click_extra.capture.screenshot.render`.
+    :param chrome: see {func}`~click_extra.capture.screenshot.render`.
     :return: the rendered SVG document, and the command's exit code.
     :raises NotImplementedError: on a platform with no pseudo-terminal.
     :raises ValueError: when the command drew nothing to record, or when a

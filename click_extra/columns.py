@@ -19,7 +19,7 @@
 A {class}`ColumnSpec` names a column, labels it and documents it, so one
 declaration feeds the rendered header, the `--columns` and `--sort-by`
 options and the documentation table. {mod}`click_extra.table` renders the
-columns and {mod}`click_extra.parameters` declares the `--params` table's: a
+columns and {mod}`click_extra.show_params` declares the `--params` table's: a
 home below both is what lets each import the other's half without a cycle.
 """
 
@@ -36,12 +36,12 @@ if TYPE_CHECKING:
     """Width limit of a single column: a character count, `auto`, or no limit."""
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class ColumnSpec:
     """Rich description of a single column in a rendered table.
 
-    Three fields, all required-by-convention even though `description` defaults to
-    empty so quick prototypes do not have to write a sentence for every column:
+    Three fields describe the column. `description` defaults to empty, so a quick
+    prototype does not have to write a sentence for every column:
 
     - `id`: stable, snake_case identifier used by `--columns` to address the column,
       to key structured-format serializations, and to thread state through
@@ -54,9 +54,9 @@ class ColumnSpec:
     `sortable`.
 
     ```{note}
-    Frozen + slots: instances are immutable and lightweight. Tuples of
-    `ColumnSpec` are intended to be defined as module-level constants
-    (like {data}`click_extra.parameters.ShowParamsOption.TABLE_HEADERS`).
+    Frozen: instances are immutable, so a tuple of `ColumnSpec` can be shared as
+    a module-level constant (like
+    {data}`click_extra.show_params.ShowParamsOption.TABLE_HEADERS`).
     ```
     """
 

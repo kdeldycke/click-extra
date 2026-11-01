@@ -13,8 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Click context plumbing: the {class}`Context` subclass plus the central
-registry of every `ctx.meta` key Click Extra writes or reads.
+"""Click context plumbing: the central registry of every `ctx.meta` key Click
+Extra writes or reads.
+
+The {class}`~click_extra.commands.Context` subclass lives in
+{mod}`click_extra.commands`, beside the commands that create it.
 
 Click's {attr}`click.Context.meta` is a per-invocation dict that Click shares
 across the parent/child context hierarchy. Click Extra uses it to pass
@@ -49,124 +52,24 @@ internal call sites and downstream code can converge on a single spelling.
 
 from __future__ import annotations
 
-import functools
-import os
-import sys
 import weakref
+from collections.abc import ItemsView, KeysView, ValuesView
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass
-from gettext import gettext as _
-from typing import Any, ParamSpec, TypeVar, cast
+from functools import wraps
+from typing import cast
 
 import click
-import cloup
-from click import echo
-from click.exceptions import Abort, Exit
-
-from ._utils import exception_chain
-from .color import resolve_color_env
-from .highlight import HelpFormatter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Sequence
-    from types import TracebackType
-    from typing import Concatenate, Final
+    from collections.abc import Callable, Generator, Iterator
+    from typing import Any, Concatenate, Final, ParamSpec, TypeVar
 
-    from .table import TableFormat, THeader
+    from .commands import Context
 
-P = ParamSpec("P")
-R = TypeVar("R")
-
-
-POSIXLY_CORRECT_ENVVAR: Final[str] = "POSIXLY_CORRECT"
-"""Environment variable that requests strict POSIX argument parsing.
-
-When this variable is present in the environment (regardless of its value,
-matching GNU `getopt` semantics), {class}`Context` forces
-`allow_interspersed_args` to `False` so option parsing stops at the first
-positional argument.
-"""
-
-
-_ABORT_EXCEPTIONS: Final = (EOFError, KeyboardInterrupt, Abort)
-"""The exceptions Click's `main()` answers with `Aborted!` and the exit status `1`."""
-
-
-@dataclass
-class _AbortNotice:
-    """The `Aborted!` notice of one standalone run of a Click Extra command.
-
-    Click prints that notice once the root context has closed, so after every
-    close callback of the run. A run that owns its notice prints it as soon as
-    the abort leaves a command, before any context closes: the user reads it at
-    once, even when the clean-up is slow.
-    """
-
-    command: click.Command
-    """The command whose `main()` drives the run."""
-
-    printed_for: BaseException | None = None
-    """The abort the notice is printed for, if any."""
-
-    def covers(self, exc: BaseException | None) -> bool:
-        """Whether the notice is printed for `exc`, or for the abort `exc` stems from.
-
-        An abort keeps its notice on its way up the commands, and when a later
-        exception replaces it, like a second Ctrl+C landing in a close callback.
-        """
-        return any(link is self.printed_for for link in exception_chain(exc))
-
-
-_ABORT_NOTICE: ContextVar[_AbortNotice | None] = ContextVar(
-    "_ABORT_NOTICE", default=None
-)
-"""The notice of the run in progress, or `None` where Click prints its own."""
-
-
-@contextmanager
-def _owning_abort_notice(
-    command: click.Command, standalone: bool
-) -> Generator[None, None, None]:
-    """Make the run of `command` in the block print its own abort notice.
-
-    Only a standalone run prints one. Without standalone mode, Click raises the
-    {exc}`~click.exceptions.Abort` to the caller and prints no notice.
-    """
-    token = _ABORT_NOTICE.set(_AbortNotice(command) if standalone else None)
-    try:
-        yield
-    finally:
-        _ABORT_NOTICE.reset(token)
-
-
-@contextmanager
-def _abort_notice(ctx: click.Context) -> Generator[None, None, None]:
-    """Print Click's `Aborted!` as soon as an abort leaves the block.
-
-    Wraps the invocation of a command, which Click runs inside the context of
-    that command. The notice so precedes the close callbacks of every context of
-    the run, the innermost included.
-
-    Code that runs a command through {meth}`click.Context.invoke` never enters
-    this block, so it stays free to catch the abort and carry on.
-    """
-    try:
-        yield
-    except _ABORT_EXCEPTIONS as exc:
-        notice = _ABORT_NOTICE.get()
-        if (
-            notice is not None
-            and ctx.find_root().command is notice.command
-            and not notice.covers(exc)
-        ):
-            notice.printed_for = exc
-            if not isinstance(exc, Abort):
-                # The blank line ends the line of the `^C` the terminal echoed.
-                echo(file=sys.stderr)
-            echo(_("Aborted!"), file=sys.stderr)
-        raise
+    P = ParamSpec("P")
+    R = TypeVar("R")
 
 
 _RUN_CLEANUPS: ContextVar[list[Callable[[], None]] | None] = ContextVar(
@@ -223,185 +126,6 @@ def _scoped_run() -> Generator[None, None, None]:
             cleanup()
 
 
-class Context(cloup.Context):
-    """Like `cloup._context.Context`, but with the ability to populate the context's
-    `meta` property at instantiation.
-
-    Also defaults `color` to `True` for root contexts (those without a parent), so
-    help screens are always colorized, even when piped. Click's own default is `None`
-    (auto-detect via TTY), which strips colors in non-interactive contexts.
-
-    Parent-to-child color inheritance is handled by Click itself at `Context.__init__`
-    time, so no property override is needed.
-
-    When the `POSIXLY_CORRECT` environment variable is set, this context forces
-    `allow_interspersed_args` to `False` so option parsing stops at the first
-    positional argument, as GNU getopt-based tools do. See
-    {data}`~click_extra.context.POSIXLY_CORRECT_ENVVAR`.
-
-    Carries the `sort_subcommands` setting read by
-    {meth}`click_extra.commands.Group.must_sort_subcommands`, so a whole command
-    tree can settle its subcommand listings in one place.
-
-    ```{todo}
-    Propose addition of `meta` keyword upstream to Click.
-    ```
-    """
-
-    formatter_class = HelpFormatter
-    """Use our own formatter to colorize the help screen."""
-
-    def __init__(
-        self,
-        *args,
-        meta: dict[str, Any] | None = None,
-        sort_subcommands: bool | None = None,
-        **kwargs,
-    ) -> None:
-        """Like parent's context but with an extra `meta` keyword-argument.
-
-        Also pre-seed `color` from the color environment variables for a parentless
-        context when the user did not provide it, and force
-        `allow_interspersed_args` to `False` when `POSIXLY_CORRECT` is set in the
-        environment.
-
-        :param sort_subcommands: whether groups list their subcommands
-            alphabetically. Inherited from the parent context when left to `None`,
-            the way Cloup inherits `align_sections`, so declaring it once on the
-            root group settles every subgroup below it.
-        """
-        super().__init__(*args, **kwargs)
-
-        # Inherit from the parent context, so a setting declared on the root group
-        # reaches subgroups that never mention it. Cloup does the same for its own
-        # `align_sections` and `show_subcommand_aliases` settings.
-        self.sort_subcommands = (
-            sort_subcommands
-            if sort_subcommands is not None
-            else getattr(self.parent, "sort_subcommands", None)
-        )
-
-        # Click defaults root `ctx.color` to `None` (GNU `auto`: keep ANSI on a
-        # TTY, strip it when piped). For a parentless context, pre-seed it from the
-        # color environment variables so the eager help and version screens, which
-        # can render before `--color` resolves, still honor `FORCE_COLOR` /
-        # `NO_COLOR`. With no recognized variable the value stays `None` (auto),
-        # and the `ColorOption` callback later layers the command line, configuration
-        # and `--accessible` on top.
-        if not self.parent and self.color is None:
-            self.color = resolve_color_env()
-
-        # Honor the POSIX conformance switch: when POSIXLY_CORRECT is present in the
-        # environment, stop parsing options at the first positional argument, the way
-        # GNU getopt-based tools do. Presence alone is enough, regardless of value.
-        # This can only tighten parsing (True -> False), never loosen it.
-        if POSIXLY_CORRECT_ENVVAR in os.environ:
-            self.allow_interspersed_args = False
-
-        # Update the context's meta property with the one provided by user.
-        if meta:
-            self._meta.update(meta)
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        tb: TracebackType | None,
-    ) -> bool | None:
-        """Like parent's `__exit__`, but ends an aborted run whose notice is printed.
-
-        {func}`_abort_notice` prints `Aborted!` before the contexts of the run
-        close. Click would print it again once the root context has closed, so
-        that context exits with Click's abort status itself.
-        """
-        notice = _ABORT_NOTICE.get()
-        # Only the exit that closes the root context ends the run.
-        if (
-            notice is None
-            or notice.printed_for is None
-            or self._depth != 1
-            or self.parent is not None
-            or self.command is not notice.command
-        ):
-            return super().__exit__(exc_type, exc_value, tb)
-        try:
-            suppressed = super().__exit__(exc_type, exc_value, tb)
-        except _ABORT_EXCEPTIONS as exc:
-            # A close callback raised an abort, like a second Ctrl+C landing there.
-            if not notice.covers(exc):
-                raise
-            raise Exit(1) from exc
-        if suppressed or not (
-            isinstance(exc_value, _ABORT_EXCEPTIONS) and notice.covers(exc_value)
-        ):
-            return suppressed
-        raise Exit(1) from exc_value
-
-    def render_table(
-        self,
-        table_data: Sequence[Sequence[str | None]],
-        headers: Sequence[THeader] | None = None,
-        table_format: TableFormat | None = None,
-        sort_key: Callable[[Sequence[str | None]], Any] | None = None,
-        **kwargs: Any,
-    ) -> str:
-        """Render a table honoring the invocation's table options, and return it.
-
-        Same contract as {func}`click_extra.table.render_table`, with
-        `table_format` and `sort_key` defaulting to the values resolved by
-        the `--table-format` and `--sort-by` options (read from
-        {data}`~click_extra.context.TABLE_FORMAT` and
-        {data}`~click_extra.context.TABLE_SORT_KEY`). `ctx.meta` is
-        shared along the context chain, so this works from any subcommand
-        without reaching for the root context. Without those options in the
-        chain, falls back to the default format and no sort.
-        """
-        # Imported here because the table module depends on this one.
-        from .table import render_table
-
-        if table_format is None:
-            table_format = get(self, TABLE_FORMAT)
-        if sort_key is None:
-            sort_key = get(self, TABLE_SORT_KEY)
-        return render_table(
-            table_data,
-            headers,
-            table_format=table_format,
-            sort_key=sort_key,
-            **kwargs,
-        )
-
-    def print_table(
-        self,
-        table_data: Sequence[Sequence[str | None]],
-        headers: Sequence[THeader] | None = None,
-        table_format: TableFormat | None = None,
-        sort_key: Callable[[Sequence[str | None]], Any] | None = None,
-        **kwargs: Any,
-    ) -> None:
-        """Render a table honoring the invocation's table options, and print it.
-
-        The printing counterpart of {meth}`render_table`: same defaulting of
-        `table_format` and `sort_key` from the context's shared `meta`,
-        delegating to {func}`click_extra.table.print_table` (which also
-        handles ANSI translation and colorization policy).
-        """
-        # Imported here because the table module depends on this one.
-        from .table import print_table
-
-        if table_format is None:
-            table_format = get(self, TABLE_FORMAT)
-        if sort_key is None:
-            sort_key = get(self, TABLE_SORT_KEY)
-        print_table(
-            table_data,
-            headers,
-            table_format=table_format,
-            sort_key=sort_key,
-            **kwargs,
-        )
-
-
 META_NAMESPACE: Final[str] = "click_extra."
 """Prefix shared by every `ctx.meta` key Click Extra writes.
 
@@ -418,6 +142,11 @@ class _LazyMetaDict(dict):  # noqa: FURB189
     Installed as `ctx._meta` so that `ctx.meta["click_extra.<field>"]`
     transparently evaluates the corresponding `@cached_property` on the
     source object only when the key is actually read.
+
+    A lazy key belongs to the mapping before it resolves: `in`, `len()`,
+    iteration and `keys()` count it without resolving it. What reads its value
+    resolves it: indexing, `get()`, `items()`, `values()`, `pop()`,
+    `setdefault()` and equality. A deleted lazy key stays deleted.
     """
 
     def __init__(
@@ -426,9 +155,17 @@ class _LazyMetaDict(dict):  # noqa: FURB189
         source: object,
         fields: tuple[str, ...],
     ) -> None:
-        super().__init__(base)
+        # Copy only the entries `base` stores, so a lazy `base` keeps its pending
+        # keys unresolved: each `--version` option of a command tree wraps
+        # `ctx.meta` again.
+        super().__init__(dict.items(base))
         self._source = source
         self._lazy_keys = {f"{META_NAMESPACE}{f}": f for f in fields}
+
+    def _pending(self) -> list[str]:
+        """The lazy keys not resolved yet, in the order they were declared."""
+        stored = dict.keys(self)
+        return [key for key in self._lazy_keys if key not in stored]
 
     def _resolve(self, key: str) -> Any:
         """Resolve a lazy key, cache the result, and return it."""
@@ -438,7 +175,8 @@ class _LazyMetaDict(dict):  # noqa: FURB189
         return value
 
     def __getitem__(self, key: str) -> Any:
-        if key in self._lazy_keys and not dict.__contains__(self, key):
+        # The dict's own test, since `__contains__` below claims every lazy key.
+        if key in self._lazy_keys and not super().__contains__(key):
             return self._resolve(key)
         return super().__getitem__(key)
 
@@ -447,11 +185,71 @@ class _LazyMetaDict(dict):  # noqa: FURB189
 
     def get(self, key: str, default: Any = None) -> Any:
         if key in self._lazy_keys:
-            # The dict's own test, since `__contains__` above claims every lazy key.
-            if dict.__contains__(self, key):  # noqa: PLC2801
-                return super().__getitem__(key)
-            return self._resolve(key)
+            return self[key]
         return super().get(key, default)
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate the stored keys, then the pending ones."""
+        yield from super().__iter__()
+        yield from self._pending()
+
+    def __reversed__(self) -> Iterator[str]:
+        yield from reversed(self._pending())
+        yield from super().__reversed__()
+
+    def __len__(self) -> int:
+        return super().__len__() + len(self._pending())
+
+    # Views over the mapping itself rather than over the stored entries, so they
+    # list the pending keys too.
+    def keys(self) -> KeysView[str]:  # type: ignore[override]
+        return KeysView(self)
+
+    def values(self) -> ValuesView[Any]:  # type: ignore[override]
+        return ValuesView(self)
+
+    def items(self) -> ItemsView[str, Any]:  # type: ignore[override]
+        return ItemsView(self)
+
+    def __eq__(self, other: object) -> bool:
+        return dict(self.items()) == other
+
+    def __ne__(self, other: object) -> bool:
+        return not self == other
+
+    def __delitem__(self, key: str) -> None:
+        # A pending key has no stored entry: forgetting it is enough.
+        if self._lazy_keys.pop(key, None) is None or super().__contains__(key):
+            super().__delitem__(key)
+
+    def pop(self, key: str, *default: Any) -> Any:
+        if key in self._lazy_keys:
+            value = self[key]
+            del self[key]
+            return value
+        return super().pop(key, *default)
+
+    def popitem(self) -> tuple[str, Any]:
+        """Remove and return the last pair, in the order of iteration."""
+        pending = self._pending()
+        if pending:
+            return pending[-1], self.pop(pending[-1])
+        key, value = super().popitem()
+        self._lazy_keys.pop(key, None)
+        return key, value
+
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        if key in self._lazy_keys:
+            return self[key]
+        return super().setdefault(key, default)
+
+    def clear(self) -> None:
+        self._lazy_keys.clear()
+        super().clear()
+
+    def copy(self) -> _LazyMetaDict:
+        """A shallow copy, whose pending keys stay pending."""
+        return _LazyMetaDict(self, self._source, tuple(self._lazy_keys.values()))
 
 
 # --- Argument capture ---------------------------------------------------------
@@ -460,7 +258,7 @@ RAW_ARGS: Final[str] = "click_extra.raw_args"
 """The raw, pre-parsed `argv` slice fed to the current command.
 
 Written by {class}`click_extra.commands.Command.make_context` so that
-{class}`click_extra.parameters.ShowParamsOption` can re-parse the original
+{class}`click_extra.show_params.ShowParamsOption` can re-parse the original
 arguments for the `--params` table without re-running the callbacks.
 Consumers normalize the parser's `UNSET` sentinel back to `None` on read,
 matching what `click.Command.parse_args` does for `ctx.params`.
@@ -495,43 +293,35 @@ records why the cheaper alternatives do not work.
 #     non-eager parameters land in `ctx.params`. Reading `ctx.params` there would
 #     see a partial picture.
 #
-# Workaround: Command/Group.make_context stashes a copy of the raw
-# argv under RAW_ARGS; parameters.render_params_table rebuilds the parser,
-# re-parses those args to recover `opts`, and calls `consume_value()` (not
+# Workaround: Command.make_context stashes a copy of the raw argv under
+# RAW_ARGS; show_params.render_params_table rebuilds the parser, re-parses those
+# args to recover `opts`, and calls `consume_value()` (not
 # `handle_parse_result()`) per parameter so eager callbacks are not re-fired.
 # The same re-parse backs `click-extra wrap --params`, which introspects a
 # foreign CLI that is never actually executed (no live parse to borrow from).
 #
 # Fragilities to keep in mind:
 #   - The re-parse replays the parser but skips Click's post-parse cleanup, so it
-#     drifts whenever that cleanup changes. Click 8.4 introduced the UNSET
-#     sentinel (returned for parameters with no default); parse_args rewrites it
-#     to None, the re-parse did not, and the sentinel leaked into the value and
-#     default columns. It is now normalized back to None at the consumer sites
-#     (render_params_table and format_param_row).
-#   - It depends on `Command.make_parser()` handing back
-#     `click.parser._OptionParser`, private since the Click 8.2 parser rework.
+#     drifts whenever that cleanup changes. `parse_args` rewrites the UNSET
+#     sentinel of a parameter with no default to None and the re-parse does not,
+#     so the consumer sites (render_params_table and _format_param_row) normalize
+#     it back to None.
+#   - It depends on `Command.make_parser()` handing back the private
+#     `click.parser._OptionParser`.
 #
 # Upstream proposal (the actionable half is the `{todo}` on RAW_ARGS above).
 # Three different features get muddled under the "raw_args" label:
-#   1. Preserve the raw input argv on the Context. Trivial; what we do here.
+#   1. Preserve the raw input argv on the Context. Trivial; what RAW_ARGS does.
 #   2. Expose the parsed `opts`, or better, a per-parameter resolved
 #      (value, ParameterSource), on the Context. Modest; this is what
 #      --params actually consumes.
 #   3. Reconstruct a *normalized* argv from a Context (the inverse direction).
 #      Hard and underdefined; this is click#1279.
-# click#1279 was filed for pip-tools and is feature 3: davidism scoped it with
-# ~a dozen normalization rules (option ordering, prompt/env inclusion, default
-# exclusion, ambiguous file paths) and flagged it underdefined; it has stalled
-# since 2023. click-extra needs feature 2, the easier forward direction, so the
-# right move is a new, narrowly-scoped issue/PR for a public Context accessor
-# returning a parameter's resolved (value, ParameterSource) after parsing
-# without re-firing eager callbacks, referencing click#1279 as related, not home.
 #
-# Note: "just reuse the `opts` lying around" does not work as stated. `opts` is
-# not on the Context; capturing it means reimplementing parse_args or wrapping
-# make_parser, it would still need the UNSET normalization above, and it would
-# not help the foreign-CLI wrap path, which has no live parse to capture from.
+# Reusing the `opts` lying around does not work: `opts` is not on the Context,
+# capturing it means reimplementing parse_args or wrapping make_parser, it would
+# still need the UNSET normalization above, and it would not help the
+# foreign-CLI wrap path, which has no live parse to capture from.
 
 
 # --- Invocation name ----------------------------------------------------------
@@ -587,8 +377,8 @@ when `cascade=True`.
 TOOL_CONFIG: Final[str] = "click_extra.tool_config"
 """The app-specific config section, deserialized through `config_schema`.
 
-Written by {class}`~click_extra.config.option.ConfigOption`'s
-`_apply_config_schema` method only when a schema callable is configured. Read via
+Written by {meth}`~click_extra.config.option.ConfigOption.load_conf` when a
+`config_schema` is set. Read via
 {func}`click_extra.config.schema.get_tool_config`.
 """
 
@@ -662,7 +452,7 @@ Written by {class}`click_extra.execution.TimerOption.init_timer`.
 JOBS: Final[str] = "click_extra.jobs"
 """Effective parallel job count after clamping (always >= 1).
 
-Written by {class}`click_extra.execution.JobsOption.validate_jobs`. Click Extra
+Written by {class}`click_extra.jobs.JobsOption.validate_jobs`. Click Extra
 itself does not act on this value: it is a contract for downstream commands
 that drive their own concurrency.
 """
@@ -673,33 +463,33 @@ that drive their own concurrency.
 TABLE_FORMAT: Final[str] = "click_extra.table_format"
 """The {class}`~click_extra.table.TableFormat` chosen via `--table-format`.
 
-Written by {class}`click_extra.table.TableFormatOption.init_formatter`. Read
-by {meth}`Context.render_table` and {meth}`Context.print_table` as their
-default format.
+Written by {class}`click_extra.table_options.TableFormatOption.init_formatter`.
+Read by {meth}`~click_extra.commands.Context.render_table` and
+{meth}`~click_extra.commands.Context.print_table` as their default format.
 """
 
 SORT_BY: Final[str] = "click_extra.sort_by"
 """Tuple of column IDs picked via `--sort-by` (in priority order).
 
-Written by {class}`click_extra.table.SortByOption.init_sort`.
+Written by {class}`click_extra.table_options.SortByOption.init_sort`.
 """
 
 TABLE_SORT_KEY: Final[str] = "click_extra.table_sort_key"
 """Row sort key derived from the `--sort-by` selection.
 
-Written by {class}`click_extra.table.SortByOption.init_sort` when its column
-definitions are known at declaration time (labeled mode). Read by
-{meth}`Context.render_table` and {meth}`Context.print_table` as their default
-`sort_key`. Absent in field-vocabulary mode, where the sort is resolved per
-table by {func}`click_extra.table.print_table` from the column IDs its headers
-carry.
+Written by {class}`click_extra.table_options.SortByOption.init_sort` when its
+column definitions are known at declaration time (labeled mode). Read by
+{meth}`~click_extra.commands.Context.render_table` and
+{meth}`~click_extra.commands.Context.print_table` as their default `sort_key`.
+Absent in field-vocabulary mode, where the sort is resolved per table by
+{func}`click_extra.table.print_table` from the column IDs its headers carry.
 """
 
 COLUMNS: Final[str] = "click_extra.columns"
 """Tuple of column IDs selected via `--columns` (in display order).
 
-Written by {class}`click_extra.table.ColumnsOption.init_columns`. Read by
-table-rendering consumers (like {class}`click_extra.parameters.ShowParamsOption`)
+Written by {class}`click_extra.table_options.ColumnsOption.init_columns`. Read by
+table-rendering consumers (like {class}`click_extra.show_params.ShowParamsOption`)
 to project and reorder columns before emitting the table. Empty / unset means
 no projection: render every column in its canonical order.
 """
@@ -748,8 +538,8 @@ PROGRESS: Final[str] = "click_extra.progress"
 Written by {class}`click_extra.spinner.ProgressOption.set_progress` from the
 `--progress` / `--no-progress` flag (which `--accessible` lowers to
 `False`). {class}`~click_extra.spinner.Spinner`,
-{class}`~click_extra.spinner.OperationTrail` and
-{func}`~click_extra.spinner.progressbar` read it on their own when left at
+{class}`~click_extra.trail.OperationTrail` and
+{func}`~click_extra.progress.progressbar` read it on their own when left at
 their automatic default.
 
 Deliberately independent of color: a spinner is an interactivity concern, so it is
@@ -790,28 +580,99 @@ commands that suppress their non-zero "problems found" exit code and return
 """
 
 
+# --- Internal keys ------------------------------------------------------------
+# Not part of the public API: one module writes and reads each of them. They live
+# here, under the `click_extra._` prefix, so that this module spells every key
+# Click Extra puts in `ctx.meta`.
+
+_COLOR_CLI_OVERRIDE: Final[str] = "click_extra._color_cli_override"
+"""Set when `--no-color` is passed on the command line.
+
+Written by {meth}`click_extra.color.NoColorOption.set_no_color` and read by
+{meth}`click_extra.color.ColorOption.set_color`, so the explicit negative alias
+outranks the color environment variables, which may only override the built-in
+default.
+"""
+
+_COLOR_PUBLISHED: Final[str] = "click_extra._color_published"
+"""Set once the reset of the process-wide color mirror is queued.
+
+Written by {func}`click_extra.color.publish_invocation_color`, which so registers
+its reset callbacks at most once per invocation, however many color callbacks
+fire.
+"""
+
+_CONFIG_PRELOADED: Final[str] = "click_extra._config_preloaded"
+"""The command paths whose configuration was loaded ahead of time.
+
+Filled by `ConfigOption._resolve_subcommands_eagerly`, which processes the option
+before Click's parameter loop does. That loop then calls
+{meth}`click_extra.config.option.ConfigOption.load_conf` again with the same value:
+the call removes its entry and returns, in place of loading the document a second
+time.
+"""
+
+_CONFIG_STATUS_SILENCED: Final[str] = "click_extra._config_status_silenced"
+"""Whether the command line asks for less than `WARNING` output.
+
+Set by {meth}`click_extra.config.option.ConfigOption.handle_parse_result` before
+the configuration loads, and read by
+{meth}`click_extra.config.option.ConfigOption.load_conf` to keep its status lines
+quiet.
+"""
+
+_LOG_HANDLER_TOKEN: Final[str] = "click_extra._log_handler_token"
+"""The token a run holds the log handler with.
+
+`ctx.meta` is shared down the context hierarchy, so the options of a command and
+of its subcommands find the same token there, and a run takes one hold however
+many of them it carries. See `click_extra.logging._hold_invocation_handler`.
+"""
+
+_LOG_LEVEL_TOKEN: Final[str] = "click_extra._log_level_token"
+"""The token a run owns its log levels with.
+
+Set by the first verbosity option that applies a level, which also queues the
+reset of the loggers. It lives in `ctx.meta` so the verbosity options queue that
+reset at most once per invocation, even when several of them are passed. See
+`click_extra.logging._level_owner`.
+"""
+
+_VERBOSITY_COUNTER_SCANNED: Final[str] = "click_extra._verbosity_counter_scanned"
+"""Set once the `-v`/`-q` counter is resolved ahead of the verbosity options.
+
+The first verbosity option reaching `_VerbosityOption.handle_parse_result` reads
+the raw `--verbose`/`--quiet` repetition counts from the parsed `opts` and
+stashes them on the context before any option applies a level. This way the
+option that fires first already reconciles the full counter and never applies an
+intermediate, louder level that a later `-q` would have to lower, which would
+leak its `Set ... DEBUG` debug trace.
+"""
+
+
 # --- Helpers ------------------------------------------------------------------
 
 
 def pass_context(func: Callable[Concatenate[Context, P], R]) -> Callable[P, R]:
-    """Mark a callback as wanting the active {class}`Context` as its first argument.
+    """Mark a callback as wanting the active {class}`~click_extra.commands.Context`
+    as its first argument.
 
     Click's own {func}`click.pass_context` is typed for the base
     {class}`click.Context`. A handler annotated with click-extra's enhanced
-    {class}`Context` (to reach its extra helpers like `ctx.print_table`)
-    therefore fails static type checking: function parameters are contravariant,
-    so `Callable[[Context], R]` is not assignable where a
+    {class}`~click_extra.commands.Context` (to reach its extra helpers like
+    `ctx.print_table`) therefore fails static type checking: function parameters
+    are contravariant, so `Callable[[Context], R]` is not assignable where a
     `Callable[[click.Context], R]` is expected.
 
-    This drop-in is typed for the enhanced {class}`Context` and still accepts
-    handlers typed for the base `click.Context` (a wider first parameter is
-    allowed), so both type-check. At runtime it forwards the active context
-    unchanged, exactly like {func}`click.pass_context`.
+    This drop-in is typed for the enhanced {class}`~click_extra.commands.Context`
+    and still accepts handlers typed for the base `click.Context` (a wider first
+    parameter is allowed), so both type-check. At runtime it forwards the active
+    context unchanged, exactly like {func}`click.pass_context`.
     """
 
-    @functools.wraps(func)
+    @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-        return func(cast(Context, click.get_current_context()), *args, **kwargs)
+        return func(cast("Context", click.get_current_context()), *args, **kwargs)
 
     return wrapper
 
@@ -838,3 +699,14 @@ def set(
     through this module.
     """
     ctx.meta[key] = value
+
+
+def setdefault(ctx: click.Context, key: str, factory: Callable[[], Any]) -> Any:
+    """Read `key` from the shared `meta` dict, first storing `factory()` if missing.
+
+    `factory` runs for a missing key only, so each invocation gets a mutable value
+    of its own, like the set of command paths a run marks.
+    """
+    if key not in ctx.meta:
+        ctx.meta[key] = factory()
+    return ctx.meta[key]

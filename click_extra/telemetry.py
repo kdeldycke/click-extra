@@ -45,9 +45,7 @@ class TelemetryOption(ExtraOption):
     explicit `--telemetry` on the command line outranks it.
 
     The resolved value is stored in
-    {data}`ctx.meta[click_extra.context.TELEMETRY] <click_extra.context.TELEMETRY>`,
-    aligning with every other Click Extra option's per-invocation context-meta
-    storage pattern.
+    {data}`ctx.meta[click_extra.context.TELEMETRY] <click_extra.context.TELEMETRY>`.
 
     ```{seealso}
 
@@ -72,6 +70,16 @@ class TelemetryOption(ExtraOption):
         {func}`click_extra.context.get(ctx, click_extra.context.TELEMETRY)
         <click_extra.context.get>`.
 
+        ```{important}
+        `DO_NOT_TRACK` breaks the rule of the other machine-wide variables, which
+        a configuration file and the option's own variable outrank (see
+        {func}`~click_extra.envvar.machine_envvars_apply`). It is a
+        consumer-protection opt-out: a user exports it once to refuse tracking
+        from every tool, and a configuration file a project ships, or a
+        `<CLI>_TELEMETRY` variable a wrapper or a CI job sets, must not opt that
+        user back in. Only the command line, which the user types, outranks it.
+        ```
+
         ```{note}
         `DO_NOT_TRACK` is read here rather than wired through the option's
         `envvar`: Click's environment plumbing feeds the raw value straight
@@ -82,6 +90,7 @@ class TelemetryOption(ExtraOption):
         ```
         """
         assert self.name is not None  # Always set for Option subclasses.
+        # Not machine_envvars_apply(): see the important note above.
         if ctx.get_parameter_source(self.name) is not ParameterSource.COMMANDLINE:
             raw = os.environ.get("DO_NOT_TRACK")
             if raw is not None and parse_envvar_flag(raw):

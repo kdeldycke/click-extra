@@ -77,7 +77,7 @@ Click Extra adds two new directives:
 
 Thanks to these, you can directly demonstrate the usage of your CLI in your documentation: the outputs stay in sync with the latest revision.
 
-These directives supports both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
+These directives support both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
 
 ### Usage
 
@@ -145,7 +145,7 @@ invoke(hello_world, args=["--help"])
 `````
 ``````
 
-Placed in your Sphinx documentation, the two blocks above renders to:
+Placed in your Sphinx documentation, the two blocks above render to:
 
 ```{click:source}
 from click_extra import echo, command, option, style
@@ -160,7 +160,6 @@ def hello_world(name):
 ```{click:run}
 from textwrap import dedent
 result = invoke(hello_world, args=["--help"])
-print(repr(result.stdout))
 assert result.stdout.startswith(dedent(
     """\
     \x1b[94m\x1b[4mUsage:\x1b[0m \x1b[97m\x1b[1mhello-world\x1b[0m \x1b[36m\x1b[2m\x1b[3m[OPTIONS]\x1b[0m
@@ -220,7 +219,7 @@ Need to run arbitrary Python that isn't a Click CLI? See [`python:run`](python-d
 ```
 
 ```{seealso}
-Click Extra's own documentation extensively use `click:source` and `click:run` directives. [Look around in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and inspiration.
+Click Extra's own documentation uses the `click:source` and `click:run` directives extensively. [Look around in its Markdown source files](https://github.com/kdeldycke/click-extra/tree/main/docs) for advanced examples and inspiration.
 ```
 
 ### Options
@@ -245,9 +244,9 @@ You can pass options to both the `click:source` and `click:run` directives to cu
 
 #### `code-block` options
 
-Because the `click:source` and `click:run` directives produces code blocks, they inherits the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block).
+Because the `click:source` and `click:run` directives produce code blocks, they inherit the [same options as the Sphinx `code-block` directive](https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-code-block).
 
-For example, you can highlight some lines of with the `:emphasize-lines:` option, display line numbers with the `:linenos:` option, and set a caption with the `:caption:` option:
+For example, you can highlight some lines with the `:emphasize-lines:` option, display line numbers with the `:linenos:` option, and set a caption with the `:caption:` option:
 
 ``````{tab-set}
 `````{tab-item} MyST Markdown
@@ -463,7 +462,7 @@ The prompt is one line prepended to the captured output, so it is part of the re
 
 Inside these pages a `click:run` block renders live, so none of them needs a screenshot. A README on GitHub or PyPI, a slide, or a social post cannot run code, and those surfaces need a captured image. Two options let a block maintain one without giving up its live rendering:
 
-- `:screenshot: <name>` writes the block's output to `<name>.svg`, in the directory the `click_extra_screenshot_dir` `conf.py` value names (`assets` by default, relative to the documentation source root). Nothing about the page changes: the results code block stays, being selectable, searchable and theme-aware where an image is none of those. The file is rewritten on every build, so it cannot drift from the CLI.
+- `:screenshot: <name>` writes the block's output to `<name>.svg`, in the directory the `click_extra_screenshot_dir` `conf.py` value names (`assets` by default, relative to the documentation source root). Nothing about the page changes: the results code block stays, being selectable, searchable and theme-aware where an image is none of those. Every build draws the capture again, so it cannot drift from the CLI, and writes the file only when its bytes change, so an unchanged capture keeps its modification time.
 
 - `:mirror:` puts the image on the page as well, by keeping a Markdown link to it in the source `.md`, between `<!-- screenshot -->` and `<!-- screenshot-end -->` markers directly below the fence. That region is refreshed by `click-extra refresh-directives`. Holding a link rather than generated data, it goes stale only when the capture is renamed.
 
@@ -594,7 +593,7 @@ assert "Usage:" in result.stdout
 ```
 
 ```{note}
-`--version` is safe in a live `click:run` block, and each block resolves it for itself. `VersionOption` finds the owning package by walking the call stack and memoizes the answer, which suits a CLI: one invocation, one process. A build renders many commands in one process, and a render carrying no `CliRunner.invoke` frame (`click_extra_manpages` writing roff before any page is read, on this project's own docs) resolves the chain from a stack the walk cannot read. That answer used to stand for every later block, which published a version screen with no version on it. The runner now clears the memo before each invocation, so a documented `--version` reads as a reader's own shell would render it.
+`--version` is safe in a live `click:run` block, and each block resolves it for itself. `VersionOption` finds the owning package by walking the call stack and memoizes the answer, which suits a CLI: one invocation, one process. A build renders many commands in one process, and a render carrying no `CliRunner.invoke` frame (`click_extra_manpages` writing roff before any page is read, on this project's own docs) resolves the chain from a stack the walk cannot read. So the runner clears the memo before each invocation, and a documented `--version` reads as a reader's own shell would render it.
 
 `{package_name}` is a separate matter and still reports `click_extra.sphinx` for a CLI a page defines inline: such a command belongs to no importable module, so the walk correctly names the runner's. The [version page](version.md#get-metadata-values) shows it.
 ```
@@ -605,7 +604,7 @@ Log records print in a `click:run` block as in a reader's own shell: once, and f
 
 ### Capture mode
 
-`click:run` and `click:tree` execute the documented CLI through Click's test runner. On Click `8.4` and later, the output is captured at the file-descriptor level (Click's `capture="fd"` mode), so a CLI that writes through its `stdout` descriptor, such as one re-opening `sys.stdout.fileno()` to force UTF-8 output, renders normally instead of aborting the build with `io.UnsupportedOperation`.
+`click:run` and `click:tree` execute the documented CLI through Click's test runner. The output is captured at the file-descriptor level (Click's `capture="fd"` mode), so a CLI that writes through its `stdout` descriptor, such as one re-opening `sys.stdout.fileno()` to force UTF-8 output, renders normally instead of aborting the build with `io.UnsupportedOperation`.
 
 Select the capture mode with the `click_extra_run_capture` value in `conf.py`:
 
@@ -614,7 +613,7 @@ Select the capture mode with the `click_extra_run_capture` value in `conf.py`:
 click_extra_run_capture = "fd"  # "fd" (default) or "sys"
 ```
 
-Set it to `"sys"` to use Click's legacy in-memory capture, which exposes no file descriptor. On Click releases older than `8.4` the value is ignored, as the `capture` parameter does not exist.
+Set it to `"sys"` to use Click's in-memory capture, which exposes no file descriptor. Windows has no file-descriptor capture, so a build there uses `"sys"` whatever the value says.
 
 ### Inline tests
 
@@ -793,6 +792,8 @@ Alternatively, you can force syntax highlight with the `:language:` option, whic
 
 The `click:tree` directive walks a Click command group at build time and expands into a full CLI reference page: a summary table on top, then one `--help` capture per command, nested by depth. It is meant to replace per-project hand-rolled scripts that generate the same scaffolding (a summary table, anchors, one `click:run` per command) by hand.
 
+The directive finds the subcommands the way the [`--tree` flag](tree.md) does: in the order the group lists them, lazily-registered ones included and hidden ones left out.
+
 The required argument is a Python expression evaluated in the per-document runner namespace; it must resolve to a {py:class}`click.Command`. The optional body is Python preamble that runs in the same namespace before the expression is evaluated, so you can either rely on a prior `click:source` import or inline the import in the directive's body.
 
 Here is a small recipe CLI to demonstrate:
@@ -952,7 +953,7 @@ These render in Sphinx as:
 - **A full-API page plus per-feature pages.** A project that documents every module on one page, then documents the same modules again next to the prose explaining them, renders each docstring twice. Marking the second block `:no-index:` does not help: that option suppresses the cross-reference target and the search-index entry, and leaves the docstring rendered in full.
 - **A package that re-exports its members.** `automodule` documents the imported names a package lists in `__all__`, so a symbol shows up once under the package and once under the module defining it. Both renderings can land on the same page. autodoc labels a re-exported attribute with a different path under each, so the hook compares the objects the two paths import.
 
-The two multiply. Before this hook, [Click Extra's own todo-list](todolist.md) showed 35 entries for 17 distinct `{todo}` directives, one of them repeated four times.
+The two multiply, so a single `{todo}` can land on the [todo-list](todolist.md) four times.
 
 Nothing upstream deduplicates, so `click_extra.sphinx` trims the surplus nodes just before the list is rendered. No configuration is needed, and a project that enables neither the extension nor a `todolist` never notices the hook.
 
@@ -1059,9 +1060,9 @@ The [lexer variants](pygments.md#lexer-variants) table lists every language thes
 
 ## Legacy MyST + reStructuredText syntax
 
-Before MyST was fully integrated into Sphinx, many projects used a mixed syntax setup with MyST and reStructuredText. If you are maintaining such a project or need to ensure compatibility with older documentation, you can use these legacy Sphinx snippets.
+A project mixing MyST and reStructuredText can keep its reStructuredText snippets inside a MyST page.
 
-This rely on MyST's ability to embed reStructuredText within MyST documents, via the [`{eval-rst}` directive](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html#how-directives-parse-content).
+This relies on MyST's ability to embed reStructuredText within MyST documents, via the [`{eval-rst}` directive](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html#how-directives-parse-content).
 
 So instead of using the `{click:source}` and `{click:run}` MyST directive, you can wrap your reStructuredText code blocks with `{eval-rst}`:
 

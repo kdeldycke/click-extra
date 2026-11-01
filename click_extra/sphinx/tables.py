@@ -68,7 +68,9 @@ def mark_corner_tables(app: Sphinx, doctree: nodes.document) -> None:
     """Add {data}`CORNER_TABLE_CLASS` to every table with a corner label."""
     for table in doctree.findall(nodes.table):
         header = next(table.findall(nodes.thead), None)
-        corner = next(header.findall(nodes.entry), None) if header else None
+        if header is None:
+            continue
+        corner = next(header.findall(nodes.entry), None)
         if corner is not None and CORNER_GLYPH in corner.astext():
             table["classes"].append(CORNER_TABLE_CLASS)
 

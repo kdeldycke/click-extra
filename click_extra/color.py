@@ -16,10 +16,12 @@
 """Resolve whether terminal output should be colored.
 
 Owns the `--color[=WHEN]` and `--no-color` options, the color environment
-variables (`NO_COLOR`, `FORCE_COLOR`, `CLICOLOR`, and friends), and the
-tri-state WHEN resolution. The actual styling lives elsewhere:
-{mod}`click_extra.styling` (the `Style` primitive), {mod}`click_extra.theme`
-(palettes), and {mod}`click_extra.highlight` (help-screen rendering).
+variables (`NO_COLOR`, `FORCE_COLOR`, `CLICOLOR`, and friends), the tri-state
+WHEN resolution the live displays share, and the detection of what the terminal
+can render: a dumb `TERM`, and a dark or light background. The actual styling
+lives elsewhere: {mod}`click_extra.styling` (the `Style` primitive),
+{mod}`click_extra.theme` (palettes), and {mod}`click_extra.highlight` (help-screen
+rendering).
 """
 
 from __future__ import annotations
@@ -28,8 +30,8 @@ import os
 import re
 import select
 import sys
-from collections.abc import Generator
 from contextlib import contextmanager
+from enum import StrEnum
 from functools import partial
 from gettext import gettext as _
 
@@ -37,26 +39,20 @@ import click
 from click.core import ParameterSource
 
 from . import context
-from .envvar import temporary_env
+from ._utils import AUTO, parse_bool
+from .envvar import machine_envvars_apply, temporary_env
 from .parameters import ExtraOption
 from .styling import _relative_luminance
 
-# termios and tty are POSIX-only and absent on Windows. The live OSC 11
-# background query (query_osc_background) degrades to a no-op when they cannot
-# be imported.
-try:
-    import termios
-    import tty
-except ImportError:  # pragma: no cover
-    termios = None  # type: ignore[assignment]
-    tty = None  # type: ignore[assignment]
-
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-    from typing import IO, Any, ClassVar, Literal
+    from collections.abc import Generator, Sequence
+    from typing import IO, Any, ClassVar, Literal, TypeAlias
 
     from click.parser import _OptionParser
+
+    TWhen: TypeAlias = Literal["auto", "always", "never"]
+    """One of the values of {data}`~click_extra.color.WHEN`."""
 
 
 COLOR_ENVVARS: dict[str, bool] = {
@@ -77,8 +73,7 @@ COLOR_ENVVARS: dict[str, bool] = {
     # LLM agents have no use for ANSI codes.
     "LLM": False,
 }
-"""List of environment variables recognized as flags to switch color rendering on or
-off.
+"""Environment variables recognized as flags to switch color rendering on or off.
 
 The key is the name of the variable, and the boolean the direction its convention
 leans: `True` for a variable asking for color, `False` for one refusing it. Each value
@@ -111,20 +106,77 @@ _CLICOLOR_FORCE_ENVVARS = frozenset({"CLICOLOR_FORCE", "CLICOLORS_FORCE"})
 """Spellings of the [CLICOLOR_FORCE](https://bixense.com/clicolors/) variable."""
 
 
-_FALSY_ENVVAR_VALUES = frozenset({"0", "false", "no", "off"})
-"""Values read as an explicit "no" by the color variables that accept one."""
+WHEN: tuple[TWhen, ...] = (AUTO, "always", "never")
+"""GNU-canonical tri-state saying when a terminal feature is used.
+
+`auto` decides from the terminal, `always` uses the feature on any stream, and
+`never` leaves it off. The values of `--color=<WHEN>`, where the feature is ANSI
+color, and of the `live` argument of {class}`~click_extra.spinner.Spinner` and
+{class}`~click_extra.trail.OperationTrail`, where it is an animation. See
+[GNU coreutils](https://www.gnu.org/software/coreutils/manual/html_node/General-output-formatting.html)
+and [this discussion](https://news.ycombinator.com/item?id=36102377).
+"""
+
+
+_WHEN_TO_TRISTATE: dict[str, bool | None] = {
+    AUTO: None,
+    "always": True,
+    "never": False,
+}
+"""Map each {data}`~click_extra.color.WHEN` choice to the `ctx.color` value it produces.
+
+`None` lets Click auto-detect colorization from the output stream's TTY status,
+`True` keeps ANSI codes, `False` strips them.
+"""
+
+
+COLOR_WHEN_ALIASES: dict[str, str] = {
+    # `always` synonyms.
+    "yes": "always",
+    "force": "always",
+    # `never` synonyms.
+    "no": "never",
+    "none": "never",
+    # `auto` synonyms.
+    "tty": AUTO,
+    "if-tty": AUTO,
+}
+"""GNU coreutils synonyms accepted as hidden aliases for each {data}`~click_extra.color.WHEN`
+value.
+
+GNU `ls` accepts `yes`/`force` for `always`, `no`/`none` for `never`
+and `tty`/`if-tty` for `auto`, alongside the three canonical spellings (see
+{data}`~click_extra.color.WHEN`). Click Extra mirrors that leniency but keeps the synonyms out of
+`--help` output, error messages and shell completion, which only ever advertise
+{data}`~click_extra.color.WHEN`.
+"""
+
+
+_COLOR_WHEN_LOOKUP: dict[str, str] = {
+    **{when: when for when in WHEN},
+    **COLOR_WHEN_ALIASES,
+}
+"""Lowercase-keyed map folding every accepted spelling to its canonical
+{data}`~click_extra.color.WHEN` value.
+
+Combines the identity mapping of the canonical values with
+{data}`~click_extra.color.COLOR_WHEN_ALIASES`, for the case-insensitive lookup in
+{meth}`ColorWhenChoice.convert`.
+"""
 
 
 def _color_envvar_vote(var: str, value: str) -> bool | None:
-    """Read the value of one {data}`COLOR_ENVVARS` variable by its own convention.
+    """Read the value of one {data}`~click_extra.color.COLOR_ENVVARS` variable by its own convention.
 
     Returns `True` for color, `False` for no color, and `None` for no opinion. The
-    conventions are listed in {func}`resolve_color_env`.
+    conventions are listed in {func}`resolve_color_env`. A falsy value is one of
+    the spellings {func}`~click_extra._utils.parse_bool` reads as false.
     """
     value = value.strip().lower()
     if not value:
         return None
-    falsy = value in _FALSY_ENVVAR_VALUES
+    state = parse_bool(value)
+    falsy = state is False
     if var in _NO_COLOR_ENVVARS:
         return False
     if var in _FORCE_COLOR_ENVVARS:
@@ -138,10 +190,7 @@ def _color_envvar_vote(var: str, value: str) -> bool | None:
     when = _COLOR_WHEN_LOOKUP.get(value)
     if when is not None:
         return _WHEN_TO_TRISTATE[when]
-    # Deferred import: keeps configparser off the startup path of every CLI.
-    from configparser import RawConfigParser
-
-    return RawConfigParser.BOOLEAN_STATES.get(value)
+    return state
 
 
 COLOR_DISABLING_TERMS = frozenset({"dumb", "unknown"})
@@ -150,14 +199,24 @@ COLOR_DISABLING_TERMS = frozenset({"dumb", "unknown"})
 A `dumb` or `unknown` terminal advertises neither SGR color nor the
 cursor-control codes (carriage return, clear-line) an animation relies on, so both
 Click Extra's color resolution ({func}`~click_extra.color.resolve_color_env`) and the
-spinner's animation gating (`Spinner._resolve_live`) treat these two values as a
-hard opt-out. Sharing the set keeps the color and animation axes from drifting apart.
+spinner's animation gating (`spinner._can_draw()`) treat these two values as a
+hard opt-out. Both read them through {func}`is_dumb_terminal`, which keeps the
+color and animation axes from drifting apart.
 
 An *unset* `TERM` is deliberately excluded: it is common on legitimately
 color-capable streams (subprocesses, some IDEs) where defaulting to off would be a
 regression. This matches [Rich](https://github.com/Textualize/rich/blob/master/rich/console.py), which keys its
 own dumb-terminal detection on the same two values and not on absence.
 """
+
+
+def is_dumb_terminal() -> bool:
+    """Whether `TERM` names a terminal in {data}`~click_extra.color.COLOR_DISABLING_TERMS`.
+
+    Such a terminal renders neither color nor the cursor movements of an
+    animation. Case does not matter, and an unset `TERM` is no dumb terminal.
+    """
+    return os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS
 
 
 def is_a_tty(stream: IO[str]) -> bool:
@@ -175,7 +234,7 @@ def is_a_tty(stream: IO[str]) -> bool:
 def resolve_color_env() -> bool | None:
     """Reconcile the recognized color environment variables into a tri-state.
 
-    Reads every variable listed in {data}`COLOR_ENVVARS` by its own convention, and
+    Reads every variable listed in {data}`~click_extra.color.COLOR_ENVVARS` by its own convention, and
     returns:
 
     - `True` if at least one variable asks for color. A variable asking for color
@@ -200,13 +259,13 @@ def resolve_color_env() -> bool | None:
       falsy, which casts no vote.
     - `LLM` refuses color unless it is falsy, which casts no vote: it marks an AI
       agent, not a color preference.
-    - `COLOR` takes the words of `--color` (see {data}`COLOR_WHEN` and
-      {data}`COLOR_WHEN_ALIASES`) and booleans. Any other value casts no vote.
+    - `COLOR` takes the words of `--color` (see {data}`~click_extra.color.WHEN` and
+      {data}`~click_extra.color.COLOR_WHEN_ALIASES`) and booleans. Any other value casts no vote.
 
-    The plural and unspaced spellings in {data}`COLOR_ENVVARS` follow the variable
+    The plural and unspaced spellings in {data}`~click_extra.color.COLOR_ENVVARS` follow the variable
     they spell.
 
-    A `dumb` or `unknown` `TERM` (see {data}`COLOR_DISABLING_TERMS`) refuses color as
+    A `dumb` or `unknown` `TERM` (see {data}`~click_extra.color.COLOR_DISABLING_TERMS`) refuses color as
     well, so a terminal that cannot render ANSI is treated as color-off even when it
     reports as a TTY. A variable asking for color still wins over it.
     """
@@ -217,7 +276,7 @@ def resolve_color_env() -> bool | None:
             vote = _color_envvar_vote(var, value)
             if vote is not None:
                 votes.add(vote)
-    if os.environ.get("TERM", "").lower() in COLOR_DISABLING_TERMS:
+    if is_dumb_terminal():
         votes.add(False)
     if not votes:
         return None
@@ -242,11 +301,11 @@ def forced_color() -> Generator[None, None, None]:
       uses, and `color=True` never reaches it.
 
     `FORCE_COLOR` is the only signal common to both systems (Rich reads it directly;
-    Click Extra recognizes it through {data}`COLOR_ENVVARS`), so it is the lever we set
-    here. We also clear the color-disabling variables Click Extra recognizes
-    (`NO_COLOR`, `LLM`, …) so an opt-out in the build environment cannot suppress the
-    rendering, and pin `COLORTERM=truecolor` so the branded 24-bit themes render at
-    full depth instead of being quantized to the 256-color palette (see
+    Click Extra recognizes it through {data}`~click_extra.color.COLOR_ENVVARS`), so this sets it. It also
+    clears the color-disabling variables Click Extra recognizes (`NO_COLOR`, `LLM`, …)
+    so an opt-out in the build environment cannot suppress the rendering, and pins
+    `COLORTERM=truecolor` so the branded 24-bit themes render at full depth instead of
+    being quantized to the 256-color palette (see
     {func}`~click_extra.styling.supports_truecolor`). The previous environment is
     restored on exit, so the override never leaks beyond a single capture.
     """
@@ -260,6 +319,36 @@ def forced_color() -> Generator[None, None, None]:
 
 # --- Terminal background detection -------------------------------------------
 
+
+class TerminalBackground(StrEnum):
+    """Shade of the background of a terminal.
+
+    What {func}`~click_extra.color.resolve_background` detects of the terminal a CLI runs in, and the
+    chrome of a capture, which pictures a terminal: see
+    {mod}`click_extra.capture.presets`. A capture tells the command it pictures
+    which one it is drawn on through the same variables
+    {func}`~click_extra.color.resolve_background` reads, see
+    {data}`~click_extra.capture.screenshot.CAPTURE_TERMINAL_HINTS`, so a command
+    run for a picture picks the palette its picture needs.
+
+    A capture freezes the colors of the run it pictures, so its chrome has to
+    answer to the palette that run was colored for. Neither direction survives
+    the other: a screen colored for a dark terminal is unreadable on white, and
+    click-extra's own `light` and `manpage` themes wash out on the dark chrome a
+    renderer defaults to.
+
+    A member is the string it names, so it also selects the built-in theme of
+    the same name, and doubles as the `--background` choice of the capture
+    commands.
+    """
+
+    DARK = "dark"
+    """What a terminal, and this package's default theme, usually look like."""
+
+    LIGHT = "light"
+    """For a CLI rendered with a light-background theme."""
+
+
 _DARK_COLORFGBG_INDICES: frozenset[int] = frozenset({0, 1, 2, 3, 4, 5, 6, 8})
 """ANSI palette indices that mark a *dark* `COLORFGBG` background field.
 
@@ -272,16 +361,19 @@ colors) reads as light.
 """
 
 
-_OSC_BG_PATTERN = re.compile(
-    rb"\]11;rgba?:([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})",
+_OSC_BG_PATTERN = (
+    rb"\]11;rgba?:([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})/([0-9a-fA-F]{1,4})"
 )
 """Match an xterm OSC 11 background reply, capturing the R, G and B channels.
 
 A terminal answers an OSC 11 query with `ESC ] 11 ; rgb:RRRR/GGGG/BBBB ST`
 (some emit `rgba:`, 1–4 hex digits per channel, and either a BEL or `ESC \\`
 terminator). The pattern is anchored on `]11;` and ignores the surrounding
-escape bytes so a {meth}`~re.Pattern.search` skips any leading type-ahead the
-terminal echoed ahead of the reply.
+escape bytes so a {func}`re.search` skips any leading type-ahead the terminal
+echoed ahead of the reply.
+
+Left uncompiled: the query is opt-in, so `re` compiles the pattern on first use
+rather than every import paying for it.
 """
 
 
@@ -305,7 +397,7 @@ never answers (no OSC 11 support) does not noticeably stall startup. See
 """
 
 
-def _colorfgbg_background(value: str) -> Literal["dark", "light"] | None:
+def _colorfgbg_background(value: str) -> TerminalBackground | None:
     """Classify a `COLORFGBG` value as a dark or light background.
 
     Reads the background index (the last `;`-separated field) and looks it up
@@ -317,8 +409,8 @@ def _colorfgbg_background(value: str) -> Literal["dark", "light"] | None:
     except ValueError:
         return None
     if background_index in _DARK_COLORFGBG_INDICES:
-        return "dark"
-    return "light"
+        return TerminalBackground.DARK
+    return TerminalBackground.LIGHT
 
 
 def _parse_osc_rgb(response: bytes) -> tuple[int, int, int] | None:
@@ -330,7 +422,7 @@ def _parse_osc_rgb(response: bytes) -> tuple[int, int, int] | None:
     resolve correctly. Returns `None` when the reply holds no recognizable
     color.
     """
-    match = _OSC_BG_PATTERN.search(response)
+    match = re.search(_OSC_BG_PATTERN, response)
     if match is None:
         return None
     r, g, b = (
@@ -372,17 +464,24 @@ def query_osc_background(
     The query reads stdin in cbreak mode. If the user has typed ahead, or
     another reader competes for stdin, those bytes may be consumed here or
     interleave with the reply (a leading run is harmless: the reply is
-    located with a {meth}`~re.Pattern.search`). The terminal mode is always
+    located with a {func}`re.search`). The terminal mode is always
     restored through {func}`termios.tcsetattr`. Because of this contention,
     the query is *opt-in*: it runs only when a caller explicitly allows it
-    (see {func}`resolve_background` and
+    (see {func}`~click_extra.color.resolve_background` and
     {class}`~click_extra.theme.ThemeOption`'s `query_background`).
     ```
     """
     # Deferred import: keeps extra_platforms off the startup path of every CLI.
     from extra_platforms import is_unix
 
-    if not is_unix() or termios is None or tty is None:
+    if not is_unix():
+        return None
+    try:
+        # Deferred import: keeps the POSIX-only termios and tty off the startup
+        # path of every CLI.
+        import termios
+        import tty
+    except ImportError:
         return None
 
     stdin = sys.__stdin__
@@ -419,8 +518,8 @@ def query_osc_background(
     finally:
         # TCSANOW, not TCSADRAIN: draining waits for the terminal's output
         # buffer to flush, which blocks forever on a PTY whose master side is
-        # not being read (it hung the suite on the macOS CI runner). Restoring
-        # the saved attributes does not need to wait for that drain.
+        # not being read. Restoring the saved attributes does not need to wait
+        # for that drain.
         termios.tcsetattr(fd, termios.TCSANOW, old_attributes)
 
     return _parse_osc_rgb(response)
@@ -428,7 +527,7 @@ def query_osc_background(
 
 def resolve_background(
     query_background: bool = False,
-) -> Literal["dark", "light"] | None:
+) -> TerminalBackground | None:
     """Detect whether the terminal has a dark or light background.
 
     Consults each signal in turn and returns the first that resolves, or
@@ -467,15 +566,15 @@ def resolve_background(
     """
     clitheme = os.environ.get("CLITHEME", "").strip().lower()
     mode = clitheme.split(":", 1)[0]
-    if mode == "dark":
-        return "dark"
-    if mode == "light":
-        return "light"
+    if mode in (TerminalBackground.DARK, TerminalBackground.LIGHT):
+        return TerminalBackground(mode)
 
     if query_background:
         rgb = query_osc_background()
         if rgb is not None:
-            return "dark" if _is_dark_rgb(rgb) else "light"
+            if _is_dark_rgb(rgb):
+                return TerminalBackground.DARK
+            return TerminalBackground.LIGHT
 
     colorfgbg = os.environ.get("COLORFGBG", "").strip()
     if colorfgbg:
@@ -484,76 +583,6 @@ def resolve_background(
             return background
 
     return None
-
-
-COLOR_WHEN = ("auto", "always", "never")
-"""GNU-canonical tri-state values accepted by `--color=<WHEN>`.
-
-`auto` defers to terminal detection, `always` forces ANSI on, `never` strips
-it. See [GNU coreutils](https://www.gnu.org/software/coreutils/manual/html_node/General-output-formatting.html)
-and [this discussion](https://news.ycombinator.com/item?id=36102377).
-"""
-
-
-_WHEN_TO_TRISTATE: dict[str, bool | None] = {
-    "auto": None,
-    "always": True,
-    "never": False,
-}
-"""Map each {data}`COLOR_WHEN` choice to the `ctx.color` value it produces.
-
-`None` lets Click auto-detect colorization from the output stream's TTY status,
-`True` keeps ANSI codes, `False` strips them.
-"""
-
-
-COLOR_WHEN_ALIASES: dict[str, str] = {
-    # `always` synonyms.
-    "yes": "always",
-    "force": "always",
-    # `never` synonyms.
-    "no": "never",
-    "none": "never",
-    # `auto` synonyms.
-    "tty": "auto",
-    "if-tty": "auto",
-}
-"""GNU coreutils synonyms accepted as hidden aliases for each {data}`COLOR_WHEN`
-value.
-
-GNU `ls` accepts `yes`/`force` for `always`, `no`/`none` for `never`
-and `tty`/`if-tty` for `auto`, alongside the three canonical spellings (see
-{data}`COLOR_WHEN`). Click Extra mirrors that leniency but keeps the synonyms out of
-`--help` output, error messages and shell completion, which only ever advertise
-{data}`COLOR_WHEN`.
-"""
-
-
-_COLOR_WHEN_LOOKUP = {**{when: when for when in COLOR_WHEN}, **COLOR_WHEN_ALIASES}
-"""Lowercase-keyed map folding every accepted spelling to its canonical
-{data}`COLOR_WHEN` value.
-
-Combines the identity mapping of the canonical values with
-{data}`COLOR_WHEN_ALIASES`, for the case-insensitive lookup in
-{meth}`ColorWhenChoice.convert`.
-"""
-
-
-_COLOR_CLI_OVERRIDE_KEY = "click_extra.color_cli_override"
-"""Context meta key flagging an explicit `--no-color` on the command line.
-
-Set by {meth}`NoColorOption.set_no_color` and read by {meth}`ColorOption.set_color` so
-an explicit negative alias outranks the color environment variables, which may only
-override the built-in default.
-"""
-
-
-_COLOR_PUBLISHED_KEY = "click_extra.color_published"
-"""Context meta key marking that the reset of {data}`_invocation_color` was queued.
-
-Set by {func}`publish_invocation_color` so the reset-on-close callback is registered
-at most once per invocation, however many color callbacks fire.
-"""
 
 
 _invocation_color: bool | None = None
@@ -599,8 +628,8 @@ def publish_invocation_color(ctx: click.Context) -> None:
     """
     global _invocation_color, _invocation_token
     _invocation_color = ctx.color
-    if not context.get(ctx, _COLOR_PUBLISHED_KEY):
-        context.set(ctx, _COLOR_PUBLISHED_KEY, True)
+    if not context.get(ctx, context._COLOR_PUBLISHED):
+        context.set(ctx, context._COLOR_PUBLISHED, True)
         _invocation_token = token = object()
         ctx.call_on_close(_reset_invocation_color)
         context._queue_run_cleanup(ctx, partial(_expire_invocation_color, token))
@@ -628,7 +657,7 @@ def invocation_color() -> bool | None:
 
     Prefers the pinned `ctx.color` of the calling thread's own Click context,
     then the process-wide mirror published by the color callbacks
-    ({func}`publish_invocation_color`). `None` means auto: defer to the output
+    ({func}`~click_extra.color.publish_invocation_color`). `None` means auto: defer to the output
     stream's TTY status, exactly like `ctx.color`'s own default.
 
     This is what makes `--no-color` reach output produced outside the main
@@ -642,11 +671,11 @@ def invocation_color() -> bool | None:
 
 
 class ColorWhenChoice(click.Choice):
-    """{class}`click.Choice` over {data}`COLOR_WHEN` that also accepts the hidden GNU
-    synonyms ({data}`COLOR_WHEN_ALIASES`) and native configuration booleans, folding
+    """{class}`click.Choice` over {data}`~click_extra.color.WHEN` that also accepts the hidden GNU
+    synonyms ({data}`~click_extra.color.COLOR_WHEN_ALIASES`) and native configuration booleans, folding
     them to a canonical value before validation.
 
-    Only the three canonical {data}`~click_extra.color.COLOR_WHEN` values reach
+    Only the three canonical {data}`~click_extra.color.WHEN` values reach
     `--help`, error messages and shell completion, because the public `choices`
     stay canonical. Synonyms and booleans are accepted silently and normalized, so
     downstream code ({meth}`ColorOption.set_color`, `_WHEN_TO_TRISTATE`) only ever
@@ -689,7 +718,7 @@ class ColorOption(ExtraOption):
     """A pre-configured `--color[=WHEN]` tri-state option.
 
     Mirrors the [GNU coreutils convention](https://www.gnu.org/software/coreutils/manual/html_node/General-output-formatting.html):
-    `WHEN` is one of {data}`~click_extra.color.COLOR_WHEN`
+    `WHEN` is one of {data}`~click_extra.color.WHEN`
     (`auto`, `always` or `never`), and a bare `--color` (no value) means
     `always`. The negative alias `--no-color` is carried by the separate
     {class}`NoColorOption`, because Click forbids attaching `/--no-x` secondary
@@ -764,8 +793,10 @@ class ColorOption(ExtraOption):
 
         #. An explicit `--color` on the command line.
         #. The color environment variables, but only when the value comes from the
-           built-in default. A configuration file or `--accessible` (both seen here
-           as a non-`DEFAULT` source) therefore wins over the environment, matching
+           built-in default, as for every machine-wide variable (see
+           {func}`~click_extra.envvar.machine_envvars_apply`). A configuration file
+           or `--accessible` (both seen here as a non-`DEFAULT` source) therefore
+           wins over the environment, matching
            {class}`~click_extra.accessibility.AccessibleOption`.
         #. A color state already pinned by `--no-color`, a forced
            test runner, or an explicit `Context(color=...)`: preserved when this
@@ -777,8 +808,9 @@ class ColorOption(ExtraOption):
         from background threads honors it too.
 
         Stays dormant under resilient parsing, like every other eager callback:
-        an introspection context ({func}`~click_extra.parameters.make_resilient_context`,
-        behind the man-page, tree and completion-spec exporters) is never closed,
+        an introspection context
+        ({func}`~click_extra.param_tools.make_resilient_context`, behind the
+        man-page, tree and completion-spec exporters) is never closed,
         so publishing from one would leave the process-wide mirror pinned to that
         context's environment resolution. A `NO_COLOR` build environment would
         then strip the output of every later CLI carrying no color option of its
@@ -787,22 +819,22 @@ class ColorOption(ExtraOption):
         if ctx.resilient_parsing:
             return
         try:
-            when = value
-            source = ctx.get_parameter_source("color")
+            assert param.name is not None  # Always set for Option subclasses.
+            source = ctx.get_parameter_source(param.name)
 
-            # The environment can only override a pure built-in default, never a value
-            # coming from the command line, a configuration file or --accessible. An
-            # explicit --no-color (recorded by NoColorOption) is a
-            # command-line choice and therefore outranks the environment too.
-            if source == ParameterSource.DEFAULT and not context.get(
-                ctx, _COLOR_CLI_OVERRIDE_KEY
+            # The color variables are machine-wide: they can only override a pure
+            # built-in default, never a value coming from the command line, a
+            # configuration file or --accessible. An explicit --no-color (recorded by
+            # NoColorOption) is a command-line choice and therefore outranks them too.
+            if machine_envvars_apply(ctx, param) and not context.get(
+                ctx, context._COLOR_CLI_OVERRIDE
             ):
                 env_color = resolve_color_env()
                 if env_color is not None:
                     ctx.color = env_color
                     return
 
-            tristate = _WHEN_TO_TRISTATE[when]
+            tristate = _WHEN_TO_TRISTATE[value]
 
             # "auto" defers to TTY detection. Do not overwrite a color state already
             # pinned upstream (--no-color, a forced runner, Context(color=...)) unless
@@ -824,7 +856,7 @@ class ColorOption(ExtraOption):
         *,
         is_flag: bool = False,
         flag_value: str = "always",
-        default: str = "auto",
+        default: str = AUTO,
         is_eager: bool = True,
         expose_value: bool = False,
         help: str = _(
@@ -836,7 +868,7 @@ class ColorOption(ExtraOption):
             param_decls = ("--color",)
 
         kwargs.setdefault("callback", self.set_color)
-        kwargs.setdefault("type", ColorWhenChoice(COLOR_WHEN))
+        kwargs.setdefault("type", ColorWhenChoice(WHEN))
 
         super().__init__(
             param_decls=param_decls,
@@ -882,7 +914,7 @@ class NoColorOption(ExtraOption):
             ctx.color = False
             # Flag the explicit choice so ColorOption keeps the environment from
             # overriding it (the environment may only override the built-in default).
-            context.set(ctx, _COLOR_CLI_OVERRIDE_KEY, True)
+            context.set(ctx, context._COLOR_CLI_OVERRIDE, True)
             # Mirror the pin process-wide for background-thread output.
             publish_invocation_color(ctx)
 

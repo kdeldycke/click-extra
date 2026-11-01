@@ -42,12 +42,14 @@ from .config import (
     NoConfigOption,
     ValidateConfigOption,
 )
-from .execution import JobsOption, TimerOption, ZeroExitOption
+from .execution import TimerOption, ZeroExitOption
+from .jobs import JobsOption
 from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
 from .multicall import MulticallGroup
-from .parameters import Argument, Option, ShowParamsOption
+from .parameters import Argument, Option
+from .show_params import ShowParamsOption
 from .spinner import ProgressOption
-from .table import ColumnsOption, SortByOption, TableFormatOption
+from .table_options import ColumnsOption, SortByOption, TableFormatOption
 from .telemetry import TelemetryOption
 from .theme import ThemeOption
 from .tree import TreeOption
@@ -145,7 +147,7 @@ def decorator_factory(
 def decorator_factory(dec, *new_args, **new_defaults):
     """Clone decorator with a set of new defaults.
 
-    Used to create our own collection of decorators for our custom options, based on
+    Builds Click Extra's decorators for its own commands and options out of
     Cloup's.
 
     The two overloads give static type checkers a precise signature for the
@@ -161,12 +163,10 @@ def decorator_factory(dec, *new_args, **new_defaults):
     The `cls` argument passed to the factory is used as the reference class from
     which the produced decorator's `cls` argument must inherit.
 
-    The idea is to ensure that, for example, the `@command` decorator
-    re-implemented by Click Extra is always a subclass of `Command`, even when
-    the user overrides the `cls` argument. That way it can always rely on the
-    additional properties and methods defined in the Click Extra framework, where we
-    have extended Cloup and Click so much that we want to prevent surprising side
-    effects.
+    That way the `@command` decorator re-implemented by Click Extra always
+    produces a subclass of `Command`, even when the user overrides the `cls`
+    argument, so it can rely on the properties and methods Click Extra adds on
+    top of Cloup and Click.
     ```
     """
 
@@ -225,12 +225,13 @@ def decorator_factory(dec, *new_args, **new_defaults):
         # mutates that list with params.extend() on every application to a
         # function, so a pre-instantiated decorator (like one stored in a pytest
         # parametrize list as `command()`) would accumulate options across uses,
-        # creating duplicate parameters. Calling the hook again on each application
-        # prevents that shared mutation.
+        # creating duplicate parameters. So only the first application takes the
+        # decorator built above, and each later one calls the hook again.
         if has_hook and not isinstance(result, click.Command):
+            unused = [result]
 
             def apply(f):
-                return dec(*args, **merged_kwargs())(f)
+                return (unused.pop() if unused else dec(*args, **merged_kwargs()))(f)
 
             return apply
 
@@ -292,10 +293,6 @@ def _register_grouped_option(f, option, group):
     return f
 
 
-# Hand-written rather than produced by `decorator_factory` so it stays a drop-in for
-# Click's `@version_option`, whose first positional argument is the version string.
-# That conflicts with the `param_decls`-first convention the factory relies on, so the
-# two are told apart by their leading character (see the docstring below).
 @allow_missing_parenthesis
 def version_option(version=None, *param_decls, cls=VersionOption, group=None, **kwargs):
     """Attach a {class}`~click_extra.version.VersionOption` to a command.
@@ -350,13 +347,13 @@ accessible_option = decorator_factory(dec=option, cls=AccessibleOption)
 color_option = decorator_factory(dec=option, cls=ColorOption)
 columns_option = decorator_factory(dec=option, cls=ColumnsOption)
 config_option = decorator_factory(dec=option, cls=ConfigOption)
+debug_option = decorator_factory(dec=option, cls=DebugOption)
 export_config_option = decorator_factory(dec=option, cls=ExportConfigOption)
-jobs_option = decorator_factory(dec=option, cls=JobsOption)
 help_format_option = decorator_factory(dec=option, cls=HelpFormatOption)
+jobs_option = decorator_factory(dec=option, cls=JobsOption)
 man_option = decorator_factory(dec=option, cls=ManOption)
 no_color_option = decorator_factory(dec=option, cls=NoColorOption)
 no_config_option = decorator_factory(dec=option, cls=NoConfigOption)
-debug_option = decorator_factory(dec=option, cls=DebugOption)
 progress_option = decorator_factory(dec=option, cls=ProgressOption)
 quiet_option = decorator_factory(dec=option, cls=QuietOption)
 show_params_option = decorator_factory(dec=option, cls=ShowParamsOption)
@@ -371,29 +368,22 @@ verbosity_option = decorator_factory(dec=option, cls=VerbosityOption)
 zero_exit_option = decorator_factory(dec=option, cls=ZeroExitOption)
 
 
-# Unlike its siblings above, `sort_by_option` is hand-written rather than built by
-# `decorator_factory`: `SortByOption` takes its column definitions as positional
-# arguments (`*header_defs`), which occupy the slot the `cloup.option` plumbing
-# reserves for `param_decls` (option-name strings). Routing through the factory
-# would force the column definitions into a keyword, breaking the positional API
-# `SortByOption` has shipped since 7.11.0. So the option is instantiated directly
-# here and registered with the same `_param_memo` primitive Cloup uses, preserving
-# that API and composing with option groups and constraints.
 def sort_by_option(*header_defs, cls=SortByOption, group=None, **kwargs):
-    """Attach a {class}`~click_extra.table.SortByOption` to a command.
+    """Attach a {class}`~click_extra.table_options.SortByOption` to a command.
 
     Forwards the positional `header_defs` ({class}`~click_extra.columns.ColumnSpec`
-    instances or bare column IDs) straight
-    to the option constructor and registers a regular Cloup `Option`, so the
-    `--sort-by` option composes with `@option_group` and `@constraint` like any
-    other option decorator.
+    instances or bare column IDs) straight to the option constructor and registers
+    it with the same `_param_memo` primitive Cloup uses, so the `--sort-by` option
+    composes with `@option_group` and `@constraint` like any other option
+    decorator.
 
     ```{note}
     Hand-written instead of produced by
     {func}`~click_extra.decorators.decorator_factory` because
-    {class}`~click_extra.table.SortByOption` accepts its column definitions as
+    {class}`~click_extra.table_options.SortByOption` accepts its column definitions as
     positional arguments, which conflicts with the `param_decls`-first
-    convention the factory relies on.
+    convention the factory relies on. Routing through the factory would force
+    them into a keyword.
     ```
     """
 

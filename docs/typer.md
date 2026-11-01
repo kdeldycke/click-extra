@@ -4,7 +4,7 @@
 
 ## Why click-extra and Typer don't compose
 
-click-extra extends the Click and [Cloup](https://cloup.readthedocs.io) classes installed in your environment: its commands, options and context all derive from them. Recent Typer bundles its own private copy of Click instead of using the one click-extra extends. A Typer command therefore subclasses Typer's bundled `Command`, a different class from the `click.Command` that click-extra subclasses, even though both descend from a common Click codebase.
+click-extra extends the Click and [Cloup](https://cloup.readthedocs.io) classes installed in your environment: its commands, options and context all derive from them. Typer bundles its own private copy of Click instead of using the one click-extra extends. A Typer command therefore subclasses Typer's bundled `Command`, a different class from the `click.Command` that click-extra subclasses, even though both descend from a common Click codebase.
 
 Because the two come from separate class lineages, they cannot be merged. A hybrid such as `class MyCommand(click_extra.Command, TyperCommand)` is a valid class declaration, but it inherits two unrelated `Command` implementations at once and cannot be instantiated: Typer hands it arguments that click-extra's Click base does not accept. Construction aside, click-extra's options are `click.Parameter` objects that Typer's bundled parser does not recognize, so they would never be parsed. No `cls=` argument or runtime patch bridges this: the gap is between two copies of Click, not between two ways of using one.
 

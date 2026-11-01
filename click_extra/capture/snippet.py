@@ -16,7 +16,7 @@
 
 """Draw a snippet of source code as a static document.
 
-{mod}`click_extra.screenshot` pictures what a command *printed*. This module
+{mod}`click_extra.capture.screenshot` pictures what a command *printed*. This module
 pictures what a file *says*, and hands the result to the same renderer: a
 README, a slide or a social post that cannot run code equally cannot syntax
 highlight it, so both need a picture.
@@ -25,7 +25,7 @@ The pipeline is the screenshot module's, with its first step swapped:
 
 1. {func}`highlight_code` colors the source with Pygments, which writes the same
    ANSI escape sequences a terminal would.
-2. {func}`~click_extra.screenshot.render` turns that text into a document.
+2. {func}`~click_extra.capture.screenshot.render` turns that text into a document.
 
 That leaves nothing to reimplement. Pygments' terminal formatter speaks the
 interchange format {func}`~click_extra.styling.split_ansi` already parses, so a
@@ -47,7 +47,7 @@ from __future__ import annotations
 
 from functools import cache
 
-from ._utils import missing_extra_message
+from .._utils import missing_extra_message
 
 try:
     import pygments  # noqa: F401
@@ -61,19 +61,16 @@ from pygments.styles import get_all_styles, get_style_by_name
 from pygments.token import Token
 from pygments.util import ClassNotFound
 
-from .layout import number_lines
+from ..color import TerminalBackground
+from ..layout import number_lines
+from .presets import Chrome, resolve_palette
 from .screenshot import (
     AUTO_COLUMNS,
     DEFAULT_TRUNCATION,
     DEFAULT_WRAP_MARKER,
     CaptureFormat,
-    Chrome,
     render,
     trim_lines,
-)
-from .screenshot_presets import (
-    CaptureBackground,
-    resolve_palette,
 )
 
 TYPE_CHECKING = False
@@ -82,13 +79,13 @@ if TYPE_CHECKING:
 
     from pygments.lexer import Lexer
 
+    from .presets import TerminalPalette, TerminalPreset
     from .screenshot import TColumns
-    from .screenshot_presets import TerminalPalette, TerminalPreset
 
 
-DEFAULT_SYNTAX_STYLES: dict[CaptureBackground, str] = {
-    CaptureBackground.DARK: "monokai",
-    CaptureBackground.LIGHT: "default",
+DEFAULT_SYNTAX_STYLES: dict[TerminalBackground, str] = {
+    TerminalBackground.DARK: "monokai",
+    TerminalBackground.LIGHT: "default",
 }
 """Pygments style a snippet is colored with, per chrome.
 
@@ -174,7 +171,7 @@ def resolve_lexer(
 
 def resolve_style(
     style: str | None,
-    background: CaptureBackground,
+    background: TerminalBackground,
 ) -> str:
     """The Pygments style a snippet is colored with.
 
@@ -197,7 +194,7 @@ def resolve_style(
 
 def style_palette(
     style: str,
-    background: CaptureBackground,
+    background: TerminalBackground,
     *,
     preset: TerminalPreset | None = None,
 ) -> TerminalPalette:
@@ -226,8 +223,9 @@ def style_palette(
     :return: the palette.
     """
     chrome = resolve_palette(preset, background)
-    paper = get_style_by_name(style).background_color
-    ink = get_style_by_name(style).style_for_token(Token.Text)["color"]
+    pygments_style = get_style_by_name(style)
+    paper = pygments_style.background_color
+    ink = pygments_style.style_for_token(Token.Text)["color"]
     return chrome._replace(
         background=paper,
         foreground=f"#{ink}" if ink else chrome.foreground,
@@ -243,14 +241,14 @@ def highlight_code(
     *,
     language: str | None = None,
     filename: str | None = None,
-    style: str = DEFAULT_SYNTAX_STYLES[CaptureBackground.DARK],
+    style: str = DEFAULT_SYNTAX_STYLES[TerminalBackground.DARK],
 ) -> str:
     """Color source code the way a terminal would print it.
 
     Pygments' true-color terminal formatter writes `38;2;r;g;b` sequences, which
     is the one interchange format both capture renderers already read. So the
     output of this drops straight into
-    {func}`~click_extra.screenshot.render`, with nothing in between.
+    {func}`~click_extra.capture.screenshot.render`, with nothing in between.
 
     :param code: the source to color.
     :param language: the language, as Pygments names it. See
@@ -288,17 +286,17 @@ def render_snippet(
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
-    background: CaptureBackground = CaptureBackground.DARK,
+    background: TerminalBackground = TerminalBackground.DARK,
     preset: TerminalPreset | None = None,
     chrome: Chrome = Chrome(),
 ) -> str:
     """Color source code and render it as a document.
 
-    Chains {func}`highlight_code`, {func}`~click_extra.screenshot.trim_lines`
-    and {func}`~click_extra.screenshot.render`.
+    Chains {func}`highlight_code`, {func}`~click_extra.capture.screenshot.trim_lines`
+    and {func}`~click_extra.capture.screenshot.render`.
 
     ```{note}
-    The width defaults to {data}`~click_extra.screenshot.AUTO_COLUMNS`, where a
+    The width defaults to {data}`~click_extra.capture.screenshot.AUTO_COLUMNS`, where a
     terminal capture pins eighty. A command wraps its own output to the width it
     was told about, so a capture at that width folds nothing; nobody wrapped a
     source file to any width, and a picture that soft-wrapped its code would
@@ -319,13 +317,13 @@ def render_snippet(
     :param line_numbers: draw each line's number in a gutter, see
         {func}`~click_extra.layout.number_lines`.
     :param emphasize: lines to draw a band behind, counted from `1`.
-    :param wrap_marker: see {func}`~click_extra.screenshot.render`.
-    :param title: see {func}`~click_extra.screenshot.render`.
-    :param unique_id: see {func}`~click_extra.screenshot.render`.
-    :param full: see {func}`~click_extra.screenshot.render`.
-    :param background: see {func}`~click_extra.screenshot.render`.
-    :param preset: see {func}`~click_extra.screenshot.render`.
-    :param chrome: see {func}`~click_extra.screenshot.render`.
+    :param wrap_marker: see {func}`~click_extra.capture.screenshot.render`.
+    :param title: see {func}`~click_extra.capture.screenshot.render`.
+    :param unique_id: see {func}`~click_extra.capture.screenshot.render`.
+    :param full: see {func}`~click_extra.capture.screenshot.render`.
+    :param background: see {func}`~click_extra.capture.screenshot.render`.
+    :param preset: see {func}`~click_extra.capture.screenshot.render`.
+    :param chrome: see {func}`~click_extra.capture.screenshot.render`.
     :return: the rendered document.
     :raises ValueError: when `language` or `style` names nothing Pygments knows.
     """

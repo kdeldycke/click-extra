@@ -22,6 +22,7 @@ import shutil
 import subprocess
 from enum import Enum
 
+import click
 import pytest
 
 from click_extra import (
@@ -33,13 +34,12 @@ from click_extra import (
     man_option,
     option,
     option_group,
+    strip_overstrike,
 )
 from click_extra.command_doc import (
     HELP_FORMATS,
-    MAN_FORMATTERS,
-    MAN_INSTALL_DIR,
-    OVERSTRIKE_RE,
     HelpFormat,
+    find_typesetters,
     install_manpages,
     render_help,
     render_manpage,
@@ -108,7 +108,8 @@ def test_choice_metavar_rendered():
     assert "\\fI[celsius|fahrenheit]\\fR" in roff
 
 
-@command
+# No default options: they carry a --color and a -v / --verbose of their own.
+@command(params=None)
 @option(
     "--color",
     is_flag=False,
@@ -392,17 +393,17 @@ def test_write_manpages(tmp_path):
     assert "station.1" in names
     assert "station-calibrate.1" in names
     for path in written:
-        assert path.read_text(encoding="utf-8").startswith('.\\" Generated')
+        assert path.read_text(encoding="UTF-8").startswith('.\\" Generated')
 
 
 @pytest.mark.skipif(
-    not any(shutil.which(tool[0]) for tool in MAN_FORMATTERS),
+    not any(find_typesetters("terminal", width=80)),
     reason="No man page typesetter installed.",
 )
 def test_man_option_reads_the_manual():
     """``--man`` typesets the page for reading, the way ``man`` itself does."""
 
-    @command
+    @click.command()
     @man_option
     def greet():
         """Greet the world."""
@@ -412,18 +413,55 @@ def test_man_option_reads_the_manual():
     # Typeset output, not the roff that produced it. Drop the emphasis first:
     # groff underlines the page header, which no plain substring would match,
     # while mandoc leaves it alone.
-    plain = OVERSTRIKE_RE.sub("", result.stdout)
+    plain = strip_overstrike(result.stdout)
     assert ".TH" not in plain
     assert "GREET(1)" in plain
     assert "Greet the world." in plain
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    (
+        ("N\x08NA\x08AM\x08ME\x08E", "NAME"),
+        ("_\x08g_\x08r_\x08e_\x08e_\x08t", "greet"),
+        ("plain text", "plain text"),
+    ),
+)
+def test_strip_overstrike(text, expected):
+    """Bold and underline pairs both collapse to their plain character."""
+    assert strip_overstrike(text) == expected
+
+
+def test_find_typesetters_fills_each_installed_one(monkeypatch):
+    """Each installed program yields its resolved path and its filled arguments."""
+    monkeypatch.setattr(
+        command_doc_module.shutil, "which", lambda program: f"/opt/bin/{program}"
+    )
+    assert list(find_typesetters("terminal", width=72)) == [
+        ["/opt/bin/groff", "-man", "-Tutf8", "-rLL=72n", "-P-c"],
+        ["/opt/bin/mandoc", "-Tutf8", "-Owidth=72"],
+    ]
+    assert list(find_typesetters("html")) == [
+        ["/opt/bin/mandoc", "-Thtml"],
+        ["/opt/bin/groff", "-Thtml", "-mandoc"],
+    ]
+
+    monkeypatch.setattr(
+        command_doc_module.shutil,
+        "which",
+        lambda program: "/usr/bin/mandoc" if program == "mandoc" else None,
+    )
+    assert list(find_typesetters("terminal", width=80)) == [
+        ["/usr/bin/mandoc", "-Tutf8", "-Owidth=80"]
+    ]
 
 
 def test_man_option_falls_back_to_the_source(monkeypatch):
     """With no typesetter installed, the source beats an error."""
     monkeypatch.setattr(command_doc_module.shutil, "which", lambda tool: None)
 
+    # The default options carry --man, and the logging the warning reaches.
     @command
-    @man_option
     def greet():
         """Greet the world."""
 
@@ -435,7 +473,7 @@ def test_man_option_falls_back_to_the_source(monkeypatch):
 
 
 @pytest.mark.skipif(
-    not any(shutil.which(tool[0]) for tool in MAN_FORMATTERS),
+    not any(find_typesetters("terminal", width=80)),
     reason="No man page typesetter installed.",
 )
 def test_accessible_manual_drops_overstrike():
@@ -473,6 +511,7 @@ def test_generated_roff_passes_groff_lint(cli, prog_name):
             input=roff,
             capture_output=True,
             text=True,
+            encoding="UTF-8",
             check=False,
         )
         assert proc.returncode == 0, f"{filename}: {proc.stderr}"
@@ -739,17 +778,17 @@ def test_examples_render_in_every_backend():
     assert "Examples:" in help_screen
     assert f"$ {example}" in help_screen
 
-    # roff escapes the option dashes, so match the rendered spelling.
     roff = render_help(documented, "man", prog_name="weather")
     assert ".SH EXAMPLES" in roff
-    assert "weather Oslo" in roff
+    # Bold, with each dash escaped once into a copy-pasteable minus sign.
+    assert "\\fBweather Oslo \\-\\-units fahrenheit\\fR" in roff
     assert f"$ {example}" in render_help(documented, "markdown", prog_name="weather")
     doc = json.loads(render_help(documented, "json", prog_name="weather"))
     assert doc["examples"][0]["command"] == example
 
 
 def test_command_without_examples_grows_no_section():
-    """A command declaring none renders exactly as it did before the feature."""
+    """A command declaring no example renders no section for them."""
     assert "Examples:" not in CliRunner().invoke(weather, ["--help"]).stdout
     assert ".SH EXAMPLES" not in render_help(weather, "man", prog_name="weather")
     assert "## Examples" not in render_help(weather, "markdown", prog_name="weather")
@@ -853,17 +892,6 @@ def test_json_spells_enum_choices_as_click_completes_them():
     options = [opt for group in doc["option_groups"] for opt in group["options"]]
     fruit = next(opt for opt in options if "--fruit" in opt["names"])
     assert fruit["choices"] == ["APPLE", "BANANA"]
-
-
-def test_man_install_dir_is_expanded():
-    """The public default is an absolute path, as `9.4.1` shipped it.
-
-    A consumer joining a page name onto it gets a usable path, where a `~` left
-    for a later expansion would give a relative one.
-    """
-    assert MAN_INSTALL_DIR.is_absolute()
-    assert "~" not in MAN_INSTALL_DIR.parts
-    assert MAN_INSTALL_DIR.parts[-4:] == (".local", "share", "man", "man1")
 
 
 def test_install_manpages_resolves_home_at_call_time(tmp_path, monkeypatch):

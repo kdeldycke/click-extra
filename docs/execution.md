@@ -113,7 +113,7 @@ assert "parallel jobs." in result.stdout
 The option's default *is* `auto` (the help screen shows `[default: auto]`), so a bare invocation resolves exactly like the keyword, on whatever host it runs:
 
 ```{click:run}
-from click_extra.execution import CPU_COUNT, DEFAULT_JOBS
+from click_extra.jobs import CPU_COUNT, DEFAULT_JOBS
 
 result = invoke(build, args=[])
 assert result.exit_code == 0
@@ -225,7 +225,7 @@ assert result.exit_code == 0
 assert "Baked APPLE" in result.stdout
 ```
 
-Concurrency is sized by the number of lanes (one worker per lane), and results are yielded in lane-submission order. Because a lane runs entirely on one worker, a stateful resource bound to that lane (a per-lane cache, a connection) is touched by only one thread and needs no lock.
+Concurrency is sized by the number of lanes (one worker per lane), and results are yielded in lane-submission order. A single lane runs in the calling thread, like a single item of `run_jobs`. Because a lane runs entirely on one worker, a stateful resource bound to that lane (a per-lane cache, a connection) is touched by only one thread and needs no lock.
 
 Lanes are read as lazily as `run_jobs` reads items: a lane is turned into a list only when it is about to be scheduled, and only a window of them is in flight. A stream of lanes never sits in memory all at once.
 
@@ -317,6 +317,19 @@ The resolved flag is published on `ctx.meta` as `ZERO_EXIT` for downstream code 
    :strict:
 
 .. automodule:: click_extra.execution
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.jobs` API
+
+```{eval-rst}
+.. autoclasstree:: click_extra.jobs
+   :strict:
+
+.. automodule:: click_extra.jobs
    :no-index:
    :members:
    :undoc-members:

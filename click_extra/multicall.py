@@ -93,16 +93,15 @@ from typing import cast
 
 import click
 
-from .commands import ColorizedCommand, Command, Group, HelpCommand
-from .context import Context
-from .parameters import param_spellings
-
-logger = logging.getLogger(__name__)
+from .commands import Command, Context, Group, _InjectedCommand
+from .param_tools import param_spellings
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Mapping
     from typing import Any
+
+logger = logging.getLogger(__name__)
 
 WINDOWS_EXE_SUFFIX = ".exe"
 """Suffix of Windows console-script wrappers, stripped from `argv[0]`.
@@ -136,7 +135,7 @@ def normalize_personality(tokens: object) -> tuple[str, ...]:
     return token_list
 
 
-class PersonalitiesCommand(ColorizedCommand):
+class PersonalitiesCommand(_InjectedCommand):
     """Synthetic subcommand listing every name a `MulticallGroup` answers to.
 
     Auto-injected into every {class}`MulticallGroup`, the way
@@ -155,7 +154,7 @@ class PersonalitiesCommand(ColorizedCommand):
 
         rows: list[tuple[str, str, str]] = []
         for name, tokens in group.list_personalities().items():
-            sub = group._get_personality_subcommand(tokens[0])
+            sub = group._resolve_subcommand(tokens[0])
             short_help = sub.get_short_help_str() if sub is not None else ""
             rows.append((name, " ".join(tokens), short_help))
 
@@ -225,9 +224,10 @@ class MulticallGroup(Group):
             own `personalities` subcommand to override it.
         """
         super().__init__(*args, **kwargs)
-        self.personalities: dict[str, tuple[str, ...]] = {}
-        for name, tokens in (personalities or {}).items():
-            self.personalities[name] = normalize_personality(tokens)
+        self.personalities: dict[str, tuple[str, ...]] = {
+            name: normalize_personality(tokens)
+            for name, tokens in (personalities or {}).items()
+        }
         if personalities_command and "personalities" not in self.commands:
             self.add_command(_make_personalities_command())
 
@@ -250,17 +250,16 @@ class MulticallGroup(Group):
     def _is_default_personality(self, name: str) -> bool:
         """Whether `name` is a personality when no explicit mapping is declared.
 
-        Every visible, non-synthetic subcommand is one. A hidden subcommand is
-        not, nor are the `help` and `personalities` commands Click Extra
-        injects, nor a name no subcommand answers to. A lazy subcommand is
-        imported on the way, through `_get_personality_subcommand`: whether it
-        is hidden is only known once it is loaded.
+        Every visible subcommand the CLI author declared is one. A hidden
+        subcommand is not, nor are the `help` and `personalities` commands Click
+        Extra injects, nor a name no subcommand answers to. A lazy subcommand is
+        imported on the way, through
+        {meth}`~click_extra.commands.Group._resolve_subcommand`: whether it is
+        hidden is only known once it is loaded.
         """
-        cmd = self._get_personality_subcommand(name)
+        cmd = self._resolve_subcommand(name)
         return (
-            cmd is not None
-            and not cmd.hidden
-            and not isinstance(cmd, (HelpCommand, PersonalitiesCommand))
+            cmd is not None and not cmd.hidden and not isinstance(cmd, _InjectedCommand)
         )
 
     def list_personalities(self) -> dict[str, tuple[str, ...]]:
@@ -273,16 +272,13 @@ class MulticallGroup(Group):
         """
         if self.personalities:
             return dict(self.personalities)
-        # Eagerly registered subcommands first, in registration order, then the
-        # lazy ones in declaration order. The names are collected before any
-        # import, since importing a lazy subcommand registers it in `commands`.
-        names = list(self.commands)
-        names.extend(
-            name
-            for name in getattr(self, "lazy_subcommands", {})
-            if name not in self.commands
-        )
-        return {name: (name,) for name in names if self._is_default_personality(name)}
+        # The names are collected before any import, since importing a lazy
+        # subcommand registers it in `commands`.
+        return {
+            name: (name,)
+            for name in self._registered_subcommands()
+            if self._is_default_personality(name)
+        }
 
     def match_personality(self, name: str | None) -> tuple[str, ...] | None:
         """Tokens to invoke when called under *name*, or `None` to fall through."""
@@ -314,11 +310,7 @@ class MulticallGroup(Group):
         personality = self.build_personality(name, tokens)
         if args is None:
             args = sys.argv[1:]
-        return personality.main(
-            args=[*tokens[1:], *list(args)],
-            prog_name=name,
-            **kwargs,
-        )
+        return personality.main(args=[*tokens[1:], *args], prog_name=name, **kwargs)
 
     def build_personality(
         self,
@@ -348,7 +340,7 @@ class MulticallGroup(Group):
         {func}`~click_extra.commands.default_params` warns about.
         """
         sub_name = tokens[0]
-        sub = self._get_personality_subcommand(sub_name)
+        sub = self._resolve_subcommand(sub_name)
         if sub is None:
             msg = f"Personality {name!r} maps to unknown subcommand {sub_name!r}."
             raise RuntimeError(msg)
@@ -377,16 +369,17 @@ class MulticallGroup(Group):
             "deprecated": sub.deprecated,
         }
 
-        # Cloup extras, present on cloup commands only.
+        # Cloup extras, present on cloup commands only: the constructor of a plain
+        # Click command accepts none of them.
         if hasattr(sub, "aliases"):
             kwargs["aliases"] = list(sub.aliases)
         if hasattr(sub, "formatter_settings"):
             kwargs["formatter_settings"] = dict(sub.formatter_settings)
-
-        # Constraints bound to the subcommand's original parameter instances
-        # must be rebound to their copies, else they would check the stale
-        # originals, which never see the parsed values.
-        kwargs["constraints"] = _rebind_constraints(sub, sub_params)
+        if hasattr(sub, "param_constraints"):
+            # Constraints bound to the subcommand's original parameter instances
+            # must be rebound to their copies, else they would check the stale
+            # originals, which never see the parsed values.
+            kwargs["constraints"] = _rebind_constraints(sub, sub_params)
 
         if isinstance(sub, Group):
             kwargs.update(
@@ -413,24 +406,6 @@ class MulticallGroup(Group):
                 kwargs["excluded_keywords"] = sub.excluded_keywords
 
         return type(sub)(**kwargs)
-
-    def _get_personality_subcommand(self, name: str) -> click.Command | None:
-        """Resolve *name* to a command object, importing lazy ones on the way.
-
-        Personality dispatch runs ahead of any context, so lazy groups cannot
-        be resolved through `get_command()`. Registration is delegated to
-        {meth}`~click_extra.commands.LazyGroup._register_lazy` instead, so the
-        subcommand lands in the section it was declared with.
-        """
-        sub = self.commands.get(name)
-        register_lazy = getattr(self, "_register_lazy", None)
-        if (
-            sub is None
-            and register_lazy is not None
-            and name in getattr(self, "lazy_subcommands", {})
-        ):
-            sub = register_lazy(name)
-        return sub
 
 
 def _param_keys(param: click.Parameter) -> set[str]:
@@ -477,21 +452,25 @@ def _rebind_constraints(
     """Rebind the subcommand's constraints to its copied parameters.
 
     Cloup's `BoundConstraint` holds direct references to parameter instances,
-    and the personality runs on deep copies of them. A constraint whose
-    constrained parameter was dropped by {func}`_merge_params` is skipped,
-    since it has nothing left to bind to.
+    and the personality runs on deep copies of them. A constraint over a
+    parameter {func}`_merge_params` dropped stays bound to that copy: Cloup reads
+    the values by parameter name, so the check sees the group's parameter that
+    won the collision. A constraint over a parameter the subcommand does not
+    carry is skipped, since it has nothing to bind to.
     """
     constraints = getattr(sub, "param_constraints", ())
     if not constraints:
         return ()
-    copies = {id(old): new for old, new in zip(sub.params, sub_params_copy)}
+    copies = {
+        id(old): new for old, new in zip(sub.params, sub_params_copy, strict=True)
+    }
     rebound = []
     for bound in constraints:
         new_params = [copies.get(id(param)) for param in bound.params]
         if any(param is None for param in new_params):
             logger.debug(
                 f"Skipping constraint {bound.constraint!r}: one of its "
-                f"parameters was dropped from the personality."
+                f"parameters is not among the subcommand's."
             )
             continue
         # `BoundConstraint` is a NamedTuple: `_make` rebuilds it with the

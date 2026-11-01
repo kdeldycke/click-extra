@@ -263,7 +263,7 @@ click-extra implements `NO_COLOR`, `FORCE_COLOR`, and full [help colorization](c
 
 ### Terminal captures as SVG
 
-click-extra's [`screenshot` command](screenshots.md) renders a captured terminal to SVG with its own {func}`click_extra.screenshot_svg.render_svg`. It was built on [Rich](https://github.com/Textualize/rich)'s `Console.export_svg()` until `9.0.0`, which is where these came from: everything below is a defect the exported image carried, reported upstream and still unfixed.
+click-extra's [`screenshot` command](screenshots.md) renders a captured terminal to SVG with its own {func}`click_extra.capture.svg.render_svg`. Each defect below mars the SVG that [Rich](https://github.com/Textualize/rich)'s `Console.export_svg()` writes, and is reported upstream and still unfixed.
 
 Open upstream, and fixed here:
 

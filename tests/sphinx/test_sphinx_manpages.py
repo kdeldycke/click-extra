@@ -28,7 +28,7 @@ from sphinx.util.docutils import docutils_namespace
 from click_extra.sphinx import manpages
 
 _HAS_RENDERER = manpages._find_renderer() is not None
-"""``True`` if at least one roff → HTML renderer is on ``PATH`` and
+"""``True`` if at least one roff to HTML renderer is on ``PATH`` and
 actually produces output. Drives the ``skipif`` on tests that need the
 HTML sibling to exist."""
 
@@ -63,13 +63,13 @@ def _write_source(
     }
     (srcdir / "conf.py").write_text(
         "\n".join(f"{key} = {value!r}" for key, value in conf.items()),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
-    (srcdir / "index.rst").write_text(index_body, encoding="utf-8")
+    (srcdir / "index.rst").write_text(index_body, encoding="UTF-8")
     for docname, body in (extra_docs or {}).items():
         doc_path = srcdir / f"{docname}.rst"
         doc_path.parent.mkdir(parents=True, exist_ok=True)
-        doc_path.write_text(body, encoding="utf-8")
+        doc_path.write_text(body, encoding="UTF-8")
     return srcdir
 
 
@@ -209,7 +209,7 @@ def test_manpages_hook_emits_html_siblings(tmp_path):
     root_html = man_dir / "click-extra.1.html"
     assert root_roff.is_file()
     assert root_html.is_file()
-    body = root_html.read_text(encoding="utf-8")
+    body = root_html.read_text(encoding="UTF-8")
     # mandoc emits per-section <h1> blocks; groff -Thtml emits <h2>. Either
     # way the section title appears verbatim in the page so a simple "in"
     # check is portable across renderers.
@@ -255,7 +255,7 @@ def test_manpages_directive_renders_one_link_per_command(tmp_path):
         [{"script": "click_extra.cli:demo", "render_html": False}],
         index_body=_INDEX_WITH_DIRECTIVE,
     )
-    body = (outdir / "index.html").read_text(encoding="utf-8")
+    body = (outdir / "index.html").read_text(encoding="UTF-8")
     # One link per page the emit hook would have written: the root
     # command plus every visible subcommand.
     assert 'href="man/click-extra.1.html"' in body
@@ -302,7 +302,7 @@ def test_manpages_directive_links_follow_the_builder_layout(
         index_body=_NESTED_INDEX,
         extra_docs={"guide/manuals": _INDEX_WITH_DIRECTIVE},
     )
-    body = (outdir / page_file).read_text(encoding="utf-8")
+    body = (outdir / page_file).read_text(encoding="UTF-8")
     assert f'href="{prefix}man/click-extra.1.html"' in body
     assert f'href="{prefix}man/click-extra-wrap.1.html"' in body
 
@@ -331,7 +331,7 @@ def test_manpages_directive_links_survive_a_shared_doctree_cache(
             _run_build(srcdir, outdir, warmup)
     _run_build(srcdir, outdir, builder)
 
-    body = (outdir / page_file).read_text(encoding="utf-8")
+    body = (outdir / page_file).read_text(encoding="UTF-8")
     assert f'href="{prefix}man/click-extra.1.html"' in body
     assert f'href="{prefix}man/click-extra-wrap.1.html"' in body
 
@@ -344,7 +344,7 @@ def test_manpages_directive_is_noop_when_config_empty(tmp_path):
         [],
         index_body=_INDEX_WITH_DIRECTIVE,
     )
-    body = (outdir / "index.html").read_text(encoding="utf-8")
+    body = (outdir / "index.html").read_text(encoding="UTF-8")
     assert (outdir / "index.html").is_file()
     # No anchors pointing at man/* because the directive had nothing to
     # enumerate. The rest of index.html still renders.
@@ -358,12 +358,12 @@ def test_manpages_directive_renders_inline_literals_as_code(tmp_path):
     outdir = _build_with_manpages(
         tmp_path,
         # The click-extra prebake-all subcommand has the short help
-        # ``Pre-bake __version__ and all git fields in one pass.``,
-        # which is what triggered the original bug report.
+        # ``Pre-bake __version__ and all git fields in one pass.``, whose
+        # literal must render as code.
         [{"script": "click_extra.cli:demo", "render_html": False}],
         index_body=_INDEX_WITH_DIRECTIVE,
     )
-    body = (outdir / "index.html").read_text(encoding="utf-8")
+    body = (outdir / "index.html").read_text(encoding="UTF-8")
     # The literal token rendered as a <code> span. The raw markers (the
     # paired backticks) must not appear next to ``__version__`` in the
     # output.

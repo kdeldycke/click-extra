@@ -166,7 +166,7 @@ assert result.output == (
 ```
 
 ```{caution}
-This results reports the package name as `click_extra.sphinx` because we are running the example from the `click-extra` documentation build environment. This is just a quirk of the documentation setup and will not affect your own CLI.
+This result reports the package name as `click_extra.sphinx` because the example runs in the `click-extra` documentation build environment. This is a quirk of the documentation setup and does not affect your own CLI.
 ```
 
 ## Overriding variables from the command
@@ -386,11 +386,11 @@ prebake_dunder(Path("mypackage/__init__.py"), "__git_short_hash__", "abc1234")
 
 {func}`prebake_dunder() <click_extra.prebake.prebake_dunder>` only replaces empty strings, so running it twice is safe (idempotent). It preserves the quoting style and surrounding file content.
 
-{func}`discover_package_init_files() <click_extra.prebake.discover_package_init_files>` can auto-discover `__init__.py` paths from the console scripts a project declares, in `[project.scripts]` of `pyproject.toml` or `[options.entry_points]` of `setup.cfg`, whether the package sits at the project root or under `src/`.
+{func}`discover_package_init_files() <click_extra.project.discover_package_init_files>` can auto-discover `__init__.py` paths from the console scripts a project declares, in `[project.scripts]` of `pyproject.toml` or `[options.entry_points]` of `setup.cfg`, whether the package sits at the project root or under `src/`.
 
 ### Pre-baking build metadata
 
-The `build_*` template fields answer a question the `git_*` ones cannot: which machine produced this binary, and when. A cross-built executable carries no trace of its build host, and {func}`~click_extra.version.env_summary` reports the machine *running* it, so the two describe different things and a bug report often needs both.
+The `build_*` template fields answer a question the `git_*` ones cannot: which machine produced this binary, and when. A cross-built executable carries no trace of its build host, and {func}`~click_extra.version_facts.env_summary` reports the machine *running* it, so the two describe different things and a bug report often needs both.
 
 They are pre-baked exactly like the git fields, through the same empty-string dunders:
 
@@ -406,7 +406,7 @@ The column is titled differently from the git table on purpose: a git field fall
 `{build_target}` is the one that states an ABI floor rather than a description. `macosx-15.0-arm64` says the binary needs macOS 15, where `{build_os}` only says it was built on macOS.
 
 ```{tip}
-`__build_time__` reads [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/) when the build sets it, so two runs of a reproducible build stamp the same instant instead of drifting apart. {py:func}`build_moment() <click_extra.version.build_moment>` is the function that resolves it, shared with the man page's own date stamp.
+`__build_time__` reads [`SOURCE_DATE_EPOCH`](https://reproducible-builds.org/docs/source-date-epoch/) when the build sets it, so two runs of a reproducible build stamp the same instant instead of drifting apart. {py:func}`build_moment() <click_extra.version_facts.build_moment>` is the function that resolves it, shared with the man page's own date stamp.
 ```
 
 ### CLI usage
@@ -481,28 +481,30 @@ The `message_style` parameter sets the style of the message literals (the text a
 
 Fields not listed in `styles` keep the defaults below, taken from {py:attr}`VersionOption.default_styles <click_extra.version.VersionOption.default_styles>`. Fields absent from this table have no style of their own and fall back to `message_style`:
 
-| Field               | Default style                                      |
-| ------------------- | -------------------------------------------------- |
-| `build_os`          | `Style(fg="bright_black")`{l=python}               |
-| `build_target`      | `Style(fg="bright_black")`{l=python}               |
-| `build_target_arch` | `Style(fg="bright_black")`{l=python}               |
-| `build_time`        | `Style(fg="bright_black")`{l=python}               |
-| `exec_name`         | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `git_branch`        | `Style(fg="cyan")`{l=python}                       |
-| `git_date`          | `Style(fg="bright_black")`{l=python}               |
-| `git_distance`      | `Style(fg="green")`{l=python}                      |
-| `git_dirty`         | `Style(fg="red")`{l=python}                        |
-| `git_long_hash`     | `Style(fg="yellow")`{l=python}                     |
-| `git_repo_path`     | `Style(fg="bright_black")`{l=python}               |
-| `git_short_hash`    | `Style(fg="yellow")`{l=python}                     |
-| `git_tag`           | `Style(fg="cyan")`{l=python}                       |
-| `git_tag_sha`       | `Style(fg="yellow")`{l=python}                     |
-| `module_name`       | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `module_version`    | `Style(fg="green")`{l=python}                      |
-| `package_name`      | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `package_version`   | `Style(fg="green")`{l=python}                      |
-| `prog_name`         | `BUILTIN_THEMES["dark"].invoked_command`{l=python} |
-| `version`           | `Style(fg="green")`{l=python}                      |
+| Field               | Default style                             |
+| ------------------- | ----------------------------------------- |
+| `build_os`          | `Style(fg="bright_black")`{l=python}      |
+| `build_target`      | `Style(fg="bright_black")`{l=python}      |
+| `build_target_arch` | `Style(fg="bright_black")`{l=python}      |
+| `build_time`        | `Style(fg="bright_black")`{l=python}      |
+| `exec_name`         | `theme_slot("invoked_command")`{l=python} |
+| `git_branch`        | `Style(fg="cyan")`{l=python}              |
+| `git_date`          | `Style(fg="bright_black")`{l=python}      |
+| `git_distance`      | `theme_slot("success")`{l=python}         |
+| `git_dirty`         | `Style(fg="red")`{l=python}               |
+| `git_long_hash`     | `Style(fg="yellow")`{l=python}            |
+| `git_repo_path`     | `Style(fg="bright_black")`{l=python}      |
+| `git_short_hash`    | `Style(fg="yellow")`{l=python}            |
+| `git_tag`           | `Style(fg="cyan")`{l=python}              |
+| `git_tag_sha`       | `Style(fg="yellow")`{l=python}            |
+| `module_name`       | `theme_slot("invoked_command")`{l=python} |
+| `module_version`    | `theme_slot("success")`{l=python}         |
+| `package_name`      | `theme_slot("invoked_command")`{l=python} |
+| `package_version`   | `theme_slot("success")`{l=python}         |
+| `prog_name`         | `theme_slot("invoked_command")`{l=python} |
+| `version`           | `theme_slot("success")`{l=python}         |
+
+{func}`~click_extra.version.theme_slot` reads the style off the active theme each time the message renders, so these fields follow `--theme`. Under the default `dark` theme, `invoked_command` is bright white bold and `success` is green.
 
 The remaining fields (`module`, `module_file`, `author`, `license`) have no default style and fall back to `message_style`.
 
@@ -565,13 +567,13 @@ assert result.output == f"cli, version 1.2.3\n"
 
 ## Environment information
 
-{func}`~click_extra.version.env_summary` names the interpreter and the platform in one line, the two facts a bug report needs first. Add it to the message of a plain `--version`:
+{func}`~click_extra.version_facts.env_summary` names the interpreter and the platform in one line, the two facts a bug report needs first. Add it to the message of a plain `--version`:
 
 ```{click:source}
 :emphasize-lines: 7
 import click
 from click_extra import version_option
-from click_extra.version import env_summary
+from click_extra.version_facts import env_summary
 
 @click.command
 @version_option(
@@ -606,7 +608,8 @@ from functools import partial
 
 from click_extra import group
 from click_extra.commands import default_params
-from click_extra.version import VersionScreen, default_facts
+from click_extra.version import VersionScreen
+from click_extra.version_facts import default_facts
 
 SCREEN = VersionScreen(
     logo=" __ \n/\\_\\\n\\/_/",
@@ -642,7 +645,7 @@ default_facts() | {"Platform": my_own_label}   # replaces, in place
 default_facts() | {"Docs": DOCS_URL}           # appends, at the end
 ```
 
-{func}`~click_extra.version.default_facts` carries the interpreter and the platform. {func}`~click_extra.version.dependency_versions` is there for the Click and Cloup releases underneath you, opt-in rather than default. Labels get a column sized to the longest of them, separated from their values by the same gutter that separates the whole block from the logo.
+{func}`~click_extra.version_facts.default_facts` carries the interpreter and the platform. {func}`~click_extra.version_facts.dependency_versions` is there for the Click and Cloup releases underneath you, opt-in rather than default. Labels get a column sized to the longest of them, separated from their values by the same gutter that separates the whole block from the logo.
 
 **Passing `facts` or `logo` a callable defers it to render time.** Values that cost something to compute should be charged to the invocation that asks for `--version`, not to every invocation that might have: a plugin count, a registry probe, or a mark painted from its geometry.
 
@@ -650,7 +653,7 @@ default_facts() | {"Docs": DOCS_URL}           # appends, at the end
 
 Three conditions gate it, and failing any one falls back to the plain `message` template unchanged. That is a deliberate guarantee rather than a default: the plain form is the one every machine reader parses.
 
-- **Color reaches the output.** Partly because a mark may need it — a flat-shaded one carries its shape in the difference between its faces, and collapses into a single silhouette once the escapes are stripped — and partly because it is the one lever a caller already has. A redirected `--version`, or one run under `--no-color` or [`NO_COLOR`](https://no-color.org), is asking for something parseable.
+- **Color reaches the output.** A flat-shaded mark carries its shape in the difference between its faces, and collapses into a single silhouette once the escapes are stripped. Color is also the one lever a caller already has: a redirected `--version`, or one run under `--no-color` or [`NO_COLOR`](https://no-color.org), is asking for something parseable.
 - **The terminal is wide enough** to seat the facts beside the mark without wrapping them.
 - **Accessible mode is off.** A mark read out character by character is noise to a screen reader, so `--accessible` keeps the plain message.
 
@@ -671,7 +674,7 @@ assert "click-extra, version " in plain.replace("Click Extra", "click-extra")
 ```{hint}
 Two choices make the mark hold up where a copy of the artwork would not.
 
-Its faces are flat and unoutlined, which is what lets one palette serve a light terminal and a dark one. An outlined mark carries its shape in the outline, so every stroke has to out-contrast the background, and the artwork's own palette spans too wide a range for that — six of its colors vanish on white. A flat mark carries its shape in the difference between its three planes, which no background touches, leaving only the silhouette to keep its distance.
+Its faces are flat and unoutlined, which is what lets one palette serve a light terminal and a dark one. An outlined mark carries its shape in the outline, so every stroke has to out-contrast the background, and the artwork's own palette spans too wide a range for that: six of its colors vanish on white. A flat mark carries its shape in the difference between its three planes, which no background touches, leaving only the silhouette to keep its distance.
 
 It is drawn in 2:1 dimetric rather than the artwork's 30° isometric. A 30° edge advances 1.732 sub-pixels per row, which no grid can hold, so it comes out as a stair of alternating treads that reads as fraying at every size. Two across for every one down tiles a square grid exactly.
 ```
@@ -766,7 +769,7 @@ def template_rendering(ctx):
 ```
 
 ```{hint}
-To fetch the `--version` parameter defined on the command, we rely on {py:func}`click_extra.search_params <click_extra.parameters.search_params>`.
+To fetch the `--version` parameter defined on the command, we rely on {py:func}`click_extra.search_params <click_extra.param_tools.search_params>`.
 ```
 
 ```{click:run}
@@ -796,6 +799,16 @@ Other internal methods to build-up and render the version string are [available 
    :strict:
 
 .. automodule:: click_extra.version
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.version_facts` API
+
+```{eval-rst}
+.. automodule:: click_extra.version_facts
    :no-index:
    :members:
    :undoc-members:

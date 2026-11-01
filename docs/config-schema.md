@@ -317,7 +317,7 @@ Configuration validation error: Unknown configuration option(s): typo_field. Val
 ```
 
 ```{note}
-`schema_strict` is separate from the existing `strict` parameter. `strict` controls whether config keys that don't match CLI parameters are rejected; `schema_strict` validates against dataclass fields instead. The two can be used independently, and both report through the same `ValidationError` type (see [Error reporting](config-validation.md#error-reporting)).
+`schema_strict` is separate from the `strict` parameter. `strict` controls whether config keys that match neither a CLI parameter nor a dataclass field are rejected; `schema_strict` validates against dataclass fields instead. The two can be used independently, and both report through the same `ValidationError` type (see [Error reporting](config-validation.md#error-reporting)).
 ```
 
 ## Coerce a config dict into a dataclass

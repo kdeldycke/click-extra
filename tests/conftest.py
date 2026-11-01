@@ -17,7 +17,9 @@
 
 from __future__ import annotations
 
-import os
+import io
+import threading
+import time
 
 import click
 import pytest
@@ -25,6 +27,7 @@ import requests
 from extra_platforms.pytest import skip_windows
 
 from click_extra.color import COLOR_ENVVARS
+from click_extra.envvar import temporary_env
 from click_extra.pytest import (  # noqa: F401
     assert_output_regex,
     create_config,
@@ -35,7 +38,7 @@ from click_extra.theme import THEME_ENVVAR
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
 
 @pytest.fixture(scope="session")
@@ -68,10 +71,8 @@ def _isolate_color_envvars():
     so a developer running the suite is precisely who is likely to have it set,
     and it would repaint every help screen the assertions pin.
     """
-    isolated = (*COLOR_ENVVARS, "ACCESSIBLE", THEME_ENVVAR)
-    saved = {var: os.environ.pop(var) for var in isolated if var in os.environ}
-    yield
-    os.environ.update(saved)
+    with temporary_env(unset_vars=(*COLOR_ENVVARS, "ACCESSIBLE", THEME_ENVVAR)):
+        yield
 
 
 skip_windows_colors = skip_windows(reason="Click overstrip colors on Windows")
@@ -140,3 +141,43 @@ def walk_commands(
                 continue
             sub_ctx = click.Context(sub, parent=ctx, info_name=name)
             yield from walk_commands(sub, sub_ctx, (*path, name))
+
+
+class TTYStringIO(io.StringIO):
+    """An in-memory text buffer that claims to be an interactive terminal."""
+
+    def isatty(self) -> bool:
+        return True
+
+
+class StallingTTY(TTYStringIO):
+    """A terminal whose writes block once `stall` is set, until `release` is.
+
+    Stands in for a terminal paused by flow control (Ctrl+S), or a full pipe.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stall = threading.Event()
+        self.blocked = threading.Event()
+        self.release = threading.Event()
+
+    def write(self, text: str) -> int:
+        if self.stall.is_set() and not self.release.is_set():
+            self.blocked.set()
+            self.release.wait()
+        return super().write(text)
+
+
+def wait_until(predicate: Callable[[], bool], timeout: float = 3.0) -> bool:
+    """Poll ``predicate`` until it is true or ``timeout`` seconds elapse.
+
+    Lets thread-driven assertions wait for an outcome instead of sleeping a fixed
+    (and racy) amount.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.01)
+    return predicate()

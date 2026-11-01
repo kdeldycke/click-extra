@@ -17,17 +17,20 @@
 
 from __future__ import annotations
 
-import inspect
+import copy
 import io
 import json
+import logging
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import types
 import warnings
-from functools import partial
+from functools import cached_property, partial
+from importlib import metadata
 from textwrap import dedent
 
 import click
@@ -51,7 +54,6 @@ from click_extra.cli import demo
 from click_extra.color import forced_color
 from click_extra.commands import default_params
 from click_extra.prebake import (
-    discover_package_init_files,
     prebake_dunder,
     prebake_version,
 )
@@ -62,16 +64,19 @@ from click_extra.pytest import (
     default_debug_colored_version_details,
 )
 from click_extra.version import (
+    VersionScreen,
+    colors_reach_output,
+    is_main_module,
+)
+from click_extra.version_facts import (
     BUILD_RESOLVERS,
     SOURCE_DATE_EPOCH,
-    VersionScreen,
     archival_field,
-    colors_reach_output,
     default_facts,
     direct_url_field,
     env_summary,
     find_archival_file,
-    is_main_module,
+    find_git_root,
     read_archival,
     read_direct_url,
     resolve_build_time,
@@ -346,15 +351,12 @@ def test_context_meta(invoke, cmd_decorator, assert_output_regex):
 def test_debug_version_run_resolves_no_host_name(invoke, monkeypatch):
     """A `--verbosity DEBUG` run lists every version field without a DNS query.
 
-    A reverse DNS query cost ~35 s per call on a GitHub macOS runner whose
-    resolver never answered, and the debug listing of the version fields once
-    made one per run, which took that test cell over an hour.
+    A reverse DNS query blocks for as long as the resolver takes to answer,
+    which has no bound on a host whose resolver never does.
 
     Asserting on the calls rather than on a duration keeps the guard away from
     a timing threshold, which a loaded runner would flake on.
     """
-    import socket
-
     calls: list[str] = []
 
     def record_fqdn(*args: object) -> str:
@@ -376,6 +378,20 @@ def test_debug_version_run_resolves_no_host_name(invoke, monkeypatch):
     assert result.exit_code == 0
     assert "Version string template variables:" in result.stderr
     assert calls == []
+
+
+def test_debug_listing_reaches_a_level_below_debug(invoke, caplog):
+    """A logger set below `DEBUG`, like a custom trace level, lists the fields too."""
+
+    @click.command
+    @version_option(fields={"version": "1.2.3"})
+    def forecast():
+        """Report the weather."""
+
+    with caplog.at_level(logging.DEBUG - 5, logger="click_extra.version"):
+        result = invoke(forecast)
+    assert result.exit_code == 0
+    assert "Version string template variables:" in caplog.text
 
 
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
@@ -470,16 +486,12 @@ def test_main_entry_point_survives_absent_distribution_metadata(monkeypatch):
     # Nothing at all resolves to an installed distribution.
     monkeypatch.setattr("click_extra.version.distribution_of", lambda name: None)
 
-    # Stand in for the frame ``cli_frame()`` falls back to, and map it (and only
-    # it) to the entry point module.
-    frame = object()
-    real_getmodule = inspect.getmodule
-    monkeypatch.setattr(VersionOption, "cli_frame", staticmethod(lambda: frame))
-    monkeypatch.setattr(
-        inspect,
-        "getmodule",
-        lambda obj, *args: fake_main if obj is frame else real_getmodule(obj, *args),
+    # Stand in for the frame ``cli_frame()`` falls back to: the outermost one,
+    # running in the entry point module.
+    frame = types.SimpleNamespace(
+        f_globals={"__name__": "click_extra.__main__"}, f_back=None
     )
+    monkeypatch.setattr(VersionOption, "cli_frame", staticmethod(lambda: frame))
     monkeypatch.setitem(sys.modules, "click_extra.__main__", fake_main)
 
     option = VersionOption(["--version"])
@@ -557,16 +569,15 @@ def test_package_version_resolves_import_name_to_distribution(monkeypatch):
     installed distribution name (``PIL`` vs ``Pillow``), ``package_version``
     resolves it via ``packages_distributions()`` instead of returning ``None``.
     """
-    from importlib import metadata as _metadata
 
     def fake_version(name):
         if name == "pillow":
             return "10.4.0"
-        raise _metadata.PackageNotFoundError(name)
+        raise metadata.PackageNotFoundError(name)
 
-    monkeypatch.setattr(_metadata, "version", fake_version)
+    monkeypatch.setattr(metadata, "version", fake_version)
     monkeypatch.setattr(
-        _metadata,
+        metadata,
         "packages_distributions",
         lambda: {"PIL": ["pillow"]},
     )
@@ -579,14 +590,13 @@ def test_package_version_ambiguous_import_name_returns_none(monkeypatch):
     """When an import name maps to several installed distributions,
     ``package_version`` returns ``None`` rather than guessing.
     """
-    from importlib import metadata as _metadata
 
     def fake_version(name):
-        raise _metadata.PackageNotFoundError(name)
+        raise metadata.PackageNotFoundError(name)
 
-    monkeypatch.setattr(_metadata, "version", fake_version)
+    monkeypatch.setattr(metadata, "version", fake_version)
     monkeypatch.setattr(
-        _metadata,
+        metadata,
         "packages_distributions",
         lambda: {"plug": ["foo-plug", "bar-plug"]},
     )
@@ -597,51 +607,45 @@ def test_package_version_ambiguous_import_name_returns_none(monkeypatch):
 
 def test_package_version_unknown_returns_none(monkeypatch):
     """When the name resolves to no distribution, ``package_version`` returns
-    ``None``, the existing graceful behavior.
+    ``None``.
     """
-    from importlib import metadata as _metadata
 
     def fake_version(name):
-        raise _metadata.PackageNotFoundError(name)
+        raise metadata.PackageNotFoundError(name)
 
-    monkeypatch.setattr(_metadata, "version", fake_version)
-    monkeypatch.setattr(_metadata, "packages_distributions", dict)
+    monkeypatch.setattr(metadata, "version", fake_version)
+    monkeypatch.setattr(metadata, "packages_distributions", dict)
 
     opt = VersionOption(["--version"], fields={"package_name": "nonexistent"})
     assert opt.package_version is None
 
 
-def test_cli_frame_fallback(monkeypatch):
+def test_cli_frame_fallback():
     """``cli_frame()`` falls back to the outermost frame when all frames are
     from the Click ecosystem."""
-    original_stack = inspect.stack
-    # Rewriting f_globals["__name__"] mutates real module dicts (the frame
-    # running cli_frame() lives in click_extra.version). Record each dict's
-    # original __name__ so the patch is undone; otherwise the bogus name leaks
-    # into every later test that reads that module's __name__.
+    # Rewriting f_globals["__name__"] mutates real module dicts. Record each
+    # dict's original __name__ so the rename is undone; otherwise the bogus name
+    # leaks into every later test that reads that module's __name__.
     saved_names: dict[int, tuple[dict, object]] = {}
     missing = object()
 
-    def patched_stack(context=1):
-        """Make every frame look like it belongs to click_extra."""
-        frames = original_stack(context)
-        for frame_info in frames:
-            frame_globals = frame_info.frame.f_globals
+    try:
+        # Make every frame of the stack look like it belongs to click_extra, so
+        # the heuristic skips them all. The frame running cli_frame() lives in
+        # click_extra.version already.
+        frame: types.FrameType | None = sys._getframe()
+        while frame is not None:
+            frame_globals = frame.f_globals
             saved_names.setdefault(
                 id(frame_globals),
                 (frame_globals, frame_globals.get("__name__", missing)),
             )
-            # Temporarily override __name__ so the heuristic skips all frames.
-            frame_globals["__name__"] = "click_extra." + frame_info.function
-        return frames
+            frame_globals["__name__"] = "click_extra." + frame.f_code.co_name
+            frame = frame.f_back
 
-    monkeypatch.setattr(inspect, "stack", patched_stack)
-
-    try:
         # Should not raise RuntimeError; instead falls back to outermost frame,
         # which has no caller: `module` reads that as a walk that ran out.
-        frame = VersionOption.cli_frame()
-        assert frame.f_back is None
+        assert VersionOption.cli_frame().f_back is None
     finally:
         for frame_globals, original in saved_names.values():
             if original is missing:
@@ -901,6 +905,56 @@ def test_package_version_without_a_cli_frame(tmp_path, runner_source):
     assert strip_ansi(result.stdout) == "cli, version 1.2.3\n"
 
 
+SUBCOMMAND_VERSION_CLI = dedent("""\
+    from click_extra import echo, group, version_option
+
+
+    @group
+    def orchard():
+        pass
+
+
+    @orchard.command()
+    @version_option(fields={"version": "1.2.3"})
+    def harvest():
+        echo("Apples picked.")
+
+
+    orchard()
+    """)
+"""A group whose subcommand carries a version option of its own."""
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    (
+        pytest.param(("harvest",), "Apples picked.\n", id="run"),
+        pytest.param(
+            ("harvest", "--version"), "orchard, version 1.2.3\n", id="version"
+        ),
+    ),
+)
+def test_subcommand_version_option_outside_a_test_runner(tmp_path, args, expected):
+    """The version option of a subcommand resolves where no test runner is loaded.
+
+    The stack walk of a subcommand crosses the `invoke()` of its group, which it
+    checks against the test runner of Click. A process that never imported
+    `click.testing` has no such runner to check against: a test process always
+    has, so only a new interpreter can tell.
+    """
+    result = subprocess.run(
+        [sys.executable, "-c", SUBCOMMAND_VERSION_CLI, *args],
+        capture_output=True,
+        text=True,
+        encoding="UTF-8",
+        cwd=tmp_path,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert strip_ansi(result.stdout) == expected
+
+
 @pytest.mark.parametrize(
     "params",
     (None, "--help", "blah", ("--config", "random.toml")),
@@ -910,7 +964,7 @@ def test_integrated_version_option_precedence(invoke, params):
         params = default_params()
         for p in params:
             if isinstance(p, VersionOption):
-                p.version = "1.2.3.4"
+                p.pin_field("version", "1.2.3.4")
         return params
 
     @group(params=versioned_extra_params)
@@ -999,6 +1053,20 @@ def test_version_fields_rejects_unknown(invoke):
         @command(version_fields={"bogus": "oops"})
         def bad_cli():
             pass
+
+
+@pytest.mark.parametrize(
+    "build",
+    (
+        pytest.param(lambda: VersionOption(fields={"bogus": "1.2.3"}), id="fields"),
+        pytest.param(lambda: VersionOption(styles={"bogus": None}), id="styles"),
+        pytest.param(lambda: VersionOption().pin_field("bogus", "1.2.3"), id="pin"),
+    ),
+)
+def test_unknown_field_is_rejected_the_same_way_everywhere(build):
+    """Every way to name a template field rejects an unknown one alike."""
+    with pytest.raises(TypeError, match="Unknown version field 'bogus'"):
+        build()
 
 
 @skip_windows_colors
@@ -1096,7 +1164,7 @@ def init_file(tmp_path):
 
     def _make(content: str):
         p = tmp_path / "__init__.py"
-        p.write_text(content, encoding="utf-8")
+        p.write_text(content, encoding="UTF-8")
         return p
 
     return _make
@@ -1268,56 +1336,6 @@ def test_prebake_dunder_full_sha(init_file):
     assert f'__git_tag_sha__ = "{sha}"' in p.read_text()
 
 
-# --- discover_package_init_files tests ---
-
-
-def test_discover_finds_init(tmp_path, monkeypatch):
-    """Discovers ``__init__.py`` from ``[project.scripts]``."""
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "pyproject.toml").write_text(
-        '[project.scripts]\nmycli = "mypkg.__main__:main"\n',
-        encoding="utf-8",
-    )
-    pkg = tmp_path / "mypkg"
-    pkg.mkdir()
-    (pkg / "__init__.py").write_text('__version__ = "1.0"\n', encoding="utf-8")
-
-    paths = discover_package_init_files()
-    assert len(paths) == 1
-    assert paths[0].name == "__init__.py"
-
-
-def test_discover_no_pyproject(tmp_path, monkeypatch):
-    """Returns empty list when ``pyproject.toml`` is missing."""
-    monkeypatch.chdir(tmp_path)
-    assert discover_package_init_files() == []
-
-
-def test_discover_no_scripts(tmp_path, monkeypatch):
-    """Returns empty list when ``[project.scripts]`` is absent."""
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "pyproject.toml").write_text(
-        "[project]\nname = 'test'\n",
-        encoding="utf-8",
-    )
-    assert discover_package_init_files() == []
-
-
-def test_discover_deduplicates(tmp_path, monkeypatch):
-    """Multiple scripts from the same package yield one path."""
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "pyproject.toml").write_text(
-        '[project.scripts]\ncli1 = "mypkg.cli:main"\ncli2 = "mypkg.alt:run"\n',
-        encoding="utf-8",
-    )
-    pkg = tmp_path / "mypkg"
-    pkg.mkdir()
-    (pkg / "__init__.py").write_text('__version__ = "1.0"\n', encoding="utf-8")
-
-    paths = discover_package_init_files()
-    assert len(paths) == 1
-
-
 # --- prebaked git field resolution tests ---
 
 
@@ -1423,7 +1441,9 @@ def test_prebaked_git_dirty():
     ),
 )
 def test_resolve_git_distance(monkeypatch, describe_output, expected):
-    monkeypatch.setattr("click_extra.version.run_git", lambda *a, **k: describe_output)
+    monkeypatch.setattr(
+        "click_extra.version_facts.run_git", lambda *a, **k: describe_output
+    )
     assert resolve_git_distance() == expected
 
 
@@ -1437,7 +1457,9 @@ def test_resolve_git_distance(monkeypatch, describe_output, expected):
     ),
 )
 def test_resolve_git_dirty(monkeypatch, status_output, expected):
-    monkeypatch.setattr("click_extra.version.run_git", lambda *a, **k: status_output)
+    monkeypatch.setattr(
+        "click_extra.version_facts.run_git", lambda *a, **k: status_output
+    )
     assert resolve_git_dirty() == expected
 
 
@@ -1483,6 +1505,77 @@ def test_run_git_decodes_a_branch_name(tmp_path, branch, expected):
     )
     (tmp_path / ".git" / "HEAD").write_bytes(b"ref: refs/heads/" + branch + b"\n")
     assert run_git("rev-parse", "--abbrev-ref", "HEAD", cwd=tmp_path) == expected
+
+
+def test_run_git_returns_nothing_or_raises_on_failure(tmp_path, monkeypatch):
+    """A failing command returns `None`, or raises when asked to."""
+    # A folder outside any repository: the command exits with an error.
+    assert run_git("rev-parse", "HEAD", cwd=tmp_path) is None
+    with pytest.raises(subprocess.CalledProcessError):
+        run_git("rev-parse", "HEAD", cwd=tmp_path, check=True)
+    # No binary to run at all.
+    monkeypatch.setenv("PATH", "")
+    assert run_git("--version") is None
+    with pytest.raises(OSError):
+        run_git("--version", check=True)
+
+
+def test_run_git_gives_up_after_its_timeout(tmp_path, monkeypatch):
+    """A command running past its timeout returns `None`, or raises when asked."""
+
+    def stalled(*args, **kwargs):
+        raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+
+    monkeypatch.setattr(subprocess, "run", stalled)
+    assert run_git("status", cwd=tmp_path, timeout=0.1) is None
+    with pytest.raises(subprocess.TimeoutExpired) as excinfo:
+        run_git("status", cwd=tmp_path, check=True, timeout=0.1)
+    assert excinfo.value.timeout == pytest.approx(0.1)
+
+
+def test_run_git_keeps_an_empty_last_field(tmp_path):
+    """Only the final newline goes: the empty field ending a line stays.
+
+    A lightweight tag points at no tag object, so the date read through one is
+    empty, which ends the line on a tab.
+    """
+    repo = (
+        "git",
+        "-C",
+        str(tmp_path),
+        "-c",
+        "user.name=Ada",
+        "-c",
+        "user.email=ada@example.org",
+        "-c",
+        "commit.gpgsign=false",
+    )
+    subprocess.run((*repo, "init", "--quiet"), check=True)
+    subprocess.run(
+        (*repo, "commit", "--quiet", "--allow-empty", "--message", "Plant a tree"),
+        check=True,
+    )
+    subprocess.run((*repo, "tag", "seedling"), check=True)
+    listing = run_git(
+        "for-each-ref",
+        "--format=%(refname:strip=2)%09%(*authordate:short)",
+        "refs/tags",
+        cwd=tmp_path,
+    )
+    assert listing == "seedling\t"
+
+
+def test_find_git_root(tmp_path):
+    """The walk stops at the nearest `.git` entry, a file included."""
+    orchard = tmp_path / "orchard"
+    tree = orchard / "row" / "tree"
+    tree.mkdir(parents=True)
+    (orchard / ".git").mkdir()
+    assert find_git_root(tree) == orchard
+    assert find_git_root(orchard) == orchard
+    # A worktree or a submodule holds a `.git` file instead of a folder.
+    (tree / ".git").write_text("gitdir: elsewhere\n", encoding="UTF-8")
+    assert find_git_root(tree) == tree
 
 
 # --- .git_archival.json fallback tests ---
@@ -1545,18 +1638,18 @@ def test_archival_field_exact_tag_distance_zero():
 
 def test_read_archival_roundtrip(tmp_path):
     path = tmp_path / ".git_archival.json"
-    path.write_text(json.dumps(SUBSTITUTED_ARCHIVAL), encoding="utf-8")
+    path.write_text(json.dumps(SUBSTITUTED_ARCHIVAL), encoding="UTF-8")
     assert read_archival(path) == SUBSTITUTED_ARCHIVAL
 
 
 def test_read_archival_invalid_json(tmp_path):
     path = tmp_path / ".git_archival.json"
-    path.write_text("{not json", encoding="utf-8")
+    path.write_text("{not json", encoding="UTF-8")
     assert read_archival(path) == {}
 
 
 def test_find_archival_file_walks_up(tmp_path):
-    (tmp_path / ".git_archival.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".git_archival.json").write_text("{}", encoding="UTF-8")
     nested = tmp_path / "pkg" / "sub"
     nested.mkdir(parents=True)
     assert find_archival_file(nested) == tmp_path / ".git_archival.json"
@@ -1569,7 +1662,7 @@ def test_find_archival_file_absent(tmp_path):
 def test_archival_resolves_git_fields(tmp_path):
     """Git fields resolve from .git_archival.json when there is no live git."""
     (tmp_path / ".git_archival.json").write_text(
-        json.dumps(SUBSTITUTED_ARCHIVAL), encoding="utf-8"
+        json.dumps(SUBSTITUTED_ARCHIVAL), encoding="UTF-8"
     )
     pkg = tmp_path / "pkg"
     pkg.mkdir()
@@ -1611,10 +1704,10 @@ def install_distribution(tmp_path, monkeypatch, direct_url: str | None) -> None:
     dist_info.mkdir()
     (dist_info / "METADATA").write_text(
         "Metadata-Version: 2.1\nName: apricot\nVersion: 1.2.3.dev0\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     if direct_url is not None:
-        (dist_info / "direct_url.json").write_text(direct_url, encoding="utf-8")
+        (dist_info / "direct_url.json").write_text(direct_url, encoding="UTF-8")
     monkeypatch.syspath_prepend(str(tmp_path))
 
 
@@ -1803,6 +1896,19 @@ def test_screen_facts_may_be_deferred():
     assert rows[-1][0] == "Answer   42"
 
 
+def test_screen_draws_a_callable_logo_once_per_render(terminal_width):
+    """Measuring and padding the mark share one drawing of it."""
+    calls: list[None] = []
+
+    def logo():
+        calls.append(None)
+        return PLAIN_LOGO
+
+    terminal_width(200)
+    assert VersionScreen(logo=logo).render("cli", "1.2.3", {}) is not None
+    assert len(calls) == 1
+
+
 def test_screen_sizes_its_label_column_to_the_longest_label():
     """No declared width to outgrow: the column is measured, then gutter-separated."""
     screen = VersionScreen(logo="#", facts={"a": "1", "loooooong": "2"})
@@ -1930,10 +2036,8 @@ def test_screen_skipped_when_accessible(invoke, screen_cli, terminal_width):
 def test_version_message_follows_the_theme(invoke, theme, expected):
     """The message is painted from the active palette, not from a frozen copy.
 
-    Capturing the `dark` palette at import left `--version` printing the program
-    name bright white under every theme, which on a light terminal is white on
-    white. The `dark` row is unchanged from that era on purpose: this made the other
-    two work without moving what anyone already had.
+    A palette captured at import would print the program name bright white
+    under every theme, which on a light terminal is white on white.
     """
 
     @group(version_fields={"version": "1.2.3"})
@@ -1963,8 +2067,8 @@ def test_colors_reach_output(monkeypatch, color, stdout_is_a_tty, expected):
     """`auto` reads `sys.stdout`, an explicit tri-state never looks at it.
 
     The stream half is the part worth pinning: `click.echo` reaches stdout
-    through a wrapper whose public alias Click deprecated in `8.5.0`, and this
-    resolution has to keep answering what `echo` answers without it.
+    through a wrapper whose public accessor Click deprecates, and this
+    resolution has to answer what `echo` answers without it.
     """
 
     class Stream(io.StringIO):
@@ -1973,9 +2077,8 @@ def test_colors_reach_output(monkeypatch, color, stdout_is_a_tty, expected):
 
     monkeypatch.setattr("click_extra.version.invocation_color", lambda: color)
     monkeypatch.setattr(sys, "stdout", Stream())
-    # Raising on a deprecation is the half a value assertion cannot cover: the
-    # `auto` branch used to read the stream through `click.get_text_stream()`,
-    # which answers the same and disappears in Click 9.0.
+    # Raising on a deprecation is the half a value assertion cannot cover:
+    # `click.get_text_stream()` answers the same, and Click deprecates it.
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
         assert colors_reach_output() is expected
@@ -1989,8 +2092,8 @@ def test_sphinx_runner_resets_version_resolution():
     one invocation, one process. A documentation build renders many commands in
     one process, and a render carrying no CLI frame (writing roff for a command
     tree, say) resolves the chain from a stack the walk cannot read. That answer
-    used to stand for the rest of the build, so a later `--version` example
-    published a screen with no version on it.
+    would stand for the rest of the build, and a later `--version` example would
+    publish a screen with no version on it.
 
     This guards the mechanism, not the build: it plants a stale resolution by
     hand rather than reproducing the frame shape a real `sphinx-build` has, so
@@ -1999,7 +2102,7 @@ def test_sphinx_runner_resets_version_resolution():
     """
     pytest.importorskip("sphinx", reason="click_extra.sphinx needs the sphinx extra")
 
-    from click_extra.sphinx.click import ClickRunner
+    from click_extra.sphinx.click_runner import ClickRunner
 
     @command
     @version_option()
@@ -2019,7 +2122,6 @@ def test_sphinx_runner_resets_version_resolution():
 @pytest.mark.once
 def test_reset_resolution_clears_every_memoized_field():
     """`reset_resolution()` drops the whole chain, not a chosen few fields."""
-    from functools import cached_property
 
     @command
     @version_option()
@@ -2064,3 +2166,25 @@ def test_reset_resolution_keeps_a_pinned_field():
     option.reset_resolution()
 
     assert option.version == "1.2.3"
+
+
+def test_deep_copy_keeps_pinned_fields_and_drops_resolved_ones():
+    """A copy carries the fields the caller pinned, and resolves the others anew.
+
+    `click_extra.multicall` deep-copies the options of a group to build each
+    personality, which must report the version the group pins.
+    """
+    orchard = types.ModuleType("orchard")
+    option = VersionOption(fields={"version": "1.2.3", "prog_name": "Orchard"})
+    option.pin_field("module", orchard)
+    # Resolved from the pinned module, then memoized.
+    assert option.module_name == "orchard"
+
+    clone = copy.deepcopy(option)
+
+    assert clone.version == "1.2.3"
+    assert clone.prog_name == "Orchard"
+    # A module is no value `copy.deepcopy` can rebuild: the caller's own one.
+    assert clone.module is orchard
+    assert "module_name" not in vars(clone)
+    assert clone.module_name == "orchard"

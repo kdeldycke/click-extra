@@ -12,16 +12,18 @@
 
 ```{toctree}
 :maxdepth: 4
+click_extra.capture
 click_extra.config
+click_extra.markdown
 click_extra.sphinx
 ```
 
 ## Submodules
 
-## click_extra.blocks module
+## click_extra.ansi module
 
 ```{eval-rst}
-.. automodule:: click_extra.blocks
+.. automodule:: click_extra.ansi
    :members:
    :show-inheritance:
    :undoc-members:
@@ -144,6 +146,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.jobs module
+
+```{eval-rst}
+.. automodule:: click_extra.jobs
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.logging module
 
 ```{eval-rst}
@@ -171,21 +182,21 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.myst_converter module
-
-```{eval-rst}
-.. automodule:: click_extra.myst_converter
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
 <a name="click-extra-output-module"></a>
 
 ## click_extra.output module
 
 ```{eval-rst}
 .. automodule:: click_extra.output
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.param_tools module
+
+```{eval-rst}
+.. automodule:: click_extra.param_tools
    :members:
    :show-inheritance:
    :undoc-members:
@@ -209,6 +220,24 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.progress module
+
+```{eval-rst}
+.. automodule:: click_extra.progress
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.project module
+
+```{eval-rst}
+.. automodule:: click_extra.project
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.pygments module
 
 ```{eval-rst}
@@ -227,64 +256,10 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.recording module
+## click_extra.show_params module
 
 ```{eval-rst}
-.. automodule:: click_extra.recording
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## click_extra.rst_to_myst module
-
-```{eval-rst}
-.. automodule:: click_extra.rst_to_myst
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## click_extra.screenshot module
-
-```{eval-rst}
-.. automodule:: click_extra.screenshot
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## click_extra.screenshot_html module
-
-```{eval-rst}
-.. automodule:: click_extra.screenshot_html
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## click_extra.screenshot_presets module
-
-```{eval-rst}
-.. automodule:: click_extra.screenshot_presets
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## click_extra.screenshot_svg module
-
-```{eval-rst}
-.. automodule:: click_extra.screenshot_svg
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## click_extra.snippet module
-
-```{eval-rst}
-.. automodule:: click_extra.snippet
+.. automodule:: click_extra.show_params
    :members:
    :show-inheritance:
    :undoc-members:
@@ -317,6 +292,15 @@ click_extra.sphinx
    :undoc-members:
 ```
 
+## click_extra.table_options module
+
+```{eval-rst}
+.. automodule:: click_extra.table_options
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.telemetry module
 
 ```{eval-rst}
@@ -344,10 +328,10 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.theme_docs module
+## click_extra.trail module
 
 ```{eval-rst}
-.. automodule:: click_extra.theme_docs
+.. automodule:: click_extra.trail
    :members:
    :show-inheritance:
    :undoc-members:
@@ -366,6 +350,15 @@ click_extra.sphinx
 
 ```{eval-rst}
 .. automodule:: click_extra.version
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.version_facts module
+
+```{eval-rst}
+.. automodule:: click_extra.version_facts
    :members:
    :show-inheritance:
    :undoc-members:

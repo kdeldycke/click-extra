@@ -61,18 +61,12 @@ from click_extra.testing import REGEX_NEWLINE, unescape_regex
     ),
 )
 def test_aligned_colored_fixtures(uncolored, colored):
-    uncolored_lines = uncolored.split(REGEX_NEWLINE)
-    colored_lines = colored.split(REGEX_NEWLINE)
-
-    line_indexes = range(max(len(colored_lines), len(uncolored_lines)))
-    for i in line_indexes:
-        uncolored_line = uncolored_lines[i]
-        colored_line = colored_lines[i]
-
-        unescaped_uncolored_line = unescape_regex(uncolored_line)
-        unescaped_colored_line = unescape_regex(colored_line)
-
-        assert strip_ansi(unescaped_colored_line) == unescaped_uncolored_line
+    for uncolored_line, colored_line in zip(
+        uncolored.split(REGEX_NEWLINE), colored.split(REGEX_NEWLINE), strict=True
+    ):
+        assert strip_ansi(unescape_regex(colored_line)) == unescape_regex(
+            uncolored_line
+        )
 
     # Check that all lines can be compiled as regexes.
     assert re.compile(uncolored)
@@ -103,7 +97,7 @@ def test_isolated_app_dir(invoke, isolated_app_dir):
     # A file planted in the isolated directory is discovered by default.
     (isolated_app_dir / "config.toml").write_text(
         "[my-cli]\ndummy_flag = true\n",
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     result = invoke(my_cli)
     assert result.exit_code == 0

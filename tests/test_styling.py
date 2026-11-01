@@ -17,75 +17,24 @@
 
 from __future__ import annotations
 
-import dataclasses
-import importlib.metadata
-import re
 import textwrap
+from enum import IntEnum
 
-import click
 import cloup
 import pytest
 
 from click_extra import Style, strip_ansi
+from click_extra.ansi import nearest_256
 from click_extra.layout import wrap_ansi
 from click_extra.styling import (
-    _nearest_256,
     ansi_to_html,
     ansi_to_jira,
     ansi_to_latex,
     ansi_to_textile,
-    open_ansi,
     render_ansi,
     split_ansi,
     supports_truecolor,
 )
-
-CLICK_VERSION = tuple(
-    int(part) for part in importlib.metadata.version("click").split(".")[:2]
-)
-"""Major and minor version of the installed Click package.
-
-Click ``8.5.0`` started validating ``fg`` / ``bg`` color arguments: the 256-color
-index ``0`` is no longer dropped, and falsy non-``None`` values raise ``TypeError``
-instead of being silently ignored. See `pallets/click#3666
-<https://github.com/pallets/click/pull/3666>`_.
-"""
-
-CLICK_HAS_PALETTE_ZERO_FIX = "\x1b[38;5;0m" in click.style("X", fg=0)
-"""True when Click emits the 256-color escape sequence for palette index ``0``.
-
-Click ``8.5.0`` fixed a bug where ``fg=0`` / ``bg=0`` were silently dropped
-because the integer ``0`` is falsy. Development snapshots with version numbers
->= ``8.5`` may not yet carry this fix, so a version comparison alone is
-unreliable.
-"""
-
-try:
-    click.style("X", fg="")
-    CLICK_REJECTS_EMPTY_COLOR = False
-except (TypeError, ValueError):
-    CLICK_REJECTS_EMPTY_COLOR = True
-"""True when Click raises for empty-string ``fg`` / ``bg`` arguments.
-
-Click ``8.5.0`` started rejecting falsy non-``None`` color values with
-``TypeError``. Later development snapshots raise ``ValueError`` instead for
-colors unrecognized by ``_interpret_color``. Both are caught here since
-development snapshots with version numbers >= ``8.5`` may not yet enforce
-this validation, or may enforce it with either exception class.
-"""
-
-CLOUP_STYLE_HAS_KWARGS_CACHE = any(
-    f.name == "_style_kwargs" for f in dataclasses.fields(cloup.Style)
-)
-"""True when ``cloup.Style`` still carries its lazy ``_style_kwargs`` cache.
-
-Cloup 3.x builds that cache on the first ``__call__`` and declares it without
-``compare=False``, so a called style stops comparing equal to its twin and
-``hash()`` raises. Cloup ``4.0.0`` removed the cache to fix `janluke/cloup#224
-<https://github.com/janluke/cloup/issues/224>`_, so the field is absent from it.
-The invariant the cache threatened is checked on both, and only the probes
-reading the field itself are gated on this flag.
-"""
 
 # --- 1. Hex string color shorthand ------------------------------------------
 
@@ -110,11 +59,24 @@ def test_hex_bg_converts_to_rgb_tuple():
     assert s.bg == (0x28, 0x2A, 0x36)
 
 
-def test_hex_invalid_raises():
+@pytest.mark.parametrize(
+    "hex_str",
+    (
+        "#xyz",
+        # 4 digits: not a recognized form.
+        "#1234",
+        # `int()` alone accepts each of these.
+        "#-1-1-1",
+        "#+f+f+f",
+        "#f_f_f_",
+        "#\u0663\u0663\u0663",
+        # A single `#` opens the value.
+        "##abc",
+    ),
+)
+def test_hex_invalid_raises(hex_str):
     with pytest.raises(ValueError, match="Not a valid hex color"):
-        Style(fg="#xyz")
-    with pytest.raises(ValueError, match="Not a valid hex color"):
-        Style(fg="#1234")  # 4 chars: not a recognized form
+        Style(fg=hex_str)
 
 
 def test_named_color_string_passes_through():
@@ -396,21 +358,45 @@ def test_contrast_ratio_requires_both_fgs():
 # --- 10. __eq__ / __hash__ --------------------------------------------------
 
 
-def test_eq_ignores_style_kwargs_cache():
-    """Equality must not depend on cloup's lazy ``_style_kwargs`` cache."""
+def test_eq_survives_a_call():
+    """Calling a style leaves its equality and hash untouched."""
     a = Style(fg="red")
     b = Style(fg="red")
-    a("trigger")  # primes a's _style_kwargs
-    if CLOUP_STYLE_HAS_KWARGS_CACHE:
-        assert b._style_kwargs is None  # type: ignore[attr-defined, unused-ignore]
-        assert a._style_kwargs is not None  # type: ignore[attr-defined, unused-ignore]
+    a("trigger")
     assert a == b
     assert hash(a) == hash(b)
 
 
-def test_eq_with_cloup_style():
-    """A click-extra Style equals an equivalent cloup.Style."""
-    assert Style(fg="red") == cloup.Style(fg="red")
+@pytest.mark.parametrize(
+    ("style", "twin"),
+    (
+        (Style(fg="red"), cloup.Style(fg="red")),
+        (
+            Style(fg=(241, 250, 140), bold=True),
+            cloup.Style(fg=(241, 250, 140), bold=True),
+        ),
+        (Style(), cloup.Style()),
+    ),
+)
+def test_eq_with_cloup_style(style, twin):
+    """A click-extra Style equals the cloup.Style carrying its fields, both ways."""
+    assert style == twin
+    assert twin == style
+    assert hash(style) == hash(twin)
+    assert style != cloup.Style(fg="blue")
+
+
+def test_eq_with_non_style():
+    """Comparing with anything else defers to the other operand."""
+
+    class Anything:
+        def __eq__(self, other: object) -> bool:
+            return True
+
+        __hash__ = object.__hash__
+
+    assert Style() != "Style()"
+    assert Style() == Anything()
 
 
 # --- 11. Truecolor detection and quantization -------------------------------
@@ -457,7 +443,7 @@ def test_style_call_quantizes_without_truecolor(monkeypatch):
     """An RGB color downsamples to the nearest 256-index without truecolor."""
     monkeypatch.delenv("COLORTERM", raising=False)
     monkeypatch.setenv("TERM", "xterm-16color")
-    index = _nearest_256(255, 0, 0)  # 196
+    index = nearest_256(255, 0, 0)  # 196
     assert Style(fg="#ff0000")("X") == f"\x1b[38;5;{index}mX\x1b[0m"
 
 
@@ -469,14 +455,14 @@ def test_style_call_leaves_named_and_indexed_colors(monkeypatch, colorterm):
     assert Style(fg=200)("X") == "\x1b[38;5;200mX\x1b[0m"
 
 
-def test_style_call_cache_survives_depth_flip(monkeypatch):
+def test_style_call_survives_depth_flip(monkeypatch):
     """The same style renders correctly when truecolor flips between calls.
 
-    Quantizing on a transient copy must not poison cloup's lazy
-    ``_style_kwargs`` cache on the shared (often singleton) style instance.
+    Quantizing works on a transient copy, so the shared (often singleton) theme
+    style keeps its 24-bit colors for the next call.
     """
     style = Style(fg="#ff0000")
-    index = _nearest_256(255, 0, 0)
+    index = nearest_256(255, 0, 0)
 
     monkeypatch.setenv("COLORTERM", "truecolor")
     assert style("X") == "\x1b[38;2;255;0;0mX\x1b[0m"
@@ -491,11 +477,6 @@ def test_style_call_cache_survives_depth_flip(monkeypatch):
 # --- 12. Upstream Click color handling ---------------------------------------
 
 
-@pytest.mark.xfail(
-    not CLICK_HAS_PALETTE_ZERO_FIX,
-    reason="This Click build drops the 256-color index 0: pallets/click#3666.",
-    strict=True,
-)
 @pytest.mark.parametrize(
     ("style", "expected"),
     [
@@ -508,25 +489,29 @@ def test_style_call_palette_index_zero(style, expected):
     assert style("X") == expected
 
 
-@pytest.mark.skipif(
-    CLICK_REJECTS_EMPTY_COLOR,
-    reason="This Click build rejects empty-string colors.",
-)
-@pytest.mark.parametrize("style", [Style(fg=""), Style(bg="")])
-def test_style_call_empty_string_color_ignored(style):
-    """Click < 8.5 silently ignores falsy colors at render time."""
-    assert style("X") == "X\x1b[0m"
-
-
-@pytest.mark.skipif(
-    not CLICK_REJECTS_EMPTY_COLOR,
-    reason="This Click build silently ignores empty-string colors.",
-)
 @pytest.mark.parametrize("style", [Style(fg=""), Style(bg="")])
 def test_style_call_empty_string_color_rejected(style):
-    """Click >= 8.5 validates colors at render time and rejects empty strings."""
+    """Click validates colors at render time and rejects empty strings.
+
+    Click 8.5 raises `TypeError`, its development branch `ValueError`.
+    """
     with pytest.raises((TypeError, ValueError), match="Unknown color"):
         style("X")
+
+
+class _Palette(IntEnum):
+    """Palette indices named after fruits."""
+
+    APRICOT = 208
+    PLUM = 96
+
+
+def test_int_enum_color_round_trips_by_value():
+    """A palette index held by an `IntEnum` serializes as the index it is."""
+    style = Style(fg=_Palette.APRICOT, bg=_Palette.PLUM)
+    assert style.to_dict() == {"fg": 208, "bg": 96}
+    assert Style.from_dict(style.to_dict()) == style
+    assert style.to_css() == Style(fg=208, bg=96).to_css()
 
 
 # --- 13. split_ansi() --------------------------------------------------------
@@ -597,6 +582,16 @@ def test_style_call_empty_string_color_rejected(style):
         ),
         pytest.param("ab\x1b[2Kcd", [(Style(), "abcd")], id="non-sgr-csi-dropped"),
         pytest.param(
+            "\x1b7\x1b[31mred\x1b8\x1b[0m",
+            [(Style(fg="red"), "red")],
+            id="cursor-save-dropped",
+        ),
+        pytest.param(
+            "\x1b]8;;https://example.com\x1b[31mred",
+            [(Style(fg="red"), "red")],
+            id="unterminated-osc-ends-at-next-sgr",
+        ),
+        pytest.param(
             "\x1b]8;;https://example.com\x1b\\Berlin\x1b]8;;\x1b\\",
             [(Style(), "Berlin")],
             id="osc8-hyperlink-keeps-text",
@@ -620,72 +615,7 @@ def test_split_ansi_preserves_text():
     assert "".join(run for _, run in split_ansi(text)) == strip_ansi(text)
 
 
-# --- 14. open_ansi() ---------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("text", "expected"),
-    (
-        pytest.param("", "", id="empty"),
-        pytest.param("no escapes at all", "", id="unstyled"),
-        pytest.param("\x1b[31mred\x1b[0m", "", id="closed-by-reset"),
-        pytest.param("\x1b[31mred\x1b[m", "", id="closed-by-bare-reset"),
-        pytest.param("\x1b[93mopen", "\x1b[93m", id="one-code-left-open"),
-        pytest.param(
-            "\x1b[93m\x1b[1mopen", "\x1b[93m\x1b[1m", id="two-codes-left-open"
-        ),
-        pytest.param(
-            "\x1b[93mout \x1b[36min\x1b[0m back",
-            "",
-            id="reset-clears-the-whole-stack",
-        ),
-        pytest.param(
-            "\x1b[93mout \x1b[36min\x1b[0m\x1b[93m back",
-            "\x1b[93m",
-            id="reopened-after-a-reset",
-        ),
-        pytest.param("\x1b[0;31mred", "\x1b[0;31m", id="reset-carrying-a-color"),
-        pytest.param(
-            "\x1b[93mold\x1b[0;31mnew", "\x1b[0;31m", id="reset-carrying-a-color-clears"
-        ),
-    ),
-)
-def test_open_ansi(text, expected):
-    assert open_ansi(text) == expected
-
-
-@pytest.mark.parametrize(
-    ("text", "expected"),
-    (
-        pytest.param("", "\x1b[93m", id="empty-chunk-keeps-what-was-open"),
-        pytest.param("plain", "\x1b[93m", id="unstyled-chunk-keeps-what-was-open"),
-        pytest.param(
-            "\x1b[1mbold", "\x1b[93m\x1b[1m", id="chunk-adds-to-what-was-open"
-        ),
-        pytest.param("closed\x1b[0m", "", id="chunk-closes-what-was-open"),
-    ),
-)
-def test_open_ansi_resumes_from_an_opened_state(text, expected):
-    assert open_ansi(text, "\x1b[93m") == expected
-
-
-def test_open_ansi_chunked_matches_one_shot():
-    """Reading a string in two chunks answers like reading it whole.
-
-    Every cut is tried except the ones splitting an escape in half, which no
-    parser can carry across a chunk boundary.
-    """
-    text = "\x1b[93mrain \x1b[36mon\x1b[0m Monday \x1b[1mand\x1b[0m\x1b[93m Tuesday"
-    inside = {
-        index
-        for match in re.finditer(r"\x1b\[[0-9;]*m", text)
-        for index in range(match.start() + 1, match.end())
-    }
-    for cut in set(range(len(text) + 1)) - inside:
-        assert open_ansi(text[cut:], open_ansi(text[:cut])) == open_ansi(text), cut
-
-
-# --- 15. render_ansi() -------------------------------------------------------
+# --- 14. render_ansi() -------------------------------------------------------
 
 
 def test_render_ansi_passthrough_unstyled():
@@ -704,7 +634,7 @@ def test_render_ansi_splits_runs_at_newlines():
     assert result == "<two>\n<lines>"
 
 
-# --- 16. wrap_ansi() ---------------------------------------------------------
+# --- 15. wrap_ansi() ---------------------------------------------------------
 
 WRAP_TEXT = "A very long note about the weather that will certainly need wrapping."
 
@@ -765,7 +695,7 @@ def test_wrap_ansi_edge_cases(text, width, expected):
     assert wrap_ansi(text, width) == expected
 
 
-# --- 17. ANSI-to-markup converters -------------------------------------------
+# --- 16. ANSI-to-markup converters -------------------------------------------
 
 BLUE = "\x1b[34mSummer\x1b[0m"
 BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"
@@ -905,29 +835,3 @@ BLUE_BOLD = "\x1b[34m\x1b[1mSummer\x1b[0m"
 )
 def test_ansi_converters(converter, text, expected):
     assert converter(text) == expected
-
-
-@pytest.mark.parametrize(
-    ("text", "expected"),
-    (
-        pytest.param("plain", "plain", id="plain"),
-        pytest.param("\x1b[1;31mbold red\x1b[0m", "bold red", id="sgr"),
-        pytest.param("\x1b[38;2;255;0;0mtrue\x1b[m", "true", id="sgr_truecolor"),
-        pytest.param("\x1b[2J\x1b[H\x1b[?25lhidden\x1b[1;2H", "hidden", id="csi"),
-        pytest.param(
-            "\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\", "link", id="osc8_st"
-        ),
-        pytest.param(
-            "\x1b]8;;https://example.com\x07link\x1b]8;;\x07", "link", id="osc8_bel"
-        ),
-        pytest.param("\x1b]0;a title\x07body", "body", id="osc_title"),
-        pytest.param("body\x1b]0;left open", "body", id="osc_open"),
-        pytest.param("\x1bMup\x1bDdown", "updown", id="two_byte"),
-    ),
-)
-def test_strip_ansi(text, expected):
-    assert strip_ansi(text) == expected
-
-
-def test_strip_ansi_keeps_bytes_as_bytes():
-    assert strip_ansi(b"\x1b[32mok\x1b[0m \xc3\xa9") == b"ok \xc3\xa9"

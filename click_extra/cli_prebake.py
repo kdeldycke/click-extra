@@ -32,12 +32,12 @@ from click import ClickException, echo
 from .config import get_tool_config
 from .decorators import argument, group, option
 from .prebake import (
-    discover_package_init_files,
     prebake_dunder,
     prebake_dunders,
     prebake_version,
 )
-from .version import BUILD_RESOLVERS, GIT_RESOLVERS, dunder_name
+from .project import discover_package_init_files
+from .version_facts import BUILD_RESOLVERS, GIT_RESOLVERS, dunder_name
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -108,7 +108,7 @@ def version(git_hash: str | None, module: Path | None) -> None:
     for init_path in _resolve_paths(module):
         baked = prebake_version(init_path, local_version=git_hash)
         if baked:
-            echo(f"Pre-baked {init_path}: {baked}")
+            echo(f"Pre-baked {init_path}: __version__ = {baked!r}")
         else:
             echo(f"No changes to {init_path}")
 
@@ -117,7 +117,7 @@ def version(git_hash: str | None, module: Path | None) -> None:
 @argument("name")
 @argument("value")
 @_module_option
-def field(name: str, module: Path | None, value: str) -> None:
+def field(name: str, value: str, module: Path | None) -> None:
     """Replace an empty dunder variable with a value.
 
     NAME is the template field name (like `git_tag_sha`) or the full
@@ -166,7 +166,7 @@ def all_fields(module: Path | None) -> None:
     resolution is available. Fields without a placeholder in the source file
     are skipped silently.
     """
-    # The field-to-resolver tables live in click_extra.version, so adding a
+    # The field-to-resolver tables live in click_extra.version_facts, so adding a
     # field there needs no matching edit here. A git resolver runs in the
     # current directory; a build resolver describes the host running this
     # command, so it takes no directory and always answers. Each resolver is
@@ -185,7 +185,6 @@ def all_fields(module: Path | None) -> None:
 
     changed = False
     for init_path in _resolve_paths(module):
-        # Pre-bake __version__ with git short hash.
         if git_hash:
             baked = prebake_version(init_path, local_version=git_hash)
             if baked:

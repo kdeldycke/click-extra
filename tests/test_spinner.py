@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import io
 import itertools
-import logging
 import os
 import re
 import signal
@@ -26,8 +25,6 @@ import subprocess
 import sys
 import threading
 import time
-import warnings
-from collections.abc import Callable
 from pathlib import Path
 
 import click
@@ -50,75 +47,33 @@ from click_extra.cli import (
     _TOUR_CAP,
     _TOUR_CYCLES,
     _TOUR_MIN,
-    _TRAIL_BATCH,
     _tour_duration,
     demo,
 )
 from click_extra.context import PROGRESS, START_TIME
-from click_extra.logging import StreamHandler as ExtraStreamHandler
+from click_extra.layout import cell_width
 from click_extra.pytest import command_decorators
-from click_extra.recording import TerminalScreen, record_command
-from click_extra.screenshot import cell_width
 from click_extra.spinner import (
     CLEAR_LINE,
     HIDE_CURSOR,
     SHOW_CURSOR,
-    OperationTrail,
-    _active_line,
-    _BarIndicator,
+    _can_draw,
+    _color_enabled,
+    _enable_windows_ansi,
     _resolve_timer,
-    _SpinnerIndicator,
     active_spinner,
-    trail_line,
+    trail_glyph,
 )
 from click_extra.spinner_presets import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
 from click_extra.theme import KO_GLYPH, OK_GLYPH
+
+from .conftest import StallingTTY, TTYStringIO, wait_until
 
 # ANSI styling codes click.style emits, named for readable color asserts.
 GREEN = "\x1b[32m"
 RED = "\x1b[31m"
 BOLD = "\x1b[1m"
 BG_RED = "\x1b[41m"
-
-
-class TTYStringIO(io.StringIO):
-    """An in-memory text buffer that claims to be an interactive terminal."""
-
-    def isatty(self) -> bool:
-        return True
-
-
-class StallingTTY(TTYStringIO):
-    """A terminal whose writes block once `stall` is set, until `release` is.
-
-    Stands in for a terminal paused by flow control (Ctrl+S), or a full pipe.
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.stall = threading.Event()
-        self.blocked = threading.Event()
-        self.release = threading.Event()
-
-    def write(self, text: str) -> int:
-        if self.stall.is_set() and not self.release.is_set():
-            self.blocked.set()
-            self.release.wait()
-        return super().write(text)
-
-
-def wait_until(predicate: Callable[[], bool], timeout: float = 3.0) -> bool:
-    """Poll ``predicate`` until it is true or ``timeout`` seconds elapse.
-
-    Lets thread-driven assertions wait for an outcome instead of sleeping a fixed
-    (and racy) amount.
-    """
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if predicate():
-            return True
-        time.sleep(0.01)
-    return predicate()
 
 
 def test_spinner_exported_from_root():
@@ -143,9 +98,8 @@ def test_explicit_stream_is_honored():
         ("never", TTYStringIO(), False),
     ),
 )
-def test_resolve_live(live, stream, expected):
-    spinner = Spinner(stream=stream, live=live)
-    assert spinner._resolve_live(stream) is expected
+def test_can_draw(live, stream, expected):
+    assert _can_draw(live, stream) is expected
 
 
 def test_noop_on_non_tty_stream():
@@ -400,71 +354,6 @@ def test_standalone_progress_option(invoke, cmd_decorator, option_decorator):
 
 
 @pytest.mark.parametrize(
-    ("args", "expected_hidden"),
-    (
-        # Shown by default.
-        ((), False),
-        # --no-progress hides the determinate bar, just like the spinner.
-        (("--no-progress",), True),
-        # Color is decoupled: --no-color keeps the bar, only stripping its color.
-        (("--no-color",), False),
-        # --accessible hides it: a screen reader wants no animated bar.
-        (("--accessible",), True),
-    ),
-)
-def test_progressbar_follows_progress_flag(invoke, args, expected_hidden):
-    """click_extra.progressbar gates ``hidden`` on the resolved --progress flag."""
-
-    @command
-    def cli():
-        bar = click_extra.progressbar([1, 2, 3], label="Brewing tea")
-        echo(f"hidden={bar.hidden}")
-
-    result = invoke(cli, *args)
-    assert f"hidden={expected_hidden}" in result.stdout
-
-
-@pytest.mark.parametrize("forced", (True, False))
-def test_progressbar_explicit_hidden_overrides_flag(invoke, forced):
-    """An explicit ``hidden=`` wins over --no-progress, like echo(color=...)."""
-
-    @command
-    def cli():
-        bar = click_extra.progressbar([1, 2, 3], hidden=forced)
-        echo(f"hidden={bar.hidden}")
-
-    # --no-progress would otherwise force hidden=True; the explicit value stands.
-    result = invoke(cli, "--no-progress")
-    assert f"hidden={forced}" in result.stdout
-
-
-def test_progressbar_shown_without_active_context():
-    """Outside a Click command the bar defaults to shown, like click.progressbar."""
-    bar = click_extra.progressbar([1, 2, 3])
-    assert bar.hidden is False
-
-
-@pytest.mark.parametrize(
-    ("args", "label_shown"),
-    (
-        ((), True),
-        (("--no-progress",), False),
-    ),
-)
-def test_progressbar_label_emission_off_tty(invoke, args, label_shown):
-    """Off a TTY a shown bar still emits its label once; a hidden one emits nothing."""
-
-    @command
-    def cli():
-        with click_extra.progressbar([1, 2, 3], label="Brewing tea") as bar:
-            for _ in bar:
-                pass
-
-    result = invoke(cli, *args)
-    assert ("Brewing tea" in result.output) is label_shown
-
-
-@pytest.mark.parametrize(
     ("args", "draws"),
     (
         ((), True),
@@ -517,77 +406,6 @@ def test_spinner_stop_leaves_a_stalled_drawing_thread_behind(monkeypatch):
         releaser.cancel()
 
 
-def test_bar_stop_leaves_a_stalled_ticker_behind(monkeypatch):
-    """The progress bar's elapsed-clock ticker gets the same bounded stop."""
-    monkeypatch.setattr("click_extra.spinner._STOP_GRACE", 0.2)
-    stream = StallingTTY()
-    indicator = _BarIndicator(
-        label="Fetching feeds",
-        unit="feeds",
-        total=3,
-        delay=0,
-        live="always",
-        stream=stream,
-        timer=True,
-    )
-    releaser = threading.Timer(3, stream.release.set)
-    # stop() is idempotent: the exit of the block finds the bar already stopped.
-    with indicator:
-        assert indicator._ticker is not None
-        stream.stall.set()
-        assert stream.blocked.wait(3)
-        releaser.start()
-        try:
-            start = time.monotonic()
-            indicator.stop()
-            assert time.monotonic() - start < 2
-        finally:
-            stream.release.set()
-            releaser.cancel()
-
-
-@pytest.mark.parametrize(
-    ("progress_bar", "jobs", "stream_factory"),
-    (
-        pytest.param(True, 1, TTYStringIO, id="bar"),
-        pytest.param(False, 2, TTYStringIO, id="concurrent-spinner"),
-        pytest.param(False, 1, io.StringIO, id="sequential"),
-    ),
-)
-def test_interrupted_trail_closes_with_a_finisher(progress_bar, jobs, stream_factory):
-    """A Ctrl+C inside the trail still ends it on a `✘` line saying how far it
-    got, and an outcome landing afterwards prints below that line."""
-    stream = stream_factory()
-    trail = OperationTrail(
-        label="Fetching",
-        unit="feeds",
-        total=5,
-        jobs=jobs,
-        progress_bar=progress_bar,
-        live="always",
-        stream=stream,
-        timer=False,
-        delay=0,
-    )
-
-    def interrupted_batch():
-        with trail:
-            trail.mark(True, "feed-a fetched")
-            trail.mark(True, "feed-b fetched")
-            raise KeyboardInterrupt
-
-    with pytest.raises(KeyboardInterrupt):
-        interrupted_batch()
-    # A task the CLI waited on after the Ctrl+C finishes now.
-    trail.mark(True, "feed-c fetched")
-
-    plain = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
-    assert "feed-a fetched" in plain
-    finisher = f"{KO_GLYPH} Interrupted after 2/5 feeds"
-    assert finisher in plain
-    assert plain.index("feed-c fetched") > plain.index(finisher)
-
-
 SPINNING_SCRIPT = """
 import sys
 import time
@@ -625,165 +443,17 @@ def test_sigterm_shows_the_cursor_again(tmp_path):
     assert output.rfind(b"\x1b[?25h") > output.rfind(b"\x1b[?25l")
 
 
-def test_progressbar_shows_final_position_with_update_min_steps():
-    """Work around pallets/click#3571: with show_pos and an update_min_steps that
-    does not divide the length, the bar must still land on total/total instead of
-    freezing at the last multiple (14/20 for length 20, update_min_steps 7)."""
-    stream = TTYStringIO()
-    with click_extra.progressbar(
-        range(20), show_pos=True, update_min_steps=7, file=stream
-    ) as bar:
-        for _ in bar:
-            pass
-    output = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
-    assert "20/20" in output
-
-
-def test_progressbar_prints_a_log_record_above_itself(monkeypatch):
-    """A record logged while a bar draws lands on a line of its own, above it.
-
-    Click draws a bar with a carriage return and no line feed until it finishes,
-    so a record written in between continued the bar's row, after its position.
-    """
-    terminal = TTYStringIO()
-    monkeypatch.setattr(sys, "stderr", terminal)
-    handler = ExtraStreamHandler()
-    handler.stream = sys.stderr
-    logger = logging.getLogger("click_extra.test.progressbar")
-    logger.addHandler(handler)
-    logger.propagate = False
-    try:
-        with click_extra.progressbar(range(3), label="Sorting plums") as bar:
-            # Compared by identity: the registry types its entries as live lines.
-            assert id(_active_line(terminal)) == id(bar)
-            for _ in bar:
-                logger.warning("Opening the fruit basket")
-    finally:
-        logger.removeHandler(handler)
-    assert _active_line(terminal) is None
-
-    screen = TerminalScreen()
-    screen.feed(terminal.getvalue())
-    rows = [re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", row) for row in screen.rows]
-    records = [row for row in rows if "Opening the fruit basket" in row]
-    assert len(records) == 3
-    assert not [row for row in records if "Sorting plums" in row], rows
-    # The bar keeps drawing below the records, and ends there.
-    assert [row for row in rows if row.strip()][-1].startswith("Sorting plums")
-
-
-LOGGING_UNDER_A_BAR_SCRIPT = """
-import logging
-import time
-
-from click_extra import command, progressbar
-
-
-@command
-def sort_plums():
-    with progressbar(range(3), label="Sorting plums") as bar:
-        for _ in bar:
-            logging.warning("Opening the fruit basket")
-            time.sleep(0.05)
-
-
-sort_plums()
-"""
-"""A CLI logging from inside an open progress bar."""
-
-
-@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
-def test_progressbar_logging_on_a_pseudo_terminal():
-    """On a real terminal, each record a CLI logs under a bar gets its own row."""
-    frames = record_command(
-        (sys.executable, "-c", LOGGING_UNDER_A_BAR_SCRIPT), columns=80, rows=12
-    )
-    rows = [
-        re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", row).rstrip()
-        for row in frames[-1].text.splitlines()
-    ]
-    records = [row for row in rows if "Opening the fruit basket" in row]
-    assert records == ["warning: Opening the fruit basket"] * 3, rows
-    assert [row for row in rows if row][-1].startswith("Sorting plums"), rows
-
-
-def test_progressbar_draws_on_stderr_by_default():
-    """The bar draws where log records and the other live lines go."""
-    assert click_extra.progressbar([1, 2, 3]).file is sys.stderr
-    assert click_extra.progressbar([1, 2, 3], file=sys.stdout).file is sys.stdout
-
-
-def _drawn_positions(stream: TTYStringIO) -> list[str]:
-    """The `done/total` tallies a bar drew on `stream`, in order."""
-    plain = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
-    return re.findall(r"(\d+/\d+)", plain)
-
-
-def test_progressbar_draws_fast_items_once_per_interval():
-    """Items faster than the interval draw nothing between the first and the last
-    position, however many there are."""
-    stream = TTYStringIO()
-    bar = click_extra.progressbar(range(1000), show_pos=True, file=stream)
-    bar.clock = lambda: 0.0  # type: ignore[attr-defined]
-    with bar:
-        for index, _ in enumerate(bar, 1):
-            # The position moves on every step, drawn or not.
-            assert bar.pos == index - 1
-    assert _drawn_positions(stream) == ["0/1000", "1000/1000"]
-
-
-def test_progressbar_draws_every_slow_item():
-    """Items slower than the interval each draw their position: a bar over slow
-    items never looks frozen, which a gate counting items made it."""
-    stream = TTYStringIO()
-    now = [0.0]
-
-    def clock() -> float:
-        now[0] += 1.0
-        return now[0]
-
-    bar = click_extra.progressbar(range(300), show_pos=True, file=stream)
-    bar.clock = clock  # type: ignore[attr-defined]
-    with bar:
-        for _ in bar:
-            pass
-    assert _drawn_positions(stream) == [f"{done}/300" for done in range(301)]
-
-
-def test_progressbar_keeps_an_explicit_update_min_steps():
-    """A caller stating `update_min_steps` keeps Click's gate on a count of items."""
-    assert click_extra.progressbar(range(10)).time_gated is True  # type: ignore[attr-defined]
-    bar = click_extra.progressbar(range(10), update_min_steps=4)
-    assert bar.time_gated is False  # type: ignore[attr-defined]
-    assert bar.update_min_steps == 4
-
-
-def test_progressbar_show_eta_follows_time_flag():
-    """The bar's ETA follows --time by default; an explicit show_eta wins."""
-    # No command context: ETA off.
-    assert click_extra.progressbar([1, 2, 3]).show_eta is False
-    with click.Context(click.Command("noop")) as ctx:
-        # --no-time / default: no marker → off.
-        assert click_extra.progressbar([1, 2, 3]).show_eta is False
-        ctx.meta[START_TIME] = 1.0  # --time sets the marker.
-        assert click_extra.progressbar([1, 2, 3]).show_eta is True
-    # An explicit value overrides the flag.
-    assert click_extra.progressbar([1, 2, 3], show_eta=False).show_eta is False
-
-
 @pytest.mark.parametrize("term", ("dumb", "unknown"))
 def test_dumb_terminal_disables_spinner(monkeypatch, term):
     """A cursor-less terminal self-disables the spinner even on a TTY."""
     monkeypatch.setenv("TERM", term)
-    spinner = Spinner(stream=TTYStringIO())
-    assert spinner._resolve_live(spinner._resolve_stream()) is False
+    assert _can_draw("auto", TTYStringIO()) is False
 
 
 def test_live_always_overrides_dumb_terminal(monkeypatch):
     """An explicit ``live="always"`` wins over the ``TERM=dumb`` auto-detection."""
     monkeypatch.setenv("TERM", "dumb")
-    spinner = Spinner(stream=TTYStringIO(), live="always")
-    assert spinner._resolve_live(spinner._resolve_stream()) is True
+    assert _can_draw("always", TTYStringIO()) is True
 
 
 def test_decorator_runs_function_inside_spinner():
@@ -843,8 +513,7 @@ def test_resolve_color_enabled(monkeypatch, env, stream_factory, expected):
     monkeypatch.delenv("TERM", raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
-    stream = stream_factory()
-    assert Spinner(stream=stream)._resolve_color_enabled(stream) is expected
+    assert _color_enabled(stream_factory()) is expected
 
 
 def test_color_applied_on_tty(monkeypatch):
@@ -1062,7 +731,7 @@ def test_frame_lines_colors_on_request(color):
     has to state its own answer rather than inherit that one.
     """
     spinner = Spinner("Brewing tea", spinner=SPINNERS["moon"], style=Style(fg="green"))
-    assert not spinner._color_enabled
+    assert not spinner._color
     lines = spinner.frame_lines(color=color)
     assert lines
     assert all((GREEN in line) is color for line in lines)
@@ -1134,8 +803,8 @@ def test_timer_accepts_custom_formatter():
 def test_enable_windows_ansi_is_a_safe_noop():
     """The Windows VT-enable never raises: off Windows, or on a stream with no
     usable console handle (the path the spinner exercises on every platform)."""
-    Spinner._enable_windows_ansi(io.StringIO())  # No real fileno.
-    Spinner._enable_windows_ansi(sys.stderr)
+    _enable_windows_ansi(io.StringIO())  # No real fileno.
+    _enable_windows_ansi(sys.stderr)
 
 
 def test_elapsed_time_freezes_after_stop():
@@ -1230,7 +899,7 @@ def _catalog_row_count(output: str) -> int:
     Each row carries two time cells (Interval and Tour), so the count of
     ``X.Ys`` values is halved.
     """
-    plain = re.sub(r"\x1b\[[0-9;]*m", "", output)
+    plain = click.unstyle(output)
     return len(re.findall(r"\d\.\d+s", plain)) // 2
 
 
@@ -1294,56 +963,6 @@ def test_demo_spinner_options_are_mutually_exclusive(invoke):
     assert "mutually exclusive" in result.output
 
 
-def test_demo_trail_help_lists_renderings(invoke):
-    """`trail --help` documents its purpose and the rendering-selecting options."""
-    result = invoke(demo, "trail", "--help")
-    assert result.exit_code == 0
-    assert "Trace a simulated batch of operations" in result.stdout
-    for token in ("--progress-bar", "--eta", "--elapsed", "--spinner", "--jobs"):
-        assert token in result.stdout
-
-
-def test_demo_trail_rejects_unknown_spinner(invoke):
-    """An unknown --spinner name is rejected by the Choice type before any work."""
-    result = invoke(demo, "trail", "--spinner", "nope")
-    assert result.exit_code != 0
-    assert "'nope' is not one of" in result.output
-    assert "moon" in result.output  # The valid names are listed.
-
-
-@pytest.mark.parametrize(
-    "args",
-    (
-        pytest.param(("trail",), id="concurrent-spinner"),
-        pytest.param(("trail", "--jobs", "1"), id="sequential"),
-        pytest.param(("trail", "--progress-bar"), id="progress-bar"),
-        pytest.param(("trail", "--progress-bar", "--eta"), id="progress-bar-eta"),
-        # A group option, so it goes before the subcommand.
-        pytest.param(("--no-progress", "trail"), id="no-progress"),
-    ),
-)
-def test_demo_trail_prints_plain_lines_off_tty(invoke, monkeypatch, args):
-    """Every rendering runs the batch to completion and, off a TTY, prints each
-    outcome and the finisher as plain lines, with no indicator drawn."""
-    # Skip the real per-vegetable pauses so the batch completes instantly.
-    monkeypatch.setattr(time, "sleep", lambda _seconds: None)
-    result = invoke(demo, *args)
-    assert result.exit_code == 0
-    # No spinner or bar drew: either one writes a carriage return to redraw.
-    assert "\r" not in result.output
-    # Drop the timing suffix that --eta turns on, then compare the text alone.
-    lines = [
-        re.sub(r" \([^)]*\)$", "", line)
-        for line in click.unstyle(result.output).splitlines()
-    ]
-    # Concurrent workers land in any order, but the finisher always closes.
-    assert sorted(lines[:-1]) == sorted(
-        f"{OK_GLYPH} {name} roasted" if roasted else f"{KO_GLYPH} {name} scorched"
-        for name, _seconds, roasted in _TRAIL_BATCH
-    )
-    assert lines[-1] == f"{KO_GLYPH} Roasted 5/6 vegetables"
-
-
 def test_tour_duration_bounds_dwell():
     """The tour dwell aims for three cycles, clamped to [_TOUR_MIN, _TOUR_CAP],
     and never trims a huge spinner below one full cycle."""
@@ -1398,211 +1017,23 @@ def test_active_spinner_ignores_disabled_spinner():
         spinner.stop()
 
 
-def test_operation_trail_exported_from_root():
-    assert click_extra.OperationTrail is OperationTrail
-
-
-def test_trail_line_carries_themed_glyphs():
-    assert OK_GLYPH in trail_line(True, "backup saved")
-    assert "backup saved" in trail_line(True, "backup saved")
-    assert KO_GLYPH in trail_line(False, "backup failed")
-
-
-def test_sequential_trail_echoes_lines_and_finisher():
-    """A sequential batch on a TTY echoes each outcome, then a timed finisher."""
-    stream = TTYStringIO()
-    trail = OperationTrail(
-        label="Fetching", unit="feeds", total=2, stream=stream, timer=True
-    )
-    trail.mark(True, "feed-a fetched")
-    trail.mark(False, "feed-b failed")
-    trail.finish(False, "Fetched 1/2 feeds")
-    lines = stream.getvalue().splitlines()
-    assert len(lines) == 3
-    assert "feed-a fetched" in lines[0] and OK_GLYPH in lines[0]
-    assert "feed-b failed" in lines[1] and KO_GLYPH in lines[1]
-    assert re.search(r"Fetched 1/2 feeds \(\d+\.\ds\)", lines[2])
-    assert trail.ok_count == 1
-
-
-def test_sequential_trail_echoes_off_tty():
-    """A non-interactive stream gets the trail lines and finisher by default."""
-    stream = io.StringIO()
-    trail = OperationTrail(label="Fetching", unit="feeds", total=1, stream=stream)
-    trail.mark(True, "feed-a fetched")
-    trail.finish(True, "Fetched 1/1 feeds")
-    assert click.unstyle(stream.getvalue()).splitlines() == [
-        f"{OK_GLYPH} feed-a fetched",
-        f"{OK_GLYPH} Fetched 1/1 feeds",
-    ]
-    assert trail.ok_count == 1
-
-
-def test_sequential_trail_invisible_stays_silent_off_tty():
-    """`visible=False` silences the trail on a non-interactive stream too."""
-    stream = io.StringIO()
-    trail = OperationTrail(total=1, visible=False, stream=stream)
-    trail.mark(True, "feed-a fetched")
-    trail.finish(True, "Fetched 1/1 feeds")
-    assert stream.getvalue() == ""
-    # The tally is kept regardless of rendering.
-    assert trail.ok_count == 1
-
-
-def test_trail_forced_spinner_draws_on_pipe():
-    """`live="always"` animates the aggregate spinner on a non-interactive stream."""
-    stream = io.StringIO()
-    with OperationTrail(
-        label="Syncing", unit="repos", total=2, jobs=2, live="always", stream=stream
-    ) as trail:
-        assert wait_until(
-            lambda: trail._indicator is not None and trail._indicator.shown
-        )
-        assert "Syncing 0/2 repos" in click.unstyle(stream.getvalue())
-
-
-def test_sequential_trail_echo_opt_out():
-    """`echo_sequential=False` silences a sequential batch, even on a TTY."""
-    stream = TTYStringIO()
-    trail = OperationTrail(total=1, echo_sequential=False, stream=stream)
-    trail.mark(True, "done")
-    trail.finish(True, "Done 1/1")
-    assert stream.getvalue() == ""
-    assert trail.ok_count == 1
-
-
-def test_concurrent_trail_buffers_until_spinner_draws():
-    """Outcomes marked before the aggregate spinner first draws are buffered,
-    then flushed above it; the finisher becomes the spinner's kept line.
-
-    The draw delay guarantees the first mark lands before the first frame, making
-    the buffering deterministic instead of racing the animation thread.
-    """
-    stream = TTYStringIO()
-    with OperationTrail(
-        label="Syncing",
-        unit="repos",
-        total=2,
-        jobs=2,
-        delay=0.2,
-        stream=stream,
-    ) as trail:
-        # Marked before the first frame: buffered, nothing rendered yet beyond
-        # at most a frame of the spinner itself.
-        trail.mark(True, "repo-a synced")
-        assert "repo-a synced" not in stream.getvalue()
-        assert wait_until(
-            lambda: trail._indicator is not None and trail._indicator.shown
-        )
-        trail.mark(True, "repo-b synced")
-        trail.finish(True, "Synced 2/2 repos")
-    output = stream.getvalue()
-    assert "repo-a synced" in output
-    assert "repo-b synced" in output
-    assert "Synced 2/2 repos" in output
-    assert OK_GLYPH in output
-    assert trail.ok_count == 2
-
-
-def test_concurrent_trail_invisible_stays_silent():
-    """`visible=False` keeps the concurrent spinner and its buffer off screen."""
-    stream = TTYStringIO()
-    with OperationTrail(total=1, jobs=4, visible=False, stream=stream) as trail:
-        trail.mark(False, "repo-a failed")
-        trail.finish(False, "Synced 0/1 repos")
-    assert stream.getvalue() == ""
-    assert trail.ok_count == 0
-
-
 @pytest.mark.parametrize(
-    "rendering",
+    ("args", "kwargs", "expected"),
     (
-        pytest.param({"jobs": 2}, id="concurrent-spinner"),
-        pytest.param({"progress_bar": True}, id="progress-bar"),
-    ),
-)
-@pytest.mark.parametrize("finished", (True, False), ids=("finished", "left-early"))
-def test_trail_echoes_a_batch_its_indicator_never_drew(rendering, finished):
-    """A batch finishing inside `delay` still leaves its whole record on screen.
-
-    Its indicator never drew, so the lines it buffered never reached the
-    stream. A sequential batch of the same outcomes prints them, and so must
-    this one, in order: before the finisher, or on its own when the batch is
-    left without one.
-    """
-    stream = TTYStringIO()
-    with OperationTrail(
-        label="Syncing", unit="repos", total=2, delay=30.0, stream=stream, **rendering
-    ) as trail:
-        trail.mark(True, "repo-a synced")
-        trail.mark(False, "repo-b failed")
-        if finished:
-            trail.finish(False, "Synced 1/2 repos")
-    assert trail._indicator is None
-    expected = [trail_line(True, "repo-a synced"), trail_line(False, "repo-b failed")]
-    if finished:
-        expected.append(trail_line(False, "Synced 1/2 repos"))
-    assert stream.getvalue().splitlines() == expected
-
-
-@pytest.mark.parametrize(
-    ("options", "stream_class"),
-    (
-        pytest.param({"echo_sequential": False}, TTYStringIO, id="echo-opt-out"),
+        pytest.param((True,), {"color": False}, OK_GLYPH, id="success-bare"),
+        pytest.param((False,), {"color": False}, KO_GLYPH, id="failure-bare"),
+        pytest.param((True, "+"), {"color": False}, "+", id="symbol"),
         pytest.param(
-            {"echo_sequential": False}, io.StringIO, id="echo-opt-out-off-tty"
+            (False, None, Style(fg="cyan")),
+            {},
+            Style(fg="cyan")(KO_GLYPH),
+            id="style",
         ),
-        pytest.param({"visible": False}, TTYStringIO, id="invisible"),
     ),
 )
-@pytest.mark.parametrize("finished", (True, False), ids=("finished", "left-early"))
-def test_trail_leaves_nothing_for_an_undrawn_batch_without_echo(
-    options, stream_class, finished
-):
-    """The echo of an undrawn batch obeys the same gates as a sequential one."""
-    stream = stream_class()
-    with OperationTrail(total=1, jobs=2, delay=30.0, stream=stream, **options) as trail:
-        trail.mark(True, "repo-a synced")
-        if finished:
-            trail.finish(True, "Synced 1/1 repos")
-    assert stream.getvalue() == ""
-    assert trail.ok_count == 1
-
-
-@pytest.mark.parametrize(
-    "rendering",
-    (
-        pytest.param({"jobs": 2}, id="concurrent-spinner"),
-        pytest.param({"progress_bar": True}, id="progress-bar"),
-    ),
-)
-def test_trail_stays_plain_above_a_drawn_indicator_without_color(
-    monkeypatch, rendering
-):
-    """With color off, a drawn indicator's trail lines and finisher carry no SGR.
-
-    Those lines reach the stream through a raw write rather than
-    `click.echo`, so the glyph's paint and any escape embedded in the message
-    have to be stripped before the write.
-    """
-    monkeypatch.delenv("FORCE_COLOR", raising=False)
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.setattr("click_extra.color._invocation_color", False)
-    stream = TTYStringIO()
-    with OperationTrail(
-        label="Syncing", unit="repos", total=2, stream=stream, **rendering
-    ) as trail:
-        assert wait_until(
-            lambda: trail._indicator is not None and trail._indicator.shown
-        )
-        trail.mark(True, f"{Style(fg='red')('repo-a')} synced")
-        trail.mark(False, "repo-b failed")
-        trail.finish(False, "Synced 1/2 repos")
-    output = stream.getvalue()
-    assert re.search(r"\x1b\[[0-9;]*m", output) is None
-    assert f"{OK_GLYPH} repo-a synced" in output
-    assert f"{KO_GLYPH} repo-b failed" in output
-    assert f"{KO_GLYPH} Synced 1/2 repos" in output
+def test_trail_glyph(args, kwargs, expected):
+    """The glyph takes a symbol and a style in place of the theme's."""
+    assert trail_glyph(*args, **kwargs) == expected
 
 
 def test_color_resolution_reaches_worker_threads(monkeypatch):
@@ -1616,128 +1047,10 @@ def test_color_resolution_reaches_worker_threads(monkeypatch):
     monkeypatch.setattr("click_extra.color._invocation_color", False)
     stream = TTYStringIO()
     answers = []
-    worker = threading.Thread(
-        target=lambda: answers.append(
-            Spinner(stream=stream)._resolve_color_enabled(stream)
-        )
-    )
+    worker = threading.Thread(target=lambda: answers.append(_color_enabled(stream)))
     worker.start()
     worker.join()
     assert answers == [False]
-
-
-def test_concurrent_trail_marks_are_thread_safe():
-    """Concurrent mark() calls from worker threads all land in the tally."""
-    stream = TTYStringIO()
-    with OperationTrail(label="Crunching", total=32, jobs=8, stream=stream) as trail:
-        workers = [
-            threading.Thread(target=trail.mark, args=(True, f"item-{i} done"))
-            for i in range(32)
-        ]
-        for worker in workers:
-            worker.start()
-        for worker in workers:
-            worker.join()
-        trail.finish(True, "Crunched 32/32 items")
-    assert trail.ok_count == 32
-
-
-def test_concurrent_trail_uses_chosen_spinner_preset():
-    """`spinner=` picks the concurrent aggregate spinner's animation."""
-    stream = TTYStringIO()
-    preset = SPINNERS["moon"]
-    with OperationTrail(total=2, jobs=2, spinner=preset, stream=stream) as trail:
-        assert isinstance(trail._indicator, _SpinnerIndicator)
-        assert trail._indicator._spinner.frames == preset.frames
-        assert trail._indicator._spinner.interval == preset.interval
-
-
-def test_concurrent_spinner_eta_mode():
-    """clock='eta' drives the concurrent spinner's estimate from a hidden Click
-    bar (stepped per outcome), and the finisher still shows the elapsed total."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        label="Fetching",
-        unit="feeds",
-        total=4,
-        jobs=4,
-        live="always",
-        stream=stream,
-        timer=True,
-        clock="eta",
-    ) as trail:
-        indicator = trail._indicator
-        assert isinstance(indicator, _SpinnerIndicator)
-        assert indicator._eta_bar is not None  # A hidden bar drives the estimate.
-        assert indicator._spinner.timer is False  # No elapsed clock while running.
-        trail.mark(True, "feed-a fetched", seconds=0.1)
-        assert indicator._eta_bar.pos == 1  # advance() steps the hidden bar.
-        # Wait for the spinner's first frame: finish() drops its kept line when
-        # the spinner has not drawn yet (matching the delay semantics), so
-        # without this the summary races the render thread. The GIL usually
-        # serializes that race; free-threaded parallelism exposes it.
-        assert wait_until(
-            lambda: trail._indicator is not None and trail._indicator.shown
-        )
-        trail.finish(True, "Fetched 4/4 feeds")
-    # A finished batch has no ETA: the finisher carries the elapsed total.
-    assert re.search(r"Fetched 4/4 feeds \(\d", stream.getvalue())
-
-
-def test_operation_trail_appends_per_operation_timing():
-    """With timer on (the default), a `seconds` value appends each operation's
-    own duration to its trail line, independent of the others."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        total=2, jobs=1, live="always", stream=stream, timer=True
-    ) as trail:
-        trail.mark(True, "carrots roasted", seconds=2.4)
-        trail.mark(False, "leeks scorched", seconds=0.7)
-        trail.finish(trail.ok_count == 2, "Roasted 1/2 vegetables")
-    output = stream.getvalue()
-    assert "carrots roasted (2.4s)" in output
-    assert "leeks scorched (0.7s)" in output
-
-
-def test_operation_handle_times_from_its_creation():
-    """An operation() handle marks its outcome with the elapsed since it began."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        total=1, jobs=1, live="always", stream=stream, timer=True
-    ) as trail:
-        op = trail.operation()
-        op.mark(True, "carrots roasted")
-        trail.finish(True, "Roasted 1/1 vegetables")
-    # The value is wall-clock, so match the appended-clock shape, not a number.
-    assert re.search(r"carrots roasted \(\d+\.\ds\)", stream.getvalue())
-
-
-def test_operation_trail_timer_false_drops_all_timing():
-    """timer=False silences both the per-item and the finisher clock."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        total=1, jobs=1, live="always", stream=stream, timer=False
-    ) as trail:
-        trail.mark(True, "carrots roasted", seconds=2.4)
-        trail.finish(True, "Roasted 1/1 vegetables")
-    output = stream.getvalue()
-    assert "carrots roasted" in output and "(2.4s)" not in output
-    assert not re.search(r"vegetables \(\d", output)  # No finisher clock.
-
-
-def test_operation_trail_timer_callable_formats_durations():
-    """A callable timer formats the per-item durations it is handed."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        total=1,
-        jobs=1,
-        live="always",
-        stream=stream,
-        timer=lambda seconds: f"{seconds * 1000:.0f}ms",
-    ) as trail:
-        trail.mark(True, "carrots roasted", seconds=2.4)
-        trail.finish(True, "Roasted 1/1 vegetables")
-    assert "carrots roasted (2400ms)" in stream.getvalue()
 
 
 def test_resolve_timer_follows_time_flag():
@@ -1759,145 +1072,8 @@ def test_resolve_timer_follows_time_flag():
         assert _resolve_timer(None) is True
 
 
-def test_progress_bar_trail_renders_bar_and_finisher():
-    """`progress_bar=True` drives a determinate bar with outcomes above it."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        label="Fetching",
-        unit="feeds",
-        total=3,
-        progress_bar=True,
-        stream=stream,
-        timer=True,
-    ) as trail:
-        trail.mark(True, "feed-a fetched")
-        trail.mark(False, "feed-b failed")
-        trail.mark(True, "feed-c fetched")
-        trail.finish(trail.ok_count == 3, f"Fetched {trail.ok_count}/3 feeds")
-    output = stream.getvalue()
-    # Each outcome leaves its persistent trail line.
-    assert "feed-a fetched" in output and OK_GLYPH in output
-    assert "feed-b failed" in output and KO_GLYPH in output
-    # The determinate bar renders its fill and the running tally.
-    assert "###" in output  # Click's default fill_char.
-    assert "2/3" in output
-    # The finisher replaces the bar with a kept, timed summary and shows the
-    # cursor Click hid while drawing.
-    assert re.search(r"Fetched 2/3 feeds \(\d+\.\ds\)", output)
-    assert SHOW_CURSOR in output
-    assert trail.ok_count == 2
-
-
-def test_progress_bar_trail_shows_empty_bar_on_entry():
-    """The bar's 0/total state draws on entry, not only once the first outcome
-    advances it, matching the spinner indicator that animates its tally at once."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        label="Fetching", unit="feeds", total=4, progress_bar=True, stream=stream
-    ) as trail:
-        # No outcome marked yet, but the empty bar is already drawn.
-        assert trail._indicator is not None and trail._indicator.shown
-        assert "0/4" in stream.getvalue()
-        trail.mark(True, "feed-a fetched")
-    assert "1/4" in stream.getvalue()
-
-
-def test_progress_bar_clock_defaults_to_elapsed():
-    """clock='elapsed' (the default) draws a stopwatch from the start via
-    item_show_func, with Click's ETA off and a ticker to keep it moving."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        total=3, progress_bar=True, live="always", stream=stream, timer=True
-    ) as trail:
-        indicator = trail._indicator
-        assert isinstance(indicator, _BarIndicator)
-        assert indicator._bar is not None
-        assert indicator._bar.show_eta is False  # No Click ETA.
-        assert indicator._ticker is not None  # A ticker drives the clock.
-        # The elapsed clock is on screen from the start, before any outcome.
-        plain = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue())
-        assert re.search(r"0/3\s+\d\.\ds", plain)
-
-
-def test_progress_bar_clock_eta_uses_click_eta():
-    """clock='eta' keeps Click's estimated-time display and runs no ticker."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        total=3,
-        progress_bar=True,
-        live="always",
-        stream=stream,
-        timer=True,
-        clock="eta",
-    ) as trail:
-        indicator = trail._indicator
-        assert isinstance(indicator, _BarIndicator)
-        assert indicator._bar is not None
-        assert indicator._bar.show_eta is True
-        assert indicator._ticker is None
-
-
-def test_progress_bar_elapsed_clock_ticks_between_marks():
-    """The elapsed clock advances on its own between outcomes, with no mark."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        total=3, progress_bar=True, live="always", stream=stream, timer=True
-    ):
-        # No mark is made: only the ticker moves the clock past 0.0s.
-        assert wait_until(
-            lambda: bool(
-                re.search(
-                    r"0/3\s+0\.[1-9]s",
-                    re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", stream.getvalue()),
-                )
-            )
-        )
-
-
-def test_operation_trail_rejects_invalid_clock():
-    """`clock` must be 'elapsed' or 'eta'."""
-    with pytest.raises(ValueError, match='"elapsed" or "eta"'):
-        OperationTrail(
-            total=1,
-            progress_bar=True,
-            clock="nope",  # type: ignore[arg-type]
-        )
-
-
-def test_operation_trail_rejects_invalid_live():
-    """`live` must be 'auto', 'always' or 'never'."""
-    with pytest.raises(ValueError, match='"auto", "always" or "never"'):
-        OperationTrail(live="sometimes")  # type: ignore[arg-type]
-
-
-def test_invisible_trail_draws_nothing_even_when_live_always():
-    """`visible=False` wins over `live="always"`: no indicator, no line."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        total=2, jobs=2, visible=False, live="always", stream=stream
-    ) as trail:
-        trail.mark(True, "repo-a synced")
-        trail.finish(True, "Synced 1/2 repos")
-    assert stream.getvalue() == ""
-    assert trail.ok_count == 1
-
-
-def test_operation_trail_without_enabled_does_not_warn():
-    """Only a caller passing `enabled` gets the deprecation warning."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        OperationTrail(visible=False, live="never")
-
-
-def test_spinner_without_enabled_does_not_warn():
-    """Only a caller passing `enabled` gets the deprecation warning."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", DeprecationWarning)
-        Spinner(live="never")
-
-
 def test_spinner_rejects_invalid_live():
-    """`live` must be one of `LIVE_MODES`."""
+    """`live` must be one of `WHEN`."""
     with pytest.raises(ValueError, match='"auto", "always" or "never"'):
         Spinner(live="sometimes")  # type: ignore[arg-type]
 
@@ -1910,97 +1086,6 @@ def test_spinner_timer_follows_time_flag():
         ctx.meta[START_TIME] = 1.0  # Set by TimerOption under --time.
         assert Spinner().timer is True
         assert Spinner(timer=False).timer is False
-
-
-def test_progress_bar_trail_works_concurrently():
-    """`progress_bar=True` also drives a concurrent batch from worker threads."""
-    stream = TTYStringIO()
-    with OperationTrail(
-        label="Crunching",
-        unit="items",
-        total=16,
-        jobs=8,
-        progress_bar=True,
-        stream=stream,
-    ) as trail:
-        workers = [
-            threading.Thread(target=trail.mark, args=(True, f"item-{i} done"))
-            for i in range(16)
-        ]
-        for worker in workers:
-            worker.start()
-        for worker in workers:
-            worker.join()
-        trail.finish(True, "Crunched 16/16 items")
-    assert trail.ok_count == 16
-    assert "Crunched 16/16 items" in stream.getvalue()
-
-
-@pytest.mark.parametrize(
-    "rendering",
-    (
-        pytest.param({"jobs": 2}, id="concurrent-spinner"),
-        pytest.param({"progress_bar": True}, id="progress-bar"),
-    ),
-)
-@pytest.mark.parametrize(
-    ("stream_class", "term", "options"),
-    (
-        pytest.param(io.StringIO, None, {}, id="off-tty"),
-        pytest.param(TTYStringIO, "dumb", {}, id="dumb-terminal"),
-        pytest.param(TTYStringIO, None, {"live": "never"}, id="live-never"),
-    ),
-)
-def test_trail_echoes_live_where_no_indicator_draws(
-    monkeypatch, rendering, stream_class, term, options
-):
-    """Where no indicator draws, each outcome prints as soon as it is marked.
-
-    Nothing owns the live line there, so no line waits for a first frame that
-    never comes, and no cursor control reaches the stream.
-    """
-    if term:
-        monkeypatch.setenv("TERM", term)
-    stream = stream_class()
-    with OperationTrail(
-        label="Syncing", unit="repos", total=2, stream=stream, **rendering, **options
-    ) as trail:
-        trail.mark(True, "repo-a synced")
-        assert click.unstyle(stream.getvalue()) == f"{OK_GLYPH} repo-a synced\n"
-        trail.mark(False, "repo-b failed")
-        trail.finish(False, "Synced 1/2 repos")
-    output = stream.getvalue()
-    assert click.unstyle(output).splitlines() == [
-        f"{OK_GLYPH} repo-a synced",
-        f"{KO_GLYPH} repo-b failed",
-        f"{KO_GLYPH} Synced 1/2 repos",
-    ]
-    assert "\r" not in output
-    assert "\x1b[K" not in output
-    assert trail.ok_count == 1
-
-
-def test_progress_bar_requires_positive_total():
-    """A determinate bar needs a length, so `total` must be positive."""
-    with pytest.raises(ValueError, match="positive total"):
-        OperationTrail(progress_bar=True, total=0)
-
-
-def test_progress_bar_and_spinner_are_mutually_exclusive():
-    """`progress_bar` and `spinner` select different indicators; only one may win."""
-    with pytest.raises(ValueError, match="mutually exclusive"):
-        OperationTrail(progress_bar=True, total=3, spinner=SPINNERS["moon"])
-
-
-def test_progress_bar_registers_as_active_line_not_spinner():
-    """A drawing bar owns the active line (so logs cooperate), but is no spinner."""
-    stream = TTYStringIO()
-    with OperationTrail(total=3, progress_bar=True, stream=stream) as trail:
-        assert _active_line(stream) is trail._indicator
-        # active_spinner() skips a bar indicator: it is not a Spinner.
-        assert active_spinner(stream) is None
-    # The trail deregisters its indicator on exit.
-    assert _active_line(stream) is None
 
 
 CUSTOM_CSS = Path(__file__).parent.parent / "docs" / "_static" / "custom.css"
@@ -2022,7 +1107,7 @@ row. `docs/_static/custom.css` binds a subset font to exactly these.
 
 def declared_unicode_ranges() -> list[tuple[int, int]]:
     """Read the codepoint spans the documentation's stylesheet claims."""
-    css = CUSTOM_CSS.read_text(encoding="utf-8")
+    css = CUSTOM_CSS.read_text(encoding="UTF-8")
     declaration = re.search(r"unicode-range:\s*([^;]+);", css)
     assert declaration, "the stylesheet declares no unicode-range"
     spans = []

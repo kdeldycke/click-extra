@@ -22,6 +22,7 @@ import sys
 from io import StringIO
 from pathlib import Path
 from textwrap import dedent
+from types import SimpleNamespace
 
 import pytest
 from sphinx.application import Sphinx
@@ -202,7 +203,7 @@ def build_project(
     for relative, source in sources.items():
         path = srcdir / package / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(source, encoding="utf-8")
+        path.write_text(source, encoding="UTF-8")
 
     extensions = ["sphinx.ext.autodoc", "click_extra.sphinx"]
     if todo_extension:
@@ -218,14 +219,14 @@ def build_project(
     if dedupe is not None:
         conf_lines.append(f"click_extra_dedupe_todos = {dedupe!r}")
     conf_lines.extend(conf)
-    (srcdir / "conf.py").write_text("\n".join(conf_lines), encoding="utf-8")
+    (srcdir / "conf.py").write_text("\n".join(conf_lines), encoding="UTF-8")
 
     pages = {**pages, "todos": ".. todolist::\n"}
     for docname, body in pages.items():
-        (srcdir / f"{docname}.rst").write_text(body, encoding="utf-8")
+        (srcdir / f"{docname}.rst").write_text(body, encoding="UTF-8")
     toctree = "\n".join(f"   {docname}" for docname in pages)
     (srcdir / "index.rst").write_text(
-        f"Orchard\n=======\n\n.. toctree::\n\n{toctree}\n", encoding="utf-8"
+        f"Orchard\n=======\n\n.. toctree::\n\n{toctree}\n", encoding="UTF-8"
     )
 
     outdir = tmp_path / "build"
@@ -259,7 +260,7 @@ def build_orchard(tmp_path, package, pages, **options):
     in document order.
     """
     outdir, _, _ = build_project(tmp_path, package, pages, **options)
-    return TODO_SOURCE_RE.findall((outdir / "todos.html").read_text(encoding="utf-8"))
+    return TODO_SOURCE_RE.findall((outdir / "todos.html").read_text(encoding="UTF-8"))
 
 
 def unrendered_todos(warnings):
@@ -278,39 +279,34 @@ def automodule(target, no_index=False):
     return f"{target}\n{'=' * len(target)}\n\n{body}"
 
 
+def fake_node(source, line=1):
+    """A `todo` node reduced to the two attributes the identity helpers read."""
+    return SimpleNamespace(source=source, line=line)
+
+
 def test_todo_identity_ignores_the_import_path_of_a_docstring():
     """Two renderings of one docstring share an identity whatever reached it."""
-
-    class FakeNode:
-        def __init__(self, source, line):
-            self.source, self.line = source, line
-
-    through_module = FakeNode("/src/orchard/harvest.py:docstring of orchard.pick", 4)
-    through_package = FakeNode("/src/orchard/__init__.py:docstring of orchard.pick", 4)
+    through_module = fake_node("/src/orchard/harvest.py:docstring of orchard.pick", 4)
+    through_package = fake_node("/src/orchard/__init__.py:docstring of orchard.pick", 4)
     assert todo_identity(through_module) == todo_identity(through_package)
     assert todo_identity(through_module) == ("orchard.pick", 4)
 
     # A plain document keeps its path: two files may hold a todo on one line.
-    assert todo_identity(FakeNode("/src/guide.rst", 4)) == ("/src/guide.rst", 4)
-    assert todo_identity(FakeNode("/src/guide.rst", 4)) != todo_identity(
-        FakeNode("/src/other.rst", 4)
+    assert todo_identity(fake_node("/src/guide.rst", 4)) == ("/src/guide.rst", 4)
+    assert todo_identity(fake_node("/src/guide.rst", 4)) != todo_identity(
+        fake_node("/src/other.rst", 4)
     )
 
 
 def test_todo_identity_reads_the_source_form_without_a_file():
     """A source autodoc wrote without a file yields its label like one with a file."""
-
-    class FakeNode:
-        def __init__(self, source, line):
-            self.source, self.line = source, line
-
-    without_file = FakeNode("docstring of orchard.pick", 4)
-    with_file = FakeNode("/src/orchard/harvest.py:docstring of orchard.pick", 4)
+    without_file = fake_node("docstring of orchard.pick", 4)
+    with_file = fake_node("/src/orchard/harvest.py:docstring of orchard.pick", 4)
     assert todo_identity(without_file) == todo_identity(with_file)
     assert todo_identity(without_file) == ("orchard.pick", 4)
 
     # A file name holding the marker inside is a document, not a label.
-    assert todo_identity(FakeNode("/src/orchard docstring of field.rst", 4)) == (
+    assert todo_identity(fake_node("/src/orchard docstring of field.rst", 4)) == (
         "/src/orchard docstring of field.rst",
         4,
     )
@@ -330,14 +326,7 @@ def test_todo_identity_reads_the_source_form_without_a_file():
 )
 def test_is_reexport(source, expected):
     """Only a docstring reached through a package `__init__` ranks as re-exported."""
-
-    class FakeNode:
-        source = None
-        line = 1
-
-    node = FakeNode()
-    node.source = source
-    assert is_reexport(node) is expected
+    assert is_reexport(fake_node(source)) is expected
 
 
 def test_full_api_page_and_feature_page_yield_one_entry_each(tmp_path):
@@ -648,7 +637,7 @@ def test_package_modules_walks_without_importing(tmp_path, monkeypatch):
     ):
         path = package / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text('"""A grove."""\n', encoding="utf-8")
+        path.write_text('"""A grove."""\n', encoding="UTF-8")
     monkeypatch.syspath_prepend(str(tmp_path))
 
     found = [

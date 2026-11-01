@@ -10,7 +10,7 @@ project_path = Path(__file__).parent.parent.resolve()
 
 # Fetch general information about the project from pyproject.toml.
 toml_path = project_path / "pyproject.toml"
-toml_config = tomllib.loads(toml_path.read_text(encoding="utf-8"))
+toml_config = tomllib.loads(toml_path.read_text(encoding="UTF-8"))
 
 # Redistribute pyproject.toml config to Sphinx.
 project_id = toml_config["project"]["name"]
@@ -144,7 +144,7 @@ myst_enable_extensions = [
 # Substitutions exposed to MyST documents as ``{{ name }}``. Built from
 # Python data so single-source-of-truth content (like the --params column
 # registry) stays in sync between code and docs automatically.
-from click_extra.parameters import ShowParamsOption
+from click_extra.show_params import ShowParamsOption
 
 myst_substitutions = {
     "show_params_columns_table": ShowParamsOption.render_doc_table(),
@@ -447,13 +447,14 @@ def setup(app):
     example is computed live by replaying the templates in
     ``_PALETTE_EXAMPLES`` through the active dark theme's slot styling, so
     the rendered output cannot drift from the actual Theme code path —
-    tweak ``themes.toml`` and the next build picks up the new colors.
+    tweak a built-in theme in ``click_extra/theme.py`` and the next build
+    picks up the new colors.
 
     Also swaps sphinxcontrib-mermaid's ``autoclasstree`` directive for
     :class:`NoZoomClassDiagram`: conf.py is loaded as the last extension,
     so this registration wins.
     """
-    from click_extra.theme_docs import inject_slot_example_docstring
+    from click_extra.sphinx.theme_docs import inject_slot_example_docstring
 
     app.connect("autodoc-process-docstring", inject_slot_example_docstring)
 

@@ -52,8 +52,8 @@ def build(tmp_path, page, *, listed=None, suppressed=None, suffix=".rst"):
         conf.append(f"{FAIL_ON_WARNINGS_CONFIG} = {listed!r}")
     if suppressed is not None:
         conf.append(f"suppress_warnings = {suppressed!r}")
-    (srcdir / "conf.py").write_text("\n".join(conf), encoding="utf-8")
-    (srcdir / f"index{suffix}").write_text(page, encoding="utf-8")
+    (srcdir / "conf.py").write_text("\n".join(conf), encoding="UTF-8")
+    (srcdir / f"index{suffix}").write_text(page, encoding="UTF-8")
 
     outdir = tmp_path / "build"
     warnings = StringIO()

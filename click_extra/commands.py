@@ -15,9 +15,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Wraps vanilla Click and Cloup commands with extra features.
 
-Our flavor of commands, groups and context are all subclasses of their vanilla
-counterparts, but are pre-configured with good and common defaults. You can still
-use the mixins in here to build up your own custom variants.
+Click Extra's commands, groups and contexts subclass their vanilla counterparts,
+pre-configured with common defaults. The mixins here build custom variants.
 """
 
 from __future__ import annotations
@@ -25,17 +24,23 @@ from __future__ import annotations
 import importlib
 import logging
 import os
+import sys
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from gettext import gettext as _
 
 import click
 import cloup
+from click import echo
 from click.core import iter_params_for_processing
+from click.exceptions import Abort, Exit
 from cloup.formatting import ensure_is_cloup_formatter
 
 from . import context
+from ._utils import exception_chain
 from .accessibility import ACCESSIBLE_ENVVAR, AccessibleOption
-from .color import ColorOption, NoColorOption
+from .color import ColorOption, NoColorOption, resolve_color_env
 from .command_doc import HelpFormatOption, ManOption, normalize_examples
 from .config import (
     ConfigOption,
@@ -45,7 +50,7 @@ from .config import (
     ValidateConfigOption,
 )
 from .config.subcommands import _descend_to_group_config
-from .context import Context, _abort_notice, _owning_abort_notice, _scoped_run
+from .context import TABLE_FORMAT, TABLE_SORT_KEY, _scoped_run, get
 from .envvar import clean_envvar_id, param_envvar_ids
 from .execution import (
     TimerOption,
@@ -54,32 +59,38 @@ from .execution import (
     _interrupted,
     _run_end_watch,
 )
-from .highlight import HelpKeywords, _HelpColorsMixin, highlight
+from .highlight import HelpFormatter, HelpKeywords, _HelpColorsMixin, highlight
 from .logging import DebugOption, QuietOption, VerboseOption, VerbosityOption
 from .output import force_unicode_output
-from .parameters import (
-    ExtraOption,
-    ShowParamsOption,
+from .param_tools import (
     child_context,
+    iter_subcommands,
     param_spellings,
     resolve_param_help,
 )
+from .parameters import ExtraOption
+from .show_params import ShowParamsOption
 from .spinner import ProgressOption
-from .table import TableFormatOption
+from .table import print_table, render_table
+from .table_options import TableFormatOption
 from .theme import THEME_ENVVAR, ThemeOption, get_current_theme
 from .tree import TreeOption
 from .version import VersionOption
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
+    from collections.abc import Callable, Generator, Mapping, Sequence
+    from types import TracebackType
     from typing import Any, Final, NoReturn
 
+    from .table import TableFormat, THeader
     from .version import VersionScreen
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_HELP_NAMES: tuple[str, ...] = ("--help", "-h")
+"""Flags of the help option: every command's `help_option_names`, and the flags of
+{func}`~click_extra.decorators.help_option`."""
 
 DEFAULT_PRIORITY: Final[float] = 100.0
 """Implicit priority of any subcommand or option left unnumbered.
@@ -183,7 +194,7 @@ looks for it first.
 
 
 def _assign_option_groups(params: Sequence[click.Parameter]) -> None:
-    """Sort *params* into a fresh set of {data}`DEFAULT_OPTION_GROUPS`.
+    """Sort *params* into a fresh set of {data}`~click_extra.commands.DEFAULT_OPTION_GROUPS`.
 
     An option the CLI author put in a group of their own is left where they put
     it. Any other is re-filed, including one already in a section from an earlier
@@ -296,11 +307,11 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
     edge-cases care about. The help screen reads a separate presentation order,
     which the `option_priorities` argument of `@command` and `@group` reshuffles
     without touching a single callback. See
-    {meth}`~click_extra.commands.Command.param_priority`, added for
+    {meth}`~click_extra.commands.Command.param_priority` and
     [click_extra#544 issue](https://github.com/kdeldycke/click-extra/issues/544).
 
     Presentation also sorts these options into the sections
-    {data}`DEFAULT_OPTION_GROUPS` declares, drawn after the command's own
+    {data}`~click_extra.commands.DEFAULT_OPTION_GROUPS` declares, drawn after the command's own
     options. The two orders are independent: `--time` is processed first and
     rendered last.
     ```
@@ -329,6 +340,268 @@ def default_params(screen: VersionScreen | None = None) -> list[click.Option]:
     ]
     _assign_option_groups(params)
     return params
+
+
+POSIXLY_CORRECT_ENVVAR: Final[str] = "POSIXLY_CORRECT"
+"""Environment variable that requests strict POSIX argument parsing.
+
+When this variable is present in the environment (regardless of its value,
+matching GNU `getopt` semantics), {class}`Context` forces
+`allow_interspersed_args` to `False` so option parsing stops at the first
+positional argument.
+"""
+
+
+_ABORT_EXCEPTIONS: Final = (EOFError, KeyboardInterrupt, Abort)
+"""The exceptions Click's `main()` answers with `Aborted!` and the exit status `1`."""
+
+
+@dataclass
+class _AbortNotice:
+    """The `Aborted!` notice of one standalone run of a Click Extra command.
+
+    Click prints that notice once the root context has closed, so after every
+    close callback of the run. A run that owns its notice prints it as soon as
+    the abort leaves a command, before any context closes: the user reads it at
+    once, even when the clean-up is slow.
+    """
+
+    command: click.Command
+    """The command whose `main()` drives the run."""
+
+    printed_for: BaseException | None = None
+    """The abort the notice is printed for, if any."""
+
+    def covers(self, exc: BaseException | None) -> bool:
+        """Whether the notice is printed for `exc`, or for the abort `exc` stems from.
+
+        An abort keeps its notice on its way up the commands, and when a later
+        exception replaces it, like a second Ctrl+C landing in a close callback.
+        """
+        return any(link is self.printed_for for link in exception_chain(exc))
+
+
+_ABORT_NOTICE: ContextVar[_AbortNotice | None] = ContextVar(
+    "_ABORT_NOTICE", default=None
+)
+"""The notice of the run in progress, or `None` where Click prints its own."""
+
+
+@contextmanager
+def _owning_abort_notice(
+    command: click.Command, standalone: bool
+) -> Generator[None, None, None]:
+    """Make the run of `command` in the block print its own abort notice.
+
+    Only a standalone run prints one. Without standalone mode, Click raises the
+    {exc}`~click.exceptions.Abort` to the caller and prints no notice.
+    """
+    token = _ABORT_NOTICE.set(_AbortNotice(command) if standalone else None)
+    try:
+        yield
+    finally:
+        _ABORT_NOTICE.reset(token)
+
+
+@contextmanager
+def _abort_notice(ctx: click.Context) -> Generator[None, None, None]:
+    """Print Click's `Aborted!` as soon as an abort leaves the block.
+
+    Wraps the invocation of a command, which Click runs inside the context of
+    that command. The notice so precedes the close callbacks of every context of
+    the run, the innermost included.
+
+    Code that runs a command through {meth}`click.Context.invoke` never enters
+    this block, so it stays free to catch the abort and carry on.
+    """
+    try:
+        yield
+    except _ABORT_EXCEPTIONS as exc:
+        notice = _ABORT_NOTICE.get()
+        if (
+            notice is not None
+            and ctx.find_root().command is notice.command
+            and not notice.covers(exc)
+        ):
+            notice.printed_for = exc
+            if not isinstance(exc, Abort):
+                # The blank line ends the line of the `^C` the terminal echoed.
+                echo(file=sys.stderr)
+            echo(_("Aborted!"), file=sys.stderr)
+        raise
+
+
+class Context(cloup.Context):
+    """Like `cloup.Context`, but with the ability to populate the context's `meta`
+    property at instantiation.
+
+    Also pre-seeds `color` for root contexts (those without a parent) from the
+    color environment variables, so the eager help and version screens honor
+    `FORCE_COLOR`, `NO_COLOR` and their siblings (see
+    {func}`~click_extra.color.resolve_color_env`). With none of them set, `color`
+    stays at Click's `None` default, which auto-detects a TTY. Child contexts
+    inherit the color of their parent, as Click does.
+
+    When the `POSIXLY_CORRECT` environment variable is set, this context forces
+    `allow_interspersed_args` to `False` so option parsing stops at the first
+    positional argument, as GNU getopt-based tools do. See
+    {data}`~click_extra.commands.POSIXLY_CORRECT_ENVVAR`.
+
+    Carries the `sort_subcommands` setting read by
+    {meth}`click_extra.commands.Group.must_sort_subcommands`, so a whole command
+    tree can settle its subcommand listings in one place.
+
+    ```{todo}
+    Propose addition of `meta` keyword upstream to Click.
+    ```
+    """
+
+    formatter_class = HelpFormatter
+    """Use Click Extra's formatter to colorize the help screen."""
+
+    def __init__(
+        self,
+        *args: Any,
+        meta: dict[str, Any] | None = None,
+        sort_subcommands: bool | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Like parent's context but with an extra `meta` keyword-argument.
+
+        Also pre-seed `color` from the color environment variables for a parentless
+        context when the user did not provide it, and force
+        `allow_interspersed_args` to `False` when `POSIXLY_CORRECT` is set in the
+        environment.
+
+        :param sort_subcommands: whether groups list their subcommands
+            alphabetically. Inherited from the parent context when left to `None`,
+            the way Cloup inherits `align_sections`, so declaring it once on the
+            root group settles every subgroup below it.
+        """
+        super().__init__(*args, **kwargs)
+
+        # Inherit from the parent context, so a setting declared on the root group
+        # reaches subgroups that never mention it. Cloup does the same for its own
+        # `align_sections` and `show_subcommand_aliases` settings.
+        self.sort_subcommands = (
+            sort_subcommands
+            if sort_subcommands is not None
+            else getattr(self.parent, "sort_subcommands", None)
+        )
+
+        # Click defaults root `ctx.color` to `None` (GNU `auto`: keep ANSI on a
+        # TTY, strip it when piped). For a parentless context, pre-seed it from the
+        # color environment variables so the eager help and version screens, which
+        # can render before `--color` resolves, still honor `FORCE_COLOR` /
+        # `NO_COLOR`. With no recognized variable the value stays `None` (auto),
+        # and the `ColorOption` callback later layers the command line, configuration
+        # and `--accessible` on top.
+        if not self.parent and self.color is None:
+            self.color = resolve_color_env()
+
+        # Honor the POSIX conformance switch: when POSIXLY_CORRECT is present in the
+        # environment, stop parsing options at the first positional argument, the way
+        # GNU getopt-based tools do. Presence alone is enough, regardless of value.
+        # This can only tighten parsing (True -> False), never loosen it.
+        if POSIXLY_CORRECT_ENVVAR in os.environ:
+            self.allow_interspersed_args = False
+
+        # Update the context's meta property with the one provided by user.
+        if meta:
+            self._meta.update(meta)
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool | None:
+        """Like parent's `__exit__`, but ends an aborted run whose notice is printed.
+
+        {func}`_abort_notice` prints `Aborted!` before the contexts of the run
+        close. Click would print it again once the root context has closed, so
+        that context exits with Click's abort status itself.
+        """
+        notice = _ABORT_NOTICE.get()
+        # Only the exit that closes the root context ends the run.
+        if (
+            notice is None
+            or notice.printed_for is None
+            or self._depth != 1
+            or self.parent is not None
+            or self.command is not notice.command
+        ):
+            return super().__exit__(exc_type, exc_value, tb)
+        try:
+            suppressed = super().__exit__(exc_type, exc_value, tb)
+        except _ABORT_EXCEPTIONS as exc:
+            # A close callback raised an abort, like a second Ctrl+C landing there.
+            if not notice.covers(exc):
+                raise
+            raise Exit(1) from exc
+        if suppressed or not (
+            isinstance(exc_value, _ABORT_EXCEPTIONS) and notice.covers(exc_value)
+        ):
+            return suppressed
+        raise Exit(1) from exc_value
+
+    def render_table(
+        self,
+        table_data: Sequence[Sequence[str | None]],
+        headers: Sequence[THeader] | None = None,
+        table_format: TableFormat | None = None,
+        sort_key: Callable[[Sequence[str | None]], Any] | None = None,
+        **kwargs: Any,
+    ) -> str:
+        """Render a table honoring the invocation's table options, and return it.
+
+        Same contract as {func}`click_extra.table.render_table`, with
+        `table_format` and `sort_key` defaulting to the values resolved by
+        the `--table-format` and `--sort-by` options (read from
+        {data}`~click_extra.context.TABLE_FORMAT` and
+        {data}`~click_extra.context.TABLE_SORT_KEY`). `ctx.meta` is
+        shared along the context chain, so this works from any subcommand
+        without reaching for the root context. Without those options in the
+        chain, falls back to the default format and no sort.
+        """
+        if table_format is None:
+            table_format = get(self, TABLE_FORMAT)
+        if sort_key is None:
+            sort_key = get(self, TABLE_SORT_KEY)
+        return render_table(
+            table_data,
+            headers,
+            table_format=table_format,
+            sort_key=sort_key,
+            **kwargs,
+        )
+
+    def print_table(
+        self,
+        table_data: Sequence[Sequence[str | None]],
+        headers: Sequence[THeader] | None = None,
+        table_format: TableFormat | None = None,
+        sort_key: Callable[[Sequence[str | None]], Any] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Render a table honoring the invocation's table options, and print it.
+
+        The printing counterpart of {meth}`render_table`: same defaulting of
+        `table_format` and `sort_key` from the context's shared `meta`,
+        delegating to {func}`click_extra.table.print_table` (which also
+        handles ANSI translation and colorization policy).
+        """
+        if table_format is None:
+            table_format = get(self, TABLE_FORMAT)
+        if sort_key is None:
+            sort_key = get(self, TABLE_SORT_KEY)
+        print_table(
+            table_data,
+            headers,
+            table_format=table_format,
+            sort_key=sort_key,
+            **kwargs,
+        )
 
 
 class _WatchedContextMixin:
@@ -375,7 +648,7 @@ class Command(  # type: ignore[misc]
 
     def __init__(
         self,
-        *args,
+        *args: Any,
         version_fields: dict[str, Any] | None = None,
         config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
         config_strict: bool = False,
@@ -393,7 +666,7 @@ class Command(  # type: ignore[misc]
         examples: Sequence[Sequence[str]] = (),
         **kwargs: Any,
     ) -> None:
-        """List of extra parameters:
+        """Like `cloup.Command.__init__`, with Click Extra's defaults and parameters.
 
         :param version_fields: dictionary of
             `VersionOption` template field overrides forwarded to the
@@ -447,12 +720,12 @@ class Command(  # type: ignore[misc]
             arguments are never reordered, their sequence being part of the
             command's grammar.
         :param populate_auto_envvars: forces all parameters to have their auto-generated
-            environment variables registered. This address the shortcoming of `click`
-            which only evaluates them dynamically. By forcing their registration, the
-            auto-generated environment variables gets displayed in the help screen,
+            environment variables registered. This addresses the shortcoming of
+            `click` which only evaluates them dynamically. Once registered, the
+            auto-generated environment variables get displayed in the help screen,
             fixing [click#2483 issue](https://github.com/pallets/click/issues/2483).
-            On Windows, environment variable names are case-insensitive, so we normalize
-            them to uppercase.
+            On Windows, environment variable names are case-insensitive, so they are
+            normalized to uppercase.
 
         By default, these [Click context settings](https://click.palletsprojects.com/en/stable/api/#click.Context) are applied:
 
@@ -565,17 +838,15 @@ class Command(  # type: ignore[misc]
         # Merge defaults and user settings.
         default_ctx_settings.update(self.context_settings)
 
-        # If set, force extra settings on all options.
+        # Pull Click Extra's own settings out before Cloup and Click read the rest,
+        # forcing each one that is set on every option.
         for setting in EXTRA_OPTION_SETTINGS:
-            if default_ctx_settings[setting] is not None:
+            value = default_ctx_settings.pop(setting)
+            if value is not None:
                 for param in self.params:
                     # These attributes are specific to options.
                     if isinstance(param, click.Option):
-                        setattr(param, setting, default_ctx_settings[setting])
-
-        # Remove Click Extra-specific settings, before passing it to Cloup and Click.
-        for setting in EXTRA_OPTION_SETTINGS:
-            del default_ctx_settings[setting]
+                        setattr(param, setting, value)
         self.context_settings: dict[str, Any] = default_ctx_settings
 
         # Forward version template fields to the version option.
@@ -672,7 +943,7 @@ class Command(  # type: ignore[misc]
         ({meth}`format_params`), the man page and every other
         {class}`~click_extra.command_doc.HelpFormat` backend
         ({func}`~click_extra.command_doc._build_option_groups`), and the
-        completion specs ({func}`~click_extra.parameters.iter_params_for_display`)
+        completion specs ({func}`~click_extra.param_tools.iter_params_for_display`)
         all read it, so a CLI never lists its options in one order on `--help`
         and another on `--help-format man`.
         ```
@@ -693,16 +964,12 @@ class Command(  # type: ignore[misc]
     ) -> tuple[str, str]:
         """Pair a positional argument's metavar with its help text.
 
-        Reimplements `cloup.OptionGroupMixin.get_argument_help_record`, which on
-        cloup 3.x reads the text off a `cloup.Argument` and hands back an empty
-        string for any other argument. Click 8.5.0 gave `click.Argument` a `help`
-        parameter of its own, so a plain `click.argument(..., help=...)` earns a
-        `Positional arguments` entry and renders blank under that rule.
-
-        Resolution goes through {func}`~click_extra.parameters.resolve_param_help`,
-        the same helper the man page and every other
-        {class}`~click_extra.command_doc.HelpFormat` backend reads, so an operand
-        carries one description whatever renders it.
+        Reimplements `cloup.OptionGroupMixin.get_argument_help_record`, which reads
+        the `help` attribute as is. Resolution goes through
+        {func}`~click_extra.param_tools.resolve_param_help` instead, the same helper
+        the man page and every other {class}`~click_extra.command_doc.HelpFormat`
+        backend reads, so an operand carries one description whatever renders it.
+        An argument without help gets an empty string, not `None`.
         """
         return arg.make_metavar(ctx=ctx), resolve_param_help(arg, ctx) or ""
 
@@ -713,8 +980,8 @@ class Command(  # type: ignore[misc]
         {meth}`split_option_groups` computes, and to title the ungrouped section
         against the groups the CLI author declared alone. Cloup picks that title
         by counting every visible group, click-extra's included, so a command
-        carrying the default options would never show a plain `Options` heading
-        again.
+        carrying the default options would otherwise never show a plain `Options`
+        heading.
         """
         formatter = ensure_is_cloup_formatter(formatter)
 
@@ -726,9 +993,7 @@ class Command(  # type: ignore[misc]
         own_groups, extra_groups = self.split_option_groups()
         default_group = self.get_default_option_group(
             ctx,
-            is_the_only_visible_option_group=not any(
-                not group.hidden for group in own_groups
-            ),
+            is_the_only_visible_option_group=all(group.hidden for group in own_groups),
         )
         sections.extend(
             self.make_option_group_help_section(group, ctx)
@@ -801,7 +1066,7 @@ class Command(  # type: ignore[misc]
         """Like parent's `invoke`, but prints the `Aborted!` of an abort at once.
 
         Click prints it once the root context has closed, so after every close
-        callback. See `click_extra.context._abort_notice`.
+        callback. See `_abort_notice`.
         """
         with _abort_notice(ctx):
             return super().invoke(ctx)
@@ -813,14 +1078,13 @@ class Command(  # type: ignore[misc]
         parent: click.Context | None = None,
         **extra: Any,
     ) -> Any:
-        """Intercept the call to the original `click.core.Command.make_context` so
-        we can keep a copy of the raw, pre-parsed arguments provided to the CLI.
+        """Like parent's `make_context`, but seeds `ctx.meta` with the raw arguments.
 
-        The result are passed to our own `Context` constructor which is able to
-        initialize the context's `meta` property under our own
-        {data}`click_extra.context.RAW_ARGS` entry. This will be used in
-        `ShowParamsOption.print_params()` to print the table of parameters fed to the
-        CLI.
+        A copy of the raw, pre-parsed arguments goes under
+        {data}`~click_extra.context.RAW_ARGS`, which
+        {meth}`~click_extra.show_params.ShowParamsOption.print_params` re-parses to
+        draw the `--params` table. A root context also records the name the CLI was
+        invoked under, as {data}`~click_extra.context.INVOCATION_NAME`.
 
         ```{seealso}
         See {data}`click_extra.context.RAW_ARGS` for the full rationale and
@@ -834,7 +1098,7 @@ class Command(  # type: ignore[misc]
         # `info_name` is not the name the binary was invoked under.
         if parent is None:
             meta[context.INVOCATION_NAME] = info_name
-        extra.update({"meta": meta})
+        extra["meta"] = meta
         return super().make_context(info_name, args, parent, **extra)
 
     def format_examples(
@@ -893,12 +1157,12 @@ class Command(  # type: ignore[misc]
         """Settle the presentation options before any eager one renders.
 
         Click sorts eager options by their command-line position and puts the ones
-        *not* typed last, so any option that renders and exits — `--help`,
-        `--version`, `--man`, `--show-params` — is processed before every eager
-        option the user did not also type. `--color`, `--no-color`, `--accessible`
-        and `--theme` would therefore pin their state too late: the screen has
-        already rendered. This pre-pass resolves them ahead of the regular parameter
-        loop, so the choice reaches those screens whatever its position.
+        *not* typed last, so any option that renders and exits (`--help`,
+        `--version`, `--man`, `--params`) is processed before every eager option
+        the user did not also type. `--color`, `--no-color`, `--accessible` and
+        `--theme` would therefore pin their state too late: the screen has already
+        rendered. This pre-pass resolves them ahead of the regular parameter loop,
+        so the choice reaches those screens whatever its position.
 
         {class}`~click_extra.accessibility.AccessibleOption` is resolved first,
         because it works by *lowering the `--color` default* through the context's
@@ -906,6 +1170,8 @@ class Command(  # type: ignore[misc]
         leave the lowered default unread. Its global `ACCESSIBLE` environment
         variable triggers the pre-pass as well: the flag is absent from the command
         line in that case, which is exactly the sorting hole described above.
+        Accessible mode advertises itself as equivalent to `--no-color`, so
+        `--accessible --version` has to render a screen free of ANSI codes.
 
         {class}`~click_extra.theme.ThemeOption` is resolved last, and for the same
         reason it is resolved at all: a palette whose only observable effect is the
@@ -916,22 +1182,11 @@ class Command(  # type: ignore[misc]
         `<CLI>_COLOR` and `<CLI>_NO_COLOR` variables Click derives for the color
         options trigger it for the same reason.
 
-        Skipping accessible mode here used to be deliberate, on the grounds that it
-        matched the scope of the environment pre-seed in
-        {meth}`click_extra.context.Context.__init__` (which settles `FORCE_COLOR` /
-        `NO_COLOR` at context-construction time). That reasoning does not survive
-        contact with the contract {class}`~click_extra.accessibility.AccessibleOption`
-        advertises — "equivalent to passing `--no-color`" — nor with who is harmed
-        when it goes unhonored: `--accessible --version` emitted a screen full of
-        ANSI to the one audience that asked for none. Configuration files stay out,
-        having no such promise to keep.
-
         ```{note}
         Every group is resolved a second time by `super().parse_args()`. Their
         callbacks are idempotent (no env-var side effects, no prompt, and a
         `setdefault` on the `default_map`), so re-running them lands the exact same
-        state, and {meth}`click_extra.parameters.ExtraOption.handle_parse_result`
-        skips its source pre-record once the slot already carries one.
+        state.
 
         That second pass is also what keeps a configuration file authoritative
         over the environment for `--theme`: this pre-pass runs before
@@ -967,11 +1222,10 @@ class Command(  # type: ignore[misc]
         envvars = set()
         if accessible_params:
             envvars.add(ACCESSIBLE_ENVVAR)
-        for color_param in color_params:
-            envvars.update(param_envvar_ids(color_param, ctx))
-        for theme_param in theme_params:
+        if theme_params:
             envvars.add(THEME_ENVVAR)
-            envvars.update(param_envvar_ids(theme_param, ctx))
+        for param in (*color_params, *theme_params):
+            envvars.update(param_envvar_ids(param, ctx))
         if not on_cli and not any(var in os.environ for var in envvars):
             return
 
@@ -1036,8 +1290,8 @@ def _enhance_short_option_error(
     """Re-raise *exc* with the full token and close-match suggestions when
     appropriate, or re-raise it unchanged.
 
-    Click's parser treats `-dbgwrong` as stacked short flags ``-d -b -g -w
-    -r -o -n -g``, then reports "No such option: -d" on the first unregistered
+    Click's parser treats `-dbgwrong` as stacked short flags `-d -b -g -w -r -o
+    -n -g`, then reports "No such option: -d" on the first unregistered
     character. That is technically correct (short-option combining is POSIX
     behavior) but confusing when the user meant it as a single option name.
 
@@ -1053,18 +1307,13 @@ def _enhance_short_option_error(
     the right message.
 
     ```{seealso}
-    - Upstream issue: https://github.com/pallets/click/issues/2779
+    - Upstream issue: [pallets/click#2779](https://github.com/pallets/click/issues/2779).
     - `_match_short_opt` in Click's `parser.py` raises `NoSuchOption`
       with only the single failed character.
     - `_match_long_opt` already provides `get_close_matches` suggestions,
       but its exception is discarded when `_process_opts` falls through to
       the short-option path.
-    - Upstream docs PR: https://github.com/pallets/click/pull/3179
-    - Rejected upstream code PRs (all tried to patch `parser.py` instead of
-      adding the requested docs):
-      https://github.com/pallets/click/pull/3207 ,
-      https://github.com/pallets/click/pull/3236 ,
-      https://github.com/pallets/click/pull/3339
+    - Upstream docs: [pallets/click#3179](https://github.com/pallets/click/pull/3179).
     ```
     """
     option_name = exc.option_name
@@ -1113,7 +1362,7 @@ class ColorizedCommand(  # type: ignore[misc]
     """Click Command with help colorization but no extra params.
 
     Mixes in `_HelpColorsMixin` for keyword
-    highlighting and uses {class}`~click_extra.context.Context` for the colorized
+    highlighting and uses {class}`Context` for the colorized
     formatter, without inheriting from `Command` (which would inject
     `default_params`).
 
@@ -1139,7 +1388,16 @@ class ColorizedGroup(  # type: ignore[misc]
     context_class: type[cloup.Context] = Context
 
 
-class HelpCommand(ColorizedCommand):
+class _InjectedCommand(ColorizedCommand):
+    """A subcommand a group registers on its own, like `help`.
+
+    {class}`Group` treats it apart from the subcommands the CLI author declares:
+    registering one of theirs under the same name replaces it, and a listing in
+    registration order puts it last.
+    """
+
+
+class HelpCommand(_InjectedCommand):
     """Synthetic subcommand that displays help for the parent group or a subcommand.
 
     Auto-injected into every `Group`. Supports nested resolution:
@@ -1177,12 +1435,11 @@ class HelpCommand(ColorizedCommand):
                 )
             resolved = target_cmd.get_command(target_ctx, name)
             if resolved is None:
-                # Deferred import: keeps difflib off the startup path of every CLI.
-                from difflib import get_close_matches
-
+                # Click picks the close matches out of the listing, which names
+                # the lazy subcommands not imported yet too.
                 raise click.NoSuchCommand(
                     name,
-                    possibilities=get_close_matches(name, target_cmd.commands),
+                    possibilities=target_cmd.list_commands(target_ctx),
                     ctx=parent_ctx,
                 )
             target_ctx = child_context(resolved, target_ctx, name)
@@ -1220,12 +1477,15 @@ class HelpCommand(ColorizedCommand):
         prefix: str,
         results: list[tuple[str, str]],
     ) -> None:
-        """Recursively search a group's subcommands."""
-        for sub_name in group.list_commands(group_ctx):
+        """Recursively search a group's subcommands.
+
+        Walks the subcommands every rendering of the tree lists (see
+        {func}`~click_extra.param_tools.iter_subcommands`), so a hidden one stays
+        out of the results. Each is read under a child context that processes
+        none of its parameters, so a search runs no callback.
+        """
+        for sub_name, sub_cmd in iter_subcommands(group, group_ctx):
             if sub_name == "help":
-                continue
-            sub_cmd = group.get_command(group_ctx, sub_name)
-            if sub_cmd is None:
                 continue
 
             cmd_path = f"{prefix}{sub_name}" if prefix else sub_name
@@ -1237,7 +1497,7 @@ class HelpCommand(ColorizedCommand):
 
             # Check each parameter.
             for param in sub_cmd.get_params(sub_ctx):
-                opts_str = " / ".join(getattr(param, "opts", []))
+                opts_str = " / ".join(param.opts)
                 help_str = getattr(param, "help", None) or ""
                 combined = f"{opts_str}  {help_str}".strip()
                 if term_lower in combined.lower():
@@ -1255,7 +1515,7 @@ class HelpCommand(ColorizedCommand):
 
 
 def _make_help_command() -> HelpCommand:
-    """Create the synthetic `help` subcommand for an `Group`."""
+    """Create the synthetic `help` subcommand for a `Group`."""
     return HelpCommand(
         name="help",
         help="Show help for a command.",
@@ -1341,13 +1601,32 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         """
         return self.subcommand_priorities.get(name, DEFAULT_PRIORITY)
 
-    def _registered_subcommands(self, ctx: click.Context) -> list[str]:
+    def _registered_subcommands(self) -> list[str]:
         """Subcommand names in registration order, before any ordering is applied.
 
         The extension point {class}`LazyGroup` overrides to fold in the subcommands
         it has not imported yet.
         """
         return list(self.commands)
+
+    def _resolve_subcommand(self, name: str) -> click.Command | None:
+        """The subcommand registered under *name*, or `None`, with no context.
+
+        The extension point {class}`LazyGroup` overrides to import a subcommand it
+        has not loaded yet. Unlike {meth}`get_command`, it needs no context, so it
+        serves the code running ahead of one, like the personality dispatch of
+        {class}`~click_extra.multicall.MulticallGroup`.
+        """
+        return self.commands.get(name)
+
+    def listed_command(self, ctx: click.Context, name: str) -> click.Command | None:
+        """The command the help screen describes under *name*: the subcommand.
+
+        The extension point {class}`LazyGroup` overrides to describe a lazy
+        subcommand by the help it declares, without importing it. The keyword
+        highlighting of the help screen reads the subcommands through here.
+        """
+        return self.get_command(ctx, name)
 
     def list_commands(self, ctx: click.Context) -> list[str]:
         """Subcommand names in presentation order.
@@ -1358,20 +1637,20 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         leaving the tie-break as the only ordering, which is Click's plain
         alphabetical listing.
 
-        In registration order the auto-injected `help` subcommand is listed last,
-        wherever it happens to have been registered: `Group.__init__` appends it
-        before any `@cli.command()` decorator runs, while a `commands=[…]`
-        constructor argument lands it after, so its natural position says nothing
-        about the author's intent. Mirrors what `extra_option_at_end` does to
-        options.
+        In registration order the auto-injected subcommands, like `help`, are
+        listed last, wherever they happen to have been registered: `Group.__init__`
+        appends `help` before any `@cli.command()` decorator runs, while a
+        `commands=[…]` constructor argument lands it after, so its natural position
+        says nothing about the author's intent. Mirrors what `extra_option_at_end`
+        does to options.
         """
-        names = self._registered_subcommands(ctx)
+        names = self._registered_subcommands()
         if self.must_sort_subcommands(ctx):
             names = sorted(names)
         else:
             names = sorted(
                 names,
-                key=lambda name: isinstance(self.commands.get(name), HelpCommand),
+                key=lambda name: isinstance(self.commands.get(name), _InjectedCommand),
             )
         # Stable, so subcommands sharing a priority keep the order settled above.
         return sorted(names, key=self.subcommand_priority)
@@ -1419,23 +1698,21 @@ class Group(Command, cloup.Group):  # type: ignore[misc]
         name: str | None = None,
         **kwargs: Any,
     ) -> None:
-        """Like `cloup.Group.add_command`, but replaces an auto-injected
-        `HelpCommand` when the user registers their own `help` subcommand.
+        """Like `cloup.Group.add_command`, but a subcommand of the author's replaces
+        an auto-injected one of the same name, like the `help` subcommand.
         """
         cmd_name = name or cmd.name
-        if cmd_name and cmd_name in self.commands:
-            existing = self.commands[cmd_name]
-            if isinstance(existing, HelpCommand) and not isinstance(cmd, HelpCommand):
-                # Remove the auto-injected help from its Cloup section so the
-                # user's command can take its place without a duplicate error.
-                for section in self._user_sections:
-                    if cmd_name in section.commands:
-                        del section.commands[cmd_name]
-                        break
-                else:
-                    if cmd_name in self._default_section.commands:
-                        del self._default_section.commands[cmd_name]
-                del self.commands[cmd_name]
+        if (
+            cmd_name
+            and isinstance(self.commands.get(cmd_name), _InjectedCommand)
+            and not isinstance(cmd, _InjectedCommand)
+        ):
+            # Remove the injected command from its Cloup section, so the author's
+            # can take its place without a duplicate error.
+            for section in (*self._user_sections, self._default_section):
+                if section.commands.pop(cmd_name, None) is not None:
+                    break
+            del self.commands[cmd_name]
         super().add_command(cmd, name, **kwargs)
 
 
@@ -1467,6 +1744,15 @@ class LazySubcommand:
     Set to `False` to leave the subcommand out of every section, which hides it from
     the help screen while keeping it invocable. Cloup calls this an escape hatch for
     internal code: do not disable it unless you know what you are doing.
+    """
+
+    short_help: str | None = None
+    """The first paragraph of the subcommand's help, for the help screen to list.
+
+    Declared, it lets the group's help screen list the subcommand without importing
+    it: the listing shortens it the way it shortens the help of an imported
+    subcommand, so the line reads the same before and after the import. Left to
+    `None`, drawing the help screen imports the subcommand to read its help.
     """
 
 
@@ -1505,7 +1791,7 @@ class LazyGroup(Group):
         ```
 
         A subcommand needing registration settings on top of its import path is
-        declared with a {class}`LazySubcommand` instead of a bare string:
+        declared with a {class}`~click_extra.commands.LazySubcommand` instead of a bare string:
 
         .. code-block:: python
 
@@ -1528,7 +1814,19 @@ class LazyGroup(Group):
             if spec.section is not None and spec.section not in self._section_set:
                 self.add_section(spec.section)
 
-    def _registered_subcommands(self, ctx: click.Context) -> list[str]:
+        # A subcommand declaring its help is listed by a stand-in until imported.
+        # It sits in the section the subcommand is filed under, never in
+        # `self.commands`, so resolving the name still imports the real one.
+        self._stand_ins: dict[str, click.Command] = {}
+        for name, spec in self.lazy_subcommands.items():
+            if spec.short_help is None or name in self.commands:
+                continue
+            stand_in = click.Command(name, help=spec.short_help)
+            self._stand_ins[name] = stand_in
+            if spec.section is not None or spec.fallback_to_default_section:
+                self._add_command_to_section(stand_in, name, spec.section)
+
+    def _registered_subcommands(self) -> list[str]:
         """Like the parent, but folding in the not-yet-imported subcommands.
 
         A lazily-declared subcommand holds the same slot whether or not
@@ -1544,6 +1842,17 @@ class LazyGroup(Group):
         eager = [name for name in self.commands if name not in self.lazy_subcommands]
         return eager + list(self.lazy_subcommands)
 
+    def _resolve_subcommand(self, name: str) -> click.Command | None:
+        """Like the parent, but importing a lazy subcommand not loaded yet.
+
+        Registration goes through {meth}`_register_lazy`, so the subcommand lands
+        in the section it was declared with. No configuration is applied to it:
+        that takes the context {meth}`get_command` receives.
+        """
+        if name in self.lazy_subcommands and name not in self.commands:
+            return self._register_lazy(name)
+        return super()._resolve_subcommand(name)
+
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         """Get a command by name, loading lazily if necessary."""
         if cmd_name in self.lazy_subcommands and cmd_name not in self.commands:
@@ -1554,14 +1863,29 @@ class LazyGroup(Group):
 
         return super().get_command(ctx, cmd_name)
 
+    def listed_command(self, ctx: click.Context, name: str) -> click.Command | None:
+        """Like the parent, but describing a lazy subcommand not imported yet by
+        the stand-in its {attr}`~LazySubcommand.short_help` builds."""
+        if name in self._stand_ins and name not in self.commands:
+            return self._stand_ins[name]
+        return super().listed_command(ctx, name)
+
     def _register_lazy(self, cmd_name: str) -> click.Command:
         """Import `cmd_name` and register it with the settings it was declared with.
 
         The single place a lazy subcommand enters the group, so a settings-carrying
-        {class}`LazySubcommand` reaches Cloup whichever route triggered the import.
+        {class}`~click_extra.commands.LazySubcommand` reaches Cloup whichever route triggered the import.
         """
         spec = self.lazy_subcommands[cmd_name]
         cmd_object = self._lazy_load(cmd_name)
+        # A stand-in listed the subcommand so far: the subcommand takes its slot,
+        # so the help screen keeps listing it in the same place of its section.
+        stand_in = self._stand_ins.get(cmd_name)
+        for section in (*self._user_sections, self._default_section):
+            if stand_in is not None and section.commands.get(cmd_name) is stand_in:
+                section.commands[cmd_name] = cmd_object
+                self.add_command(cmd_object, fallback_to_default_section=False)
+                return cmd_object
         # Register with Click's API so help and Cloup sections work properly.
         self.add_command(
             cmd_object,

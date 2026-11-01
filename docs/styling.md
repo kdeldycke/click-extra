@@ -1,6 +1,6 @@
 # {octicon}`typography` Styling
 
-Click Extra ships its own `Style` class as a drop-in replacement for [`cloup.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style) (which itself wraps [`click.style`](https://click.palletsprojects.com/en/stable/api/#click.style)). The runtime contract (calling the instance to apply styling, equality, hashing, `with_()`) is identical to cloup's; everything below is purely additive ergonomics.
+Click Extra ships its own `Style` class as a drop-in replacement for [`cloup.Style`](https://cloup.readthedocs.io/en/stable/autoapi/cloup/styling/index.html#cloup.styling.Style) (which itself wraps [`click.style`](https://click.palletsprojects.com/en/stable/api/#click.style)). The runtime contract (calling the instance to apply the style, equality, hashing) is identical to cloup's; everything below is purely additive ergonomics.
 
 The class lands automatically when you do `from click_extra import Style`: `__init__.py` re-exports it after `from cloup import *` so the click-extra version takes precedence.
 
@@ -261,26 +261,30 @@ Click Extra uses this internally to gate the [WCAG legibility floor and AA Large
 
 ## Equality and hash
 
-`Style` overrides cloup's `__eq__` and `__hash__` to skip the lazily-populated `_style_kwargs` cache, so two otherwise-identical styles compare equal whether or not either has been called yet:
+A `Style` compares equal to the `cloup.Style` carrying the same fields, and hashes the same, so the two classes mix in sets and dict keys:
 
 ```{python:run}
+import cloup
+
 from click_extra import Style
 
-a = Style(fg="red", bold=True)
-b = Style(fg="red", bold=True)
-print(a == b)  # True even though neither was called yet
-a("trigger cache")  # Populate `a`'s lazy cache.
-print(a == b)  # Still True; the cache is excluded from equality.
-print(hash(a) == hash(b))
+ours = Style(fg="red", bold=True)
+theirs = cloup.Style(fg="red", bold=True)
+
+assert ours == theirs
+assert theirs == ours
+assert hash(ours) == hash(theirs)
+assert len({ours, theirs}) == 1
+print(ours == theirs)
 ```
 
 ## Shared dataclass round-trip helpers
 
-The serialization machinery `Style.to_dict` / `from_dict` relies on three small module-level helpers that codify "walk dataclass fields, skip the cloup `_style_kwargs` cache, skip default-valued fields, raise on unknown keys". They're public so other dataclass-shaped values in click-extra (notably [`HelpTheme`](theme.md)) can reuse them, and so downstream code with similar patterns can build on the same primitives.
+The serialization machinery `Style.to_dict` / `from_dict` relies on two small module-level helpers that codify "walk dataclass fields, skip default-valued fields, raise on unknown keys". They're public so other dataclass-shaped values in click-extra (notably [`HelpTheme`](theme.md)) can reuse them, and so downstream code with similar patterns can build on the same primitives.
 
 ### `fields_to_dict(instance, *, encode=…, keep=…)`
 
-Walks every field via `dataclasses.fields`, applies an optional `keep(field, value) -> bool` filter (default keeps every non-default field), and passes the surviving values through an `encode(field, value) -> encoded_value` callback (default identity):
+Walks every field via `dataclasses.fields`, skips the ones still holding their default, applies an optional `keep(field, value) -> bool` filter to the rest (default keeps them all), and passes the surviving values through an `encode(field, value) -> encoded_value` callback (default identity):
 
 ```{python:run}
 from dataclasses import dataclass
@@ -347,4 +351,14 @@ except TypeError as exc:
    :members:
    :undoc-members:
    :show-inheritance:
+```
+
+## `click_extra.ansi` API
+
+```{eval-rst}
+.. automodule:: click_extra.ansi
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
 ```

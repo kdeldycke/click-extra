@@ -13,11 +13,11 @@
 [[cases]]
 cli_parameters = "--version"
 exit_code = 0
-# click-extra 8.0's --color=auto strips color on captured (non-TTY)
-# output, so the version line is plain text. strip_ansi stays robust.
+# --color=auto strips color from captured (non-TTY) output, so the version line
+# is plain text already: strip_ansi keeps the case robust all the same.
 strip_ansi = true
 # FORCE_COLOR switches --version to the VersionScreen, which draws the logo
-# over several lines and no longer matches the one-line fullmatch below. So a
+# over several lines and would not match the one-line fullmatch below. So a
 # maintainer with it exported would see this case fail on their machine only:
 # take it away rather than depend on the shell running the suite.
 unset_env = "FORCE_COLOR"

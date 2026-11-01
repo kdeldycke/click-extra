@@ -27,8 +27,9 @@ import re
 from contextlib import contextmanager
 
 import click
+from click.core import ParameterSource
 
-from ._utils import IS_WINDOWS, flatten
+from ._utils import IS_WINDOWS, flatten, parse_bool
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -49,19 +50,35 @@ def parse_envvar_flag(value: str) -> bool:
     """Read an environment flag's value as a boolean, permissively.
 
     The single interpretation shared by the flag-like variables Click Extra reads
-    by hand as booleans (`ACCESSIBLE`, `DO_NOT_TRACK`): the value is parsed
-    through {attr}`~configparser.ConfigParser.BOOLEAN_STATES`, and anything
-    unparsable counts as activation, the empty string included: the variable's
-    bare presence is the signal. The color variables are not read this way: each
-    follows its own convention, see {func}`~click_extra.color.resolve_color_env`.
+    by hand as booleans (`ACCESSIBLE`, `DO_NOT_TRACK`): the value is read as one
+    of the boolean spellings {attr}`~configparser.ConfigParser.BOOLEAN_STATES`
+    lists, in any case and with surrounding whitespace ignored, and anything else
+    counts as activation, the empty string included: the variable's bare presence
+    is the signal. The color variables are not read this way: each follows its
+    own convention, see {func}`~click_extra.color.resolve_color_env`.
 
     Callers handle presence themselves: pass the value only when the variable
     is set, an unset variable being no vote at all.
     """
-    # Deferred import: keeps configparser off the startup path of every CLI.
-    from configparser import RawConfigParser
+    return parse_bool(value) is not False
 
-    return RawConfigParser.BOOLEAN_STATES.get(value.lower(), True)
+
+def machine_envvars_apply(ctx: click.Context, param: click.Parameter) -> bool:
+    """Whether the machine-wide environment variables may set the value of `param`.
+
+    A machine-wide variable speaks for every CLI on the machine, like
+    `ACCESSIBLE`, `CLICK_EXTRA_THEME` or `NO_COLOR`. It fills in only where
+    nothing more specific set the value: the command line, the variable of the
+    option itself and a configuration file each outrank it. So it applies only
+    while `param` holds its built-in default.
+
+    Call it from the callback of `param`, once Click recorded where the value
+    came from.
+    """
+    return (
+        param.name is not None
+        and ctx.get_parameter_source(param.name) is ParameterSource.DEFAULT
+    )
 
 
 def normalize_envvar_id(envvar_id: str) -> str:
@@ -83,7 +100,7 @@ def merge_envvar_ids(*envvar_ids: TEnvVarID | TNestedEnvVarIDs) -> tuple[str, ..
     Variable names are deduplicated while preserving their initial order.
 
     ```{caution}
-    [On Windows, environment variable names are case-insensitive](https://docs.python.org/3/library/os.html#os.environ), so we [normalize them to uppercase as the standard library does](https://github.com/python/cpython/blob/3.14/Lib/os.py#L770-L782).
+    [On Windows, environment variable names are case-insensitive](https://docs.python.org/3/library/os.html#os.environ), so they are [normalized to uppercase as the standard library does](https://github.com/python/cpython/blob/3.14/Lib/os.py#L770-L782).
     ```
 
     Returns a tuple of strings. The result is ready to be used as the `envvar`
@@ -104,7 +121,7 @@ def clean_envvar_id(envvar_id: str) -> str:
     join them with an underscore and uppercase the result.
 
     ```{attention}
-    We do not rely too much on this utility to try to reproduce the [current behavior of Click, which is not consistent regarding case-handling of environment variable](https://github.com/pallets/click/issues/2483).
+    This utility does not try to reproduce the [current behavior of Click, which is not consistent regarding case-handling of environment variable](https://github.com/pallets/click/issues/2483).
     ```
     """
     return "_".join(p for p in re.split(r"[^a-zA-Z0-9]+", envvar_id) if p).upper()
@@ -185,11 +202,12 @@ def temporary_env(
                 os.environ[var] = value
 
 
-def env_copy(extend: TEnvVars | None = None) -> TEnvVars | None:
-    """Returns a copy of the current environment variables and eventually `extend` it.
+def env_copy(extend: TEnvVars | None = None) -> dict[str, str] | None:
+    """Returns a copy of the current environment variables, updated with `extend`.
 
     Mimics [Python's original implementation](https://github.com/python/cpython/blob/3.14/Lib/subprocess.py#L1907-L1908) by
-    returning `None` if no `extend` content are provided.
+    returning `None` when `extend` is empty or missing, so a child process
+    inherits the environment unchanged.
 
     A `None` value removes its variable from the copy instead of setting it,
     which is the only way to hide an inherited variable from a child process:
@@ -197,23 +215,14 @@ def env_copy(extend: TEnvVars | None = None) -> TEnvVars | None:
     (see {func}`parse_envvar_flag`) counts that as activation. Same convention
     as {meth}`click.testing.CliRunner.invoke`'s own `env` argument, and the
     reason {data}`TEnvVars` values are typed optional.
-
-    Environment variables are expected to be a `dict` of `str:str | None`.
     """
-    if isinstance(extend, dict):
-        for k, v in extend.items():
-            assert isinstance(k, str)
-            assert v is None or isinstance(v, str)
-    else:
-        assert not extend
-    env_copy: TEnvVars | None = None
-    if extend:
-        # By casting to dict we make a copy and prevent the modification of the
-        # global environment.
-        env_copy = dict(os.environ)
-        for name, value in extend.items():
-            if value is None:
-                env_copy.pop(name, None)
-            else:
-                env_copy[name] = value
-    return env_copy
+    if not extend:
+        return None
+    # A copy, so the process environment is never modified.
+    env = dict(os.environ)
+    for name, value in extend.items():
+        if value is None:
+            env.pop(name, None)
+        else:
+            env[name] = value
+    return env

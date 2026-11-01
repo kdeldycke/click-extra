@@ -49,7 +49,7 @@ Detection reads two environment variables and uses the first that resolves:
 1. **`CLITHEME`** follows the [cli-theme](https://wiki.tau.garden/cli-theme) convention. A `dark` or `light` value (optionally a `mode:variant` like `dark:solarized`) is a deliberate override and wins outright; `auto` falls through.
 2. **`COLORFGBG`** is set by a few terminals (rxvt, Konsole) and cached by [shell-term-background](https://github.com/rocky/shell-term-background) at shell startup; the background is the last `;`-separated field. It is read last because it is frequently stale: it reflects the value when the terminal launched and is not refreshed when you switch themes.
 
-When none of them resolves, `auto` falls back to `dark`, so Click Extra's default is preserved. The `--theme` *default* itself stays `dark`: a CLI that never asks for `auto` renders exactly as before. The value is listed among the choices in `--help` and offered by shell completion all the same, since every Click Extra CLI takes it whether or not its author thought about it.
+When none of them resolves, `auto` falls back to `dark`, so Click Extra's default is preserved. The `--theme` *default* itself stays `dark`: a CLI that never asks for `auto` keeps the `dark` palette. The value is listed among the choices in `--help` and offered by shell completion all the same, since every Click Extra CLI takes it whether or not its author thought about it.
 
 To make detection the effective default for your CLI, set `theme = "auto"` in your [config file](#configuration-file) the same way you would pin any other palette:
 
@@ -174,7 +174,7 @@ Most specific first:
 4. `CLICK_EXTRA_THEME` in the environment;
 5. the built-in `dark` default.
 
-The machine-wide variable sits below the configuration file on purpose: anything a user wrote for one CLI in particular says more about what they want from that CLI than a preference they set once for everything.
+The machine-wide variable sits below the configuration file on purpose: anything a user wrote for one CLI in particular says more about what they want from that CLI than a preference they set once for everything. The [color variables](colorize.md#color-flag) rank the same way.
 
 ```{caution}
 A configuration file is read too late to repaint the screens that render and exit (`--help`, `--version`, `--man`, `--params`): those are settled from the command line and the environment only. Everything the command itself prints goes through the full chain above.
@@ -253,25 +253,21 @@ assert result.exit_code == 0
 Prefer the terminal? Run `click-extra themes` to print the same gallery in your shell. The `themes` demo subcommand renders one sample help screen under every registered palette in turn, alphabetically: the built-in ones, plus any a configuration file adds. Name the palettes you want to compare to render only those, in the order given, as `click-extra themes nord dracula`. It takes [`auto`](#automatic-background-detection) too, and labels the screen with the palette that resolves to. A terminal keeps a single background, so the light-background themes (`light`, `manpage`) look washed out on a dark terminal, and the dark themes look washed out on a light one.
 ```
 
-Three flavors ship in `click_extra/themes.toml`:
+Three flavors ship with Click Extra:
 
 - **ANSI themes** (`dark`, `light`) use the 16 named ANSI colors via `cloup.styling.Color`, so the rendered colors track whatever palette the user's terminal is configured with. Pick these when you want to blend in with the user's terminal theme.
 - **Branded themes** (`solarized-dark`, `dracula`, `nord`, `monokai`) emit 24-bit RGB triplets from each theme's canonical palette. Pick these when the theme name implies specific colors (`solarized-dark` should look like Solarized, not "whatever the terminal calls cyan"). On a terminal that does not advertise truecolor, click-extra downsamples each triplet to the nearest 256-color cell itself rather than leaving the conversion to the terminal: the choice is optimistic, keeping 24-bit unless `COLORTERM` is set to an explicit non-truecolor value or `TERM` ends in `-16color` (see `click_extra.styling.supports_truecolor`). Each theme's slot mapping is hand-curated: there's no automated translation from generic color-scheme formats, because none of them expose the same semantic roles we care about (option, metavar, choice, deprecated, envvar, ...).
 - **Monochrome theme** (`manpage`) uses no color at all: it renders literal tokens bold and replaceable tokens italic, the way `man-pages(7)` typesets a command. Pick it for low-color terminals, screenshots, or output meant to read like a man page. The bold/italic split is the one in [literal and replaceable slots](#literal-and-replaceable-slots).
 
-`click_extra.theme.BUILTIN_THEMES` is a `dict[str, HelpTheme]` mapping the names above to their instances; it is built by parsing `click_extra/themes.toml` at import time and is seeded into `theme_registry` immediately afterwards. Read the TOML file directly for the exact palette mapping, or call `theme.to_dict()` at runtime to get a TOML/JSON-friendly dict.
-
-```{note}
-Some standalone-binary builders (Nuitka, PyInstaller) and trimmed downstream packages omit package data files, dropping `click_extra/themes.toml`. The file is then loaded leniently rather than aborting the import: click-extra logs a warning, leaves `BUILTIN_THEMES` empty, and keeps the colorless `NOCOLOR_THEME` as the default. CLIs stay usable, and you can still define your own palettes in a `[tool.<cli>.themes.<name>]` config table (see [Themes from your config file](#themes-from-your-config-file) below); only the built-in palettes are missing until the data file is restored. For Nuitka, bundle it with `--include-package-data=click_extra`.
-```
+`click_extra.theme.BUILTIN_THEMES` maps the names above to their `HelpTheme` instances, and `theme_registry` starts with the same entries. Both are mappings that build a theme on its first lookup: importing Click Extra builds none, and a help screen builds only the one it renders with. Call `theme.to_dict()` to get a palette as a TOML/JSON-friendly dict.
 
 ### Palettes
 
-Every styled slot of each built-in theme, with the swatch and attribute decorations rendered live from the shipped `themes.toml` at Sphinx build time. The block below iterates `BUILTIN_THEMES` and calls `palette_html()` for each: downstream projects with their own custom themes can drop the same loop into their own docs to get matching swatch listings.
+Every styled slot of each built-in theme, with the swatch and attribute decorations rendered live at Sphinx build time. The block below iterates `BUILTIN_THEMES` and calls `palette_html()` for each: downstream projects with their own custom themes can drop the same loop into their own docs to get matching swatch listings.
 
 ```{python:render}
 from click_extra.theme import BUILTIN_THEMES
-from click_extra.theme_docs import palette_html
+from click_extra.sphinx.theme_docs import palette_html
 
 for name, theme in BUILTIN_THEMES.items():
     print(f"#### `{name}`")
@@ -291,21 +287,24 @@ Use `click_extra.theme.get_current_theme()` to read the theme that applies to th
 
 ### Adding a new built-in theme
 
-A built-in theme is a single TOML table in `click_extra/themes.toml`: declare a `[<name>]` table with one inline-table per styled slot. The file is parsed at import time via `HelpTheme.from_dict`, so adding a theme requires no Python: only the data:
+A built-in theme is one entry of the `_BUILTIN_THEME_DEFINITIONS` mapping in `click_extra/theme.py`: map the theme's name to one mapping per styled slot, the shape `HelpTheme.from_dict` reads and a `[tool.<cli>.themes.<name>]` table takes:
 
-```toml
-# click_extra/themes.toml
+```python
+# click_extra/theme.py
 
-[zenburn]
-# Zenburn by Jani Nurminen.
-# Palette: https://kippura.org/zenburnpage/
-invoked_command = { fg = "#dcdccc", bold = true }
-heading = { fg = "#8cd0d3", bold = true, underline = true }
-option = { fg = "#8cd0d3" }
-# ... fill in the rest of the slots
+_BUILTIN_THEME_DEFINITIONS = {
+    # ...
+    # Zenburn by Jani Nurminen, from the https://kippura.org/zenburnpage/ palette.
+    "zenburn": {
+        "invoked_command": {"fg": "#dcdccc", "bold": True},
+        "heading": {"fg": "#8cd0d3", "bold": True, "underline": True},
+        "option": {"fg": "#8cd0d3"},
+        # ... fill in the rest of the slots.
+    },
+}
 ```
 
-Tables are kept in alphabetical order; `tests/test_theme.py` enforces this. The slot mapping is the work: generic color-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `solarized-dark`, `dracula`, `nord`, and `monokai` tables as templates.
+Entries are kept in alphabetical order; `tests/test_theme.py` enforces this. The slot mapping is the work: generic color-scheme catalogs (base16, pygments, iTerm palettes) don't expose the semantic roles Click Extra needs (option, metavar, choice, deprecated, envvar, ...), so each theme is hand-curated. Use the existing `solarized-dark`, `dracula`, `nord`, and `monokai` entries as templates.
 
 ## Registering a custom theme
 
@@ -365,7 +364,7 @@ The styling slots carry a second, coarser classification borrowed from [man-page
 - `LITERAL_STYLES`: `invoked_command`, `subcommand`, `alias`, `alias_secondary`, `option`, `choice`, `separator`.
 - `REPLACEABLE_STYLES`: `metavar`, `argument`.
 
-Every remaining slot (log levels, the `[default: ...]` and `[env var: ...]` bracket fields, headings, …) sits outside the dichotomy. Every built-in theme applies this split: literal slots render bold and replaceable slots italic, even inside the color palettes, and the [`manpage`](#manpage) theme renders it with nothing else. A future [man-page generator](man-page.md) can reuse the same two sets to map each styled token to roff's `\fB` / `\fI`.
+Every remaining slot (log levels, the `[default: ...]` and `[env var: ...]` bracket fields, headings, …) sits outside the dichotomy. Every built-in theme applies this split: literal slots render bold and replaceable slots italic, even inside the color palettes, and the [`manpage`](#manpage) theme renders it with nothing else. The [man-page generator](man-page.md) follows the same split, setting each token in roff's `\fB` or `\fI`.
 
 ### Cross-reference highlighting
 
@@ -556,7 +555,7 @@ The `--color` callback inspects the standard set of color environment variables 
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: click_extra.theme_docs
+.. automodule:: click_extra.sphinx.theme_docs
    :no-index:
    :members:
    :undoc-members:

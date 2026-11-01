@@ -470,6 +470,36 @@ A screen reader is not the only consumer that prefers a linear, minimal-width st
 This is the same reasoning that keeps Click Extra from routing its help screens through [`rich-click`](https://github.com/ewels/rich-click), a good project integrating [Rich](https://github.com/Textualize/rich) with Click whose [help is laid out in a table](https://github.com/ewels/rich-click) spanning the whole terminal width. `--accessible` carries that preference from help screens to colors and tables. The two are not mutually exclusive, though: nothing stops you from using `rich-click` and Click Extra together and taking the best of both.
 ```
 
+### `ACCESSIBLE` precedence
+
+`ACCESSIBLE` is machine-wide, like `NO_COLOR` and `CLICK_EXTRA_THEME`: the command line and the variable of one CLI outrank it. Most specific first:
+
+1. `--accessible` on the command line;
+2. `<CLI>_ACCESSIBLE` in the environment;
+3. `ACCESSIBLE` in the environment;
+4. `accessible` in the CLI's [configuration file](config.md);
+5. the built-in default, off.
+
+Unlike the other machine-wide variables, `ACCESSIBLE` also outranks the configuration file. The mode lowers the defaults of `--color`, `--progress` and `--table-format`, and a command settles it before it reads its configuration file, so that `--help` and `--version` render in accessible mode too.
+
+The variable Click derives from the CLI name turns the mode back off for that one CLI:
+
+```{click:run}
+import os
+
+os.environ["ACCESSIBLE"] = "1"
+os.environ["INVENTORY_ACCESSIBLE"] = "0"
+try:
+    result = invoke(inventory)
+finally:
+    os.environ.pop("ACCESSIBLE", None)
+    os.environ.pop("INVENTORY_ACCESSIBLE", None)
+
+assert result.exit_code == 0
+# The table keeps its box-drawing borders.
+assert "╭" in result.output
+```
+
 <a name="help-h-aliases"></a>
 
 ## `--help`, `-h` aliases
@@ -614,7 +644,7 @@ Run `uvx click-extra styles` in your terminal to see the real rendering with you
 
 ## `click_extra.highlight` API
 
-The help-screen keyword highlighting engine (`HelpKeywords`, `HelpFormatter`, `highlight`) lives in its own module, split out of `click_extra.color`.
+The help-screen keyword highlighting engine (`HelpKeywords`, `HelpFormatter`, `highlight`) lives in its own module.
 
 ```{eval-rst}
 .. autoclasstree:: click_extra.highlight

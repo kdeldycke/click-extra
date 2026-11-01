@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import importlib.metadata
 import inspect
 import sys
 from collections.abc import Callable
@@ -693,19 +692,13 @@ def test_enum_choice_case_sensitivity(case_sensitive: bool | None) -> None:
         (ChoiceSource.STR, ("my-first-value", "my-second-value")),
     ),
 )
-@pytest.mark.skipif(
-    tuple(int(p) for p in importlib.metadata.version("click").split(".")[:2]) < (8, 4),
-    reason="EnumChoice completion is case-folded via Choice.normalize_choice(), added "
-    "in Click 8.4 (pallets/click#3471); Click 8.3 returns the raw enum keys.",
-)
 def test_enum_choice_shell_complete(
     source: ChoiceSource,
     expected: tuple[str, str],
 ) -> None:
     """Completion offers normalized choice strings, never the ``Enum.member`` form.
 
-    Regression guard for pallets/click#3015, fixed upstream in pallets/click#3471:
-    completion routes through ``Choice.normalize_choice()``, so an ``EnumChoice``
+    Completion routes through ``Choice.normalize_choice()``, so an ``EnumChoice``
     suggests parseable strings (case-folded, as it is case-insensitive by default)
     instead of ``MyEnum.FIRST_VALUE``.
     """
@@ -736,6 +729,19 @@ def test_enum_choice_shell_complete(
     second = expected[1]
     assert complete(second) == [second]
     assert complete(second.upper()) == [second]
+
+
+@pytest.mark.parametrize("choices", (MyEnum.FIRST_VALUE, dict, ["first-value"]))
+def test_enum_choice_rejects_non_enum_choices(choices: Any) -> None:
+    """Anything but an `Enum` class is refused with a `TypeError`."""
+    with pytest.raises(TypeError, match="choices must be a subclass of Enum"):
+        EnumChoice(choices)
+
+
+def test_enum_choice_rejects_unknown_choice_source() -> None:
+    """A string naming no `ChoiceSource` member is refused with a `ValueError`."""
+    with pytest.raises(ValueError, match="'label' is not a valid ChoiceSource"):
+        EnumChoice(MyEnum, choice_source="label")
 
 
 def test_enum_choice_duplicate_string() -> None:
@@ -1178,7 +1184,9 @@ def test_choice_types_default_to_case_insensitive(choice_type) -> None:
 )
 def test_multi_choice_metavar(choices, separator, expected) -> None:
     t = MultiChoice(choices=choices, separator=separator)
-    assert t.get_metavar(None) == expected
+    param = click.Option(["--fruits"], type=t)
+    ctx = click.Context(click.Command("basket", params=[param]))
+    assert t.get_metavar(param, ctx) == expected
 
 
 def test_multi_choice_in_click_option() -> None:

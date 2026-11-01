@@ -14,13 +14,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Tests for `click_extra.recording`, which rebuilds a terminal's screen."""
+"""Tests for `click_extra.capture.recording`, which rebuilds a terminal's screen."""
 
 from __future__ import annotations
 
 import io
+import os
 import re
+import signal
 import sys
+import threading
 import time
 from itertools import pairwise
 from pathlib import Path
@@ -30,8 +33,9 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, unstyle
-from click_extra.layout import RESET
-from click_extra.recording import (
+from click_extra.ansi import RESET
+from click_extra.capture.presets import Cursor
+from click_extra.capture.recording import (
     DEFAULT_SUBMIT,
     Frame,
     ScreenRecorder,
@@ -42,14 +46,14 @@ from click_extra.recording import (
     record_command,
     type_line,
 )
-from click_extra.screenshot_presets import Cursor
-from click_extra.screenshot_svg import (
+from click_extra.capture.svg import (
     CELL_HEIGHT,
     CELL_WIDTH,
     LINE_HEIGHT,
     animation_digest,
     render_svg,
 )
+from click_extra.execution import _LIVE_PROCESSES, terminate_live_processes
 from click_extra.spinner import CLEAR_LINE, HIDE_CURSOR, SHOW_CURSOR
 
 TYPE_CHECKING = False
@@ -95,6 +99,8 @@ def snapshots(stream: str) -> list[str]:
         pytest.param(f"apricot\r{CLEAR_LINE}", "", id="erase-from-the-start"),
         pytest.param(f"{HIDE_CURSOR}fig{SHOW_CURSOR}", "fig", id="cursor-visibility"),
         pytest.param("\x1b[2;5Hfig", "fig", id="an-unfollowed-sequence-is-dropped"),
+        pytest.param("\x1b[2 qfig", "fig", id="an-intermediate-byte-is-dropped"),
+        pytest.param("\x1b[200~fig\x1b[201~", "fig", id="a-symbol-final-byte-ends-it"),
         pytest.param("one\rtwo\nthree", "two\nthree", id="return-then-newline"),
         pytest.param("one\r\ntwo", "one\ntwo", id="return-newline-keeps-the-row"),
         pytest.param(
@@ -231,6 +237,20 @@ def test_recorder_drops_a_write_that_changed_nothing():
     assert [frame.text for frame in recorder.frames(end=9.0)] == ["fig"]
 
 
+def test_recorder_drops_a_cursor_shape_change():
+    """A sequence the screen does not act on adds no frame, whatever its bytes.
+
+    `ESC [ 2 SP q` sets the cursor's shape and carries an intermediate byte. A
+    grammar stopping at the first letter missed it, so the sequence landed on
+    the screen as text and split one picture into two identical frames.
+    """
+    recorder = ScreenRecorder(clock=StepClock(1.0))
+    recorder.write("fig")
+    recorder.write("\x1b[2 q")
+
+    assert [frame.text for frame in recorder.frames(end=9.0)] == ["fig"]
+
+
 def test_recorder_stores_one_sample_per_distinct_screen():
     """A write changing nothing stores nothing, so memory follows the screens.
 
@@ -332,11 +352,104 @@ time.sleep(6)
 def test_record_command_kills_a_command_ignoring_sigterm(monkeypatch):
     """A command ignoring `SIGTERM` is killed once the grace runs out, so the
     recording returns instead of waiting for the command to exit on its own."""
-    monkeypatch.setattr("click_extra.recording.TERMINATE_GRACE", 0.2)
+    monkeypatch.setattr("click_extra.capture.recording.TERMINATE_GRACE", 0.2)
     start = time.monotonic()
     frames = record_command((sys.executable, "-c", STUBBORN_SCRIPT), duration=0.5)
     assert time.monotonic() - start < 4
     assert any("ripe" in frame.text for frame in frames)
+
+
+SLEEPER_SCRIPT = """
+import sys, time
+sys.stdout.write("ripe")
+sys.stdout.flush()
+time.sleep(30)
+"""
+"""A command that draws once, then waits for a signal to end it."""
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_record_command_registers_its_command_for_ctrl_c():
+    """A recording registers its command where the Ctrl+C handlers find it.
+
+    A worker thread records while the main thread calls
+    `terminate_live_processes`, which is what a Ctrl+C runs: the command ends,
+    and so does the recording, long before its `duration`.
+    """
+    recorded: list[tuple[Frame, ...]] = []
+
+    def record():
+        recorded.append(
+            record_command((sys.executable, "-c", SLEEPER_SCRIPT), duration=8)
+        )
+
+    worker = threading.Thread(target=record, daemon=True)
+    start = time.monotonic()
+    worker.start()
+    try:
+        deadline = time.monotonic() + 5
+        while not _LIVE_PROCESSES and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert _LIVE_PROCESSES, "the recording did not register its command"
+        terminate_live_processes()
+        worker.join(timeout=5)
+        assert not worker.is_alive()
+    finally:
+        worker.join(timeout=10)
+    assert time.monotonic() - start < 7
+    assert not _LIVE_PROCESSES
+    assert recorded
+    assert any("ripe" in frame.text for frame in recorded[0])
+
+
+STUBBORN_PARENT_SCRIPT = """
+import signal, subprocess, sys, time
+signal.signal(signal.SIGTERM, signal.SIG_IGN)
+seed = subprocess.Popen((sys.executable, "-c", "import time; time.sleep(30)"))
+sys.stdout.write(f"seed={seed.pid}")
+sys.stdout.flush()
+time.sleep(30)
+"""
+"""A command ignoring `SIGTERM` that starts a child of its own, which does too."""
+
+
+def _wait_until_gone(pid: int, timeout: float = 5.0) -> bool:
+    """Whether `pid` ends within `timeout` seconds. A zombie counts as gone."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        try:
+            with open(f"/proc/{pid}/stat", encoding="ascii") as stat_file:
+                if stat_file.read().rpartition(")")[2].split()[0] == "Z":
+                    return True
+        except OSError:
+            pass
+        time.sleep(0.05)
+    return False
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_record_command_kills_what_its_command_started(monkeypatch):
+    """A command killed at the end of its recording takes its descendants along.
+
+    They would otherwise outlive the recording, holding the terminal it drew on.
+    """
+    monkeypatch.setattr("click_extra.capture.recording.TERMINATE_GRACE", 0.2)
+    frames = record_command((sys.executable, "-c", STUBBORN_PARENT_SCRIPT), duration=1)
+    match = re.search(r"seed=(\d+)", "".join(frame.text for frame in frames))
+    assert match, "the command never reported its child"
+    pid = int(match.group(1))
+    try:
+        assert _wait_until_gone(pid), f"PID {pid} outlived the recording"
+    finally:
+        # Do not leak the sleeper past the test.
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
 
 
 SPLIT_GLYPH_SCRIPT = """
@@ -612,7 +725,7 @@ def test_a_recording_types_its_prompt_when_asked():
 
 @skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
 def test_a_recording_types_nothing_unless_asked():
-    """The default opens on the finished prompt, as every recording so far does."""
+    """By default, a recording opens on the finished prompt."""
     svg, _ = record_and_render(
         (sys.executable, "-c", BAR_SCRIPT),
         columns=40,

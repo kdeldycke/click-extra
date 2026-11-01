@@ -14,14 +14,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Tests for the declarative CLI test-suite engine and its ``test-suite`` command.
+"""Tests for the declarative CLI test-suite engine and its `test-suite` command.
 
 Covers three surfaces:
 
-- :func:`~click_extra.test_suite.parse_test_suite` and the
-  :class:`~click_extra.test_suite.CLITestCase` normalization it feeds.
-- :func:`~click_extra.test_suite.run_test_suite`, the parallel orchestrator.
-- The ``click-extra test-suite`` subcommand wiring it to the CLI.
+- {func}`~click_extra.test_suite.parse_test_suite` and the
+  {class}`~click_extra.test_suite.CLITestCase` normalization it feeds.
+- {func}`~click_extra.test_suite.run_test_suite`, the parallel orchestrator.
+- The `click-extra test-suite` subcommand wiring it to the CLI.
 
 The host Python interpreter stands in for the command under test, so cases stay
 fast and platform-neutral.
@@ -140,7 +140,7 @@ def test_parse_rejects_malformed(suite, exception):
 def test_load_detects_format_from_extension(tmp_path, filename, content):
     """The file extension selects the parser, so each format yields the case."""
     path = tmp_path / filename
-    path.write_text(content)
+    path.write_text(content, encoding="UTF-8")
     cases = list(load_test_suite(path))
     assert len(cases) == 1
     assert cases[0].exit_code == 0
@@ -149,7 +149,7 @@ def test_load_detects_format_from_extension(tmp_path, filename, content):
 def test_load_rejects_unknown_extension(tmp_path):
     """An extension matching no suite format is rejected."""
     path = tmp_path / "suite.txt"
-    path.write_text("- cli_parameters: --version\n")
+    path.write_text("- cli_parameters: --version\n", encoding="UTF-8")
     with pytest.raises(ValueError, match="Unsupported file extension"):
         list(load_test_suite(path))
 
@@ -170,10 +170,20 @@ def test_cases_from_data_builds_cases():
     assert cases[0].exit_code == 0
 
 
-def test_cases_from_data_rejects_unknown_directive():
-    """An unknown directive in a mapping is rejected."""
+@pytest.mark.parametrize(
+    "directive", ("not_a_real_directive", "execution_trace"), ids=("unknown", "output")
+)
+def test_cases_from_data_rejects_invalid_directive(directive):
+    """An unknown directive is rejected, and so is the trace the runner fills."""
     with pytest.raises(ValueError, match="invalid directives"):
-        list(cases_from_data([{"not_a_real_directive": 1}]))
+        list(cases_from_data([{directive: "1"}]))
+
+
+def test_case_execution_trace_stays_out_of_comparisons():
+    """A case that ran still compares equal to the same case, unrun."""
+    ran = CLITestCase(cli_parameters="--version")
+    ran.execution_trace = "$ python --version"
+    assert ran == CLITestCase(cli_parameters="--version")
 
 
 # --- argument splitting -------------------------------------------------------
@@ -202,8 +212,7 @@ def test_split_args_honors_quotes(cli, expected):
     r"""Quoting survives tokenization identically on POSIX and Windows.
 
     `shlex` and `CommandLineToArgvW` are two different parsers, so the cases
-    above are the subset of syntax on which they must agree. Windows used to
-    reach a bare `str.split()` here, which broke every quoted case into pieces.
+    above are the subset of syntax on which they must agree.
 
     Two corners stay out on purpose, because the parsers answer differently and
     each answer is right for its platform: a backslash escapes the next
@@ -344,8 +353,8 @@ def test_only_platforms_runs_on_member_platform():
 def test_only_platforms_skip_names_required_platforms(monkeypatch):
     """The skip message names the case's required platforms, not the current one.
 
-    The message used to interpolate `current_platform()`, producing the
-    contradictory "only runs on platform: macOS" for a case skipped *on* macOS.
+    Naming the current one would read "only runs on platform: macOS" for a case
+    skipped *on* macOS.
     """
     macos = next(iter(extract_members("macos")))
     # The runner imports `current_platform` when a case runs, so the patch lands
@@ -361,10 +370,10 @@ def test_only_platforms_skip_names_required_platforms(monkeypatch):
 def test_non_utf8_output_does_not_crash_the_harness():
     """Bytes that are not valid UTF-8 are escaped, not a reader-thread crash.
 
-    A binary emitting its platform's legacy encoding (cp1252 on Windows) used
-    to kill the capture with a bare UnicodeDecodeError, surfacing as a
-    "got 'NoneType'" case failure with no hint of the cause. The escaped bytes
-    now flow into the captured stream where assertions can see them.
+    A binary emitting its platform's legacy encoding (cp1252 on Windows) would
+    otherwise kill the capture with a `UnicodeDecodeError`, failing the case with
+    no hint of the cause. The escaped bytes flow into the captured stream, where
+    assertions can see them.
     """
     case = CLITestCase(
         cli_parameters=(
@@ -664,7 +673,7 @@ def test_cli_runs_default_suite(invoke):
 def test_cli_runs_suite_file(invoke, tmp_path):
     """A --suite-file is parsed and run against the target command."""
     suite = tmp_path / "suite.yaml"
-    suite.write_text("- cli_parameters: --version\n  exit_code: 0\n")
+    suite.write_text("- cli_parameters: --version\n  exit_code: 0\n", encoding="UTF-8")
     result = invoke(
         demo,
         ["test-suite", "--command", sys.executable, "--suite-file", str(suite)],
@@ -677,7 +686,10 @@ def test_cli_runs_suite_file(invoke, tmp_path):
 def test_cli_runs_toml_suite_file(invoke, tmp_path):
     """A TOML --suite-file runs without the yaml extra, since TOML is built in."""
     suite = tmp_path / "suite.toml"
-    suite.write_text('[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n')
+    suite.write_text(
+        '[[cases]]\ncli_parameters = "--version"\nexit_code = 0\n',
+        encoding="UTF-8",
+    )
     result = invoke(
         demo,
         ["test-suite", "--command", sys.executable, "--suite-file", str(suite)],
@@ -690,7 +702,7 @@ def test_cli_runs_toml_suite_file(invoke, tmp_path):
 def test_cli_reports_failure_exit_code(invoke, tmp_path):
     """A failing case makes the subcommand exit non-zero."""
     suite = tmp_path / "suite.yaml"
-    suite.write_text("- cli_parameters: --version\n  exit_code: 99\n")
+    suite.write_text("- cli_parameters: --version\n  exit_code: 99\n", encoding="UTF-8")
     result = invoke(
         demo,
         ["test-suite", "--command", sys.executable, "--suite-file", str(suite)],

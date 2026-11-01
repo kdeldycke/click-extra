@@ -55,7 +55,7 @@ import re
 import shutil
 from contextlib import nullcontext
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from gettext import gettext as _
 from pathlib import Path
 
@@ -63,18 +63,18 @@ import click
 from cloup import OptionGroupMixin
 
 from . import context
-from ._utils import generator_tag
+from ._utils import GENERATOR_TAG, REPOSITORY_URL
 from .accessibility import echo_via_pager
 from .carapace import dump_carapace_spec, xdg_dir
 from .config import ConfigOption
 from .envvar import param_envvar_ids
-from .parameters import (
-    ExtraOption,
+from .param_tools import (
     choice_values,
     clean_help,
     full_short_help,
     iter_inline_literals,
     iter_params_for_display,
+    iter_subcommand_contexts,
     iter_subcommands,
     make_resilient_context,
     option_value_kind,
@@ -83,25 +83,34 @@ from .parameters import (
     search_params,
     split_option_groups,
 )
+from .parameters import ExtraOption
 from .types import EnumChoice
-from .version import build_moment, resolve_author, resolve_distribution
+from .version_facts import build_moment, resolve_author, resolve_distribution
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping, Sequence
+    from collections.abc import Callable, Iterator, Mapping, Sequence
     from typing import Any
 
     from click import Command, Context, Parameter
 
-
-CLICK_EXTRA_URL = "https://github.com/kdeldycke/click-extra"
-"""Click Extra's home page, stamped into the provenance comment of every
-generated man page so a reader of the raw roff knows where it came from."""
+logger = logging.getLogger(__name__)
 
 
 MAN_SECTION = "1"
 """Default man page section. Section 1 is for executable programs and shell
 commands, which is what a Click CLI is."""
+
+
+_MAN_INSTALL_DIR = Path("~/.local/share/man/man1")
+"""Where {func}`install_manpages` writes when `XDG_DATA_HOME` is unset.
+
+The user's own section-1 directory, as the [XDG base directory spec](https://specifications.freedesktop.org/basedir-spec/latest/)
+defaults it. Kept in its `~` form, for {func}`~click_extra.carapace.xdg_dir` to
+expand against the `HOME` in force at the call. Some systems do not carry this
+path in their `MANPATH`, in which case the pages land correctly but `man` has to
+be told where to look.
+"""
 
 
 DEFAULT_EXIT_STATUS: tuple[tuple[str, str], ...] = (
@@ -133,8 +142,12 @@ ends the process by `SIGINT` instead, which a shell reports as `130`.
 # --- prose helpers ----------------------------------------------------------
 
 
-_PARAGRAPH_BREAK_RE = re.compile(r"\n\s*\n")
-"""Match the blank line separating two paragraphs of help prose."""
+_PARAGRAPH_BREAK = r"\n\s*\n"
+"""Match the blank line separating two paragraphs of help prose.
+
+Kept as a pattern string rather than compiled at import: `re` compiles and caches
+it on the first render, so a CLI that never renders a document never pays for it.
+"""
 
 
 def _iter_help_paragraphs(text: str) -> Iterator[tuple[str, str]]:
@@ -148,7 +161,7 @@ def _iter_help_paragraphs(text: str) -> Iterator[tuple[str, str]]:
     empty verbatim half, and blank paragraphs are skipped. Each backend only
     decides on markup from here: roff `.nf` / `.fi`, a Markdown fence, or none.
     """
-    for paragraph in _PARAGRAPH_BREAK_RE.split(inspect.cleandoc(text).strip()):
+    for paragraph in re.split(_PARAGRAPH_BREAK, inspect.cleandoc(text).strip()):
         if not paragraph.strip():
             continue
         filled, _marker, verbatim = paragraph.partition("\x08")
@@ -170,8 +183,9 @@ def _roff_escape(text: str) -> str:
 
 
 def _neutralize_leading_control(text: str) -> str:
-    r"""Prefix a zero-width `\&` when `text` starts with a roff control
-    character (`.` or `'`) so it is not mistaken for a macro request.
+    r"""Prefix `text` with a zero-width `\&` when it starts with a control character.
+
+    A line starting with `.` or `'` would otherwise read as a roff macro request.
     """
     if text[:1] in (".", "'"):
         return "\\&" + text
@@ -201,10 +215,12 @@ def _render_inline(text: str) -> str:
     neutralizes a leading control character (`.` or `'`) so the result
     is safe to emit between any other roff macros.
     """
-    parts: list[str] = []
-    for segment, is_literal in iter_inline_literals(text):
-        parts.append(_bold(segment) if is_literal else _roff_escape(segment))
-    return _neutralize_leading_control("".join(parts))
+    return _neutralize_leading_control(
+        "".join(
+            _bold(segment) if is_literal else _roff_escape(segment)
+            for segment, is_literal in iter_inline_literals(text)
+        )
+    )
 
 
 def _emit_help(text: str) -> list[str]:
@@ -228,6 +244,11 @@ def _emit_help(text: str) -> list[str]:
             out.extend(_render_inline(line) for line in verbatim.splitlines())
             out.append(".fi")
     return out
+
+
+def _roff_tagged(tag: str, help_text: str) -> list[str]:
+    """Render a roff tagged paragraph (`.TP`): the `tag` line, then its help."""
+    return [".TP", tag, *_emit_help(help_text)]
 
 
 # --- examples ---------------------------------------------------------------
@@ -302,6 +323,22 @@ def _markdown_inline(text: str) -> str:
     )
 
 
+def _code_span(text: str) -> str:
+    """Wrap text in a Markdown code span."""
+    return f"`{text}`"
+
+
+def _markdown_item(label: str, help_text: str) -> str:
+    """Render a Markdown list item: `label`, then its help on the same line."""
+    rendered = _markdown_inline(help_text)
+    return f"- {label}: {rendered}" if rendered else f"- {label}"
+
+
+def _json_text(text: str | None) -> str | None:
+    """Normalize help prose for a JSON field, `None` when there is nothing to say."""
+    return clean_help(text or "") or None
+
+
 # --- structured man page ----------------------------------------------------
 
 
@@ -366,21 +403,27 @@ class DocOptionItem:
             inner = inner[1:-1]
         return f"[={inner}]"
 
+    def _value_suffix(self, render: Callable[[str], str]) -> str:
+        """The value placeholder trailing the option's names, passed through `render`.
+
+        An optional value attaches as `[=METAVAR]`, a mandatory one follows a
+        space, and an option taking no value has none.
+        """
+        if not self.metavar:
+            return ""
+        if self.optional_value:
+            return render(self.attached_value)
+        return " " + render(self.metavar)
+
     def to_roff(self) -> list[str]:
         """Render this option as a roff tagged paragraph (`.TP`)."""
-        tag = " / ".join(_bold(name) for name in self.names)
-        if self.metavar:
-            if self.optional_value:
-                tag += _italic(self.attached_value)
-            else:
-                tag += " " + _italic(self.metavar)
-        lines = [".TP", tag]
-        lines.extend(_emit_help(self.help or ""))
+        tag = " / ".join(map(_bold, self.names)) + self._value_suffix(_italic)
+        lines = _roff_tagged(tag, self.help or "")
         if self.unlisted_choices:
             # Every token goes through the hyphen escape, so a value like
             # `colon-grid` renders as a copy-pasteable minus sign rather than a
             # typographic hyphen.
-            values = ", ".join(_roff_escape(c) for c in self.unlisted_choices)
+            values = ", ".join(map(_roff_escape, self.unlisted_choices))
             lines.extend((".br", f"[values: {values}]"))
         if self.required:
             lines.extend((".br", "[required]"))
@@ -389,13 +432,7 @@ class DocOptionItem:
     @property
     def spec(self) -> str:
         """The option's spelling and value placeholder, as one plain string."""
-        spec = " / ".join(self.names)
-        if self.metavar:
-            if self.optional_value:
-                spec += self.attached_value
-            else:
-                spec += f" {self.metavar}"
-        return spec
+        return " / ".join(self.names) + self._value_suffix(str)
 
     def to_markdown(self) -> list[str]:
         r"""Render this option as a Markdown list item.
@@ -432,7 +469,7 @@ class DocOptionItem:
             "spec": self.spec,
             "metavar": self.metavar,
             "choices": list(self.choices) or None,
-            "help": clean_help(self.help or "") or None,
+            "help": _json_text(self.help),
             "required": self.required,
             "optional_value": self.optional_value,
         }
@@ -447,7 +484,7 @@ class DocSubcommand:
 
     short_help: str
     """Its one-line description, from
-    {func}`~click_extra.parameters.full_short_help`."""
+    {func}`~click_extra.param_tools.full_short_help`."""
 
     aliases: tuple[str, ...] = ()
     """The other names it answers to, a Cloup feature.
@@ -456,6 +493,13 @@ class DocSubcommand:
     draw them: a reader of a generated page learns the short spelling from the
     same place they learn the command exists.
     """
+
+    def label(self, render: Callable[[str], str]) -> str:
+        """The name, then the aliases in parentheses, each passed through `render`."""
+        label = render(self.name)
+        if self.aliases:
+            label += f" ({', '.join(map(render, self.aliases))})"
+        return label
 
 
 @dataclass
@@ -505,7 +549,7 @@ class DocOptionGroup:
         """Render this group as a JSON-serializable mapping."""
         return {
             "title": self.title,
-            "help": clean_help(self.help or "") or None,
+            "help": _json_text(self.help),
             "options": [option.to_dict() for option in self.options],
         }
 
@@ -585,7 +629,7 @@ class CommandDoc:
         """Render the full man page as a roff/troff string."""
         lines: list[str] = [
             (
-                f'.\\" Generated by {generator_tag()} <{CLICK_EXTRA_URL}>. '
+                f'.\\" Generated by {GENERATOR_TAG} <{REPOSITORY_URL}>. '
                 "Do not edit by hand."
             ),
             " ".join((
@@ -619,8 +663,7 @@ class CommandDoc:
             lines.append(".SH DESCRIPTION")
             lines.extend(_emit_help(self.description))
             for metavar, help_text in self.operands:
-                lines.extend((".TP", _italic(metavar)))
-                lines.extend(_emit_help(help_text))
+                lines.extend(_roff_tagged(_italic(metavar), help_text))
 
         if self.option_groups:
             lines.append(".SH OPTIONS")
@@ -630,18 +673,12 @@ class CommandDoc:
         if self.subcommands:
             lines.append(".SH COMMANDS")
             for sub in self.subcommands:
-                lines.append(".TP")
-                names = _bold(sub.name)
-                if sub.aliases:
-                    names += " ({})".format(", ".join(map(_bold, sub.aliases)))
-                lines.append(names)
-                lines.extend(_emit_help(sub.short_help))
+                lines.extend(_roff_tagged(sub.label(_bold), sub.short_help))
 
         if self.environment:
             lines.append(".SH ENVIRONMENT")
             for var_name, help_text in self.environment:
-                lines.extend((".TP", _bold(var_name)))
-                lines.extend(_emit_help(help_text))
+                lines.extend(_roff_tagged(_bold(var_name), help_text))
 
         if self.files:
             lines.append(".SH FILES")
@@ -653,8 +690,7 @@ class CommandDoc:
         if self.exit_status:
             lines.append('.SH "EXIT STATUS"')
             for code, meaning in self.exit_status:
-                lines.extend((".TP", _bold(code)))
-                lines.extend(_emit_help(meaning))
+                lines.extend(_roff_tagged(_bold(code), meaning))
 
         if self.examples:
             lines.append(".SH EXAMPLES")
@@ -662,13 +698,7 @@ class CommandDoc:
                 if index > 0:
                     lines.append(".PP")
                 lines.extend(_emit_help(description))
-                lines.extend((
-                    ".RS",
-                    ".nf",
-                    _bold(_roff_escape(command_line)),
-                    ".fi",
-                    ".RE",
-                ))
+                lines.extend((".RS", ".nf", _bold(command_line), ".fi", ".RE"))
 
         if self.authors:
             lines.append(".SH AUTHORS")
@@ -694,14 +724,11 @@ class CommandDoc:
         if self.version:
             lines.extend((f"Version `{self.version}`.", ""))
 
-        synopsis = self.name
-        if self.synopsis_pieces:
-            synopsis += " " + " ".join(self.synopsis_pieces)
         lines.extend((
             "## Synopsis",
             "",
             "```shell-session",
-            f"$ {synopsis}",
+            f"$ {' '.join((self.name, *self.synopsis_pieces))}",
             "```",
             "",
         ))
@@ -713,10 +740,10 @@ class CommandDoc:
 
         if self.operands:
             lines.extend(("## Arguments", ""))
-            for metavar, help_text in self.operands:
-                item = f"- `{metavar}`"
-                rendered = _markdown_inline(help_text)
-                lines.append(f"{item}: {rendered}" if rendered else item)
+            lines.extend(
+                _markdown_item(_code_span(metavar), help_text)
+                for metavar, help_text in self.operands
+            )
             lines.append("")
 
         if self.option_groups:
@@ -727,14 +754,10 @@ class CommandDoc:
 
         if self.subcommands:
             lines.extend(("## Commands", ""))
-            for sub in self.subcommands:
-                item = f"- `{sub.name}`"
-                if sub.aliases:
-                    item += " ({})".format(
-                        ", ".join(f"`{alias}`" for alias in sub.aliases)
-                    )
-                rendered = _markdown_inline(sub.short_help)
-                lines.append(f"{item}: {rendered}" if rendered else item)
+            lines.extend(
+                _markdown_item(sub.label(_code_span), sub.short_help)
+                for sub in self.subcommands
+            )
             lines.append("")
 
         if self.examples:
@@ -751,21 +774,23 @@ class CommandDoc:
 
         if self.environment:
             lines.extend(("## Environment variables", ""))
-            for var_name, help_text in self.environment:
-                item = f"- `{var_name}`"
-                rendered = _markdown_inline(help_text)
-                lines.append(f"{item}: {rendered}" if rendered else item)
+            lines.extend(
+                _markdown_item(_code_span(var_name), help_text)
+                for var_name, help_text in self.environment
+            )
             lines.append("")
 
         if self.files:
             lines.extend(("## Files", ""))
-            lines.extend(f"- `{path}`" for path in self.files)
+            lines.extend(f"- {_code_span(path)}" for path in self.files)
             lines.append("")
 
         if self.exit_status:
             lines.extend(("## Exit status", ""))
-            for code, meaning in self.exit_status:
-                lines.append(f"- `{code}`: {_markdown_inline(meaning)}")
+            lines.extend(
+                _markdown_item(_code_span(code), meaning)
+                for code, meaning in self.exit_status
+            )
             lines.append("")
 
         if self.authors:
@@ -794,12 +819,12 @@ class CommandDoc:
         """
         return {
             "name": self.name,
-            "short_help": clean_help(self.short_help) or None,
+            "short_help": _json_text(self.short_help),
             "version": self.version,
             "synopsis": " ".join((self.name, *self.synopsis_pieces)),
-            "description": clean_help(self.description) or None,
+            "description": _json_text(self.description),
             "arguments": [
-                {"metavar": metavar, "help": clean_help(help_text) or None}
+                {"metavar": metavar, "help": _json_text(help_text)}
                 for metavar, help_text in self.operands
             ],
             "option_groups": [group.to_dict() for group in self.option_groups],
@@ -807,7 +832,7 @@ class CommandDoc:
                 {
                     "name": sub.name,
                     "aliases": list(sub.aliases),
-                    "short_help": clean_help(sub.short_help) or None,
+                    "short_help": _json_text(sub.short_help),
                 }
                 for sub in self.subcommands
             ],
@@ -816,7 +841,7 @@ class CommandDoc:
                 for description, command_line in self.examples
             ],
             "environment": [
-                {"variable": name, "help": clean_help(help_text) or None}
+                {"variable": name, "help": _json_text(help_text)}
                 for name, help_text in self.environment
             ],
             "files": list(self.files),
@@ -838,7 +863,7 @@ def _resolve_date() -> str:
     """The man page date, as `YYYY-MM-DD`.
 
     Pinned by `SOURCE_DATE_EPOCH` in a reproducible build, see
-    {func}`~click_extra.version.build_moment`.
+    {func}`~click_extra.version_facts.build_moment`.
     """
     return build_moment().strftime("%Y-%m-%d")
 
@@ -855,7 +880,7 @@ def _resolve_distribution_metadata(ctx: Context) -> tuple[str | None, str | None
     Resolves the distribution once from the root program name (see
     {func}`_distribution_names`) and reads both off its metadata: the version
     for the `.TH` header, and the author(s) through the shared
-    {func}`click_extra.version.resolve_author`, so a man page and `--version`
+    {func}`click_extra.version_facts.resolve_author`, so a man page and `--version`
     report the same author string (`Author` / `Maintainer` / email display
     name, in that order). Both are `None` when no installed distribution answers
     to the name. Pass `version=` and `authors=` to {func}`render_manpage` to
@@ -935,10 +960,10 @@ def _resolve_files(command: Command, ctx: Context) -> tuple[str, ...]:
 def _option_item(param: Parameter, ctx: Context) -> DocOptionItem:
     """Build a {class}`DocOptionItem` from a single Click option.
 
-    The metavar follows {func}`~click_extra.parameters.option_value_kind`: a flag
+    The metavar follows {func}`~click_extra.param_tools.option_value_kind`: a flag
     or counter takes no value (no metavar), an optional-value option renders the
     attached `[=METAVAR]` form, and a regular option a space-separated metavar.
-    The choices are spelled by {func}`~click_extra.parameters.choice_values`, so
+    The choices are spelled by {func}`~click_extra.param_tools.choice_values`, so
     an `Enum` member reads the way Click completes it.
     """
     kind = option_value_kind(param)
@@ -1056,8 +1081,9 @@ def _build_command_doc(
     the distribution metadata once and extracts each of its pages through here.
     """
     operands: list[tuple[str, str]] = []
-    environment: list[tuple[str, str]] = []
-    seen_envvars: set[str] = set()
+    # Keyed by variable name, so a variable two options share (the `--config` /
+    # `--no-config` pair) is listed once, under the first of them.
+    environment: dict[str, str] = {}
     option_items: list[tuple[Parameter, DocOptionItem]] = []
 
     for param in iter_params_for_display(command, ctx):
@@ -1071,21 +1097,19 @@ def _build_command_doc(
             ))
             continue
 
-        option_items.append((param, _option_item(param, ctx)))
+        item = _option_item(param, ctx)
+        option_items.append((param, item))
         for var in param_envvar_ids(param, ctx):
-            if var in seen_envvars:
-                continue
-            seen_envvars.add(var)
-            environment.append((var, resolve_param_help(param, ctx) or ""))
+            environment.setdefault(var, item.help or "")
 
-    subcommands: list[DocSubcommand] = [
+    subcommands = tuple(
         DocSubcommand(
             name=name,
             short_help=full_short_help(sub),
             aliases=tuple(getattr(sub, "aliases", None) or ()),
         )
         for name, sub in iter_subcommands(command, ctx)
-    ]
+    )
 
     return CommandDoc(
         name=ctx.command_path,
@@ -1094,8 +1118,8 @@ def _build_command_doc(
         description=command.help or "",
         operands=tuple(operands),
         option_groups=_build_option_groups(command, ctx, option_items),
-        subcommands=tuple(subcommands),
-        environment=tuple(environment),
+        subcommands=subcommands,
+        environment=tuple(environment.items()),
         examples=normalize_examples(getattr(command, "examples", None)),
         files=_resolve_files(command, ctx),
         version=overrides["version"],
@@ -1109,26 +1133,26 @@ def _build_command_doc(
 def iter_command_contexts(
     command: Command,
     prog_name: str | None = None,
-    _parent: Context | None = None,
-    _path: tuple[str, ...] = (),
 ) -> Iterator[tuple[tuple[str, ...], Command, Context]]:
-    """Walk a command tree, yielding `(path, command, context)` for each
-    visible command.
+    """Walk a command tree, yielding `(path, command, context)` for each visible one.
 
-    Subcommands are discovered dynamically ({meth}`click.Group.list_commands` /
-    {meth}`~click.Group.get_command`), so dynamically-registered commands are
-    included, each under the name its parent registered it with rather than its
-    own `name`. Hidden commands are skipped. Each context is built with
-    `resilient_parsing=True` to avoid triggering required-argument errors,
-    prompts, or eager-option side effects.
+    Subcommands are discovered dynamically, through
+    {func}`~click_extra.param_tools.iter_subcommand_contexts`, so
+    dynamically-registered commands are included, each under the name its parent
+    registered it with rather than its own `name`. Hidden commands are skipped.
+    Each context is built with `resilient_parsing=True` to avoid triggering
+    required-argument errors, prompts, or eager-option side effects.
     """
-    info_name = prog_name or command.name or ""
-    ctx = make_resilient_context(command, info_name, parent=_parent)
-    path = _path + (info_name,)
-    yield path, command, ctx
 
-    for sub_name, sub in iter_subcommands(command, ctx):
-        yield from iter_command_contexts(sub, sub_name, _parent=ctx, _path=path)
+    def walk(
+        cmd: Command, ctx: Context, path: tuple[str, ...]
+    ) -> Iterator[tuple[tuple[str, ...], Command, Context]]:
+        yield path, cmd, ctx
+        for sub_name, sub, sub_ctx in iter_subcommand_contexts(cmd, ctx):
+            yield from walk(sub, sub_ctx, (*path, sub_name))
+
+    info_name = prog_name or command.name or ""
+    yield from walk(command, make_resilient_context(command, info_name), (info_name,))
 
 
 def iter_command_docs(
@@ -1176,14 +1200,14 @@ def render_manpages(
 ) -> dict[str, str]:
     """Render the whole command tree, one man page per (sub)command.
 
-    Returns an ordered mapping of ``{filename: roff}`` where each filename is
+    Returns an ordered mapping of `{filename: roff}` where each filename is
     the command path joined by hyphens plus the section suffix (like
     `weather-forecast.1`).
     """
-    pages: dict[str, str] = {}
-    for path, page in iter_command_docs(command, prog_name, **overrides):
-        pages["{}.{}".format("-".join(path), page.section)] = page.to_roff()
-    return pages
+    return {
+        f"{'-'.join(path)}.{page.section}": page.to_roff()
+        for path, page in iter_command_docs(command, prog_name, **overrides)
+    }
 
 
 def write_manpages(
@@ -1201,7 +1225,7 @@ def write_manpages(
     written: list[Path] = []
     for filename, roff in render_manpages(command, prog_name, **overrides).items():
         path = target / filename
-        path.write_text(roff, encoding="utf-8")
+        path.write_text(roff, encoding="UTF-8")
         written.append(path)
     return written
 
@@ -1213,9 +1237,9 @@ def install_manpages(
 ) -> list[Path]:
     """Write the command tree's man pages where `man` can find them.
 
-    Targets `$XDG_DATA_HOME/man/man1` when that variable is set, else the default
-    behind {data}`~click_extra.command_doc.MAN_INSTALL_DIR`, expanded against the
-    `HOME` in force at the call. Returns the written paths.
+    Targets `$XDG_DATA_HOME/man/man1` when that variable is set, else
+    `~/.local/share/man/man1`, expanded against the `HOME` in force at the call.
+    Returns the written paths.
 
     The environment is read here rather than at import time, through
     {func}`~click_extra.carapace.xdg_dir`, so a caller that sets `XDG_DATA_HOME`
@@ -1228,8 +1252,7 @@ def install_manpages(
     return write_manpages(command, target, prog_name, **overrides)
 
 
-# A `StrEnum` would change what `str()` and `format()` print for a member.
-class HelpFormat(str, Enum):  # noqa: UP042
+class HelpFormat(StrEnum):
     """The formats {func}`render_help` renders.
 
     The value is the spelling `--help-format` takes. Members are ordered
@@ -1239,8 +1262,8 @@ class HelpFormat(str, Enum):  # noqa: UP042
     {func}`render_help`: no new flag, no wider help screen. See
     {doc}`/man-page` for what each one is good for.
 
-    A `str` subclass, so a member compares, hashes and sorts as its value, and a
-    plain string keeps working wherever a format is expected.
+    A member prints, compares, hashes and sorts as its value, so a plain string
+    keeps working wherever a format is expected.
     """
 
     CARAPACE = "carapace"
@@ -1250,14 +1273,11 @@ class HelpFormat(str, Enum):  # noqa: UP042
     MARKDOWN = "markdown"
     MARKDOWN_FULL = "markdown-full"
 
-    def __str__(self) -> str:
-        return self.value
-
 
 HELP_FORMATS: dict[HelpFormat, str] = {
     HelpFormat.CARAPACE: (
         "Carapace completion spec (YAML). Doubles as a command-and-flag tree, "
-        "and is the shape `carapace` itself consumes. Needs the `yaml` extra."
+        "and is the shape `carapace` itself consumes. Needs the `carapace` extra."
     ),
     HelpFormat.JSON: (
         "This command as a JSON object: usage, description, arguments, options "
@@ -1338,47 +1358,57 @@ def render_help(
             prog_name=command.name or (prog_name.split()[-1] if prog_name else None),
         )
 
-    if help_format in (HelpFormat.JSON_FULL, HelpFormat.MARKDOWN_FULL):
-        pages = [
-            page for _path, page in iter_command_docs(command, prog_name, **overrides)
-        ]
-        if help_format is HelpFormat.JSON_FULL:
-            return (
-                json.dumps({"commands": [page.to_dict() for page in pages]}, indent=2)
-                + "\n"
-            )
-        return "\n".join(page.to_markdown() for page in pages)
-
-    if help_format is HelpFormat.MAN:
-        return render_manpage(command, prog_name, ctx, **overrides)
+    if help_format is HelpFormat.JSON_FULL:
+        pages = iter_command_docs(command, prog_name, **overrides)
+        commands = [page.to_dict() for _path, page in pages]
+        return json.dumps({"commands": commands}, indent=2) + "\n"
+    if help_format is HelpFormat.MARKDOWN_FULL:
+        pages = iter_command_docs(command, prog_name, **overrides)
+        return "\n".join(page.to_markdown() for _path, page in pages)
 
     if ctx is None:
         ctx = make_resilient_context(command, prog_name)
     page = extract_command_doc(command, ctx, **overrides)
+    if help_format is HelpFormat.MAN:
+        return page.to_roff()
     if help_format is HelpFormat.JSON:
         return page.to_json()
     return page.to_markdown()
 
 
-MAN_FORMATTERS: tuple[tuple[str, ...], ...] = (
-    ("groff", "-man", "-Tutf8", "-rLL={width}n", "-P-c"),
-    ("mandoc", "-Tutf8", "-Owidth={width}"),
-)
-"""Commands able to typeset roff into readable terminal text, best first.
+MAN_TYPESETTERS: dict[str, tuple[tuple[str, ...], ...]] = {
+    "terminal": (
+        ("groff", "-man", "-Tutf8", "-rLL={width}n", "-P-c"),
+        ("mandoc", "-Tutf8", "-Owidth={width}"),
+    ),
+    "html": (
+        ("mandoc", "-Thtml"),
+        ("groff", "-Thtml", "-mandoc"),
+    ),
+}
+"""The programs typesetting roff, keyed by what they render it to, best first.
 
-Each entry is an argv template read on stdin, with `{width}` filled from the
-terminal. `groff` is the GNU implementation found nearly everywhere a man page
-is; `mandoc` covers the BSDs and Alpine, which ship it instead.
+Each entry is a command line: the program, then its arguments, where `{width}`
+stands for the line length in columns. Both modes run the same two programs.
+`groff` is the GNU implementation found nearly everywhere a man page is;
+`mandoc` covers the BSDs and Alpine, which ship it instead.
+
+- `terminal`: the text {func}`format_manpage` sends to the pager for `--man`,
+  read on stdin.
+- `html`: the page {mod}`click_extra.sphinx.manpages` publishes beside each man
+  page, read from a file. `mandoc` comes first there: its HTML gives every
+  section and option a semantic `id` anchor (`#NAME`, `#SYNOPSIS`,
+  `#config`...), which prose can deep-link to.
 
 ```{note}
 `-P-c` hands `-c` down to `grotty`, groff's terminal driver, pinning the
-emphasis it produces to the character-backspace pairs {data}`OVERSTRIKE_RE`
-matches and {func}`read_manpage` strips under `--accessible`. Left to its own
+emphasis it produces to the character-backspace pairs {func}`strip_overstrike`
+removes, and {func}`read_manpage` with it under `--accessible`. Left to its own
 default a `grotty` recent enough writes SGR escape sequences instead, which
-that regular expression cannot see: the manual then reaches a screen reader
-with its emphasis intact, and loses it altogether once the output is not a
-terminal and the codes are stripped as color. `mandoc` needs no counterpart:
-it overstrikes already.
+that function cannot see: the manual then reaches a screen reader with its
+emphasis intact, and loses it altogether once the output is not a terminal and
+the codes are stripped as color. `mandoc` needs no counterpart: it overstrikes
+already.
 ```
 
 ```{note}
@@ -1390,31 +1420,65 @@ paging is handled here anyway.
 ```
 """
 
-_MAN_INSTALL_DIR = Path("~/.local/share/man/man1")
-"""The `~` form of {data}`MAN_INSTALL_DIR`, for {func}`~click_extra.carapace.xdg_dir`
-to expand at call time."""
 
-MAN_INSTALL_DIR: Path = _MAN_INSTALL_DIR.expanduser()
-"""Where `--install` writes man pages: the user's own section-1 directory.
+def find_typesetters(mode: str, **fields: object) -> Iterator[list[str]]:
+    """Yield the command line of each typesetter installed for `mode`, best first.
 
-The default of the [XDG base directory spec](https://specifications.freedesktop.org/basedir-spec/latest/),
-expanded against the `HOME` of the process at import. {func}`install_manpages`
-reads `XDG_DATA_HOME` and `HOME` at call time instead, through
-{func}`~click_extra.carapace.xdg_dir`. Some systems do not carry this path in
-their `MANPATH`, in which case the pages land correctly but `man` has to be told
-where to look.
-"""
+    Probes `PATH` for each program of {data}`MAN_TYPESETTERS` and skips the
+    absent ones. Each command line starts with the program's resolved path,
+    and its arguments are filled from `fields`, like `width`.
+
+    :param mode: the {data}`MAN_TYPESETTERS` key naming the output, `terminal`
+        or `html`.
+    """
+    for program, *arguments in MAN_TYPESETTERS[mode]:
+        executable = shutil.which(program)
+        if executable:
+            yield [executable, *(argument.format(**fields) for argument in arguments)]
+
+
+def run_typesetter(
+    argv: Sequence[str],
+    roff: str | None = None,
+    *,
+    timeout: float | None = None,
+) -> str:
+    """Run a typesetter and return what it wrote to `stdout`.
+
+    The output is read as UTF-8, the encoding `groff` and `mandoc` write in
+    whatever the locale of the platform.
+
+    :param argv: the command line, as {func}`find_typesetters` yields it.
+    :param roff: the man page source, sent on `stdin`. `None` sends nothing, for
+        a command line naming the file to read.
+    :param timeout: seconds the typesetter gets before it is stopped.
+    :raises subprocess.SubprocessError: the typesetter exits with an error or
+        outlives `timeout`.
+    :raises OSError: the typesetter cannot start.
+    """
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
+    return subprocess.run(
+        argv,
+        input=roff,
+        capture_output=True,
+        encoding="UTF-8",
+        check=True,
+        timeout=timeout,
+    ).stdout
 
 
 def format_manpage(roff: str, width: int | None = None) -> str | None:
     """Typeset *roff* into readable terminal text, or `None` if nothing can.
 
-    Tries each entry of {data}`~click_extra.command_doc.MAN_FORMATTERS` in turn
-    and returns the output of the first that succeeds. Returns `None` when none
-    of them is installed, which the caller is expected to degrade on rather than
-    fail: a CLI that cannot find a typesetter is a CLI running somewhere that
-    never had man pages to begin with (Windows, a slim container), and that is
-    no reason for `--man` to error.
+    Tries each `terminal` typesetter of
+    {data}`~click_extra.command_doc.MAN_TYPESETTERS` in turn and returns the
+    output of the first that succeeds. Returns `None` when none of them is
+    installed, which the caller is expected to degrade on rather than fail: a
+    CLI that cannot find a typesetter is a CLI running somewhere that never had
+    man pages to begin with (Windows, a slim container), and that is no reason
+    for `--man` to error.
 
     :param roff: the man page source, as {meth}`CommandDoc.to_roff` renders it.
     :param width: line length in columns. Defaults to the terminal's own, so the
@@ -1425,33 +1489,26 @@ def format_manpage(roff: str, width: int | None = None) -> str | None:
 
     if width is None:
         width = shutil.get_terminal_size().columns
-    for template in MAN_FORMATTERS:
-        if not shutil.which(template[0]):
-            continue
-        argv = [arg.format(width=width) for arg in template]
+    for argv in find_typesetters("terminal", width=width):
         try:
-            process = subprocess.run(
-                argv,
-                input=roff,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                check=False,
-            )
-        except OSError:
+            output = run_typesetter(argv, roff)
+        except (subprocess.SubprocessError, OSError):
             continue
-        if process.returncode == 0 and process.stdout.strip():
-            return process.stdout
+        if output.strip():
+            return output
     return None
 
 
-OVERSTRIKE_RE = re.compile(r".\x08")
-"""Match the character-backspace pairs a roff typesetter emits for emphasis.
+def strip_overstrike(text: str) -> str:
+    r"""Remove the character-backspace pairs a roff typesetter emits for emphasis.
 
-A bold `N` is written `N\\x08N` and an underlined one `_\\x08N`, a convention
-inherited from line printers that a pager still renders as bold and underline
-today. Dropping the pair's first half leaves the plain character.
-"""
+    A bold `N` is written `N\x08N` and an underlined one `_\x08N`, a convention
+    inherited from line printers that a pager still renders as bold and underline
+    today. Dropping the pair's first half leaves the plain character.
+
+    The terminal-text counterpart of {func}`~click_extra.ansi.strip_ansi`.
+    """
+    return re.sub(r".\x08", "", text)
 
 
 def read_manpage(command: Command, ctx: Context | None = None) -> None:
@@ -1472,18 +1529,18 @@ def read_manpage(command: Command, ctx: Context | None = None) -> None:
     roff = render_manpage(command, ctx=ctx)
     typeset = format_manpage(roff)
     if typeset is None:
-        logging.getLogger("click_extra").warning(
+        logger.warning(
             "No man page typesetter found (tried %s): printing the roff source "
             "instead. Install one to read the manual, or ask for the source on "
             "purpose with --help-format man.",
-            ", ".join(template[0] for template in MAN_FORMATTERS),
+            ", ".join(program for program, *_ in MAN_TYPESETTERS["terminal"]),
         )
         click.echo(roff)
         return
 
     active_ctx = click.get_current_context(silent=True)
     if active_ctx is not None and context.get(active_ctx, context.ACCESSIBLE, False):
-        typeset = OVERSTRIKE_RE.sub("", typeset)
+        typeset = strip_overstrike(typeset)
     echo_via_pager(typeset)
 
 
@@ -1491,7 +1548,7 @@ class ManOption(ExtraOption):
     """A pre-configured `--man` flag that typesets the command's manual, pages
     it, and exits.
 
-    Eager and value-less, like {class}`~click_extra.parameters.ShowParamsOption`.
+    Eager and value-less, like {class}`~click_extra.show_params.ShowParamsOption`.
     Part of the default option set injected by
     {func}`~click_extra.commands.default_params`, so every `@command`
     and `@group` exposes it. Use
@@ -1517,14 +1574,11 @@ class ManOption(ExtraOption):
     ```
 
     ```{note}
-    That Perl convention is about *reading* a manual, and this flag used to
-    print roff source instead, which nobody reads: it was a build artifact
-    wearing a reader's name. It now typesets the page and sends it to the pager,
-    the way `man` itself does, so the flag does what its tradition says.
-
-    The source did not go away, it moved to where a build step looks for it:
-    `--help-format man`, beside every other artifact this module renders. The
-    two are one question apart. Do you want to read the manual, or to ship it?
+    That Perl convention is about *reading* a manual, so the flag typesets the
+    page and sends it to the pager, the way `man` itself does. The roff source a
+    build step ships is `--help-format man`, beside every other artifact this
+    module renders. The two are one question apart: do you want to read the
+    manual, or to ship it?
     ```
     """
 

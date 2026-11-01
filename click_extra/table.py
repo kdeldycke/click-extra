@@ -13,7 +13,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Collection of table rendering utilities."""
+"""Render tables for a terminal, a markup document or a serialization format.
+
+```{todo}
+Drop the `github` patch of `_setup_tabulate` once a python-tabulate release
+ships [astanin/python-tabulate#410](https://github.com/astanin/python-tabulate/pull/410):
+`github` then marks column alignment in its separator row, as `pipe` does.
+```
+
+```{todo}
+Delete `_pad_gfm_separator` once a python-tabulate release ships
+[astanin/python-tabulate#426](https://github.com/astanin/python-tabulate/pull/426):
+the separator rows of `pipe` and `github` then carry the padding `mdformat`
+writes.
+```
+"""
 
 from __future__ import annotations
 
@@ -24,27 +38,26 @@ import shutil
 from contextvars import ContextVar
 from enum import Enum
 from functools import cache, partial
-from gettext import gettext as _
 from io import StringIO
+from itertools import zip_longest
 from types import SimpleNamespace
 
 import click
 from click import echo
 
 from . import context
-from ._utils import missing_extra_message
+from ._utils import AUTO
+from .ansi import strip_ansi
 from .columns import ColumnSpec
 from .config.formats import ConfigFormat, serialize_content
 from .layout import cell_width, wrap_ansi
-from .parameters import ExtraOption
+from .output import MissingExtraError
 from .styling import (
     ansi_to_html,
     ansi_to_jira,
     ansi_to_latex,
     ansi_to_textile,
-    strip_ansi,
 )
-from .types import EnumChoice, MultiChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -62,7 +75,8 @@ if TYPE_CHECKING:
     {class}`~click_extra.columns.ColumnSpec`."""
 
     TColumnDef: TypeAlias = "ColumnSpec | str"
-    """One column definition of {class}`SortByOption` or {func}`column_sort_key`.
+    """One column definition of {class}`~click_extra.table_options.SortByOption`
+    or {func}`~click_extra.table_options.column_sort_key`.
 
     A {class}`~click_extra.columns.ColumnSpec`, or a bare column ID.
     """
@@ -73,18 +87,17 @@ def _setup_tabulate() -> ModuleType:
     """Import `tabulate`, apply Click Extra's patches, register its formats, and
     return the module.
 
-    `tabulate` is a comparatively heavy dependency, only needed when a table
-    is actually rendered through it (the CSV, structured and serialization
-    formats use other backends). Importing and configuring it here, on the first
-    render rather than at module load, keeps it off the default import path of
-    every CLI built with Click Extra. This mirrors the optional
-    serialization-format imports deferred elsewhere in this module.
+    `tabulate` is a comparatively heavy dependency, only needed when a table is
+    rendered through it (the CSV, vertical and serialization formats use other
+    backends). Importing and configuring it on the first render keeps it off the
+    import path of every CLI built with Click Extra.
 
     ```{note}
-    `@cache` ensures the import and the one-time monkeypatches below run
-    only once. Do not hoist `import tabulate` back to module scope.
+    `@cache` runs the import and the monkeypatches below once. Do not hoist
+    `import tabulate` back to module scope.
     ```
     """
+    # Deferred import: keeps tabulate and wcwidth off the startup path of every CLI.
     import tabulate
     from tabulate import DataRow, TableFormat as TabulateTableFormat
     from wcwidth import wcwidth as char_width
@@ -121,16 +134,9 @@ def _setup_tabulate() -> ModuleType:
         with_header_hide=None,
     )
 
-    # Patch the `github` format to support alignment colons in separator rows,
-    # matching the `pipe` format. Backport of
-    # https://github.com/astanin/python-tabulate/pull/410
+    # Mark column alignment with colons in the separator row of `github`, as
+    # `pipe` does.
     fmts["github"] = fmts["pipe"]
-
-    # Backport `colon_grid` for tabulate < 0.10 by aliasing it to `grid`.
-    # Lets downstream distributions ship click-extra without bumping tabulate
-    # globally.
-    if "colon_grid" not in fmts:
-        fmts["colon_grid"] = fmts["grid"]
 
     return tabulate
 
@@ -216,8 +222,7 @@ class TableFormat(Enum):
     def supports_styling(self) -> bool:
         """Whether ANSI codes are translated to this format's native styling.
 
-        See {data}`~click_extra.table.STYLED_FORMATS` for the registry, and
-        the rationale behind each excluded markup format.
+        See {data}`~click_extra.table.STYLED_FORMATS` for the registry.
         """
         return self in STYLED_FORMATS
 
@@ -295,30 +300,9 @@ injection also keeps column-width computation on the ANSI text, which
 tabulate measures correctly.
 ```
 
-```{important}
-Every markup format absent from this registry keeps the historical
-behavior: ANSI codes are stripped from cells before rendering. The
-verdict, format by format:
-
-- `asciidoc`: no portable inline styling. Colors require
-  stylesheet-defined roles or `+++` passthrough blocks tied to the
-  HTML backend, both lossy and non-standard.
-- `csv`, `csv-excel`, `csv-excel-tab`, `csv-unix`, `tsv`:
-  data interchange formats, with no concept of styling.
-- `github`, `pipe`: GitHub sanitizes inline `style` attributes
-  from rendered Markdown, so translated HTML spans would not display any
-  color there. Raw ANSI can still be forced with `--color` for
-  terminal Markdown viewers which support escape sequences.
-- `hjson`, `json`, `json5`, `jsonc`, `toml`, `xml`,
-  `yaml`: structured serialization formats meant for programmatic
-  consumption. Styling is presentation, not data.
-- `moinmoin`: MoinMoin wiki markup has no standard inline color
-  syntax, and embedded HTML is disabled by default.
-- `orgtbl`: Org-mode has emphasis markers but no inline color markup.
-- `rst`: reStructuredText needs custom roles backed by a stylesheet
-  for inline color; there is no standard inline syntax.
-- `youtrack`: undocumented by JetBrains and [scheduled for removal in python-tabulate 0.11](https://github.com/astanin/python-tabulate/issues/375).
-```
+Every markup format absent from this registry strips ANSI codes from its cells
+before rendering. The *Colors and styles* section of {doc}`/table` gives the
+reason, format by format.
 """
 
 
@@ -332,21 +316,35 @@ RECORD_KEY = "record"
 XML_ROOT_KEY = "records"
 """Root element name for XML table output."""
 
-SERIALIZATION_FORMATS = frozenset(
+CSV_FORMATS = frozenset(
     {
-        TableFormat.HJSON,
-        TableFormat.JSON,
-        TableFormat.JSON5,
-        TableFormat.JSONC,
-        TableFormat.TOML,
-        TableFormat.XML,
-        TableFormat.YAML,
+        TableFormat.CSV,
+        TableFormat.CSV_EXCEL,
+        TableFormat.CSV_EXCEL_TAB,
+        TableFormat.CSV_UNIX,
     },
 )
+"""Formats rendered by Python's `csv` module, each named after its dialect."""
+
+_SERIALIZERS: dict[TableFormat, ConfigFormat] = {
+    TableFormat.HJSON: ConfigFormat.HJSON,
+    TableFormat.JSON: ConfigFormat.JSON,
+    TableFormat.JSON5: ConfigFormat.JSON,
+    TableFormat.JSONC: ConfigFormat.JSON,
+    TableFormat.TOML: ConfigFormat.TOML,
+    TableFormat.XML: ConfigFormat.XML,
+    TableFormat.YAML: ConfigFormat.YAML,
+}
+"""The configuration format each serialization format writes with.
+
+JSON5 and JSONC are supersets of JSON, so plain JSON is valid output for both.
+"""
+
+SERIALIZATION_FORMATS = frozenset(_SERIALIZERS)
 """Structured serialization formats whose renderers escape raw ESC bytes, making
 post-render `strip_ansi()` ineffective."""
 
-AUTO_WIDTH: Final = "auto"
+AUTO_WIDTH: Final = AUTO
 """Sentinel asking for a column width derived from the space left on the terminal.
 
 Annotated `Final` so it narrows to `Literal["auto"]` instead of `str`, which is
@@ -406,51 +404,32 @@ for one of four reasons:
   the cell markup, where the target renderer either collapses it back to a
   space or breaks the row. These formats delegate wrapping to whatever
   displays them.
-- `csv`, `csv-excel`, `csv-excel-tab`, `csv-unix`, `tsv`, and
-  the {data}`~click_extra.table.SERIALIZATION_FORMATS`: data interchange,
-  where a line break inside a field changes the record rather than its
-  presentation.
+- {data}`~click_extra.table.CSV_FORMATS`, `tsv`, and the
+  {data}`~click_extra.table.SERIALIZATION_FORMATS`: data interchange, where a
+  line break inside a field changes the record rather than its presentation.
 ```
 """
-
-
-def _get_csv_dialect(table_format: TableFormat | None = None) -> str:
-    """Extract, validate and normalize CSV dialect ID from format.
-
-    Defaults to `excel` rendering, like in Python's csv module.
-    """
-    dialect = "excel"
-
-    # Extract dialect ID from table format, if any.
-    if table_format:
-        format_id = table_format.value
-        assert format_id.startswith("csv")
-        parts = format_id.split("-", 1)
-        assert parts[0] == "csv"
-        if len(parts) > 1:
-            dialect = parts[1]
-
-    csv.get_dialect(dialect)  # Validate dialect.
-    return dialect
 
 
 def _render_csv(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
-    table_format: TableFormat | None = None,
+    table_format: TableFormat = TableFormat.CSV,
     **kwargs,
 ) -> str:
-    """Render a table in CSV format.
+    """Render a table with Python's `csv` module.
+
+    The dialect is the part of the format ID after `csv-`, and `excel` for a
+    bare `csv`, like the `csv` module's own default. `kwargs` go to
+    {func}`csv.writer`, and override the dialect.
 
     ```{note}
     StringIO is used to capture CSV output in memory. [Hard-coded to default to UTF-8](https://github.com/python/cpython/blob/9291095/Lib/_pyio.py#L2652).
     ```
     """
-    defaults = {"dialect": _get_csv_dialect(table_format)}
-    defaults.update(kwargs)
-
+    dialect = table_format.value.removeprefix("csv").removeprefix("-") or "excel"
     with StringIO(newline="") as output:
-        writer = csv.writer(output, **defaults)  # type: ignore[arg-type]
+        writer = csv.writer(output, **{"dialect": dialect, **kwargs})
         if headers:
             writer.writerow(headers)
         writer.writerows(table_data)
@@ -555,15 +534,15 @@ _LAID_OUT_FOR_TERMINAL: ContextVar[bool] = ContextVar(
 )
 """Whether the table being rendered is laid out for the running terminal.
 
-Set by {func}`render_table` for the duration of one rendering, and read by
-{func}`_terminal_wcswidth`, the measure {func}`_setup_tabulate` hands `tabulate`
-once for the whole process. `True` outside any rendering, so a direct `tabulate`
-call keeps measuring for the screen.
+Set by {func}`render_table` and {func}`print_table` for the duration of one
+rendering, and read by {func}`_terminal_wcswidth`, the measure
+{func}`_setup_tabulate` hands `tabulate` once for the whole process. `True`
+outside any rendering, so a direct `tabulate` call keeps measuring for the
+screen.
 
 A markup format renders under `False`. It carries the table to a reader who
-never sees this terminal, and to a formatter padding it with the Unicode widths
-alone: `mdformat` re-padded every row holding an emoji-presentation sequence of
-a `github` table rendered from Apple Terminal, one column each, on each pass.
+never sees this terminal, and to a formatter like `mdformat` that pads it with
+the Unicode widths alone.
 
 A context variable rather than a module global, so two threads rendering at
 once, one for the screen and one for a file, cannot swap each other's measure.
@@ -629,6 +608,18 @@ def _terminal_wcswidth(text: str) -> int:
     return cell_width(text, term_program=_term_program())
 
 
+def _pad_sequence(match: re.Match[str]) -> str:
+    """Follow an emoji-presentation sequence with the column it paints into.
+
+    Only on a terminal painting it wider than it advances: see
+    {func}`_paints_wider_than_it_advances`.
+    """
+    sequence = match.group()
+    if _paints_wider_than_it_advances(sequence):
+        return f"{sequence} "
+    return sequence
+
+
 def _pad_emoji_presentation(cell: str | None) -> str | None:
     """Give an emoji-presentation glyph the column it paints into.
 
@@ -646,16 +637,10 @@ def _pad_emoji_presentation(cell: str | None) -> str | None:
     to a reader who never sees this terminal, and a space added there would be
     content, not presentation.
     """
-    if not isinstance(cell, str):
+    # A cell without the selector holds no sequence: skip the regex scan.
+    if not isinstance(cell, str) or EMOJI_PRESENTATION_SELECTOR not in cell:
         return cell
-
-    def pad(match: re.Match[str]) -> str:
-        sequence = match.group()
-        if _paints_wider_than_it_advances(sequence):
-            return f"{sequence} "
-        return sequence
-
-    return EMOJI_PRESENTATION_RE.sub(pad, cell)
+    return EMOJI_PRESENTATION_RE.sub(_pad_sequence, cell)
 
 
 def _visible_width(cell: object) -> int:
@@ -677,21 +662,13 @@ def _natural_column_widths(
     """Width each column takes when no wrapping is applied.
 
     Headers participate in the measure, as they widen a column the same way
-    cells do.
+    cells do. A row shorter than the others leaves its missing cells at zero.
     """
-    widths: list[int] = []
-    rows = [headers, *table_data] if headers else list(table_data)
-    for row in rows:
-        for index, cell in enumerate(row):
-            width = _visible_width(cell)
-            if index < len(widths):
-                widths[index] = max(widths[index], width)
-            else:
-                widths.append(width)
-    return widths
+    rows = (headers, *table_data) if headers else table_data
+    return [max(map(_visible_width, column)) for column in zip_longest(*rows)]
 
 
-def _cell_width(
+def _column_width_limit(
     max_column_widths: Sequence[int | None] | None,
     column: int,
 ) -> int | None:
@@ -711,6 +688,9 @@ def _render_vertical(
 ) -> str:
     """Re-implements `cli-helpers`'s vertical table layout.
 
+    Labels are padded to the visible width of the widest one, so a styled or a
+    double-width label keeps the separator column aligned.
+
     A cell exceeding its `max_column_widths` entry wraps onto extra lines,
     each aligned under the first one so the label column stays readable. Unlike
     the tabulate-backed formats, this layout does the wrapping itself: there is
@@ -727,35 +707,39 @@ def _render_vertical(
     as in the original implementation.
     ```
     """
-    if not headers:
-        headers = []
-
-    # Calculate header lengths and pad headers in one pass.
-    header_length = [0 if h is None else len(h) for h in headers]
-    max_length = max(header_length) if header_length else 0
-    padded_headers = ["" if h is None else h.ljust(max_length) for h in headers]
-
-    table_lines = []
-    sep = sep_character * sep_length
+    labels = ["" if header is None else header for header in headers or ()]
+    label_widths = [_visible_width(label) for label in labels]
+    gutter = max(label_widths, default=0)
+    padded_labels = [
+        label + " " * (gutter - width)
+        for label, width in zip(labels, label_widths, strict=True)
+    ]
     # Continuation lines of a wrapped cell line up under the first one, past
     # the label column and its separator.
-    continuation_label = " " * max_length
-    for index, row in enumerate(table_data):
-        table_lines.append(f"{sep}[ {index + 1}. row ]{sep}")
-        for column, (cell_label, cell_value) in enumerate(zip(padded_headers, row)):
+    continuation = " " * gutter
+    sep = sep_character * sep_length
+
+    table_lines = []
+    for index, row in enumerate(table_data, start=1):
+        table_lines.append(f"{sep}[ {index}. row ]{sep}")
+        for column, (label, cell) in enumerate(zip(padded_labels, row)):
             # Like other formats, render None as an empty string.
-            text = "" if cell_value is None else str(cell_value)
-            width = _cell_width(max_column_widths, column)
+            text = "" if cell is None else str(cell)
+            limit = _column_width_limit(max_column_widths, column)
             parts = [text]
-            if width and _visible_width(text) > width:
-                parts = wrap_ansi(text, width)
-            table_lines.append(f"{cell_label} | {parts[0]}")
-            table_lines.extend(f"{continuation_label} | {part}" for part in parts[1:])
+            if limit and _visible_width(text) > limit:
+                parts = wrap_ansi(text, limit)
+            table_lines.append(f"{label} | {parts[0]}")
+            table_lines.extend(f"{continuation} | {part}" for part in parts[1:])
     return "\n".join(table_lines)
 
 
-_GFM_SEPARATOR_RE = re.compile(r"^\|[-: |]+\|$")
-"""Matches a GFM table separator row (like `|:---|:---|`)."""
+_GFM_SEPARATOR_PATTERN = r"\|[-: |]+\|"
+"""Matches a GFM table separator row (like `|:---|:---|`).
+
+Kept as a string: `re` compiles and caches it on first use, which keeps the
+compilation off the startup path.
+"""
 
 
 def _pad_gfm_separator(text: str) -> str:
@@ -766,15 +750,10 @@ def _pad_gfm_separator(text: str) -> str:
     This post-processing step matches mdformat's canonical form, preventing an
     infinite formatting cycle between table-generating and markdown-formatting
     tools.
-
-    ```{note}
-    Proposed upstream at https://github.com/astanin/python-tabulate/pull/426
-    If merged, this workaround can be removed.
-    ```
     """
     lines = []
     for line in text.split("\n"):
-        if not _GFM_SEPARATOR_RE.fullmatch(line):
+        if not re.fullmatch(_GFM_SEPARATOR_PATTERN, line):
             lines.append(line)
             continue
         parts = line.split("|")
@@ -805,37 +784,31 @@ def _pad_gfm_separator(text: str) -> str:
 def _render_tabulate(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None = None,
-    table_format: TableFormat | None = None,
+    table_format: TableFormat = DEFAULT_FORMAT,
     max_column_widths: Sequence[int | None] | None = None,
     **kwargs,
 ) -> str:
     """Render a table with `tabulate`.
 
-    Default format is `TableFormat.ROUNDED_OUTLINE`.
-
     Column widths are handed over to tabulate's own `maxcolwidths`, whose
     wrapper measures visible width, so cells keep their styling across a wrap.
     """
-    if not headers:
-        headers = ()
-    if not table_format:
-        table_format = DEFAULT_FORMAT
-    defaults: dict[str, Any] = {
+    options: dict[str, Any] = {
         "disable_numparse": True,
         "numalign": None,
         # tabulate()'s format ID uses underscores instead of dashes.
         "tablefmt": table_format.value.replace("-", "_"),
     }
     if max_column_widths is not None:
-        defaults["maxcolwidths"] = list(max_column_widths)
-    defaults.update(kwargs)
+        options["maxcolwidths"] = list(max_column_widths)
+    options.update(kwargs)
+    headers = headers or ()
     if not table_format.is_markup:
         table_data = [
             [_pad_emoji_presentation(cell) for cell in row] for row in table_data
         ]
         headers = [_pad_emoji_presentation(header) for header in headers]
-    tabulate = _setup_tabulate()
-    result: str = tabulate.tabulate(table_data, headers, **defaults)
+    result: str = _setup_tabulate().tabulate(table_data, headers, **options)
     # Normalize separator rows for GFM-compatible formats so that mdformat
     # treats the output as already canonical and does not re-pad it.
     if table_format in (TableFormat.GITHUB, TableFormat.PIPE):
@@ -892,7 +865,7 @@ def _normalize_max_widths(
 def _decoration_width(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None,
-    table_format: TableFormat | None,
+    table_format: TableFormat,
     natural: Sequence[int],
 ) -> int:
     """Columns the borders and padding of a format add to its widest row.
@@ -910,7 +883,7 @@ def _resolve_auto_widths(
     widths: Sequence[ColumnWidth],
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[str | None] | None,
-    table_format: TableFormat | None,
+    table_format: TableFormat,
 ) -> list[int | None]:
     """Turn every {data}`AUTO_WIDTH` entry into a concrete character count.
 
@@ -947,20 +920,19 @@ def _resolve_auto_widths(
 
         auto_width = max(budget, MIN_COLUMN_WIDTH)
 
-    concrete: list[int | None] = []
-    for width in widths:
-        if width == AUTO_WIDTH:
-            concrete.append(auto_width)
-        else:
-            concrete.append(width if isinstance(width, int) else None)
-    return concrete
+    return [
+        auto_width
+        if width == AUTO_WIDTH
+        else (width if isinstance(width, int) else None)
+        for width in widths
+    ]
 
 
 def _resolve_column_widths(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[THeader] | None,
     labels: Sequence[str | None] | None,
-    table_format: TableFormat | None,
+    table_format: TableFormat,
     max_column_widths: MaxColumnWidths,
 ) -> list[int | None] | None:
     """Resolve the width limits a render should apply, or `None` for no limit.
@@ -974,8 +946,7 @@ def _resolve_column_widths(
     {data}`~click_extra.table.WRAPPABLE_FORMATS`) resolve to `None`: the hint
     is dropped rather than allowed to corrupt their output.
     """
-    resolved_format = table_format if table_format is not None else DEFAULT_FORMAT
-    if not resolved_format.is_wrappable:
+    if not table_format.is_wrappable:
         return None
 
     column_count = max((len(row) for row in table_data), default=0)
@@ -993,49 +964,48 @@ def _resolve_column_widths(
     return _resolve_auto_widths(widths, table_data, labels, table_format)
 
 
-def _select_table_funcs(
-    table_format: TableFormat | None = None,
-) -> tuple[Callable[..., str], Callable[[str], None]]:
-    """Returns the rendering and print functions for the given `table_format`.
+def _render_func(table_format: TableFormat) -> Callable[..., str]:
+    """The function rendering a table in `table_format`."""
+    if table_format in CSV_FORMATS:
+        return partial(_render_csv, table_format=table_format)
+    if table_format is TableFormat.VERTICAL:
+        return _render_vertical
+    match _SERIALIZERS.get(table_format):
+        case None:
+            return partial(_render_tabulate, table_format=table_format)
+        case ConfigFormat.TOML:
+            return _render_toml
+        case ConfigFormat.XML:
+            return _render_xml
+        case config_format:
+            return partial(_render_records, config_format)
 
-    For all formats other than CSV and structured serializations, we rely on Click's
-    `echo()` as the print function, to benefit from its sensitivity to global
-    colorization settings. Thanks to this the `--color`/`--no-color` option is
-    automatically supported.
 
-    For CSV and structured serialization formats we return the Python standard
-    `print()` function, to preserve line terminations and avoid extra line returns.
+def _print_func(table_format: TableFormat) -> Callable[[str], None]:
+    """The function printing a table rendered in `table_format`.
+
+    CSV and the serialization formats end their output with their own line
+    terminations, so Python's `print()` writes it as is, where `echo()` would add
+    a line return. Every other format goes through Click's `echo()`, which
+    honors the colorization settings: that is what makes `--color` and
+    `--no-color` reach a table.
     """
-    # Structured serializations and CSV variants embed their own line terminations,
-    # so they bypass echo() (which would add an extra line return).
-    is_csv = table_format is not None and table_format.value.startswith("csv")
-    if table_format in SERIALIZATION_FORMATS or is_csv:
-        print_func: Callable[[str], None] = partial(print, end="")
-    else:
-        print_func = echo
+    if table_format in CSV_FORMATS or table_format in SERIALIZATION_FORMATS:
+        return partial(print, end="")
+    return echo
 
-    match table_format:
-        case (
-            TableFormat.CSV
-            | TableFormat.CSV_EXCEL
-            | TableFormat.CSV_EXCEL_TAB
-            | TableFormat.CSV_UNIX
-        ):
-            return partial(_render_csv, table_format=table_format), print_func
-        case TableFormat.HJSON:
-            return partial(_render_records, ConfigFormat.HJSON), print_func
-        case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
-            return partial(_render_records, ConfigFormat.JSON), print_func
-        case TableFormat.TOML:
-            return _render_toml, print_func
-        case TableFormat.XML:
-            return _render_xml, print_func
-        case TableFormat.YAML:
-            return partial(_render_records, ConfigFormat.YAML), print_func
-        case TableFormat.VERTICAL:
-            return _render_vertical, print_func
-        case _:
-            return partial(_render_tabulate, table_format=table_format), print_func
+
+def _normalize_column_def(column: TColumnDef) -> tuple[str | None, str | None]:
+    """Coerce a column definition to a `(label, column_id)` tuple.
+
+    Accepts a {class}`~click_extra.columns.ColumnSpec` (so a registry can be shared with
+    `--columns`), whose column ID is dropped when it is not `sortable`, or a
+    bare column ID string, which declares a sortable field untied to any table
+    layout (its label is `None`).
+    """
+    if isinstance(column, str):
+        return (None, column)
+    return (column.label, column.id if column.sortable else None)
 
 
 def _split_header_defs(
@@ -1053,20 +1023,16 @@ def _split_header_defs(
     """
     if headers is None:
         return None, None
-    labels: list[str | None] = []
-    defs: list[tuple[str | None, str | None]] = []
-    for header in headers:
-        label: str | None
-        col_id: str | None
-        if isinstance(header, ColumnSpec):
-            label, col_id = header.label, header.id if header.sortable else None
-        else:
-            label, col_id = header, None
-        labels.append(label)
-        defs.append((label, col_id))
+    defs = tuple(
+        _normalize_column_def(header)
+        if isinstance(header, ColumnSpec)
+        else (header, None)
+        for header in headers
+    )
+    labels = [label for label, _ in defs]
     if not any(col_id for _, col_id in defs):
         return labels, None
-    return labels, tuple(defs)
+    return labels, defs
 
 
 def _context_sort_key(
@@ -1098,7 +1064,7 @@ def _resolve_table_inputs(
 
     The shared preamble of {func}`render_table` and {func}`print_table`: the
     render labels are split from the sortable column definitions, the active
-    `--sort-by` selection is resolved when no explicit *sort_key* is given,
+    `--sort-by` selection is resolved when no explicit `sort_key` is given,
     and rows are sorted when a key applies.
     """
     labels, header_defs = _split_header_defs(headers)
@@ -1127,6 +1093,33 @@ def corner_header(rows: str, columns: str) -> str:
     return f"{rows} {CORNER_GLYPH} \\ {columns} →"
 
 
+def _render_rows(
+    table_data: Sequence[Sequence[str | None]],
+    headers: Sequence[THeader] | None,
+    labels: Sequence[str | None] | None,
+    table_format: TableFormat,
+    max_column_widths: MaxColumnWidths,
+    **kwargs,
+) -> str:
+    """Render rows already sorted, under the labels split from their headers.
+
+    The rendering core of {func}`render_table` and {func}`print_table`. A
+    markup rendering is measured with the Unicode widths for as long as it
+    renders: the column widths resolved here and the padding tabulate applies
+    must read every cell the same way.
+    """
+    token = _LAID_OUT_FOR_TERMINAL.set(not table_format.is_markup)
+    try:
+        widths = _resolve_column_widths(
+            table_data, headers, labels, table_format, max_column_widths
+        )
+        if widths is not None:
+            kwargs["max_column_widths"] = widths
+        return _render_func(table_format)(table_data, labels, **kwargs)
+    finally:
+        _LAID_OUT_FOR_TERMINAL.reset(token)
+
+
 def render_table(
     table_data: Sequence[Sequence[str | None]],
     headers: Sequence[THeader] | None = None,
@@ -1140,10 +1133,10 @@ def render_table(
     `headers` entries carrying a column ID ({class}`~click_extra.columns.ColumnSpec`
     instances) plug the table into the active `--sort-by` selection: when no explicit
     `sort_key` is given, rows sort by the selected columns this table carries, and keep
-    their original order when it carries none. See {func}`column_sort_key` for the exact
-    semantics.
+    their original order when it carries none. See
+    {func}`~click_extra.table_options.column_sort_key` for the exact semantics.
 
-    :param sort_key: Optional callable passed to :py:func:`sorted` as the `key`
+    :param sort_key: Optional callable passed to {func}`sorted` as the `key`
         argument. When provided, rows are sorted before rendering.
     :param max_column_widths: Width limits, as one entry per column or a single
         value for all of them. Each entry is a character count, `"auto"` to
@@ -1153,20 +1146,14 @@ def render_table(
         {data}`~click_extra.table.WRAPPABLE_FORMATS`.
     """
     table_data, labels = _resolve_table_inputs(table_data, headers, sort_key)
-    # A markup rendering is measured with the Unicode widths for as long as it
-    # renders: the column widths resolved below and the padding tabulate applies
-    # must read every cell the same way.
-    token = _LAID_OUT_FOR_TERMINAL.set(not (table_format or DEFAULT_FORMAT).is_markup)
-    try:
-        widths = _resolve_column_widths(
-            table_data, headers, labels, table_format, max_column_widths
-        )
-        if widths is not None:
-            kwargs["max_column_widths"] = widths
-        render_func, _ = _select_table_funcs(table_format)
-        return render_func(table_data, labels, **kwargs)
-    finally:
-        _LAID_OUT_FOR_TERMINAL.reset(token)
+    return _render_rows(
+        table_data,
+        headers,
+        labels,
+        table_format or DEFAULT_FORMAT,
+        max_column_widths,
+        **kwargs,
+    )
 
 
 def _strip_ansi_cells(
@@ -1227,8 +1214,8 @@ def print_table(
     `headers` entries carrying a column ID ({class}`~click_extra.columns.ColumnSpec`
     instances) plug the table into the active `--sort-by` selection: when no explicit
     `sort_key` is given, rows sort by the selected columns this table carries, and keep
-    their original order when it carries none. See {func}`column_sort_key` for the exact
-    semantics.
+    their original order when it carries none. See
+    {func}`~click_extra.table_options.column_sort_key` for the exact semantics.
 
     ANSI codes carried by cell values and headers depend on the format:
 
@@ -1241,7 +1228,7 @@ def print_table(
     - Plain-text formats keep them raw, and defer to `echo()`'s sensitivity
       to the global colorization settings.
 
-    :param sort_key: Optional callable passed to :py:func:`sorted` as the `key`
+    :param sort_key: Optional callable passed to {func}`sorted` as the `key`
         argument. When provided, rows are sorted before rendering.
     :param max_column_widths: Width limits, as one entry per column or a single
         value for all of them. Each entry is a character count, `"auto"` to
@@ -1249,49 +1236,36 @@ def print_table(
         Defaults to the `max_width` declared by {class}`~click_extra.columns.ColumnSpec`
         headers. Silently dropped by formats outside
         {data}`~click_extra.table.WRAPPABLE_FORMATS`.
+    :raises ~click_extra.output.MissingExtraError: the renderer of
+        `table_format` is not installed.
     """
+    table_format = table_format or DEFAULT_FORMAT
     table_data, labels = _resolve_table_inputs(table_data, headers, sort_key)
 
     ansi_translator: Callable[[str], str] | None = None
-    if table_format:
-        if table_format.supports_styling and not _color_disabled():
-            # Translation to native styling runs on the rendered output, not
-            # on cells: see the STYLED_FORMATS docstring for the rationale.
-            ansi_translator = STYLED_FORMATS[table_format]
-        elif table_format.is_markup and not _color_forced():
-            # Strip ANSI codes from cell data before rendering. Pre-render
-            # stripping is necessary because some renderers (JSON, YAML)
-            # escape raw ESC bytes, making post-render strip_ansi()
-            # ineffective.
-            table_data, labels = _strip_ansi_cells(table_data, labels)
+    if table_format.supports_styling and not _color_disabled():
+        # Translation to native styling runs on the rendered output, not on
+        # cells: see the STYLED_FORMATS docstring for the rationale.
+        ansi_translator = STYLED_FORMATS[table_format]
+    elif table_format.is_markup and not _color_forced():
+        # Strip ANSI codes from cell data before rendering. Pre-render
+        # stripping is necessary because some renderers (JSON, YAML) escape raw
+        # ESC bytes, making post-render strip_ansi() ineffective. Widths are
+        # resolved after it, so an `auto` column is measured on the text that
+        # gets rendered.
+        table_data, labels = _strip_ansi_cells(table_data, labels)
 
-    # Resolved once cells carry their final content, so an `auto` column is
-    # measured on the text that actually gets rendered.
-    widths = _resolve_column_widths(
-        table_data, headers, labels, table_format, max_column_widths
-    )
-    if widths is not None:
-        kwargs["max_column_widths"] = widths
-
-    render_func, print_func = _select_table_funcs(table_format)
     try:
-        output = render_func(table_data, labels, **kwargs)
+        output = _render_rows(
+            table_data, headers, labels, table_format, max_column_widths, **kwargs
+        )
     except ImportError:
-        assert table_format is not None
-        raise SystemExit(f"Error: {_missing_extra_message(table_format)}") from None
+        raise MissingExtraError(
+            table_format.value, subject=f"{table_format.value} output"
+        ) from None
     if ansi_translator is not None:
         output = ansi_translator(output)
-    print_func(output)
-
-
-def _missing_extra_message(
-    table_format: TableFormat,
-    package: str = "click-extra",
-) -> str:
-    """Build a user-friendly error message for a missing optional dependency."""
-    return missing_extra_message(
-        table_format.value, package=package, subject=f"{table_format.value} output"
-    )
+    _print_func(table_format)(output)
 
 
 def _strip_none(data: Any) -> Any:
@@ -1329,59 +1303,42 @@ def serialize_data(
 ) -> str:
     """Serialize arbitrary Python data to a structured format.
 
-    Unlike :py:func:`render_table` which expects tabular rows and headers, this
+    Unlike {func}`render_table` which expects tabular rows and headers, this
     function accepts any JSON-compatible data structure (dicts, lists, nested
     combinations) and serializes it to the requested format.
 
-    Only formats in :py:data:`~click_extra.table.SERIALIZATION_FORMATS` are
+    Only formats in {data}`~click_extra.table.SERIALIZATION_FORMATS` are
     supported.
 
     :param data: Arbitrary data to serialize (dicts, lists, scalars).
     :param table_format: Target serialization format.
     :param default: Fallback serializer for types not natively supported. Defaults
-        to :py:class:`str`, so :py:class:`~pathlib.Path` and similar types are
+        to {class}`str`, so {class}`~pathlib.Path` and similar types are
         stringified automatically. Set to a custom callable for different behavior.
     :param root_element: Root element name for XML output.
     :param kwargs: Extra keyword arguments forwarded to the underlying serializer
         (like `sort_keys` or `indent` for JSON).
     :raises ValueError: If the format is not a serialization format.
     """
-    if table_format not in SERIALIZATION_FORMATS:
+    config_format = _SERIALIZERS.get(table_format)
+    if config_format is None:
         msg = f"Unsupported serialization format: {table_format}"
         raise ValueError(msg)
 
     clean = _apply_default(data, default if default is not None else str)
-
-    match table_format:
-        case TableFormat.JSON | TableFormat.JSON5 | TableFormat.JSONC:
-            return serialize_content(ConfigFormat.JSON, clean, **kwargs)
-
-        case TableFormat.HJSON:
-            return serialize_content(ConfigFormat.HJSON, clean, **kwargs)
-
-        case TableFormat.TOML:
-            return serialize_content(
-                ConfigFormat.TOML, _strip_none_and_wrap(clean), **kwargs
-            )
-
-        case TableFormat.YAML:
-            return serialize_content(ConfigFormat.YAML, clean, **kwargs)
-
-        case TableFormat.XML:
-            return serialize_content(
-                ConfigFormat.XML, {root_element: _strip_none_and_wrap(clean)}, **kwargs
-            )
-
-        case _:
-            msg = f"Unhandled serialization format: {table_format}"
-            raise NotImplementedError(msg)
+    # TOML and XML have no null type, and want a mapping at the top.
+    if config_format is ConfigFormat.TOML:
+        clean = _strip_none_and_wrap(clean)
+    elif config_format is ConfigFormat.XML:
+        clean = {root_element: _strip_none_and_wrap(clean)}
+    return serialize_content(config_format, clean, **kwargs)
 
 
 def _apply_default(data: Any, default: Callable) -> Any:
     """Recursively apply a `default` callback to non-native types.
 
     Walks dicts, lists, and tuples. For any other type, calls `default(obj)`
-    which should return a JSON-serializable value or raise :py:class:`TypeError`.
+    which should return a JSON-serializable value or raise {exc}`TypeError`.
     """
     if isinstance(data, dict):
         return {k: _apply_default(v, default) for k, v in data.items()}
@@ -1403,15 +1360,17 @@ def print_data(
 ) -> None:
     """Serialize arbitrary Python data and print it to the console.
 
-    Wraps :py:func:`serialize_data` with user-friendly error handling for missing
+    Wraps {func}`serialize_data` with user-friendly error handling for missing
     optional dependencies.
 
     :param data: Arbitrary data to serialize.
     :param table_format: Target serialization format.
-    :param default: Fallback serializer for custom types. Defaults to :py:class:`str`.
+    :param default: Fallback serializer for custom types. Defaults to {class}`str`.
     :param root_element: Root element name for XML output.
     :param package: Package name for install instructions in error messages.
     :param kwargs: Extra keyword arguments forwarded to the underlying serializer.
+    :raises ~click_extra.output.MissingExtraError: the serializer of
+        `table_format` is not installed.
     """
     try:
         output = serialize_data(
@@ -1422,95 +1381,15 @@ def print_data(
             **kwargs,
         )
     except ImportError:
-        raise SystemExit(
-            f"Error: {_missing_extra_message(table_format, package)}"
+        raise MissingExtraError(
+            table_format.value, subject=f"{table_format.value} output", package=package
         ) from None
     echo(output, color=False)
 
 
-class TableFormatOption(ExtraOption):
-    """A pre-configured option that is adding a `--table-format` flag to select
-    the rendering style of a table.
-
-    The selected table format ID is made available in the context in
-    `ctx.meta[click_extra.context.TABLE_FORMAT]`, where the
-    {meth}`~click_extra.context.Context.render_table` and
-    {meth}`~click_extra.context.Context.print_table` context methods pick it
-    up as their default format. `ctx.meta` is shared along the context
-    chain, so declaring this option on a group makes the selected format reach
-    every subcommand:
-
-    - `ctx.render_table(table_data, headers, **kwargs)`: renders and returns
-      the table as a string,
-    - `ctx.print_table(table_data, headers, **kwargs)`: renders and prints
-      the table to the console.
-
-    Where:
-
-    - `table_data` is a 2-dimensional iterable of iterables for rows and cells values,
-    - `headers` is a list of string to be used as column headers,
-    - `**kwargs` are any extra keyword arguments supported by the underlying table
-      formatting function.
-    """
-
-    def __init__(
-        self,
-        param_decls: Sequence[str] | None = None,
-        *,
-        type: click.ParamType | Any = EnumChoice(TableFormat),
-        metavar: str = "FORMAT",
-        default: TableFormat = DEFAULT_FORMAT,
-        expose_value: bool = False,
-        is_eager: bool = True,
-        help: str = _("Rendering style of tables."),
-        **kwargs: Any,
-    ) -> None:
-        if not param_decls:
-            param_decls = ("--table-format",)
-
-        kwargs.setdefault("callback", self.init_formatter)
-
-        super().__init__(
-            param_decls=param_decls,
-            type=type,
-            metavar=metavar,
-            default=default,
-            expose_value=expose_value,
-            help=help,
-            is_eager=is_eager,
-            **kwargs,
-        )
-
-    def init_formatter(
-        self,
-        ctx: click.Context,
-        param: click.Parameter,
-        table_format: TableFormat | None,
-    ) -> None:
-        """Save the resolved `table_format` in the context's shared `meta`.
-
-        The {meth}`~click_extra.context.Context.render_table` and
-        {meth}`~click_extra.context.Context.print_table` context methods read
-        it back at call time.
-        """
-        if ctx.resilient_parsing:
-            return
-
-        context.set(ctx, context.TABLE_FORMAT, table_format)
-
-        # Foreign click/cloup commands run with a plain click.Context, which
-        # lacks the enhanced Context.render_table/print_table methods: give
-        # them bound equivalents as instance attributes so this option stays a
-        # drop-in on any Click CLI.
-        if not isinstance(ctx, context.Context):
-            ctx.render_table = partial(  # type: ignore[attr-defined]
-                render_table,
-                table_format=table_format,
-            )
-            ctx.print_table = partial(  # type: ignore[attr-defined]
-                print_table,
-                table_format=table_format,
-            )
+def _default_cell_key(cell: str | None) -> str:
+    """Compare a cell on its ANSI-stripped, case-folded text, `None` as empty."""
+    return strip_ansi(cell).casefold() if cell else ""
 
 
 def _row_sort_key(
@@ -1520,42 +1399,15 @@ def _row_sort_key(
     """Build a row sort key comparing cells at the `sort_order` positions.
 
     Each cell is passed through `cell_key` before comparison. Defaults to
-    ANSI-stripped, case-folded string comparison, with `None` and empty
-    cells collating as the empty string.
+    {func}`_default_cell_key`: ANSI-stripped, case-folded string comparison,
+    with `None` and empty cells collating as the empty string.
     """
-    if cell_key is None:
-
-        def cell_key(v):
-            return strip_ansi(v).casefold() if v else ""
+    key = cell_key if cell_key is not None else _default_cell_key
 
     def key_func(row: Sequence[str | None]) -> tuple:
-        return tuple(cell_key(row[i]) for i in sort_order)
+        return tuple(key(row[i]) for i in sort_order)
 
     return key_func
-
-
-def column_sort_key(
-    header_defs: Sequence[TColumnDef],
-    sort_columns: Sequence[str] | None = None,
-    cell_key: Callable[[str | None], Any] | None = None,
-) -> Callable[[Sequence[str | None]], tuple] | None:
-    """Build a row sort key from the `sort_columns` a table actually carries.
-
-    `header_defs` describes the rendered columns:
-    {class}`~click_extra.columns.ColumnSpec` instances, with `sortable=False` for
-    columns that cannot be sorted on. The requested `sort_columns` the table carries
-    drive the comparison first, de-duplicated and in request order; the remaining
-    columns follow in their natural left-to-right order for tie-breaking.
-
-    Returns `None` when the table carries none of the requested columns,
-    signalling that rows should keep their original order. This is what lets
-    one `--sort-by` selection apply across subcommands rendering
-    heterogeneous tables: each table sorts by the requested fields it knows,
-    and a table knowing none of them is left untouched.
-    """
-    return _defs_sort_key(
-        tuple(_normalize_column_def(c) for c in header_defs), sort_columns, cell_key
-    )
 
 
 def _defs_sort_key(
@@ -1563,7 +1415,8 @@ def _defs_sort_key(
     sort_columns: Sequence[str] | None = None,
     cell_key: Callable[[str | None], Any] | None = None,
 ) -> Callable[[Sequence[str | None]], tuple] | None:
-    """{func}`column_sort_key` over definitions already normalized to pairs."""
+    """{func}`~click_extra.table_options.column_sort_key` over definitions already
+    normalized to pairs."""
     col_index = {col_id: i for i, (_, col_id) in enumerate(defs) if col_id}
     primaries = [
         col_index[col_id]
@@ -1577,316 +1430,3 @@ def _defs_sort_key(
         *(i for i in range(len(defs)) if i not in primaries),
     )
     return _row_sort_key(sort_order, cell_key)
-
-
-def _column_sort_key(
-    header_defs: Sequence[tuple[str | None, str | None]],
-    sort_columns: Sequence[str] | None = None,
-    cell_key: Callable[[str | None], Any] | None = None,
-) -> Callable[[Sequence[str | None]], tuple]:
-    """Like {func}`column_sort_key`, but always sorts.
-
-    When none of the `sort_columns` is carried by `header_defs` (or none
-    is requested), rows still sort, comparing every column in natural
-    left-to-right order. This is the key {class}`SortByOption` publishes on
-    the context (`click_extra.context.TABLE_SORT_KEY`) when its column
-    definitions are known at declaration time.
-    """
-    key = _defs_sort_key(header_defs, sort_columns, cell_key)
-    if key is None:
-        key = _row_sort_key(range(len(header_defs)), cell_key)
-    return key
-
-
-class ColumnsType(MultiChoice):
-    """Column-flavored alias of {class}`click_extra.types.MultiChoice`.
-
-    Pins the comma separator and case-sensitive matching (column IDs are
-    snake_case identifiers, not free-form strings), and renames the metavar
-    fallback to `COLUMNS` instead of the generic `MULTI`. The
-    `accepted_ids` constructor keyword is a column-flavored alias of
-    `MultiChoice.choices`.
-    """
-
-    name = "columns"
-
-    def __init__(self, accepted_ids: Sequence[str] = ()) -> None:
-        super().__init__(choices=accepted_ids, separator=",", case_sensitive=True)
-
-
-class ColumnsOption(ExtraOption):
-    """A `--columns` option that lets users restrict and reorder table columns.
-
-    Accepts a comma-separated list of column IDs, SQL-`SELECT`-style:
-
-    ```{code-block} shell-session
-
-    $ my-cli --columns id,spec,value --params
-    ```
-
-    The selection is stored in
-    {data}`ctx.meta[click_extra.context.COLUMNS] <click_extra.context.COLUMNS>` and
-    consumed by table-rendering callbacks (like
-    {class}`click_extra.parameters.ShowParamsOption`) to project rows + headers
-    before rendering.
-
-    Pass `columns=` at construction time with the column registry the option
-    should advertise: the help text then lists the accepted IDs and the default
-    selection, and the callback validates the user input against that registry
-    so unknown IDs fail fast with a {class}`click.UsageError`. Without
-    `columns=`, the option stays generic: it parses any IDs and leaves
-    validation to the downstream consumer.
-
-    Empty / unset means *render every column in canonical order*: the default
-    behavior, indistinguishable from not passing `--columns` at all.
-    """
-
-    def __init__(
-        self,
-        param_decls: Sequence[str] | None = None,
-        *,
-        columns: Sequence[ColumnSpec] | None = None,
-        type: click.ParamType | Any | None = None,
-        metavar: str = "COLUMNS",
-        default: Sequence[str] | None = (),
-        expose_value: bool = False,
-        is_eager: bool = True,
-        help: str = _(
-            "Restrict and reorder table columns, SQL SELECT-style. "
-            "Comma-separated list of column IDs. Default: all columns in "
-            "canonical order.",
-        ),
-        **kwargs: Any,
-    ) -> None:
-        if not param_decls:
-            param_decls = ("--columns",)
-
-        self.columns: tuple[ColumnSpec, ...] = tuple(columns) if columns else ()
-        """Column registry this option advertises and validates against (may be empty)."""
-
-        # The registry still reaches the type, which validates against it and
-        # reports the IDs to every doc render. The help screen shows the
-        # `COLUMNS` placeholder instead of the enumeration: a table wide enough
-        # to be worth projecting carries more IDs than a metavar can hold, and
-        # the unwrappable line pushes the description off the column and past
-        # the terminal's width. The `man`, `markdown` and `json` renders list
-        # them, see `DocOptionItem.unlisted_choices`.
-        if type is None:
-            type = ColumnsType(accepted_ids=tuple(c.id for c in self.columns))
-
-        kwargs.setdefault("callback", self.init_columns)
-
-        super().__init__(
-            param_decls=param_decls,
-            type=type,
-            metavar=metavar,
-            default=default,
-            expose_value=expose_value,
-            help=help,
-            is_eager=is_eager,
-            **kwargs,
-        )
-
-    def init_columns(
-        self,
-        ctx: click.Context,
-        param: click.Parameter,
-        columns: tuple[str, ...],
-    ) -> None:
-        """Store the selected column IDs on the context for later projection.
-
-        Validation of the IDs against the registry happens inside
-        {meth}`~click_extra.types.MultiChoice.convert`, before this callback runs,
-        so this just
-        threads the parsed selection onto the context.
-        """
-        if ctx.resilient_parsing:
-            return
-        context.set(ctx, context.COLUMNS, tuple(columns) if columns else ())
-
-
-def _normalize_column_def(column: TColumnDef) -> tuple[str | None, str | None]:
-    """Coerce a column definition to a `(label, column_id)` tuple.
-
-    Accepts a {class}`~click_extra.columns.ColumnSpec` (so a registry can be shared with
-    `--columns`), whose column ID is dropped when it is not `sortable`, or a
-    bare column ID string, which declares a sortable field untied to any table
-    layout (its label is `None`).
-    """
-    if isinstance(column, str):
-        return (None, column)
-    return (column.label, column.id if column.sortable else None)
-
-
-class SortByOption(ExtraOption):
-    """A `--sort-by` option whose choices are derived from column definitions.
-
-    Stores the selected column IDs in `ctx.meta[click_extra.context.SORT_BY]`
-    and publishes the derived row sort key in
-    `ctx.meta[click_extra.context.TABLE_SORT_KEY]`, which `ctx.print_table`
-    picks up so that table output is automatically sorted, without changing its
-    `(table_data, headers)` call contract. The option accepts
-    `multiple=True`, so users can repeat `--sort-by` to define a
-    multi-column sort priority.
-
-    Column definitions are `ColumnSpec` instances, passed positionally or via
-    the `columns=` keyword. A column marked `sortable=False` keeps its place in
-    the layout without being offered as a choice. Passing a `ColumnSpec`
-    registry via `columns=` lets the same tuple drive both `ColumnsOption`
-    (`--columns`) and `--sort-by`, so the two options stay in sync from a
-    single source of truth.
-
-    ```{code-block} python
-
-    COLUMNS = (
-        ColumnSpec("package_id", "Package ID"),
-        ColumnSpec("package_name", "Name"),
-        ColumnSpec("manager_id", "Manager"),
-    )
-
-
-    @command
-    @table_format_option
-    @columns_option(columns=COLUMNS)
-    @sort_by_option(columns=COLUMNS)
-    @pass_context
-    def my_cmd(ctx):
-        ctx.print_table(rows, [col.label for col in COLUMNS])
-    ```
-
-    Definitions may instead be bare column ID strings, declaring a
-    **field vocabulary** untied to any single table layout. This fits a
-    `--sort-by` declared once on a group whose subcommands render
-    heterogeneous tables: no sort key is published since no layout is known up
-    front. The selection is resolved per table by {func}`print_table`, from
-    the column IDs its headers carry — each table sorts by the selected fields
-    it knows (remaining columns breaking ties left to right) and keeps its
-    original row order when it knows none.
-
-    ```{code-block} python
-
-    @group
-    @sort_by_option("package_id", "package_name", "manager_id")
-    def my_cli():
-        pass
-
-
-    @my_cli.command
-    def installed():
-        print_table(
-            rows,
-            [
-                ColumnSpec("package_id", "Package ID"),
-                ColumnSpec("manager_id", "Manager"),
-            ],
-        )
-
-
-    @my_cli.command
-    def managers():
-        print_table(rows, [ColumnSpec("manager_id", "Manager"), "Path"])
-    ```
-    """
-
-    def __init__(
-        self,
-        *header_defs: TColumnDef,
-        param_decls: Sequence[str] | None = None,
-        columns: Sequence[TColumnDef] | None = None,
-        default: str | Sequence[str] | None = None,
-        expose_value: bool = False,
-        cell_key: Callable[[str | None], Any] | None = None,
-        help: str = _("Sort table by this column. Repeat to set priority."),
-        **kwargs: Any,
-    ) -> None:
-        if not param_decls:
-            param_decls = ("--sort-by",)
-
-        # Accept a shared `columns=` registry (the same `ColumnSpec` tuple
-        # passed to `--columns`) or positional definitions. Each entry is a
-        # `ColumnSpec` or a bare column ID string.
-        if columns is not None and header_defs:
-            msg = "Pass column definitions positionally or via columns=, not both."
-            raise TypeError(msg)
-        raw_defs = columns if columns is not None else header_defs
-        self.header_defs = tuple(_normalize_column_def(c) for c in raw_defs)
-        self.cell_key = cell_key
-
-        # Bare column IDs declare a table-less field vocabulary; labeled
-        # definitions describe one table's layout. Mixing both would leave the
-        # labeled part baking a sort over a layout the vocabulary part denies.
-        labeled = [d for d in self.header_defs if d[0] is not None]
-        if labeled and len(labeled) != len(self.header_defs):
-            msg = "Pass either bare column IDs or labeled column definitions, not both."
-            raise TypeError(msg)
-
-        self.field_vocabulary = bool(self.header_defs) and not labeled
-        """Whether definitions are bare column IDs, untied to any table layout.
-
-        In this mode {meth}`init_sort` only publishes the selection on the
-        context: the sort is resolved per table at {func}`print_table` time.
-        """
-
-        sortable_ids = [col_id for _, col_id in self.header_defs if col_id]
-
-        # Normalize default to a tuple for multiple mode. `None` derives the
-        # first sortable ID; an explicit empty sequence declares no default
-        # sort, so bare invocations keep the original row order.
-        if default is None:
-            default = (sortable_ids[0],) if sortable_ids else ()
-        elif isinstance(default, str):
-            default = (default,)
-        else:
-            default = tuple(default)
-
-        kwargs.setdefault("callback", self.init_sort)
-
-        super().__init__(
-            param_decls=param_decls,
-            type=click.Choice(sortable_ids, case_sensitive=False),
-            default=default,
-            expose_value=expose_value,
-            help=help,
-            multiple=True,
-            **kwargs,
-        )
-
-    def init_sort(
-        self,
-        ctx: click.Context,
-        param: click.Parameter,
-        sort_columns: tuple[str, ...],
-    ) -> None:
-        """Publish the row sort key on the context's shared `meta`.
-
-        Builds the sort key from this option's column definitions and the
-        selected `sort_columns`, then stores it under
-        `ctx.meta[click_extra.context.TABLE_SORT_KEY]`, where
-        `ctx.print_table` picks it up. The call contract is the same sorted
-        or not: `ctx.print_table(table_data, headers)`.
-
-        In field-vocabulary mode no table layout is known at declaration time,
-        so no key is published: only the selection lands on the context
-        (`ctx.meta` is shared with every subcommand), resolved per table by
-        {func}`print_table` from the column IDs its headers carry.
-        """
-        if ctx.resilient_parsing:
-            return
-
-        context.set(ctx, context.SORT_BY, sort_columns)
-
-        if self.field_vocabulary:
-            return
-
-        sort_key = _column_sort_key(self.header_defs, sort_columns, self.cell_key)
-        context.set(ctx, context.TABLE_SORT_KEY, sort_key)
-
-        # Same foreign-command escape hatch as TableFormatOption.init_formatter:
-        # rebind the instance attribute with the sort baked in, since a plain
-        # click.Context has no meta-reading print_table method.
-        if not isinstance(ctx, context.Context):
-            ctx.print_table = partial(  # type: ignore[attr-defined]
-                print_table,
-                table_format=context.get(ctx, context.TABLE_FORMAT),
-                sort_key=sort_key,
-            )

@@ -150,9 +150,9 @@ Every one of them, animating:
 ```{python:render}
 from pathlib import Path
 
+from click_extra.capture.presets import PRESETS, Chrome
+from click_extra.capture.screenshot import CaptureFormat, render
 from click_extra.layout import cell_width
-from click_extra.screenshot import CaptureFormat, Chrome, render
-from click_extra.screenshot_presets import PRESETS
 from click_extra.spinner import Spinner
 from click_extra.spinner_presets import SPINNERS
 
@@ -174,7 +174,7 @@ for name, preset in SPINNERS.items():
             preset=PRESETS["plain"],
             chrome=Chrome(watermark="", margin=0, padding=2),
         ),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     cells.append(f"`{name}` | ![{name} spinner](assets/spinner-{name}.svg)")
 
@@ -199,7 +199,7 @@ with Spinner("Baking bread", beep=True):
 
 ```{click:source}
 :hide-source:
-from click_extra.recording import ScreenRecorder
+from click_extra.capture.recording import ScreenRecorder
 
 
 def record(demo, **kwargs):
@@ -318,11 +318,11 @@ Both `label` and `echo()` are safe to touch while the animation runs, so a worke
 
 ### The operation trail
 
-The two idioms above (a running `done/total` label, plus one echoed line per finished task) are packaged together as {py:class}`~click_extra.spinner.OperationTrail`, the batch-reporting companion of the [concurrency primitives](execution.md) `run_jobs` and `run_lanes`. Each completed operation leaves a persistent `✓`/`✘` {py:func}`~click_extra.spinner.trail_line` on screen, and {py:meth}`~click_extra.spinner.OperationTrail.finish` closes the batch with a kept summary line:
+The two idioms above (a running `done/total` label, plus one echoed line per finished task) are packaged together as {py:class}`~click_extra.trail.OperationTrail`, the batch-reporting companion of the [concurrency primitives](execution.md) `run_jobs` and `run_lanes`. Each completed operation leaves a persistent `✓`/`✘` {py:func}`~click_extra.trail.trail_line` on screen, and {py:meth}`~click_extra.trail.OperationTrail.finish` closes the batch with a kept summary line:
 
 ```python
-from click_extra.execution import run_jobs
-from click_extra.spinner import OperationTrail
+from click_extra.jobs import run_jobs
+from click_extra.trail import OperationTrail
 
 jobs = 4
 
@@ -344,7 +344,7 @@ Run concurrently, that is one aggregate spinner carrying the tally while the fin
 
 ```{click:source}
 :hide-source:
-from click_extra.spinner import OperationTrail
+from click_extra.trail import OperationTrail
 
 
 def fetch_feeds(stream=None):
@@ -378,9 +378,9 @@ assert callable(fetch_feeds)
 
 ![Fetched feeds stacking above an aggregate spinner carrying the tally](assets/feed-trail-screen.svg)
 
-The rendering adapts to the batch's concurrency, and you pick neither mode by hand. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, its animation picked from the [catalog](#spinner-catalog) with `spinner=SPINNERS["moon"]`. Run sequentially (`jobs <= 1`), each outcome echoes as a plain line and every operation stays free to keep its own per-call `Spinner`. Either way the finisher carries the elapsed time. {class}`~click_extra.spinner.OperationTrail` details what each mode drives.
+The rendering adapts to the batch's concurrency, and you pick neither mode by hand. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, its animation picked from the [catalog](#spinner-catalog) with `spinner=SPINNERS["moon"]`. Run sequentially (`jobs <= 1`), each outcome echoes as a plain line and every operation stays free to keep its own per-call `Spinner`. Either way the finisher carries the elapsed time. {class}`~click_extra.trail.OperationTrail` details what each mode drives.
 
-Only the aggregate spinner or bar needs an interactive terminal, since it redraws in place. The `✓`/`✘` lines and the finisher print on any stream, so a pipe or a CI log keeps the batch's record, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.spinner.OperationTrail.ok_count` tally.
+Only the aggregate spinner or bar needs an interactive terminal, since it redraws in place. The `✓`/`✘` lines and the finisher print on any stream, so a pipe or a CI log keeps the batch's record, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.trail.OperationTrail.ok_count` tally.
 
 Two arguments decide what a trail shows. `live` says where its spinner or bar may draw: `"auto"` (the default) on an interactive terminal, unless `--no-progress` or `--accessible` turned progress off; `"always"` on any stream; and `"never"` nowhere. A trail that does not draw keeps its lines. `visible=False` silences the whole trail.
 
@@ -388,7 +388,7 @@ This page captures its commands off a terminal, and the trail still prints there
 
 ```{click:source}
 from click_extra import command
-from click_extra.spinner import OperationTrail
+from click_extra.trail import OperationTrail
 
 
 @command
@@ -422,7 +422,7 @@ assert "Roasted 3/4 vegetables" in result.output
 
 The lines echo in order as each outcome lands, and the run closes on the `✘` finisher because one vegetable scorched: the same trail a sequential batch leaves in a real terminal, without the live redraw.
 
-The trail's `timer` follows the `--time` / `--no-time` flag by default (`timer=None`), so this untimed run shows no clocks. Under `--time` the `✘` finisher gains the batch's total, and each operation can report its own elapsed time: wrap the work in an {py:meth}`~click_extra.spinner.OperationTrail.operation` handle, whose `mark()` times itself, so the lines read `✓ carrots roasted (2.4s)`. Force it either way with `timer=True` or `timer=False`, or hand `timer` a `lambda seconds: …` callable to format the clock.
+The trail's `timer` follows the `--time` / `--no-time` flag by default (`timer=None`), so this untimed run shows no clocks. Under `--time` the `✘` finisher gains the batch's total, and each operation can report its own elapsed time: wrap the work in an {py:meth}`~click_extra.trail.OperationTrail.operation` handle, whose `mark()` times itself, so the lines read `✓ carrots roasted (2.4s)`. Force it either way with `timer=True` or `timer=False`, or hand `timer` a `lambda seconds: …` callable to format the clock.
 
 ```python
 def roast(vegetable):
@@ -706,6 +706,29 @@ Three more defaults set the bar apart from Click's:
    :strict:
 
 .. automodule:: click_extra.spinner_presets
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.trail` API
+
+```{eval-rst}
+.. autoclasstree:: click_extra.trail
+   :strict:
+
+.. automodule:: click_extra.trail
+   :no-index:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+```
+
+## `click_extra.progress` API
+
+```{eval-rst}
+.. automodule:: click_extra.progress
    :no-index:
    :members:
    :undoc-members:

@@ -35,6 +35,15 @@ tests.sphinx
    :undoc-members:
 ```
 
+## tests.test_ansi module
+
+```{eval-rst}
+.. automodule:: tests.test_ansi
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## tests.test_cli_wrapper module
 
 ```{eval-rst}

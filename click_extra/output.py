@@ -16,14 +16,19 @@
 """Send command output to a file path or to stdout.
 
 Helpers for the common `--output` option pattern, where a `-` value means
-"write to stdout" instead of creating a file literally named `-`, and for
-standard streams that cannot encode what a command prints.
+"write to stdout" instead of creating a file literally named `-`, for standard
+streams that cannot encode what a command prints, and for the error a command
+reports when its output needs an optional dependency that is not installed.
 """
 
 from __future__ import annotations
 
 import codecs
 import sys
+
+import click
+
+from ._utils import missing_extra_message
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -33,6 +38,35 @@ if TYPE_CHECKING:
 
 STDOUT_SENTINEL = "-"
 """Conventional `--output` value asking for stdout instead of a file on disk."""
+
+
+class MissingExtraError(click.ClickException, ImportError):
+    """A command needs an optional dependency that is not installed.
+
+    The one failure every feature gated behind an extra raises once a user asks
+    for it: a table, an export or a completion spec in a format whose writer is
+    missing, a code snippet without Pygments. Click prints the message after
+    `Error:` and exits with status `1`, with no traceback.
+
+    It is an {exc}`ImportError` as well, since a failed import is what it
+    reports: code calling such a feature outside a command catches it as one.
+
+    The message names the `uv pip install` command that installs the extra, in
+    the wording every other optional-dependency error of the package uses.
+
+    :param extra: the optional dependency group that installs what is missing.
+    :param subject: what needs the dependency, opening the message.
+    :param package: the distribution the extra belongs to.
+    """
+
+    def __init__(
+        self,
+        extra: str,
+        *,
+        subject: str,
+        package: str = "click-extra",
+    ) -> None:
+        super().__init__(missing_extra_message(extra, package=package, subject=subject))
 
 
 def is_stdout(path: Path) -> bool:
@@ -70,9 +104,9 @@ def prep_path(path: Path) -> IO[str]:
             fd = sys.stdout.fileno()
         except (OSError, ValueError):
             return sys.stdout
-        return open(fd, "w", encoding="utf-8", closefd=False)
+        return open(fd, "w", encoding="UTF-8", closefd=False)
     path.parent.mkdir(parents=True, exist_ok=True)
-    return path.open("w", encoding="utf-8")
+    return path.open("w", encoding="UTF-8")
 
 
 def _speaks_utf8(stream: TextIO) -> bool:
@@ -103,15 +137,10 @@ def force_unicode_output() -> None:
 
     {meth}`~click_extra.commands.Command.main` calls it as each run starts.
 
-    ```{note}
-    Python 3.15 turns UTF-8 mode on by default
-    ([PEP 686](https://peps.python.org/pep-0686/)), so its standard streams speak
-    UTF-8 unless the environment asks otherwise.
-    ```
-
     ```{todo}
-    Remove once the minimum supported Python is 3.15, where UTF-8 mode makes the
-    standard streams speak UTF-8.
+    Remove once the minimum supported Python is 3.15: its UTF-8 mode, on by
+    default ([PEP 686](https://peps.python.org/pep-0686/)), makes the standard
+    streams speak UTF-8 unless the environment asks otherwise.
     ```
     """
     for stream in (sys.stdout, sys.stderr):

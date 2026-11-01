@@ -497,9 +497,9 @@ assert result.stdout.endswith(version_line)
 
 This is by design: decorators are cumulative, to allow you to add your own options to the preset of `@command` and `@group`.
 
-But notice the `UserWarning` log messages: `The parameter --version is used more than once. Remove its duplicate as parameters should be unique.`. As it is not a good practice to have duplicate options and you must avoid it. There's also a non-zero chance for this situation to result in complete failure in a future Click release.
+But notice the `UserWarning` log messages: `The parameter --version is used more than once. Remove its duplicate as parameters should be unique.`. Duplicate options are not a good practice: avoid them.
 
-Finally, if the second `--version` option is placed right before the `--help` option, it is because Click is adding its own generated `--help` option at the end of the {py:func}`~click_extra.commands.default_params` list.
+The command's own `--version` sits right before `-h, --help` because Click appends its generated `--help` option at the end of the command's own options.
 ````
 
 ### Option order
@@ -907,7 +907,7 @@ listing = result.stdout
 assert listing.index("prep") < listing.index("cook") < listing.index("plate")
 ```
 
-The auto-generated [`help` subcommand](#help-subcommand) is listed last, wherever it happens to sit in the registration order, mirroring what `extra_option_at_end` does to options.
+The auto-generated [`help` subcommand](#help-subcommand) is listed last, wherever it happens to sit in the registration order, mirroring what `extra_option_at_end` does to options. So is the `personalities` subcommand of a [multicall group](multicall.md#listing-the-personalities).
 
 ### Subcommand priorities
 
@@ -1240,9 +1240,36 @@ assert result.exit_code == 0
 assert result.stdout == "carrots = 7\n"
 ```
 
+### Help without importing
+
+A help screen lists every subcommand with the first paragraph of its help, so `--help` imports each one to read it. Declare that paragraph as the `short_help` of a `LazySubcommand`, and the help screen lists the subcommand without importing it:
+
+```{click:source}
+from click_extra import LazySubcommand, lazy_group
+
+@lazy_group(lazy_subcommands={
+    "apple": LazySubcommand("produce.apple_cli", short_help="Count the apples."),
+    "carrot": LazySubcommand("produce.carrot_cli", short_help="Count the carrots."),
+})
+def quick_basket():
+    """Count the produce."""
+```
+
+```{click:run}
+from click_extra import strip_ansi
+
+result = invoke(quick_basket, args=["--help"])
+assert result.exit_code == 0
+listing = strip_ansi(result.stdout)
+assert "  apple   Count the apples.\n" in listing
+assert "  carrot  Count the carrots.\n" in listing
+```
+
+The help screen shortens the declared paragraph the way it shortens the help of an imported subcommand, so the listing reads the same before and after the import. The paragraph is a second copy of the subcommand's own help: keep the two in step.
+
 ```{admonition} Lazy loading, the help screen and configuration files
 :class: note
-A help screen prints the short help of every subcommand, so `--help` imports them all. Lazy loading pays off on a plain `mycli apple`, which imports the one module carrying `apple`.
+A help screen prints the short help of every subcommand, so `--help` imports each one that declares no `short_help`. Lazy loading pays off on a plain `mycli apple`, which imports the one module carrying `apple`.
 
 A configuration file also imports them all: `--config` matches the file against the parameters of every subcommand. An [`included_params`](config.md#including-parameters) allowlist limits that to the subcommands its IDs name, and `included_params=()` imports none of them.
 ```

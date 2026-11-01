@@ -97,7 +97,7 @@ assert result.stdout == ""
 assert result.stderr == "No city to report on.\n"
 ```
 
-When the callback raises, the runner catches the exception, sets a non-zero `exit_code`, and prints the traceback below the trace. {py:attr}`~click_extra.testing.Result.formatted_exception` keeps that traceback available, and `repr(result)` embeds it, so an `assert result.exit_code == 0` that fails reports where the CLI died rather than which exception class it was. Pass `catch_exceptions=False` to let the exception propagate into the test instead.
+When the callback raises, the runner catches the exception, sets a non-zero `exit_code`, and prints the traceback below the trace. {py:attr}`~click_extra.testing.Result.formatted_exception` keeps that traceback available, and `repr(result)` embeds it, so an `assert result.exit_code == 0` that fails reports where the CLI died rather than which exception class it was. Pass `catch_exceptions=False` to let the exception propagate into the test instead, or set it once on the runner with `CliRunner(catch_exceptions=False)`.
 
 ## Colors
 
@@ -156,7 +156,7 @@ process = subprocess.run(
     (sys.executable, "-c", "print('Lisbon: 21 celsius')"),
     capture_output=True,
     text=True,
-    encoding="utf-8",
+    encoding="UTF-8",
 )
 
 print(render_cli_run(("forecast", "Lisbon"), process, env={"FORECAST_UNIT": "celsius"}))

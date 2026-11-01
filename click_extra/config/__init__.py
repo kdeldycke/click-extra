@@ -15,8 +15,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Configuration file loading, format parsing, and schema validation.
 
-This package gathers the layers behind `--config`, `--no-config`, and
-`--validate-config`:
+This package gathers the layers behind `--config`, `--no-config`,
+`--validate-config` and `--export-config`:
 
 - {mod}`~click_extra.config.flags`: translate a configuration table into
   command-line flags, for tools that mirror their config keys as options but
@@ -25,26 +25,25 @@ This package gathers the layers behind `--config`, `--no-config`, and
   generic, stateless helpers to read, serialize, auto-detect, and resolve them.
 - {mod}`~click_extra.config.schema`: the generic schema-building and validation
   engine, applicable to any dataclass.
-- {mod}`~click_extra.config.builtin`: click-extra's own configuration schema and
-  the validators it registers by default (one concrete application of the
-  engine).
+- {mod}`~click_extra.config.builtin`: click-extra's own configuration schema
+  (one concrete application of the engine), read by the `click-extra` CLI alone.
+- {mod}`~click_extra.config.discovery`: the search for configuration files, in
+  a folder, its parents, a URL or the nearest `pyproject.toml`.
 - {mod}`~click_extra.config.option`: the `--config` / `--no-config` /
-  `--validate-config` option classes.
+  `--validate-config` option classes, and the validators they register by
+  default.
+- {mod}`~click_extra.config.export`: the `--export-config` option.
 - {mod}`~click_extra.config.subcommands`: resolution of the reserved
   `_default_subcommands` and `_prepend_subcommands` keys.
 
 Every public symbol is re-exported here so consumers can keep importing from
-`click_extra.config`.
+`click_extra.config`, except the schema of {mod}`~click_extra.config.builtin`
+and the {class}`~click_extra.config.discovery.ConfigDiscovery` mixin.
 """
 
 from __future__ import annotations
 
-from .builtin import (
-    THEMES_CONFIG_KEY,
-    ClickExtraConfig,
-    PrebakeConfig,
-    TestSuiteConfig,
-)
+from .export import ExportConfigOption, ensure_config_loaded
 from .flags import config_table_to_flags
 from .formats import (
     SERIALIZABLE_FORMATS,
@@ -58,12 +57,11 @@ from .formats import (
 )
 from .option import (
     NO_CONFIG,
+    THEMES_CONFIG_KEY,
     VCS,
     ConfigOption,
-    ExportConfigOption,
     NoConfigOption,
     ValidateConfigOption,
-    ensure_config_loaded,
 )
 from .schema import (
     CONFIG_PATH_METADATA_KEY,
@@ -95,15 +93,12 @@ __all__ = [
     "SQLITE_CONFIG_TABLE",
     "THEMES_CONFIG_KEY",
     "VCS",
-    "ClickExtraConfig",
     "ConfigFormat",
     "ConfigOption",
     "ConfigValidator",
     "ExportConfigOption",
     "NoConfigOption",
-    "PrebakeConfig",
     "SchemaFieldInfo",
-    "TestSuiteConfig",
     "ValidateConfigOption",
     "ValidationError",
     "ValidationReport",

@@ -6,39 +6,136 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** Drop Python 3.10, past its end of life: click-extra now requires Python 3.11 or newer.
+- **Breaking:** Raise the floors of Click to `8.5.0`, Cloup to `4.0.0`, tabulate to `0.10` and extra-platforms to `14.0.0`, dropping the shims older releases needed.
+- **Breaking:** Regroup the modules into the `capture` and `markdown` packages and split the largest ones. The package root keeps exporting every public name, so import from it to stay clear of module paths.
+- **Breaking:** Move `screenshot`, `screenshot_svg`, `screenshot_html`, `screenshot_presets`, `snippet` and `recording` into `click_extra.capture`, as `screenshot`, `svg`, `html`, `presets`, `snippet` and `recording`.
+- **Breaking:** Move `Chrome` and its defaults to `capture.presets`, and `parse_hold()` and `parse_pause()` to `capture.svg`. `format_from_path()` becomes `CaptureFormat.from_path()`.
+- **Breaking:** Move `blocks` to `click_extra.markdown.blocks`, merge `myst_converter` and `rst_to_myst` into `click_extra.markdown.myst`, and move `theme_docs` to `click_extra.sphinx.theme_docs`.
+- **Breaking:** Move the helpers of `click_extra.parameters`, like `ParamStructure` and `search_params()`, to `param_tools`, and `ShowParamsOption` with `render_params_table()` to `show_params`.
+- **Breaking:** Move `Context` from `click_extra.context` to `click_extra.commands`, and the table options with `column_sort_key()` from `click_extra.table` to `click_extra.table_options`.
+- **Breaking:** Move `JobsOption`, `resolve_jobs()`, `run_jobs()` and `run_lanes()` to `click_extra.jobs`, and the version resolvers like `env_summary()` to `click_extra.version_facts`.
+- **Breaking:** Move `OperationTrail` to `click_extra.trail` and `progressbar()` to `click_extra.progress`, out of `click_extra.spinner`.
+- **Breaking:** Split `config.option` into `config.discovery` and `config.export`, and `sphinx.click` into `sphinx.click_runner` and `sphinx.click_reference`.
+- **Breaking:** Move `open_ansi()` and `RESET` to the new `click_extra.ansi` module, which also holds `strip_ansi()` and the escape and palette helpers `styling` kept private.
+- **Breaking:** Move `read_project_scripts()`, `entry_point_package()`, `locate_package_root()` and `detect_source_package()` to `click_extra.project`. `detect_source_package()` now takes the project directory.
 - **Breaking:** Remove the module aliases deprecated in `9.x`, like `theme.nocolor_theme` and `table.select_columns`. Import each name from the module its warning named.
 - **Breaking:** Remove the deprecated `allow_query`, `merge_streams`, `unique` and `enabled` arguments, `color="forced"`, and the window arguments of `render_html()`.
 - **Breaking:** Remove the `is_root`, `default_opts` and `inherited_opts` arguments of `extract_carapace_command()`, which had no effect.
-- **Breaking:** The capture functions no longer take the `Chrome` fields one by one. Pass `chrome=Chrome(...)` instead.
-- **Breaking:** Table headers and `--sort-by` column definitions no longer accept a `(label, column_id)` tuple. Pass a `ColumnSpec` instead.
-- **Breaking:** Remove the `CAPTURE_BACKGROUND`-style color constants of `screenshot_presets` and `myst_converter.FENCE_OPEN_RE`.
+- **Breaking:** Remove the public compiled patterns `blocks.OPTION_LINE_RE`, the `*_RE` constants of `myst_converter`, `myst_converter.FENCE_OPEN_RE` and `command_doc.OVERSTRIKE_RE`, which `strip_overstrike()` replaces.
+- **Breaking:** Remove `MAN_INSTALL_DIR`, `CARAPACE_SPECS_DIR`, `PARSER_SUPPORT` and `SQLITE_SUPPORT`: install directories resolve when called, and `ConfigFormat.enabled` probes a parser on first use.
+- **Breaking:** Remove `pytest.skip_naked`, `screenshot.SGR_RESET`, `credit_segments()`, `run_paint()`, `preset_palette()` and the `CAPTURE_BACKGROUND`-style color constants, and make `format_param_row()` private.
+- **Breaking:** `click_extra.sphinx` no longer re-exports the `blocks` helpers and the capture configuration names, and `click_extra.config` no longer re-exports `ClickExtraConfig`, `TestSuiteConfig` and `PrebakeConfig`.
 - **Breaking:** Remove `click_extra.sphinx.alerts`. The `sphinx` extra now requires `myst-parser` 5.1, whose `alert` extension renders GitHub alerts.
+- **Breaking:** Remove the `jsonc` extra and the `json-with-comments` dependency behind it: `JSONC` is now built in, its comments and trailing commas stripped in-house before `json` reads the file.
+- **Breaking:** Remove the `xml` extra and the `xmltodict` dependency behind it: `XML` is now built in, read with the standard library's `expat` parser and written in-house, with the same `@attribute`, `#text` and repeated-element conventions.
+- **Breaking:** Remove `click_extra/themes.toml`: built-in themes live in `theme.py` and build on first lookup, so `BUILTIN_THEMES` and `get_theme_registry()` return mappings, not `dict` instances.
+- **Breaking:** Merge `color.COLOR_WHEN` and `spinner.LIVE_MODES` into `color.WHEN`, and rename `CaptureBackground` to `color.TerminalBackground`, whose members still equal `"dark"` and `"light"`.
+- **Breaking:** Replace `MAN_FORMATTERS` and `sphinx.manpages.HTML_RENDERERS` with one `command_doc.MAN_TYPESETTERS` table.
+- **Breaking:** The capture functions take one `chrome=Chrome(...)` instead of its fields, and `render_html()` takes a resolved `palette` like `render_svg()`.
+- **Breaking:** Table headers and `--sort-by` column definitions no longer accept a `(label, column_id)` tuple. Pass a `ColumnSpec` instead.
+- **Breaking:** `ColumnsType` takes its column IDs as `choices`, like `MultiChoice`, whose `get_metavar()` now takes Click's `(param, ctx)` signature.
+- **Breaking:** `TimerOption.print_timer()` takes the start time of the run it reports, and `VersionOption` raises `TypeError` for an unknown key in `fields` or `styles`.
+- **Breaking:** `print_table()` and `print_data()` raise `MissingExtraError`, a `ClickException`, instead of `SystemExit` when an optional dependency is missing.
+- **Breaking:** `convert-to-myst` and `detect_source_package()` refuse a console script naming several functions, as `wrap` does.
+- **Breaking:** A MyST docstring fence closes on any bare run at least as long, so a nested fence needs a longer outer one.
+- **Breaking:** Report a malformed themes table under the `invalid_theme` and `invalid_theme_shape` codes, in snake case like the other validation codes.
 - **Breaking:** `ctx.meta["click_extra.conf_source"]` and the locations of `click_extra.conf_sources` hold a remote configuration's URL as a `str`, instead of a `boltons` `URL` object.
 - **Breaking:** Remove the `{env_info}` version field, its `click_extra.env_info` context key and its JSON dump in `--verbosity DEBUG` logs. Append `env_summary()` to a version message for the interpreter and the platform in one line.
 - **Breaking:** A list two cascading configuration files both set resolves to the most local one, like every other value. The two used to be concatenated.
 - Drop the `boltons` dependency: the ANSI stripper, the version message parser and the configuration helpers use the standard library instead.
 - Drop the `deepmerge` dependency: configuration layers, dotted keys and parameter trees are merged in-house.
-- **Breaking:** Remove the `jsonc` extra and the `json-with-comments` dependency behind it: `JSONC` is now built in, its comments and trailing commas stripped in-house before `json` reads the file.
-- **Breaking:** Remove the `xml` extra and the `xmltodict` dependency behind it: `XML` is now built in, read with the standard library's `expat` parser and written in-house, with the same `@attribute`, `#text` and repeated-element conventions.
-- Add `strip_ansi()` to `click_extra.styling`, which removes every ANSI escape sequence from a string or bytes, and `template_segments()` to `click_extra.version`.
+- The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
+- Add `strip_ansi()` to `click_extra.ansi`, which removes every ANSI escape sequence from a string or bytes, and `template_segments()` to `click_extra.version`.
 - Add `get_cache_dir()`, which locates the user cache directory of a CLI, and export it with `xdg_dir()` from the package root.
+- Export from the package root the helpers other projects import from submodules, like `env_summary()`, `default_facts()`, `KO_GLYPH`, `cell_width()` and `strip_overstrike()`.
+- Add `CSV_FORMATS` to `click_extra.table`: the table formats Python's `csv` module renders.
+- Add `symbol`, `style` and `color` arguments to `trail_glyph()`, which now also draws the marker of `Spinner.ok()` and `Spinner.fail()`.
+- Add `iter_subcommand_contexts()` to `click_extra.param_tools`, the walk every command-tree renderer shares.
+- Add `resolve_entry_point()` to `click_extra.project`, and `walk_fences()`, `rewrite_fences()` and `rewrite_file()` to `click_extra.markdown.blocks`.
+- Add `rewrite_screenshot_regions()`, `rewrite_matrix_blocks()` and `rewrite_mirrors()`, the page rewriters `refresh-directives` composes.
+- Add `machine_envvars_apply()` to `click_extra.envvar`, by which a machine-wide variable like `CLICK_EXTRA_THEME` yields to the command line, the option's variable and the configuration.
+- Add `setdefault()` to `click_extra.context`, and `is_dumb_terminal()` to `click_extra.color`.
+- Add `find_git_root()`, `GIT_TIMEOUT` and the `check` and `timeout` arguments of `run_git()`, which now removes only the final newline of an output.
+- Add `short_help` to `LazySubcommand`, to list a lazy subcommand without importing it.
+- Add a `click_extra.config_docstring_heading` Sphinx warning for each Markdown heading in an option docstring that `click:config` renders.
+- Accept any mapping in `env_copy()`, not only a `dict`.
+- `ValidationError` subclasses `ValueError`, and its `code` names the failed check: `invalid_key`, `unknown_parameter` or `schema_error`.
 - Add a `config_cascade` argument to `@command` and `@group`, which turns on the cascade of the default `--config` option without replacing it.
 - Draw the `Config file` column of `--params` by default when the `--config` option cascades.
-- Switch a standard stream that does not speak UTF-8 to UTF-8 as a command starts, so redirected tables stop crashing on legacy Windows code pages.
-- The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
+- `--validate-config` warns about a key a schema-only section does not know, like loading the file does.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
-- Add a `click_extra.config_docstring_heading` Sphinx warning for each Markdown heading in an option docstring that `click:config` renders.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.
 - Redraw a `progressbar()` bar at most once every 0.1 seconds, instead of once per item.
-- Fix a log record emitted while a `progressbar()` bar is open, which printed on the bar's row instead of a line of its own.
-- Draw the `auto` truncation rule of a capture across the whole window, instead of the width of the lines it kept.
-- Fix the `auto` truncation rule of a capture spanning a line wider than `--columns`, which wrapped it onto a second row.
-- Fix the truncation marker of a capture taking on a style the cut left open, which underlined part of the rule.
+- `run_lanes()` runs a single lane in the calling thread, whatever the `--jobs` count, like `run_jobs()` runs a single item.
+- List the injected `personalities` subcommand after the author's own under `sort_subcommands=False`, like `help`.
+- `prebake version` prints the baked `__version__` the way `prebake all` does.
+- The `CLICK_EXTRA_THEME` warning lists `auto` among the accepted palettes.
+- Let `<CLI>_ACCESSIBLE` outrank the machine-wide `ACCESSIBLE` variable, and `ACCESSIBLE=0` turn off the accessible mode a configuration file turns on.
+- Ignore the blanks around the value of `ACCESSIBLE` and `DO_NOT_TRACK`, so `DO_NOT_TRACK=" 0 "` no longer reads as an opt-out.
+- Name `uv pip install 'click-extra[<extra>]'` in every missing optional dependency error, quoted for the shell.
+- `--params` no longer prompts for an option declaring a `prompt`, and keeps its rows in parameter path order whichever column `--columns` puts first.
+- The `-v`/`-q` debug trace says "by 1 level", not "by 1 levels".
+- Add the `3.15` release date to `PYTHON_RELEASE_DATES`, so the `matrix` directive caps a floor-only `requires-python` correctly.
+- Switch a standard stream that does not speak UTF-8 to UTF-8 as a command starts, so redirected tables stop crashing on legacy Windows code pages.
+- Shorten `import click_extra`: it no longer loads `subprocess`, `termios`, `tty`, `tomllib`, the converters, the trail and progress-bar code or the optional configuration parsers.
+- Build each built-in theme on first use, and the default options of `@command` and `@group` once instead of twice.
+- Run a CLI without a configuration file without importing `extra_platforms` or `wcmatch`, and find the module behind `--version` without scanning all loaded modules.
+- Start the `click-extra` CLI faster, by loading its `test-suite`, `screenshot`, `snippet` and `prebake` commands on first use.
+- Read and write each page once in `click-extra refresh-directives`, instead of once per kind of block.
+- Draw an SVG still about a third faster, import `click_extra.pygments` four times faster, and read large INI or SQLite configurations in linear time.
+- Cache the type hints of configuration schemas, so a CLI with a large dataclass schema starts and loads its configuration faster.
+- Fix `AttributeError: testing` when a subcommand or subgroup carries its own `--version` option outside a test runner.
 - Fix `--version` printing Click Extra's version for a CLI started with no frame under it, like from an `atexit` hook or a C host.
 - Fix `--version` printing `None` for a CLI started from a thread or an executor, like with `threading.Thread(target=cli.main)`.
-- Fix a log record skipping a handler of the `root` logger when Python collected the context of a failed run while handling it.
+- Fix `MulticallGroup` personalities losing the version fields pinned with `fields` or `version_fields`.
+- Fix registering a `personalities` subcommand on a `MulticallGroup`, and a personality whose subcommand is a plain Click command.
+- Fix `--time` of an outer run measuring from the start of a nested run of the same command.
+- Fix `run_cli()` holding back a Ctrl+C in the main thread until a child that never got the interrupt exits.
 - Fix a second Ctrl+C landing while the run prints its wait notice, which raised a reentrant `RuntimeError` on `stderr` instead of quitting.
 - Raise a Ctrl+C that a free-threaded Python turns into `RuntimeError: release unlocked lock` within `run_jobs()` or `run_lanes()` as the interrupt again.
+- Fix an operation trail's progress bar hanging on Ctrl+C while a paused terminal blocks its elapsed clock.
+- Fix a recording ignoring Ctrl+C outside the main thread, and leaving behind the descendants of a command ignoring `SIGTERM`.
+- Fix a recording splitting one screen in two on a sequence like `ESC [ 2 SP q`, and an `auto`-width capture with a cursor crashing on blank output.
+- Fix a log record emitted while a `progressbar()` bar is open, which printed on the bar's row instead of a line of its own.
+- Fix a log record skipping a handler of the `root` logger when Python collected the context of a failed run while handling it.
+- Fix the version field listing being skipped for a logger set below `DEBUG`.
+- Fix `CliRunner.invoke()` ignoring the runner's own `catch_exceptions` setting when a call leaves the argument out.
+- Fix `CLITestCase` accepting `execution_trace` as a suite directive, and comparing cases by the trace a run fills in.
+- Fix `strip_ansi()` and `split_ansi()` leaving escape sequences other than CSI and OSC in place, like the `ESC ( B` of `tput sgr0`.
+- Fix the ANSI lexers keeping the last byte of `ESC # 8`, eating the letter after an escape ending on `~`, and dropping blank lines around output.
+- Fix the `true_color` option of the ANSI lexers reading `-O true_color=false` as true, and their subclasses doubling their name prefix.
+- Fix `--help` crashing on a plain `cloup.HelpTheme` in the `theme` formatter setting, and on a group listing a name it cannot resolve.
+- Fix a color option under another name than `--color`, which ignored the color variables like `NO_COLOR`.
+- Reject malformed hex colors like `#-1-1-1` or `##abc` in styles and themes, instead of reading negative or shifted channels.
+- Fix `Style.to_dict()` dropping an `IntEnum` palette index, and `HelpTheme.with_()` reporting unknown slots unsorted.
+- Fix `ctx.meta` after `--version`: `len()`, iteration, views, `copy()`, `pop()` and `setdefault()` now see its lazy fields.
+- Fix `--params` drawing a cross for a custom `confirmation_prompt` string, and the grammar of its warning on a plain Click command.
+- Fix `print_table()` padding markup formats by terminal emoji width, and the `vertical` format misaligning styled, wide or missing labels.
+- Fix `EnumChoice` raising `AssertionError` or `AttributeError` on bad input: it raises `TypeError` and `ValueError`.
+- Fix `--validate-config` and `config_strict` rejecting the keys a dataclass `config_schema` reads, including in a schema-only section.
+- Fix a strict-mode dotted-key conflict and a non-string key like YAML's `1:` raising a traceback instead of a validation error.
+- Fix the per-file strict check of `cascade=True` rejecting an extension point, like the built-in `themes` table.
+- Fix an `INI` section addressing a subcommand passing its values as text, which broke list options.
+- Fix the deprecation warning of a fallback section printed twice when the file defines themes.
+- Fix `run_config_validation()` with an empty `app_name`, which now reads the whole document.
+- Report a missing writer for `--export-config` and `--help-format carapace` as `Error:` with exit code 1, not a traceback.
+- Fix the `EXAMPLES` section of generated man pages, which showed a backslash before each dash of an example command.
+- Fix `wrap --params` ignoring the context settings of its target and of its subcommands, like their `auto_envvar_prefix`.
+- Fix `help NAME` suggestions leaving out lazy subcommands, and `help --search` listing hidden ones.
+- Fix `click:tree` missing lazy subcommands and ignoring the `list_commands()` order: it walks like `--tree` and skips hidden subcommands.
+- Fix a `click:run` prompt reading past the end of its input, which raised `IndexError` instead of aborting like Click.
+- Fix `:screenshot:` captures written again on every build when unchanged, and a pipe splitting a row of the `click:tree` summary table.
+- Fix the MyST docstring converter separating directive options from their directive, and rewriting the content of code blocks.
+- Fix `refresh-directives` deleting content between two `<!-- mirror-src -->` generators, and ending a region at a marker quoted in a code block.
+- Fix `split_options()` reading a line that opens on a reST role as an option, and `replace_region()` rewriting markers quoted in a fence.
+- Fix the dependency `matrix` missing the `uv.lock` version of a dependency spelled with capitals, underscores or dots.
+- Fix `refresh-directives` rewriting form feeds and failing on a tag name that is not UTF-8, and stop its tag listing after 5 seconds.
+- Fix the `screenshot` command reporting an `--emphasize-lines` past the end of the capture as a traceback.
+- Fix `prebake` mangling a value holding a quote or a backslash, and misplacing a placeholder that follows non-ASCII text on its line.
+- Fix the `auto` truncation rule of a capture, which spanned only the kept lines, wrapped past `--columns`, and took on a style the cut left open.
+- Read the HTML of the `mandoc` and `groff` man-page renderers as UTF-8 on every platform.
+- Name `--syntax-style`, which colors the code, in the `snippet` help example, instead of the help screen's `--theme`.
+- Document the `click_extra.sphinx.python`, `click_runner` and `click_reference` modules in the API reference.
 
 ## [`9.5.1` (2026-10-27)](https://github.com/kdeldycke/click-extra/compare/v9.5.0...v9.5.1)
 

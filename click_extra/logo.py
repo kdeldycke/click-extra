@@ -16,8 +16,8 @@
 """Terminal rendition of the Click Extra brand mark.
 
 The mark of `docs/assets/logo-square.svg` is six cubes stacked three-two-one. Here
-they are rebuilt as flat shaded solids — one color per face, no outline anywhere —
-and painted with half blocks, two sub-pixels to a terminal line.
+they are rebuilt as flat shaded solids, with one color per face and no outline
+anywhere, and painted with half blocks, two sub-pixels to a terminal line.
 
 Flat faces are what let one palette serve a light terminal and a dark one. An
 outlined mark carries its shape in the outline, so every stroke has to out-contrast
@@ -31,21 +31,21 @@ of the range, which is where {data}`FACE_COLORS` sits.
 The mark's structure is carried by *color*: strip the ANSI codes and it collapses
 into one silhouette. {class}`~click_extra.version.VersionScreen` therefore only draws
 it where color reaches the output, falling back to the plain `--version` line
-everywhere else — which is also the form machine readers parse.
+everywhere else, which is also the form machine readers parse.
 ```
 """
 
 from __future__ import annotations
 
 from functools import cache
+from itertools import pairwise
 
 from click import style
 
-from .styling import _hex_to_rgb
-from .version import VersionScreen, default_facts, dependency_versions
-
-DOCS_URL = "https://kdeldycke.github.io/click-extra"
-"""Canonical documentation host, advertised on the version screen."""
+from ._utils import DOCS_URL
+from .ansi import hex_to_rgb
+from .version import VersionScreen
+from .version_facts import default_facts, dependency_versions
 
 TAGLINE = "Drop-in replacement for Click and Cloup"
 """What the project is, spelled out under the program name."""
@@ -78,8 +78,8 @@ BRAND_HUES: tuple[int, ...] = (41, 94, 306, 279, 210, 156)
 """Each cube's hue in degrees, in {data}`LEVELS` order.
 
 Read off the ribbon that outlines each cube's top face in the artwork. The mark has
-no per-cube hue of its own — cube one alone carries gold, green and olive across its
-six ribbons — so this is a reading of the artwork rather than a recovery of it. It
+no per-cube hue of its own: cube one alone carries gold, green and olive across its
+six ribbons. So this is a reading of the artwork rather than a recovery of it. It
 keeps the terminal mark recognizably the same six colors people already associate
 with the logo, which an evenly spaced spectrum would not.
 """
@@ -134,7 +134,7 @@ def geometry() -> dict[str, int]:
     """One cube's dimensions, in sub-pixels.
 
     A lid four units wide and two tall is 2:1 dimetric, and the smallest such rhombus
-    whose half-height is a whole number — which the row pitch needs. The body matches
+    whose half-height is a whole number, which the row pitch needs. The body matches
     the lid's width over two, making every box a true cube.
     """
     return {
@@ -204,7 +204,7 @@ def _inside(point: tuple[float, float], polygon: Face) -> bool:
     """Ray-casting point-in-polygon, counting crossings to the right of `point`."""
     x, y = point
     hit = False
-    for (ax, ay), (bx, by) in zip(polygon, polygon[1:] + polygon[:1]):
+    for (ax, ay), (bx, by) in pairwise([*polygon, *polygon[:1]]):
         if (ay > y) != (by > y) and x < (bx - ax) * (y - ay) / (by - ay) + ax:
             hit = not hit
     return hit
@@ -224,7 +224,7 @@ def sub_pixels() -> list[list[RGB | None]]:
     # resting on another wins over the lid it covers.
     ordered = list(reversed(faces()))
     palette = {
-        (slot, plane): _hex_to_rgb(value)
+        (slot, plane): hex_to_rgb(value)
         for slot, planes in enumerate(FACE_COLORS)
         for plane, value in planes.items()
     }
@@ -265,7 +265,7 @@ def render_logo() -> tuple[str, ...]:
         line = ""
         run = ""
         current: tuple[RGB | None, RGB | None] = (None, None)
-        for over, under in zip(grid[top], grid[top + 1]):
+        for over, under in zip(grid[top], grid[top + 1], strict=True):
             pair: tuple[RGB | None, RGB | None]
             if over is None and under is None:
                 char, pair = " ", (None, None)

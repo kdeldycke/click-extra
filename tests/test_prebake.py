@@ -13,10 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Tests for the one-pass dunder baking and the project metadata readers.
+"""Tests for the one-pass dunder baking.
 
 The single-field ``prebake_dunder`` and ``prebake_version`` helpers are covered
 in ``test_version.py``, beside the version option that reads what they write.
+The project metadata readers are covered in ``test_project.py``.
 """
 
 from __future__ import annotations
@@ -26,23 +27,12 @@ from pathlib import Path
 import pytest
 
 from click_extra.cli import demo
-from click_extra.prebake import (
-    discover_package_init_files,
-    entry_point_package,
-    locate_package_root,
-    prebake_dunders,
-    read_project_scripts,
-)
+from click_extra.prebake import prebake_dunders
 
 PYPROJECT_SCRIPTS = (
     '[project]\nname = "orchard"\n\n[project.scripts]\norchard = "orchard.cli:main"\n'
 )
 """A ``pyproject.toml`` declaring one console script."""
-
-SETUP_CFG_SCRIPTS = (
-    "[options.entry_points]\nconsole_scripts =\n    vineyard = vineyard.cli:main\n"
-)
-"""A ``setup.cfg`` declaring one console script."""
 
 
 @pytest.fixture
@@ -56,9 +46,9 @@ def src_project(tmp_path):
     package.mkdir(parents=True)
     (package / "__init__.py").write_text(
         '__version__ = "1.0.0"\n__build_os__ = ""\n__git_branch__ = ""\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
-    (tmp_path / "pyproject.toml").write_text(PYPROJECT_SCRIPTS, encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(PYPROJECT_SCRIPTS, encoding="UTF-8")
     return tmp_path
 
 
@@ -74,7 +64,7 @@ def test_prebake_dunders_fills_every_empty_placeholder_in_one_pass(tmp_path):
     source = tmp_path / "__init__.py"
     source.write_text(
         '__git_branch__ = ""\n__build_os__ = \'\'\n__git_tag__ = "v1"\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     calls: list[str] = []
 
@@ -96,7 +86,7 @@ def test_prebake_dunders_fills_every_empty_placeholder_in_one_pass(tmp_path):
     )
     assert baked == {"__git_branch__": "main", "__build_os__": "Linux"}
     assert calls == ["__git_branch__"]
-    assert source.read_text(encoding="utf-8") == (
+    assert source.read_text(encoding="UTF-8") == (
         '__git_branch__ = "main"\n__build_os__ = \'Linux\'\n__git_tag__ = "v1"\n'
     )
 
@@ -104,97 +94,77 @@ def test_prebake_dunders_fills_every_empty_placeholder_in_one_pass(tmp_path):
 def test_prebake_dunders_leaves_a_placeholder_its_resolver_cannot_fill(tmp_path):
     """A resolver answering nothing leaves its placeholder, and the file, alone."""
     source = tmp_path / "__init__.py"
-    source.write_text('__git_branch__ = ""\n', encoding="utf-8")
+    source.write_text('__git_branch__ = ""\n', encoding="UTF-8")
     before = source.stat().st_mtime_ns
 
     assert prebake_dunders(source, {"__git_branch__": lambda: None}) == {}
-    assert source.read_text(encoding="utf-8") == '__git_branch__ = ""\n'
+    assert source.read_text(encoding="UTF-8") == '__git_branch__ = ""\n'
     assert source.stat().st_mtime_ns == before
 
 
 def test_prebake_dunders_fills_two_placeholders_sharing_a_line(tmp_path):
     """Two literals on one line both land, whatever the first one's new length."""
     source = tmp_path / "__init__.py"
-    source.write_text('__a__ = ""; __b__ = ""\n', encoding="utf-8")
+    source.write_text('__a__ = ""; __b__ = ""\n', encoding="UTF-8")
 
     baked = prebake_dunders(source, {"__a__": "a longer value", "__b__": "b"})
     assert baked == {"__a__": "a longer value", "__b__": "b"}
     assert (
-        source.read_text(encoding="utf-8") == '__a__ = "a longer value"; __b__ = "b"\n'
+        source.read_text(encoding="UTF-8") == '__a__ = "a longer value"; __b__ = "b"\n'
     )
 
 
-# --- project metadata readers -------------------------------------------------
-
-
-def test_read_project_scripts_prefers_pyproject(tmp_path):
-    """``[project.scripts]`` wins over a ``setup.cfg`` sitting beside it."""
-    (tmp_path / "pyproject.toml").write_text(PYPROJECT_SCRIPTS, encoding="utf-8")
-    (tmp_path / "setup.cfg").write_text(SETUP_CFG_SCRIPTS, encoding="utf-8")
-    assert read_project_scripts(tmp_path) == {"orchard": "orchard.cli:main"}
-
-
-def test_read_project_scripts_falls_back_to_setup_cfg(tmp_path):
-    """``console_scripts`` in ``setup.cfg`` is read when ``pyproject.toml`` has none."""
-    (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname = "x"\n', encoding="utf-8"
-    )
-    (tmp_path / "setup.cfg").write_text(SETUP_CFG_SCRIPTS, encoding="utf-8")
-    assert read_project_scripts(tmp_path) == {"vineyard": "vineyard.cli:main"}
-
-
-def test_read_project_scripts_without_metadata(tmp_path):
-    assert read_project_scripts(tmp_path) == {}
-
-
 @pytest.mark.parametrize(
-    ("target", "expected"),
+    ("placeholder", "value", "expected"),
     (
-        ("orchard.cli:main", "orchard"),
-        ("orchard:main", "orchard"),
-        ("orchard.cli.entry:run", "orchard"),
-        ("orchard", "orchard"),
+        pytest.param('""', "main", '"main"', id="double-quotes"),
+        pytest.param("''", "main", "'main'", id="single-quotes"),
+        pytest.param('""', 'say "cheese"', '"say \\"cheese\\""', id="quote-in-value"),
+        pytest.param("''", "kiwi's", "'kiwi\\'s'", id="apostrophe-in-value"),
+        pytest.param('""', "a\\b", '"a\\\\b"', id="backslash-in-value"),
+        pytest.param('""""""', "main", '"""main"""', id="triple-quotes"),
+        pytest.param('r""', "a\\b", '"a\\\\b"', id="raw-prefix"),
+        pytest.param('("" "")', "main", '("main")', id="implicit-concatenation"),
     ),
 )
-def test_entry_point_package(target, expected):
-    assert entry_point_package(target) == expected
-
-
-@pytest.mark.parametrize(
-    ("layout", "expected"),
-    (
-        pytest.param(("orchard", "__init__.py"), ".", id="flat-package"),
-        pytest.param(("src", "orchard", "__init__.py"), "src", id="src-package"),
-        pytest.param(("orchard.py",), ".", id="flat-module"),
-        pytest.param(("src", "orchard.py"), "src", id="src-module"),
-        pytest.param(("orchard", "cli.py"), ".", id="namespace-package"),
-    ),
-)
-def test_locate_package_root(tmp_path, layout, expected):
-    """The directory to import from follows the package through both layouts."""
-    target = tmp_path.joinpath(*layout)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text("", encoding="utf-8")
-    assert locate_package_root(tmp_path, "orchard") == tmp_path / expected
-
-
-def test_locate_package_root_misses_an_absent_package(tmp_path):
-    assert locate_package_root(tmp_path, "orchard") is None
-
-
-def test_discover_package_init_files_finds_a_src_layout(src_project):
-    """A package under ``src/`` is discovered like one at the project root."""
-    assert discover_package_init_files(src_project) == [
-        src_project / "src" / "orchard" / "__init__.py"
-    ]
-
-
-def test_discover_package_init_files_defaults_to_the_current_directory(
-    src_project, monkeypatch
+def test_prebake_dunders_writes_a_literal_holding_the_value(
+    tmp_path, placeholder, value, expected
 ):
-    """Without a directory, the paths are relative to the current one."""
-    monkeypatch.chdir(src_project)
-    assert discover_package_init_files() == [Path("src") / "orchard" / "__init__.py"]
+    """The baked literal parses back to the value, in the quotes it opened with.
+
+    A value carrying the quote character the placeholder is written in, like a
+    branch named after a fruit's owner, closed the literal early and left a
+    file that no longer compiled.
+    """
+    source = tmp_path / "__init__.py"
+    source.write_text(f"__git_branch__ = {placeholder}\n", encoding="UTF-8")
+
+    assert prebake_dunders(source, {"__git_branch__": value}) == {
+        "__git_branch__": value
+    }
+    baked = source.read_text(encoding="UTF-8")
+    assert baked == f"__git_branch__ = {expected}\n"
+    namespace: dict[str, str] = {}
+    exec(baked, namespace)
+    assert namespace["__git_branch__"] == value
+
+
+def test_prebake_dunders_counts_columns_past_non_ascii_text(tmp_path):
+    """A placeholder after a non-ASCII literal on the same line lands in place.
+
+    The parser counts columns in UTF-8 bytes: read as characters, every
+    multi-byte character ahead of the placeholder shifted the splice right.
+    """
+    source = tmp_path / "__init__.py"
+    source.write_text(
+        '__dessert__ = "crème brûlée"; __git_tag__ = ""\n', encoding="UTF-8"
+    )
+
+    prebake_dunders(source, {"__git_tag__": "v1.0"})
+    assert (
+        source.read_text(encoding="UTF-8")
+        == '__dessert__ = "crème brûlée"; __git_tag__ = "v1.0"\n'
+    )
 
 
 # --- prebake all --------------------------------------------------------------
@@ -211,7 +181,7 @@ def test_prebake_all_bakes_a_src_layout_project(invoke, src_project, monkeypatch
     assert result.exit_code == 0, result.output
 
     init_path = Path("src") / "orchard" / "__init__.py"
-    baked = init_path.read_text(encoding="utf-8")
+    baked = init_path.read_text(encoding="UTF-8")
     assert '__build_os__ = ""' not in baked
     assert '__version__ = "1.0.0"' in baked
     assert f"Pre-baked {init_path}: __build_os__ = " in result.output

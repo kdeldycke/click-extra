@@ -18,10 +18,10 @@ Pygments also runs the other way here: [code snippets](snippets.md) highlight a 
 The Pygments components ship as an optional extra to keep the base install lean:
 
 ```{code-block} shell-session
-$ pip install click_extra[pygments]
+$ uv pip install 'click-extra[pygments]'
 ```
 
-The `pygments` extra pulls in only Pygments and its prerequisites. The package name (`click_extra`) is a historical artifact of where these components first lived; the Pygments components are stable, independent, and have no Click dependency at runtime.
+The `pygments` extra pulls in only Pygments and its prerequisites. The components live in the `click_extra` package, so importing them imports Click Extra and its own dependencies too.
 
 ## Integration
 
@@ -386,12 +386,12 @@ truecolor = highlight(gradient, AnsiColorLexer(), formatter)
 # Wrap each ``<pre>`` in ``<div class="highlight">`` so the Pygments stylesheet's
 # ``.highlight .-Ansi-*`` rules scope correctly to the quantized row. The true-color
 # row carries inline styles and renders identically with or without the wrapper.
-print("<p><strong>Default (quantized to 256 colors):</strong></p>")
+print("<p><strong>Quantized to 256 colors (<code>true_color=False</code>):</strong></p>")
 print(
     f'<div class="highlight"><pre style="font-size: 1.1em; line-height: 1">'
     f"{quantized}</pre></div>"
 )
-print("<p><strong>Opt-in 24-bit true color:</strong></p>")
+print("<p><strong>24-bit true color (default):</strong></p>")
 print(
     f'<div class="highlight"><pre style="font-size: 1.1em; line-height: 1">'
     f"{truecolor}</pre></div>"

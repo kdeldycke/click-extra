@@ -15,7 +15,7 @@ Click Extra reads a configuration file in any of the dialects below. Each one li
 | [`plist`](#plist)                   | `*.plist`               | Apple's property list, in its XML or binary variant                                       | ✅                 |
 | [`SQLITE`](#sqlite)                 | `*.sqlite`, `*.sqlite3` | Reads a `config` table of dotted keys and JSON-encoded values                             | ✅                 |
 | [`ARGFILE`](#argfile)               | `*.conf`                | Plain-text list of command-line options, in the style of `mpv` and `yt-dlp`               | ✅                 |
-| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`        | Reads `[tool.*]`{l=toml}{l=toml} sections from `pyproject.toml`                           | ✅                 |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`        | Reads `[tool.*]`{l=toml} sections from `pyproject.toml`                                   | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
 
@@ -235,7 +235,7 @@ The `JSON5` parser also reads [`JWCC`](https://nigeltao.github.io/blog/2021/json
 
 ## INI
 
-`INI` files use sections, and a dot (`.`) in a section name marks a sub-level: `[my-cli.subcommand]` nests under `my-cli`. [`ExtendedInterpolation`](https://docs.python.org/3/library/configparser.html#configparser.ExtendedInterpolation) is enabled by default. Each value is typed after its matching CLI parameter; types `INI` has no native syntax for (lists, sets, …) are read as JSON-serialized strings, like `my_list` above.
+`INI` files use sections, and a dot (`.`) in a section name marks a sub-level: `[my-cli.subcommand]` nests under `my-cli`. [`ExtendedInterpolation`](https://docs.python.org/3/library/configparser.html#configparser.ExtendedInterpolation) is enabled by default. Each value is typed after its matching CLI parameter, in any section; types `INI` has no native syntax for (lists, sets, …) are read as JSON-serialized strings, like `my_list` above.
 
 ## XML
 
@@ -299,7 +299,7 @@ The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `p
 `pyproject.toml` is becoming the standard place to centralize tool configuration for Python projects. Instead of scattering dedicated config files at the root of your repository (`ruff.toml`, `typos.toml`, `mypy.ini`, …), you can consolidate them all under `[tool.*]`{l=toml} sections in a single `pyproject.toml`. This keeps the repository root clean, makes it easy to review and coordinate tool configurations in one place, and reduces the number of files contributors need to discover.
 ```
 
-`PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: `merge_default_map` sees `{"cli": {"int_param": 3}}`, exactly the [same structure as a regular TOML config file](#toml).
+`PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: the loader sees `{"cli": {"int_param": 3}}`, exactly the [same structure as a regular TOML config file](#toml).
 
 ```{seealso}
 For a production example of a CLI built on Click Extra's `pyproject.toml` configuration with a [typed dataclass schema](config-schema.md), nested sub-tables, and 48 config options, see [repomatic's configuration reference](https://kdeldycke.github.io/repomatic/configuration.html). Repomatic also uses Click Extra's config system to [bridge `[tool.X]` sections](https://kdeldycke.github.io/repomatic/tool-runner.html#config-resolution) for third-party tools that don't read `pyproject.toml` natively.

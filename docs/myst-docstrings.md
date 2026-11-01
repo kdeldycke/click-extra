@@ -115,6 +115,23 @@ This function may change in future releases.
 """
 ````
 
+### Directive options
+
+The `:key: value` lines opening a fence body are the options of its directive, as in any MyST document. They go right under the reST directive header, where reST reads them:
+
+````python
+"""
+```{list-table}
+:header-rows: 1
+
+* - Fruit
+  - Color
+* - Lemon
+  - Yellow
+```
+"""
+````
+
 ### Links
 
 Use standard markdown links:
@@ -154,6 +171,8 @@ extensions = [
 
 Plain fences (```` ```python ````) are converted to `.. code-block:: python` directives. Directive fences (```` ```{code-block} python ````) are also converted. The language identifier is optional: a bare ```` ``` ```` fence becomes `.. code-block::` with no language.
 
+The content of a code block is code, so it is kept verbatim: a backtick, a role or a link in it is not converted.
+
 ### Footnotes
 
 Footnote references and definitions are converted:
@@ -186,8 +205,8 @@ In the example above, single-backtick code spans (`path`, `True`) are doubled fo
 
 The extension handles the constructs listed above. It does **not** convert:
 
-- **Nested fences of the same type** (```` ``` ```` / ````` ```` `````). A single nesting level works because the inner directive (like `.. code-block::`) stays as reST inside the converted outer fence.
-- **Complex tables** (```` ```{list-table} ````, ```` ```{csv-table} ````). These work in module-level docstrings processed by `myst-parser` but are unlikely to appear in function docstrings.
+- **Nested fences of the same length** (```` ``` ```` in ```` ``` ````). A fence closes on the first bare run of its character that is at least as long, as in any MyST document, so a fence holding another fence of its character must be longer: ````` ````{note} ````` can hold a ```` ```python ```` code block. A reST directive (like `.. code-block::`) inside a fence needs no longer fence.
+- **Link or footnote syntax inside inline code** (`` `[text](url)` ``, `` `[^label]` ``). It is read as a link or a footnote reference, not as code. Show such syntax in a code block, whose content is kept verbatim.
 - **`{` inside single backticks**. Content like `` `{version}` `` would be misinterpreted as a cross-reference. Keep these as double backticks (``` ``{version}`` ```), which the extension passes through to Sphinx as-is.
 - **Domain-qualified roles** (`` {py:class}`str` ``). The role converter only handles bare role names. Write domain-qualified references in reST (`` :py:class:`str` ``), which passes through unchanged; the `convert-to-myst` migration leaves them in reST for the same reason.
 - **MyST substitution references** (`{{variable}}`). These are a `myst-parser` feature for `.md` files and are not processed inside docstrings.

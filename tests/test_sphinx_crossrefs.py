@@ -134,7 +134,7 @@ def read_html(built_docs: Path, filename: str) -> str:
     """Read a built HTML page."""
     html_path = built_docs / filename
     assert html_path.exists(), f"HTML file not found: {html_path}"
-    return html_path.read_text(encoding="utf-8")
+    return html_path.read_text(encoding="UTF-8")
 
 
 def test_install_page_internal_anchor(built_docs):

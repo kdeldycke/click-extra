@@ -17,17 +17,23 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 
 import pytest
 
-from click_extra.blocks import (
+from click_extra.markdown.blocks import (
     fence_spans,
     iter_markdown_files,
     marker_res,
     replace_region,
+    rewrite_fenced_regions,
+    rewrite_fences,
+    skip_region,
+    split_options,
     update_blocks,
+    walk_fences,
 )
 
 REGION = "intro\n\n<!-- t -->\nOLD\n<!-- t-end -->\n\nend\n"
@@ -36,7 +42,7 @@ REGION = "intro\n\n<!-- t -->\nOLD\n<!-- t-end -->\n\nend\n"
 
 @pytest.mark.once
 def test_blocks_module_needs_no_sphinx_extra():
-    """`click_extra.blocks` imports without pulling in the `sphinx` extra.
+    """`click_extra.markdown.blocks` imports without pulling in the `sphinx` extra.
 
     The whole point of hosting the toolkit in the package root is that a
     release pipeline or standalone script can reuse it without installing
@@ -48,7 +54,7 @@ def test_blocks_module_needs_no_sphinx_extra():
             sys.executable,
             "-c",
             (
-                "import sys, click_extra.blocks; "
+                "import sys, click_extra.markdown.blocks; "
                 "assert 'sphinx' not in sys.modules, 'sphinx leaked'; "
                 "assert 'docutils' not in sys.modules, 'docutils leaked'"
             ),
@@ -59,24 +65,6 @@ def test_blocks_module_needs_no_sphinx_extra():
         check=False,
     )
     assert result.returncode == 0, result.stderr
-
-
-def test_blocks_reexported_from_sphinx_package():
-    """The public trio stays importable from ``click_extra.sphinx`` too.
-
-    Skipped without the ``sphinx`` extra, which ``click_extra.sphinx`` raises on
-    import for. The ``collect_ignore_glob`` guarding ``tests/sphinx/`` does not
-    cover a test outside that tree, so each one reaching into the package needs
-    this guard: a builder shipping no Sphinx failed here, which is what took the
-    Guix build of ``8.8.1`` down.
-    """
-    pytest.importorskip("sphinx", reason="click_extra.sphinx needs the sphinx extra")
-
-    from click_extra import sphinx
-
-    assert sphinx.replace_region is replace_region
-    assert sphinx.marker_res is marker_res
-    assert sphinx.update_blocks is update_blocks
 
 
 def test_marker_res_grammar():
@@ -128,6 +116,40 @@ def test_replace_region(content, pad, expected):
     assert replace_region(out, "t", content, pad=pad) == out
 
 
+QUOTED_REGION = (
+    "<!-- t -->\n\nOLD\n\n```markdown\n<!-- t-end -->\n```\n\n<!-- t-end -->\n"
+)
+"""A region whose body quotes its own closing marker inside a code fence."""
+
+
+def test_skip_region_steps_over_a_quoted_end_marker():
+    """A closing marker quoted in a fence of the region does not end it."""
+    lines = QUOTED_REGION.split("\n")
+    assert skip_region(lines, 0, "t") == lines.index("<!-- t-end -->", 6) + 1
+
+
+def test_rewrite_fenced_regions_keeps_a_quoted_end_marker():
+    """A region holding a fence that quotes its closing marker round-trips.
+
+    The closing marker of the region was searched without stepping over
+    fences: the quoted one ended the region early, and each refresh left the
+    rest of the stale region below the new one.
+    """
+    fence = re.compile(r"^```\{demo\}")
+    region = ["```markdown", "<!-- t-end -->", "```"]
+    once = rewrite_fenced_regions("```{demo}\n```\n", "t", fence, lambda _: region)
+    assert once.count("<!-- t-end -->") == 2
+    assert rewrite_fenced_regions(once, "t", fence, lambda _: region) == once
+
+
+def test_replace_region_ignores_markers_quoted_in_fences():
+    """Markers shown in a code example are not the live region."""
+    example = "```markdown\n<!-- t -->\nKEEP\n<!-- t-end -->\n```\n\n"
+    out = replace_region(example + QUOTED_REGION, "t", "NEW")
+    assert out.startswith(example)
+    assert out == example + "<!-- t -->\n\nNEW\n\n<!-- t-end -->\n"
+
+
 def test_replace_region_missing_markers_is_noop():
     """A document without the markers is returned untouched."""
     assert replace_region("no markers here", "t", "NEW") == "no markers here"
@@ -150,10 +172,109 @@ def test_fence_spans_treats_nested_fences_as_opaque():
     assert spans[0].close == 4
 
 
+@pytest.mark.parametrize(
+    ("lines", "close", "end"),
+    [
+        # A run at least as long as the opener closes it, a shorter one does not.
+        (["```", "``", "````"], 2, 3),
+        # A run followed by text opens a fence rather than closing one.
+        (["```", "```python", "```"], 2, 3),
+        # Blanks around the run do not matter.
+        (["```", "apple", "```  "], 2, 3),
+        # A close sits at the opener's indentation or deeper.
+        (["  ```", "```", "  ```"], 2, 3),
+        # A fence never closed spans to the end.
+        (["```", "apple"], None, 2),
+    ],
+)
+def test_fence_spans_close(lines, close, end):
+    """A fence closes on the first bare backtick run that is long enough."""
+    assert fence_spans(lines) == {0: (0, close, end)}
+
+
+@pytest.mark.parametrize(
+    ("lines", "body"),
+    [
+        (["```", "apple", "pear", "```", "after"], ["apple", "pear"]),
+        (["```", "```"], []),
+        # An unterminated fence holds the rest of the source.
+        (["```", "apple", "pear"], ["apple", "pear"]),
+    ],
+)
+def test_fence_span_body(lines, body):
+    """The body of a span is everything between its fence lines."""
+    assert lines[fence_spans(lines)[0].body] == body
+
+
+@pytest.mark.parametrize(
+    ("chars", "spans"),
+    [
+        ("`", {1: (1, None, 4)}),
+        (":", {0: (0, 2, 3)}),
+        ("`:", {0: (0, 2, 3)}),
+    ],
+)
+def test_fence_spans_chars(chars, spans):
+    """Colon fences are fences only on request, and close on colons alone."""
+    assert fence_spans([":::{note}", "```", ":::", "after"], chars=chars) == spans
+
+
+def test_walk_fences_steps_over_fences():
+    """Lines outside fences come one by one, each fence as one unit."""
+    lines = ["intro", "```", "<!-- t -->", "```", "outro", "````", "tail"]
+    spans = fence_spans(lines)
+    assert list(walk_fences(lines)) == [
+        (0, None),
+        (1, spans[1]),
+        (4, None),
+        (5, spans[5]),
+    ]
+    assert list(walk_fences(lines, spans, start=4)) == [(4, None), (5, spans[5])]
+
+
+def test_rewrite_fences_keeps_what_visit_leaves():
+    """A step `visit` passes on is copied, an unterminated fence included."""
+    lines = ["apple", "```", "apple", "```", "apple", "```", "apple"]
+
+    def visit(index, span):
+        if span is None and lines[index] == "apple":
+            return ["PEAR"], index + 1
+        return None
+
+    assert rewrite_fences(lines, visit) == [
+        "PEAR",
+        "```",
+        "apple",
+        "```",
+        "PEAR",
+        "```",
+        "apple",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("lines", "options", "content"),
+    [
+        ([":caption: Orchard", "", "fig = 1"], {"caption": "Orchard"}, ["fig = 1"]),
+        ([":linenos:", "fig = 1"], {"linenos": ""}, ["fig = 1"]),
+        # A body opening on a reST role is content: an option needs whitespace
+        # or the line end after its colon-wrapped name.
+        (
+            [":mod:`sqlite3` is imported here."],
+            {},
+            [":mod:`sqlite3` is imported here."],
+        ),
+    ],
+)
+def test_split_options(lines, options, content):
+    """Leading option lines are split from the content of a fence body."""
+    assert split_options(lines) == (options, content)
+
+
 def test_update_blocks_writes_and_check_mode(tmp_path):
     """`update_blocks` rewrites changed files, and `check` reports without writing."""
     page = tmp_path / "page.md"
-    page.write_text(REGION, encoding="utf-8")
+    page.write_text(REGION, encoding="UTF-8")
 
     def rewrite(text, path):
         return replace_region(text, "t", "NEW")
@@ -161,12 +282,12 @@ def test_update_blocks_writes_and_check_mode(tmp_path):
     # check mode: reports the stale file but leaves it on disk untouched.
     would_change = update_blocks([tmp_path], rewrite, check=True)
     assert would_change == [page]
-    assert page.read_text(encoding="utf-8") == REGION
+    assert page.read_text(encoding="UTF-8") == REGION
 
     # write mode: rewrites the file, then a second pass is a clean no-op.
     changed = update_blocks([tmp_path], rewrite)
     assert changed == [page]
-    assert "NEW" in page.read_text(encoding="utf-8")
+    assert "NEW" in page.read_text(encoding="UTF-8")
     assert update_blocks([tmp_path], rewrite) == []
 
 
@@ -176,8 +297,8 @@ def test_iter_markdown_files_recurses_directories(tmp_path):
     top = tmp_path / "a.md"
     nested = tmp_path / "sub" / "b.md"
     for path in (top, nested):
-        path.write_text("", encoding="utf-8")
-    (tmp_path / "ignore.txt").write_text("", encoding="utf-8")
+        path.write_text("", encoding="UTF-8")
+    (tmp_path / "ignore.txt").write_text("", encoding="UTF-8")
 
     assert list(iter_markdown_files([tmp_path])) == [top, nested]
     assert list(iter_markdown_files([top])) == [top]

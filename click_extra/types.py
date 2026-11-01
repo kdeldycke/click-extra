@@ -44,26 +44,12 @@ class MultiChoice(click.ParamType):
     it does for `Choice`.
 
     ```{note}
-    Click does not ship a built-in equivalent. The closest idiomatic
-    approach is `click.Choice([...]) + multiple=True`, which requires the
-    flag to be repeated (`--tag a --tag b --tag c`) rather than
-    comma-separated. The lack of a single-token, separator-based variant
-    upstream has been raised in:
-
-    - [pallets/click#2771](https://github.com/pallets/click/issues/2771)
-      (open): request for `nargs=-1` with a non-whitespace separator,
-      covering exactly this use case.
-    - [pallets/click#2537](https://github.com/pallets/click/issues/2537)
-      (closed as not planned): earlier request for space-separated multi
-      values via `nargs=-1` on options.
-
-    Maintainers have leaned on the orthogonality argument: `multiple=True`
-    already exists, separator conventions vary across communities (`,`
-    vs. `:` vs. `;`), and escaping breaks down when a value contains
-    the chosen separator. `MultiChoice` ships the convention anyway
-    because SQL-style `SELECT a, b, c` syntax reads more naturally for
-    the tabular use cases `click-extra` supports
-    ({class}`click_extra.table.ColumnsOption` is the headline consumer).
+    Click ships no single-token equivalent: its idiom is `click.Choice` with
+    `multiple=True`, which repeats the flag (`--tag a --tag b`).
+    [pallets/click#2771](https://github.com/pallets/click/issues/2771) asks for
+    a separator-based variant. `MultiChoice` follows the SQL `SELECT a, b, c`
+    convention of the tabular use cases Click Extra supports, with
+    {class}`click_extra.table_options.ColumnsOption` as the headline consumer.
     ```
     """
 
@@ -93,7 +79,7 @@ class MultiChoice(click.ParamType):
         self.separator: str = separator
         self.case_sensitive: bool = case_sensitive
 
-    def get_metavar(self, param, ctx=None):
+    def get_metavar(self, param: click.Parameter, ctx: click.Context) -> str | None:
         """Render `[a<sep>b<sep>c]` when `choices` is set, `None` otherwise.
 
         `None` falls back to Click's default rendering (the uppercased
@@ -121,7 +107,9 @@ class MultiChoice(click.ParamType):
             tokens = tuple(value)
         else:
             tokens = tuple(
-                t.strip() for t in str(value).split(self.separator) if t.strip()
+                token
+                for part in str(value).split(self.separator)
+                if (token := part.strip())
             )
 
         if not self.choices:
@@ -241,6 +229,10 @@ class EnumChoice(click.Choice):
         """Same as `click.Choice`, but takes an `Enum` as `choices`.
 
         Also defaults to case-insensitive matching.
+
+        :raises TypeError: if `choices` is not an `Enum` subclass.
+        :raises ValueError: if `choice_source` is a string naming no
+            {class}`ChoiceSource` member.
         """
 
         self._enum: type[enum.Enum]
@@ -270,15 +262,14 @@ class EnumChoice(click.Choice):
         canonical member, which `ChoiceSource.STR` and a callable source cannot.
         """
 
-        # Keep the Enum class around.
-        assert issubclass(choices, enum.Enum), (
-            f"choice_enum must be a subclass of Enum, got {choices!r}."
-        )
+        # Checked at runtime too, for a caller that runs no type checker.
+        if not (isinstance(choices, type) and issubclass(choices, enum.Enum)):
+            raise TypeError(f"choices must be a subclass of Enum, got {choices!r}.")
         self._enum = choices
 
-        # Normalize choice_source to ChoiceSource.
-        if isinstance(choice_source, str) and not callable(choice_source):
-            self._choice_source = getattr(ChoiceSource, choice_source.upper())
+        # A string names a ChoiceSource member by its value, in any case.
+        if isinstance(choice_source, str):
+            self._choice_source = ChoiceSource(choice_source.lower())
         else:
             self._choice_source = choice_source
 
@@ -366,25 +357,22 @@ class EnumChoice(click.Choice):
 
         The string produced by the choice source is passed through `transform`.
         """
-        if self._choice_source in (ChoiceSource.KEY, ChoiceSource.NAME):
-            choice = member.name
-
-        elif self._choice_source == ChoiceSource.VALUE:
-            choice = member.value
-
-        elif self._choice_source == ChoiceSource.STR:
-            choice = str(member)
-
-        elif callable(self._choice_source):
-            try:
-                choice = self._choice_source(member)
-            except Exception as ex:
-                raise ValueError(
-                    f"cannot call {self._choice_source!r} on {member!r}: {ex}"
-                ) from ex
-
-        else:
-            raise ValueError(f"Unsupported choice source {self._choice_source!r}.")
+        match self._choice_source:
+            case ChoiceSource.KEY | ChoiceSource.NAME:
+                choice = member.name
+            case ChoiceSource.VALUE:
+                choice = member.value
+            case ChoiceSource.STR:
+                choice = str(member)
+            case source if callable(source):
+                try:
+                    choice = source(member)
+                except Exception as ex:
+                    raise ValueError(
+                        f"cannot call {source!r} on {member!r}: {ex}"
+                    ) from ex
+            case source:
+                raise ValueError(f"Unsupported choice source {source!r}.")
 
         self._check_choice_str(member, choice)
         return self._transform_choice_str(member, choice)
@@ -453,9 +441,14 @@ _DURATION_CALENDAR_UNITS = frozenset({
 })
 """Calendar units rejected for ambiguity: months span 28-31 days, years 365-366."""
 
-_DURATION_FRIENDLY_PATTERN = re.compile(r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[a-z]*)")
+_DURATION_FRIENDLY_PATTERN = r"(?P<value>\d+(?:\.\d+)?)\s*(?P<unit>[a-z]*)"
+"""A number and an optional unit, like `7 days` or `12h`.
 
-_DURATION_ISO8601_PATTERN = re.compile(
+The duration patterns stay strings: `re` compiles and caches each on its first
+use, which keeps the compilation off the startup path of every CLI.
+"""
+
+_DURATION_ISO8601_PATTERN = (
     r"P"
     r"(?:(?P<years>\d+(?:\.\d+)?)Y)?"
     r"(?:(?P<months>\d+(?:\.\d+)?)M)?"
@@ -465,8 +458,9 @@ _DURATION_ISO8601_PATTERN = re.compile(
     r"(?:(?P<hours>\d+(?:\.\d+)?)H)?"
     r"(?:(?P<minutes>\d+(?:\.\d+)?)M)?"
     r"(?:(?P<seconds>\d+(?:\.\d+)?)S)?"
-    r")?",
+    r")?"
 )
+"""An ISO 8601 duration, like `P1WT6H`."""
 
 _DURATION_EXAMPLES = (
     "'7 days', '1 week', '12h', '30m', 'P7D', 'PT12H', "
@@ -483,10 +477,10 @@ _DURATION_CALENDAR_REJECT = (
 def _parse_friendly(text: str, value: Any) -> timedelta:
     """Parse a normalized friendly duration, raising `ValueError` on failure.
 
-    *text* is the stripped, lower-cased input; *value* is the original, quoted
+    `text` is the stripped, lower-cased input; `value` is the original, quoted
     verbatim in the error message.
     """
-    match = _DURATION_FRIENDLY_PATTERN.fullmatch(text)
+    match = re.fullmatch(_DURATION_FRIENDLY_PATTERN, text)
     if match:
         unit = match["unit"]
         if unit in _DURATION_CALENDAR_UNITS:
@@ -502,10 +496,10 @@ def _parse_friendly(text: str, value: Any) -> timedelta:
 def _parse_iso8601(text: str, value: Any) -> timedelta:
     """Parse a normalized ISO 8601 duration, raising `ValueError` on failure.
 
-    *text* is the stripped, upper-cased input; *value* is the original, quoted
+    `text` is the stripped, upper-cased input; `value` is the original, quoted
     verbatim in the error message.
     """
-    match = _DURATION_ISO8601_PATTERN.fullmatch(text)
+    match = re.fullmatch(_DURATION_ISO8601_PATTERN, text)
     if not match or not any(match.groups()):
         raise ValueError(
             f"{value!r} is not a valid ISO 8601 duration "
@@ -529,8 +523,8 @@ def _parse_timestamp(
 ) -> timedelta | None:
     """Parse an RFC 3339 timestamp into its age, raising `ValueError` on failure.
 
-    The age is `reference - timestamp`, where *reference* defaults to the
-    current UTC time. A timestamp at or after *reference* yields `None`.
+    The age is `reference - timestamp`, where `reference` defaults to the
+    current UTC time. A timestamp at or after `reference` yields `None`.
     """
     normalized = text.upper().replace("Z", "+00:00")
     try:
@@ -553,7 +547,7 @@ def _parse_timestamp(
 def _parse_duration_strict(
     value: Any, *, now: datetime | None = None
 ) -> timedelta | None:
-    """Dispatch *value* to the matching parser, raising `ValueError` on failure.
+    """Dispatch `value` to the matching parser, raising `ValueError` on failure.
 
     The strict core shared by the {class}`Duration` parameter type, which turns
     the `ValueError` into a Click parameter error, and by the soft
@@ -577,7 +571,7 @@ def parse_duration(value: Any, *, now: datetime | None = None) -> timedelta | No
 
     The soft, library-friendly counterpart of the {class}`Duration` parameter
     type: it accepts the same three input shapes but returns `None` instead of
-    raising when *value* matches none of them, so it suits classifying values
+    raising when `value` matches none of them, so it suits classifying values
     read from files or other machine sources. Unlike `Duration`, it does not
     collapse a zero duration to `None`: `parse_duration("0")` is `timedelta(0)`,
     letting callers tell a zero duration from an unparsable value. `None` is

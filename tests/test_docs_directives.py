@@ -17,7 +17,7 @@
 """Every `{click:run}` block pins the outcome of the CLI it invokes.
 
 The directive executes its body at build time through a bare `exec()`
-(`click_extra.sphinx.click`), so any exception a block raises aborts
+(`click_extra.sphinx.click_runner`), so any exception a block raises aborts
 `sphinx-build`. That makes the documentation build a real gate, but only over
 the blocks that raise: a block asserting nothing renders whatever the CLI
 printed, and a broken invocation prints a usage error into the published page
@@ -31,7 +31,7 @@ least one assertion. What that assertion pins is the author's call. An exact
 one turns a silent page-level regression into a red build.
 
 The check runs on text alone: no build, no network, no platform floor. It
-parses the fences through {func}`click_extra.blocks.fence_spans`, which
+parses the fences through {func}`click_extra.markdown.blocks.fence_spans`, which
 consumes a fence as an opaque unit, so a `{click:run}` example quoted inside a
 longer `code-block` fence is never mistaken for a live directive.
 """
@@ -43,7 +43,7 @@ from pathlib import Path
 
 import pytest
 
-from click_extra.blocks import OPTION_LINE_RE, fence_spans
+from click_extra.markdown.blocks import fence_spans, split_options
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
@@ -66,15 +66,12 @@ def run_blocks(path: Path) -> list[tuple[int, str]]:
     remainder parses as plain Python. Line numbers are 1-based, naming the
     opening fence.
     """
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = path.read_text(encoding="UTF-8").splitlines()
     blocks = []
     for start, span in sorted(fence_spans(lines).items()):
         if lines[start].strip().lstrip("`") != RUN_DIRECTIVE:
             continue
-        close = span.close if span.close is not None else len(lines)
-        body = lines[start + 1 : close]
-        while body and OPTION_LINE_RE.match(body[0]):
-            body.pop(0)
+        _options, body = split_options(lines[span.body])
         blocks.append((start + 1, "\n".join(body)))
     return blocks
 

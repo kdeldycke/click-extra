@@ -29,11 +29,13 @@ image knows which desktop it came from:
   opens on a bar.
 
 None of it is applied unless asked for: a capture with no preset keeps the
-renderer's own neutral window, which is what every image in this project's
-documentation is drawn as. That window is described here too: {data}`DEFAULT_PRESET`
-is the terminal it resolves its colors against, {class}`CaptureBackground` names
-the dark or light chrome a capture is drawn on, and {func}`resolve_palette`
-answers the palette any preset shows on either.
+renderer's own neutral window. That window is described here too:
+{data}`DEFAULT_PRESET` is the terminal it resolves its colors against,
+{class}`~click_extra.color.TerminalBackground` names the dark or light chrome a
+capture is drawn on, and {func}`resolve_palette` answers the palette any preset
+shows on either.
+{class}`Chrome` draws the rest of the window: its frame, shadow, margins and
+credit line.
 
 ```{caution}
 A palette here is a *published default*, transcribed from the scheme each
@@ -47,12 +49,29 @@ configured theirs to.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, fields, replace
 from enum import Enum
 from typing import NamedTuple
 
+from ..color import TerminalBackground
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import Final
+    from typing import Final, TypedDict
+
+    class ChromeArguments(TypedDict, total=False):
+        """The {class}`Chrome` fields, taken one by one as keyword arguments."""
+
+        border: str | None
+        border_width: int
+        radius: int | None
+        backdrop: str
+        shadow: str | None
+        margin: int
+        padding: int
+        opacity: float
+        watermark: str
+        watermark_color: str | None
 
 
 class TerminalPalette(NamedTuple):
@@ -85,8 +104,8 @@ class WindowButtons(NamedTuple):
     """The decorations a terminal draws in its title bar.
 
     Two shapes cover the desktops: macOS draws filled circles on the left,
-    Windows and GNOME draw glyphs on the right. `None` in either field leaves
-    that half undrawn, which is what a bare window asks for.
+    Windows and GNOME draw glyphs on the right. An empty field leaves that half
+    undrawn, which is what a bare window asks for.
     """
 
     circles: tuple[str, ...] = ()
@@ -127,13 +146,12 @@ class CursorShape(Enum):
 class Cursor(NamedTuple):
     """The cursor a capture draws, and how it behaves.
 
-    Passed to {func}`~click_extra.screenshot_svg.render_svg` to draw one at all: a
-    capture shows no cursor unless asked, which is what keeps an image taken
-    before this existed byte-identical to the one taken after.
+    Passed to {func}`~click_extra.capture.svg.render_svg` to draw one at all: a
+    capture shows no cursor unless asked.
 
     ```{note}
     Where the cursor *is* is never stated here. A frame's text already says so,
-    see {func}`~click_extra.screenshot_svg.cursor_cell`, so a caller states what the
+    see {func}`~click_extra.capture.svg.cursor_cell`, so a caller states what the
     cursor looks like and the picture answers for the rest.
     ```
     """
@@ -152,7 +170,7 @@ class Cursor(NamedTuple):
     ```{caution}
     Blinking is motion, and a reader may have asked their system for less of
     it. The rule sits behind
-    {data}`~click_extra.screenshot_svg.REDUCED_MOTION_QUERY` like every other
+    {data}`~click_extra.capture.svg.REDUCED_MOTION_QUERY` like every other
     animation this package emits, which leaves the cursor lit and still. That
     guard is also what answers [WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide),
     which asks that anything blinking past five seconds can be stopped.
@@ -365,50 +383,27 @@ JuliaMono subset under `docs/_static/` does not change this: it sets the
 documentation's own HTML, where a stylesheet reaches the text, and reusing it in
 a capture would be that same redistribution.
 
-The fallback cost is measured. A stock macOS falls through to Menlo, which
-carries no Braille and none of the Mathematical Operators the spinner catalog
-draws, so those resolve to the proportional Apple Symbols: 26 of the 89 tiles
-under `docs/assets/spinner-*.svg` draw 11% to 80% wider than their column, and
-the window's clip cuts the overflow. A reader with either of the first two
-families sees none of it, and emoji stay out of reach of every monospaced font.
+The fallback has a cost. A stock macOS falls through to Menlo, which carries
+no Braille and none of the Mathematical Operators the spinner catalog draws, so
+those resolve to the proportional Apple Symbols: nearly a third of the spinner
+tiles draw wider than their column, and the window's clip cuts the overflow. A
+reader with either of the first two families sees none of it, and emoji stay out
+of reach of every monospaced font.
 
-Fitting each run to its columns instead (`lengthAdjust="spacingAndGlyphs"`) was
-measured and rejected: across the 1407 runs in the committed captures it
-distorts 425 of them by more than 6%, some past 100%, because it stretches a
-narrow glyph as readily as it squeezes a wide one.
+Fitting each run to its columns instead (`lengthAdjust="spacingAndGlyphs"`) is
+no cure: it stretches a narrow glyph as readily as it squeezes a wide one, and
+distorts nearly a third of the runs in the committed captures by more than 6%.
 
-Note that {data}`~click_extra.screenshot_svg.WATERMARK_URL` documents the other half
-of this: a capture embedded with `<img>` never sees the page's own `@font-face`
+{data}`~click_extra.capture.svg.WATERMARK_URL` documents the other half of
+this: a capture embedded with `<img>` never sees the page's own `@font-face`
 either, so a stylesheet cannot fix this from the outside.
 ```
 """
 
 
-class CaptureBackground(Enum):
-    """Terminal chrome a capture is drawn on.
-
-    A capture freezes the colors of the run it pictures, so the chrome has to
-    answer to the palette that run was colored for. Neither direction survives
-    the other: a screen colored for a dark terminal is unreadable on white, and
-    click-extra's own `light` and `manpage` themes wash out on the dark chrome
-    a renderer defaults to.
-
-    The value doubles as the `--background` choice the CLI offers.
-    """
-
-    DARK = "dark"
-    """What a terminal, and this package's default theme, usually look like."""
-
-    LIGHT = "light"
-    """For a CLI rendered with a light-background theme."""
-
-    def __str__(self):
-        return self.name.lower()
-
-
-CAPTURE_PALETTES: dict[CaptureBackground, TerminalPalette] = {
-    CaptureBackground.DARK: DEFAULT_PRESET.dark,
-    CaptureBackground.LIGHT: DEFAULT_PRESET.light,
+CAPTURE_PALETTES: dict[TerminalBackground, TerminalPalette] = {
+    TerminalBackground.DARK: DEFAULT_PRESET.dark,
+    TerminalBackground.LIGHT: DEFAULT_PRESET.light,
 }
 """Colors each chrome resolves a capture's ANSI codes against.
 
@@ -419,24 +414,252 @@ whoever draws it, and the one that reads on white is not the one that reads on
 """
 
 
-def preset_palette(
-    preset: TerminalPreset,
-    background: CaptureBackground,
-) -> TerminalPalette:
-    """The colors a preset shows on the given chrome."""
-    return preset.dark if background is CaptureBackground.DARK else preset.light
-
-
 def resolve_palette(
     preset: TerminalPreset | None,
-    background: CaptureBackground,
+    background: TerminalBackground,
 ) -> TerminalPalette:
     """The colors a capture resolves its ANSI codes against.
 
     The preset's palette on the given chrome, or the default terminal's
     ({data}`CAPTURE_PALETTES`) when no preset dresses the capture. The one
-    resolution rule shared by {func}`~click_extra.screenshot.render` and
-    {func}`~click_extra.screenshot_html.render_html`, so the two formats cannot disagree
-    on what a chrome looks like.
+    resolution rule {func}`~click_extra.capture.screenshot.render` and
+    {func}`~click_extra.capture.snippet.style_palette` share, so the SVG and HTML
+    formats cannot disagree on what a chrome looks like.
+
+    :param preset: terminal being pictured, or `None` for the default one.
+    :param background: chrome the capture is drawn on.
+    :return: the palette.
     """
-    return preset_palette(preset or DEFAULT_PRESET, background)
+    preset = preset or DEFAULT_PRESET
+    return preset.dark if background is TerminalBackground.DARK else preset.light
+
+
+NO_PAINT = "none"
+"""Border or shadow value asking for none to be drawn.
+
+SVG's own keyword for an absent paint, so it reaches the `stroke` attribute
+unchanged, and CSS's for an absent shadow.
+"""
+
+OPAQUE = 1.0
+"""Opacity of a window showing nothing of what sits behind it.
+
+Anything under it is what a terminal calls transparency: the backdrop, or the
+page embedding the capture, comes through the window's body while its text,
+frame and title bar stay as they are. `0.0` leaves the text alone on the page.
+"""
+
+WATERMARK_INK = "rgba(128,128,128,0.85)"
+"""Color the credit line is drawn in.
+
+The one paint in a capture that answers to neither chrome, because it is the one
+thing drawn outside the window: the margin is transparent, so the mark sits on
+whatever page embeds the image, which the capture never gets to see. A white
+mark suits the dark chrome it was picked for and disappears on a README; a
+neutral gray reads on both, and dims into a backdrop when one is painted.
+"""
+
+DEFAULT_BORDER_WIDTH = 1
+"""Thickness, in pixels, of the frame drawn around the window."""
+
+DEFAULT_RADIUS = 8
+"""How round the window's corners are, in pixels.
+
+The radius a renderer draws on its own, which is what a terminal on a desktop
+looks like. Zero squares them, for a capture meant to read as a plain block.
+"""
+
+PACKAGE_NAME = "click-extra"
+"""Name this package is distributed and credited under."""
+
+DEFAULT_WATERMARK = f"generated with {PACKAGE_NAME}"
+"""Credit line every capture carries unless another one, or none, is asked for.
+
+A capture travels: it lands on a slide, in a README, on a social card, far from
+the page that explains where it came from. The mark is what still says so, and
+carries the link back.
+
+The line names the tool, never its release. A capture is committed beside the
+project that drew it and regenerated at every release, and a release number
+would rewrite every asset on release day for nothing but the bump.
+
+```{note}
+This is a default, not a fixture. `--watermark ""` draws none, and any other
+text replaces it: a project crediting itself rather than its tooling is the
+expected case, not an exception.
+```
+"""
+
+DEFAULT_MARGIN = 48
+"""Transparent pixels left around the window, on all four sides.
+
+Room for the shadow to fall into, first of all: a filter draws outside the shape
+it is applied to, and anything past the image's own box is cut. It is also what
+a backdrop has to show through, and what keeps the window from touching the text
+of the page embedding it.
+"""
+
+DEFAULT_PADDING = 8
+"""Pixels added inside the window, around the captured text.
+
+On top of the few a renderer adds on its own (8, and 40 above for the title
+bar), which leaves a help screen's first column tight against the frame.
+"""
+
+CAPTURE_BORDERS: dict[TerminalBackground, str] = {
+    TerminalBackground.DARK: "rgba(255,255,255,0.35)",
+    TerminalBackground.LIGHT: "rgba(0,0,0,0.25)",
+}
+"""Color the window frame is drawn in, per chrome.
+
+The dark entry is a translucent white that reads against `#292929` and against
+nothing else: a light capture framed with it is a white window on a white page,
+the shape of the terminal only guessable from its text. Each chrome names a
+frame its own background can show.
+"""
+
+CAPTURE_SHADOWS: dict[TerminalBackground, str] = {
+    TerminalBackground.DARK: "rgba(0,0,0,0.5)",
+    TerminalBackground.LIGHT: "rgba(0,0,0,0.25)",
+}
+"""Color the window's drop shadow floods with, per chrome.
+
+Where the frame states the window's edge, the shadow lifts it off whatever page
+embeds the capture, which is the other half of not dissolving into it. A reader
+whose renderer drops the filter still gets the frame.
+"""
+
+
+@dataclass(frozen=True)
+class Chrome:
+    """How the window around a capture's text is drawn.
+
+    One value for the decoration {func}`~click_extra.capture.screenshot.render`,
+    {func}`~click_extra.capture.screenshot.capture`,
+    {func}`~click_extra.capture.recording.record_and_render` and
+    {func}`~click_extra.capture.snippet.render_snippet` all take, so its defaults
+    live in one place. A field left at `None` takes what the capture's background
+    and preset draw, which {meth}`resolve` fills in.
+
+    ```{code-block} python
+
+    from click_extra.capture.presets import Chrome
+    from click_extra.capture.screenshot import render
+
+    svg = render(text, chrome=Chrome(margin=0, watermark=""))
+    ```
+    """
+
+    border: str | None = None
+    """Color of the window's frame.
+
+    `None` takes the one the background can show, see {data}`CAPTURE_BORDERS`;
+    {data}`NO_PAINT` draws none.
+    """
+
+    border_width: int = DEFAULT_BORDER_WIDTH
+    """Thickness of that frame, in pixels."""
+
+    radius: int | None = None
+    """How round the window's corners are, in pixels. Zero squares them.
+
+    `None` takes the preset's own, or {data}`DEFAULT_RADIUS` without one.
+    """
+
+    backdrop: str = NO_PAINT
+    """Paint filling the image behind the window, margin included.
+
+    {data}`NO_PAINT` leaves it transparent.
+    """
+
+    shadow: str | None = None
+    """Color of the window's drop shadow.
+
+    `None` takes the background's own, see {data}`CAPTURE_SHADOWS`;
+    {data}`NO_PAINT` draws none.
+    """
+
+    margin: int = DEFAULT_MARGIN
+    """Transparent pixels left around the window, on all four sides."""
+
+    padding: int = DEFAULT_PADDING
+    """Pixels added inside the window, around the text."""
+
+    opacity: float = OPAQUE
+    """How solid the window's body is, from {data}`OPAQUE` down to `0.0`.
+
+    Below it, whatever the capture is laid over shows through.
+    """
+
+    watermark: str = DEFAULT_WATERMARK
+    """Credit line drawn in the image's bottom-right corner.
+
+    See {data}`DEFAULT_WATERMARK`. An empty string draws none.
+    """
+
+    watermark_color: str | None = None
+    """Color that line is drawn in.
+
+    `None` takes {data}`WATERMARK_INK`, which reads on a page of either color.
+    """
+
+    def resolve(
+        self, background: TerminalBackground, preset: TerminalPreset | None
+    ) -> Chrome:
+        """This chrome, with every `None` replaced by what the capture draws.
+
+        {func}`~click_extra.capture.svg.render_svg` and
+        {func}`~click_extra.capture.html.render_html` take a resolved chrome,
+        which makes this the one step between the two layers.
+
+        :param background: chrome the capture is headed for.
+        :param preset: terminal being pictured, or `None`.
+        :return: a chrome carrying no `None`.
+        """
+        return replace(
+            self,
+            border=CAPTURE_BORDERS[background] if self.border is None else self.border,
+            radius=(
+                (DEFAULT_RADIUS if preset is None else preset.radius)
+                if self.radius is None
+                else self.radius
+            ),
+            shadow=CAPTURE_SHADOWS[background] if self.shadow is None else self.shadow,
+            watermark_color=(
+                WATERMARK_INK if self.watermark_color is None else self.watermark_color
+            ),
+        )
+
+    def check_resolved(self) -> None:
+        """Refuse a chrome that still carries a `None`.
+
+        A renderer draws the values it is given, and a `None` names no paint and
+        no size: only {meth}`resolve` knows what it stands for.
+
+        :raises ValueError: naming each field still set to `None`.
+        """
+        unset = [each.name for each in fields(self) if getattr(self, each.name) is None]
+        if unset:
+            raise ValueError(
+                "Resolve the chrome before drawing it, see Chrome.resolve(): "
+                f"{', '.join(unset)} left at None."
+            )
+
+
+BARE_CHROME = Chrome(
+    border=NO_PAINT,
+    radius=DEFAULT_RADIUS,
+    shadow=NO_PAINT,
+    margin=0,
+    padding=0,
+    watermark="",
+    watermark_color=WATERMARK_INK,
+)
+"""A resolved chrome that draws the window alone.
+
+No frame, no shadow, no margin, no padding and no credit line: what
+{func}`~click_extra.capture.svg.render_svg` and
+{func}`~click_extra.capture.html.render_html` draw when they get no chrome. A
+capture taken through {func}`~click_extra.capture.screenshot.render` resolves a
+{class}`Chrome` instead, which frames the window and credits the package.
+"""

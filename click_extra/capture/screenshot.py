@@ -35,8 +35,8 @@ calls.
 
 Both formats read the same {func}`~click_extra.styling.split_ansi` stream, and
 neither needs a dependency the package does not already carry: SVG is laid out
-on a character grid by {func}`~click_extra.screenshot_svg.render_svg`, HTML is
-inline-styled markup from {func}`~click_extra.styling.ansi_to_html`.
+on a character grid by {func}`~click_extra.capture.svg.render_svg`, HTML is
+inline-styled markup from {func}`~click_extra.capture.html.render_html`.
 
 The two are not interchangeable, and neither is a fallback for the other:
 
@@ -51,104 +51,153 @@ from __future__ import annotations
 
 import shlex
 import subprocess
-from dataclasses import asdict, dataclass, replace
 from enum import Enum
 
 from click import style
 
-from .color import forced_color
-from .execution import args_cleanup, format_cli_prompt, run_cli
-
-# These were this module's own until the terminal-grid primitives moved to
-# click_extra.layout, and the body still calls every one. They are imports, not a
-# compatibility surface: a name this module stops using goes with it, and importers
-# follow it to its new home.
-from .layout import RULE_COLOR, cell_width, center_in_rule, fit_columns, number_lines
-from .output import is_stdout
-from .screenshot_html import render_html
-from .screenshot_presets import (
-    CaptureBackground,
+from .._utils import AUTO
+from ..ansi import ANSI_SGR_RE, RESET, hex_to_rgb
+from ..color import TerminalBackground, forced_color
+from ..execution import args_cleanup, format_cli_prompt, run_cli
+from ..layout import (
+    RULE_COLOR,
+    cell_width,
+    center_in_rule,
+    fit_columns,
+    number_lines,
+)
+from ..output import is_stdout
+from ..styling import Style, split_ansi
+from ..theme import BUILTIN_THEMES
+from .html import render_html
+from .presets import (
+    Chrome,
     Cursor,
     TerminalPalette,
     TerminalPreset,
     resolve_palette,
 )
-from .screenshot_svg import (
-    AUTO_HOLD,
-    DEFAULT_BORDER_WIDTH,
-    DEFAULT_RADIUS,
-    DEFAULT_WATERMARK,
-    NO_PAINT,
-    OPAQUE,
-    WATERMARK_INK,
-    _check_pause,
-    _not_a_hold,
-    cursor_cell,
-    emphasis_paint,
-    render_svg,
-)
-from .styling import _ANSI_SGR_RE, Style, _hex_to_rgb, split_ansi
-from .theme import BUILTIN_THEMES
+from .svg import cursor_cell, emphasis_paint, render_svg
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
-    from typing import Any, Literal, TypeAlias, TypedDict
+    from typing import Any, Literal, TypeAlias
 
-    from .execution import TArg, TNestedArgs
-    from .screenshot_svg import THold
-    from .theme import HelpTheme
+    from ..execution import TArg, TNestedArgs
+    from ..theme import HelpTheme
+    from .svg import THold
 
     TColumns: TypeAlias = int | Literal["auto"]
     """Width a capture is taken and rendered at, see {data}`AUTO_COLUMNS`."""
 
-    class ChromeArguments(TypedDict, total=False):
-        """The {class}`Chrome` fields, taken one by one as keyword arguments."""
 
-        border: str | None
-        border_width: int
-        radius: int | None
-        backdrop: str
-        shadow: str | None
-        margin: int
-        padding: int
-        opacity: float
-        watermark: str
-        watermark_color: str | None
+AUTO_COLUMNS: Literal["auto"] = AUTO
+"""Width asking for the one the captured text itself decides.
 
+Neither end of the pipeline is pinned: the command wraps to whatever terminal it
+finds (Click's own 80 when that is a pipe, or a documentation build), and the
+image is laid out at the longest line that came back, see
+{func}`~click_extra.layout.fit_columns`. Nothing the command printed folds
+inside the picture then, which is what a line the command does not wrap on its
+own needs: a prompt, a wide table, a machine-readable dump.
 
-class CaptureFormat(Enum):
-    """Document formats a capture can be rendered to.
+The cost is that the picture stops being a fixed-width terminal, so a capture
+meant to sit beside others at the same width should name that width instead.
+"""
 
-    The value doubles as the file extension {func}`format_from_path` matches on.
-    """
+DEFAULT_COLUMNS = 80
+"""Terminal width a capture is taken at, in characters.
 
-    ANSI = "ansi"
-    """The escape sequences themselves, for a terminal to paint.
+Both ends of the pipeline have to agree on it: the command wraps its output to
+this width, and the renderer lays the image out at the same one. Let them
+disagree and the rendered lines overrun the image. 80 is the width Click itself
+falls back to off a terminal, which makes it the value a capture lands on by
+accident anyway.
+"""
 
-    The one target that needs no rendering, a terminal reading the same stream
-    the capture is carried in. So it is the whole picture minus the window:
-    there is no frame, no chrome and no margin to draw, and every option
-    describing one is ignored, see {func}`render`.
-    """
+MIN_COLUMNS = 20
+"""Narrowest width a capture is rendered at.
 
-    HTML = "html"
-    """Selectable, searchable text in a self-contained `<pre>`.
+A floor on {data}`AUTO_COLUMNS` as much as on an explicit width: a command
+printing nothing but blank lines would otherwise ask for an image no glyph fits
+in.
+"""
 
-    Built on {func}`~click_extra.styling.ansi_to_html`, so it needs no extra.
-    """
+AUTO_CURSOR: Literal["auto"] = AUTO
+"""Cursor shape asking for the one the terminal preset decides.
 
-    SVG = "svg"
-    """A picture of a terminal window, for a surface that strips inline HTML.
+The same bargain as {data}`AUTO_COLUMNS` and
+{data}`~click_extra.capture.svg.AUTO_HOLD`: the caller says a cursor is wanted
+and leaves what it looks like to whatever knows the terminal. It is what
+{attr}`~click_extra.capture.presets.Cursor.shape` of `None` spells on a command
+line, which cannot pass `None`.
+"""
 
-    Laid out on a character grid by {func}`~click_extra.screenshot_svg.render_svg`.
-    """
+AUTO_TRUNCATION: Literal["auto"] = AUTO
+"""Marker asking for a rule across the width of the picture.
 
+{data}`TRUNCATION_LABEL` centered in a run of {data}`TRUNCATION_RULE`, spanning
+the text column of the window. A bare label sits in the left margin and reads
+as one more line of output; a rule crosses the picture and reads as a seam,
+which is what a cut is. It carries no brackets, unlike a rule naming a section:
+there is nothing to name here, and the label is the cut itself.
 
-PROMPT_THEMES: dict[CaptureBackground, HelpTheme | None] = {
-    CaptureBackground.DARK: None,
-    CaptureBackground.LIGHT: BUILTIN_THEMES.get("light"),
+Never wider than what decides the image width, so the marker cannot widen the
+picture it cuts: the pinned `columns`, or the widest line under
+{data}`AUTO_COLUMNS`. See {func}`_rule_marker`.
+"""
+
+TRUNCATION_LABEL = "\N{BLACK SCISSORS}"
+"""What {data}`AUTO_TRUNCATION` centers in its rule."""
+
+TRUNCATION_RULE = "\N{MIDDLE DOT}"
+"""Character {data}`AUTO_TRUNCATION` draws its rule with.
+
+Broken rather than {data}`~click_extra.layout.RULE_GLYPH`: a dotted line reads as
+text missing from that spot, where an unbroken one reads as a section ending.
+
+A dot rather than one of the Box Drawing dashes, which carry two or three
+strokes inside a single cell. Those strokes and the hairline gaps between them
+are each a pixel or two wide at a normal capture scale, and a cell advances a
+fractional number of device pixels, so the gaps land inside a pixel on some
+cells and on a boundary on others: neighbouring dashes merge here and separate
+there, and the rule shimmers. One dot per cell has nothing to merge with.
+"""
+
+DEFAULT_TRUNCATION: str = AUTO_TRUNCATION
+"""Marker standing in for the lines {func}`trim_lines` cut away."""
+
+AUTO_WRAP_MARKER: Literal["auto"] = AUTO
+"""Marker asking for {data}`WRAP_MARKER_LABEL` at every fold.
+
+A terminal folds a line wider than itself silently, so a reader of a picture
+cannot tell a line that wrapped from one the command printed in pieces, and a
+break landing mid-word reads as a typo. The marker says which it is. It costs a
+cell of the row it closes, see {func}`~click_extra.layout.grid`.
+"""
+
+WRAP_MARKER_LABEL = "\N{DOWNWARDS ARROW WITH CORNER LEFTWARDS}"
+"""What {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER` writes at the fold.
+
+`↵` rather than a right-pointing arrow: the line turns back to the left margin
+and continues on the row below, which is what the glyph draws. It is also the
+one convention with a precedent in another pager: `delta` ships it as its own
+`--wrap-left-symbol`, and paints it in a color of its own for the same reason
+this one is drawn in {data}`~click_extra.layout.RULE_COLOR`.
+"""
+
+DEFAULT_WRAP_MARKER: str = ""
+"""What closes a folded row when nothing asks for a marker.
+
+Empty, so a capture folds the way a terminal does. A reader drawing a terminal
+window is not owed a mark for something the terminal itself would not show.
+"""
+
+PROMPT_THEMES: dict[TerminalBackground, HelpTheme | None] = {
+    TerminalBackground.DARK: None,
+    TerminalBackground.LIGHT: BUILTIN_THEMES.get("light"),
 }
 """Theme the prompt line is drawn with, per chrome.
 
@@ -158,158 +207,12 @@ process draws itself, so it is the one that would otherwise land on white
 chrome in the dark default's near-white `invoked_command` style, invisible.
 
 `None` keeps whatever theme the invocation already runs under. So does a
-missing entry: the mapping is read through {meth}`dict.get`, and
-{data}`~click_extra.theme.BUILTIN_THEMES` is empty when a trimmed install drops
-`themes.toml`.
+missing entry: the mapping is read through {meth}`dict.get`.
 """
 
-CAPTURE_BORDERS: dict[CaptureBackground, str] = {
-    CaptureBackground.DARK: "rgba(255,255,255,0.35)",
-    CaptureBackground.LIGHT: "rgba(0,0,0,0.25)",
-}
-"""Color the window frame is drawn in, per chrome.
-
-The dark entry is a translucent white that reads against `#292929` and against
-nothing else: a light capture framed with it is a white window on a white page,
-the shape of the terminal only guessable from its text. Each chrome names a
-frame its own background can show.
-"""
-
-CAPTURE_SHADOWS: dict[CaptureBackground, str] = {
-    CaptureBackground.DARK: "rgba(0,0,0,0.5)",
-    CaptureBackground.LIGHT: "rgba(0,0,0,0.25)",
-}
-"""Color the window's drop shadow floods with, per chrome.
-
-Where the frame states the window's edge, the shadow lifts it off whatever page
-embeds the capture, which is the other half of not dissolving into it. A reader
-whose renderer drops the filter still gets the frame.
-"""
-
-
-DEFAULT_MARGIN = 48
-"""Transparent pixels left around the window, on all four sides.
-
-Room for the shadow to fall into, first of all: a filter draws outside the shape
-it is applied to, and anything past the image's own box is cut. It is also what
-a backdrop has to show through, and what keeps the window from touching the text
-of the page embedding it.
-"""
-
-DEFAULT_PADDING = 8
-"""Pixels added inside the window, around the captured text.
-
-On top of the few a renderer adds on its own (8, and 40 above for the title
-bar), which leaves a help screen's first column tight against the frame.
-"""
-
-
-@dataclass(frozen=True)
-class Chrome:
-    """How the window around a capture's text is drawn.
-
-    One value for the decoration {func}`render`, {func}`capture`,
-    {func}`~click_extra.recording.record_and_render` and
-    {func}`~click_extra.snippet.render_snippet` all take, so its defaults live in
-    one place. A field left at `None` takes what the capture's background and
-    preset draw, which {meth}`resolve` fills in.
-
-    ```{code-block} python
-
-    from click_extra.screenshot import Chrome, render
-
-    svg = render(text, chrome=Chrome(margin=0, watermark=""))
-    ```
-    """
-
-    border: str | None = None
-    """Color of the window's frame.
-
-    `None` takes the one the background can show, see {data}`CAPTURE_BORDERS`;
-    {data}`~click_extra.screenshot_svg.NO_PAINT` draws none.
-    """
-
-    border_width: int = DEFAULT_BORDER_WIDTH
-    """Thickness of that frame, in pixels."""
-
-    radius: int | None = None
-    """How round the window's corners are, in pixels. Zero squares them.
-
-    `None` takes the preset's own, or {data}`~click_extra.screenshot_svg.DEFAULT_RADIUS`
-    without one.
-    """
-
-    backdrop: str = NO_PAINT
-    """Paint filling the image behind the window, margin included.
-
-    {data}`~click_extra.screenshot_svg.NO_PAINT` leaves it transparent.
-    """
-
-    shadow: str | None = None
-    """Color of the window's drop shadow.
-
-    `None` takes the background's own, see {data}`CAPTURE_SHADOWS`;
-    {data}`~click_extra.screenshot_svg.NO_PAINT` draws none.
-    """
-
-    margin: int = DEFAULT_MARGIN
-    """Transparent pixels left around the window, on all four sides."""
-
-    padding: int = DEFAULT_PADDING
-    """Pixels added inside the window, around the text."""
-
-    opacity: float = OPAQUE
-    """How solid the window's body is, from {data}`~click_extra.screenshot_svg.OPAQUE`
-    down to `0.0`.
-
-    Below it, whatever the capture is laid over shows through.
-    """
-
-    watermark: str = DEFAULT_WATERMARK
-    """Credit line drawn in the image's bottom-right corner.
-
-    See {data}`~click_extra.screenshot_svg.DEFAULT_WATERMARK`. An empty string draws
-    none.
-    """
-
-    watermark_color: str | None = None
-    """Color that line is drawn in.
-
-    `None` takes {data}`~click_extra.screenshot_svg.WATERMARK_INK`, which reads on a
-    page of either color.
-    """
-
-    def resolve(
-        self, background: CaptureBackground, preset: TerminalPreset | None
-    ) -> Chrome:
-        """This chrome, with every `None` replaced by what the capture draws.
-
-        {func}`~click_extra.screenshot_svg.render_svg` and
-        {func}`~click_extra.screenshot_html.render_html` take resolved values, which
-        makes this the one step between the two layers.
-
-        :param background: chrome the capture is headed for.
-        :param preset: terminal being pictured, or `None`.
-        :return: a chrome carrying no `None`.
-        """
-        return replace(
-            self,
-            border=CAPTURE_BORDERS[background] if self.border is None else self.border,
-            radius=(
-                (DEFAULT_RADIUS if preset is None else preset.radius)
-                if self.radius is None
-                else self.radius
-            ),
-            shadow=CAPTURE_SHADOWS[background] if self.shadow is None else self.shadow,
-            watermark_color=(
-                WATERMARK_INK if self.watermark_color is None else self.watermark_color
-            ),
-        )
-
-
-CAPTURE_TERMINAL_HINTS: dict[CaptureBackground, dict[str, str]] = {
-    CaptureBackground.DARK: {"CLITHEME": "dark", "COLORFGBG": "15;0"},
-    CaptureBackground.LIGHT: {"CLITHEME": "light", "COLORFGBG": "0;15"},
+CAPTURE_TERMINAL_HINTS: dict[TerminalBackground, dict[str, str]] = {
+    TerminalBackground.DARK: {"CLITHEME": "dark", "COLORFGBG": "15;0"},
+    TerminalBackground.LIGHT: {"CLITHEME": "light", "COLORFGBG": "0;15"},
 }
 """Environment a terminal of each chrome would carry, handed to the command.
 
@@ -346,8 +249,65 @@ capture is drawn for no terminal in particular.
 """
 
 
+class CaptureFormat(Enum):
+    """Document formats a capture can be rendered to.
+
+    The value doubles as the file extension {meth}`from_path` matches on.
+    """
+
+    ANSI = "ansi"
+    """The escape sequences themselves, for a terminal to paint.
+
+    The one target that needs no rendering, a terminal reading the same stream
+    the capture is carried in. So it is the whole picture minus the window:
+    there is no frame, no chrome and no margin to draw, and every option
+    describing one is ignored, see {func}`render`.
+    """
+
+    HTML = "html"
+    """Selectable, searchable text in a self-contained `<pre>`.
+
+    Built on {func}`~click_extra.styling.ansi_to_html`, so it needs no extra.
+    """
+
+    SVG = "svg"
+    """A picture of a terminal window, for a surface that strips inline HTML.
+
+    Laid out on a character grid by {func}`~click_extra.capture.svg.render_svg`.
+    """
+
+    @classmethod
+    def from_path(cls, path: Path) -> CaptureFormat:
+        """Pick the capture format a file name asks for.
+
+        A bare {data}`~click_extra.output.STDOUT_SENTINEL` names the terminal,
+        whose format is the escape sequences themselves, see
+        {func}`~click_extra.output.is_stdout`. A file *named* `-` in some
+        directory is a file like any other, and answers by its extension, which
+        it has none of. It is answered here rather than at the call site so the
+        one question "what does this destination want?" has one answer.
+
+        :param path: where the capture is to be written.
+        :return: the {class}`CaptureFormat` its extension names.
+        :raises ValueError: when the extension names no format.
+        """
+        if is_stdout(path):
+            return cls.ANSI
+        suffix = path.suffix.lower().lstrip(".")
+        # `.htm` is the same document under the older extension.
+        if suffix == "htm":
+            suffix = cls.HTML.value
+        try:
+            return cls(suffix)
+        except ValueError:
+            known = ", ".join(sorted(f".{member.value}" for member in cls))
+            raise ValueError(
+                f"Cannot tell the capture format of {path.name!r}: name it {known}."
+            ) from None
+
+
 def capture_environment(
-    background: CaptureBackground,
+    background: TerminalBackground,
     columns: TColumns,
 ) -> dict[str, str | None]:
     """The environment a capture states to the command it runs.
@@ -370,127 +330,13 @@ def capture_environment(
     return overrides
 
 
-AUTO_CURSOR: Literal["auto"] = "auto"
-"""Cursor shape asking for the one the terminal preset decides.
-
-The third of this module's `auto` sentinels, and the same bargain as
-{data}`AUTO_COLUMNS` and {data}`~click_extra.screenshot_svg.AUTO_HOLD`: the caller says
-a cursor is wanted and leaves what it looks like to whatever knows the terminal. It is
-what {attr}`~click_extra.screenshot_presets.Cursor.shape` of `None` spells on a command
-line, which cannot pass `None`.
-"""
-
-
-AUTO_COLUMNS: Literal["auto"] = "auto"
-"""Width asking for the one the captured text itself decides.
-
-Neither end of the pipeline is pinned: the command wraps to whatever terminal it
-finds (Click's own 80 when that is a pipe, or a documentation build), and the
-image is laid out at the longest line that came back, see
-{func}`~click_extra.layout.fit_columns`. Nothing the command printed folds
-inside the picture then, which is what a line the command does not wrap on its
-own needs: a prompt, a wide table, a machine-readable dump.
-
-The cost is that the picture stops being a fixed-width terminal, so a capture
-meant to sit beside others at the same width should name that width instead.
-"""
-
-DEFAULT_COLUMNS = 80
-"""Terminal width a capture is taken at, in characters.
-
-Both ends of the pipeline have to agree on it: the command wraps its output to
-this width, and the renderer lays the image out at the same one. Let them
-disagree and the rendered lines overrun the image. 80 is the width Click itself
-falls back to off a terminal, which makes it the value a capture lands on by
-accident anyway.
-"""
-
-MIN_COLUMNS = 20
-"""Narrowest width a capture is rendered at.
-
-A floor on {data}`AUTO_COLUMNS` as much as on an explicit width: a command
-printing nothing but blank lines would otherwise ask for an image no glyph fits
-in.
-"""
-
-
-AUTO_TRUNCATION: Literal["auto"] = "auto"
-"""Marker asking for a rule across the width of the picture.
-
-{data}`TRUNCATION_LABEL` centered in a run of {data}`TRUNCATION_RULE`, spanning
-the text column of the window. A bare label sits in the left margin and reads
-as one more line of output; a rule crosses the picture and reads as a seam,
-which is what a cut is. It carries no brackets, unlike a rule naming a section:
-there is nothing to name here, and the label is the cut itself.
-
-Never wider than what decides the image width, so the marker cannot widen the
-picture it cuts: the pinned `columns`, or the widest line under
-{data}`AUTO_COLUMNS`. See {func}`_rule_marker`.
-"""
-
-TRUNCATION_LABEL = "\N{BLACK SCISSORS}"
-"""What {data}`AUTO_TRUNCATION` centers in its rule."""
-
-TRUNCATION_RULE = "\N{MIDDLE DOT}"
-"""Character {data}`AUTO_TRUNCATION` draws its rule with.
-
-Broken rather than {data}`~click_extra.layout.RULE_GLYPH`: a dotted line reads as
-text missing from that spot, where an unbroken one reads as a section ending.
-
-A dot rather than one of the Box Drawing dashes, which carry two or three
-strokes inside a single cell. Those strokes and the hairline gaps between them
-are each a pixel or two wide at a normal capture scale, and a cell advances a
-fractional number of device pixels, so the gaps land inside a pixel on some
-cells and on a boundary on others: neighbouring dashes merge here and separate
-there, and the rule shimmers. One dot per cell has nothing to merge with.
-"""
-
-
-DEFAULT_TRUNCATION: str = AUTO_TRUNCATION
-"""Marker standing in for the lines {func}`trim_lines` cut away."""
-
-SGR_RESET = "\x1b[0m"
-"""Escape sequence clearing every style attribute.
-
-Written ahead of a truncation marker when the cut leaves a style open, see
-{func}`_leaves_style_open`.
-"""
-
-
-AUTO_WRAP_MARKER: Literal["auto"] = "auto"
-"""Marker asking for {data}`WRAP_MARKER_LABEL` at every fold.
-
-A terminal folds a line wider than itself silently, so a reader of a picture
-cannot tell a line that wrapped from one the command printed in pieces, and a
-break landing mid-word reads as a typo. The marker says which it is. It costs a
-cell of the row it closes, see {func}`~click_extra.layout.grid`.
-"""
-
-WRAP_MARKER_LABEL = "\N{DOWNWARDS ARROW WITH CORNER LEFTWARDS}"
-"""What {data}`AUTO_WRAP_MARKER` writes at the fold.
-
-`↵` rather than a right-pointing arrow: the line turns back to the left margin
-and continues on the row below, which is what the glyph draws. It is also the
-one convention with a precedent in another pager: `delta` ships it as its own
-`--wrap-left-symbol`, and paints it in a color of its own for the same reason
-this one is drawn in {data}`~click_extra.layout.RULE_COLOR`.
-"""
-
-DEFAULT_WRAP_MARKER: str = ""
-"""What closes a folded row when nothing asks for a marker.
-
-Empty, so a capture folds the way a terminal does. A reader drawing a terminal
-window is not owed a mark for something the terminal itself would not show.
-"""
-
-
 def resolve_wrap_marker(marker: str) -> str:
     """Read a `wrap_marker` option into the characters written at a fold.
 
     The one reading of the option every entry point shares: the `--wrap-marker`
     of the capture commands, and the API those commands call.
 
-    :param marker: the text, {data}`AUTO_WRAP_MARKER`, or an empty string for no
+    :param marker: the text, {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER`, or an empty string for no
         marker at all.
     :return: the characters to write at a fold, empty for none.
     """
@@ -523,35 +369,6 @@ def parse_columns(value: str) -> TColumns:
     return width
 
 
-def parse_pause(value: str) -> float:
-    """Read a pause written as text into seconds, zero included.
-
-    :param value: the text.
-    :return: the pause, in seconds.
-    :raises ValueError: when the text is not a number, or is negative.
-    """
-    return _check_pause(float(value))
-
-
-def parse_hold(value: str) -> THold:
-    """Read a hold written as text into seconds, or into `auto`.
-
-    {data}`~click_extra.screenshot_svg.AUTO_HOLD` scales the pause to the final
-    frame's own line count, see {func}`~click_extra.screenshot_svg.auto_hold`.
-
-    :param value: the text, a number of seconds or the word `auto`.
-    :return: the hold.
-    :raises ValueError: when the text is neither, or names a negative pause.
-    """
-    if value.strip().lower() == AUTO_HOLD:
-        return AUTO_HOLD
-    try:
-        hold = float(value)
-    except ValueError:
-        raise ValueError(_not_a_hold(value)) from None
-    return _check_pause(hold)
-
-
 def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:
     """Width, in characters, an auto-sized capture of `pictures` asks for.
 
@@ -561,9 +378,9 @@ def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:
 
     A cursor standing past the end of its row needs a cell of its own on top of
     that. At exactly the text's width it would otherwise wrap onto the row
-    below, see {func}`~click_extra.screenshot_svg.cursor_cell`, and an auto-sized
-    capture would show a row holding nothing but a cursor: the width is derived from the
-    text, so the text always ends on the last column.
+    below, see {func}`~click_extra.capture.svg.cursor_cell`, and an auto-sized
+    capture would show a row holding nothing but a cursor: the width is derived
+    from the text, so the text always ends on the last column.
 
     :param pictures: the captured texts, one per frame, or the one a still
         draws.
@@ -576,47 +393,12 @@ def auto_columns(pictures: Sequence[str], cursor: Cursor | None = None) -> int:
     # Probed one column wider than the text, so the reading is where the cursor
     # stands rather than where that width would already have wrapped it.
     standing = (cursor_cell(picture, width + 1) for picture in pictures)
-    return max(width, *(at[1] + 1 for at in standing if at is not None))
-
-
-def append_prompt(
-    text: str,
-    *,
-    background: CaptureBackground = CaptureBackground.DARK,
-    preset: TerminalPreset | None = None,
-) -> str:
-    """Put the shell's prompt back on the row under a finished command.
-
-    What a terminal actually shows once a command exits: the shell comes back
-    and waits, so the row under the output holds its sigil rather than nothing.
-    Paired with a cursor it costs no height at all, the cursor having already
-    claimed that row, see {func}`~click_extra.screenshot_svg.cursor_cell`. It also puts
-    the cursor somewhere that reads: after a prompt, instead of alone on an empty line.
-
-    ```{caution}
-    Only for a screen the command has finished drawing. Mid-animation the shell
-    has not come back, and a sigil there says the command exited when it did
-    not. {func}`~click_extra.recording.record_and_render` therefore closes its
-    last frame alone.
-    ```
-
-    :param text: the captured text to close.
-    :param background: chrome the capture is headed for, which picks the theme
-        the sigil is styled with.
-    :param preset: terminal being pictured, which names the sigil its shell
-        draws. `None` keeps this platform's.
-    :return: the same text, closed by a prompt.
-    """
-    sigil = _styled_prompt((), background, preset)
-    # A screen closing on a newline already carries the empty row the prompt
-    # belongs on: filling it costs nothing, where appending would leave a blank
-    # row between the output and the shell.
-    return f"{text}{sigil}" if text.endswith("\n") else f"{text}\n{sigil}"
+    return max([width, *(at[1] + 1 for at in standing if at is not None)])
 
 
 def _styled_prompt(
     displayed: Sequence[str],
-    background: CaptureBackground,
+    background: TerminalBackground,
     preset: TerminalPreset | None,
 ) -> str:
     """Draw a prompt line the way a capture of `background` shows it.
@@ -639,11 +421,77 @@ def _styled_prompt(
         )
 
 
+def prompt_line(
+    args: TArg | TNestedArgs,
+    *,
+    prompt: str | None = None,
+    background: TerminalBackground = TerminalBackground.DARK,
+    preset: TerminalPreset | None = None,
+) -> str:
+    """Compose the invocation a capture draws above its output.
+
+    The one place three pipelines agree on what a prompt looks like: a still
+    capture, a recording, and a documentation block that records one. Drawing
+    it three times would be three chances for the sigil, the theme or the
+    preset to disagree between an image and the image beside it.
+
+    :param args: the command line that was run, in the nested form
+        {func}`~click_extra.execution.run_cli` accepts.
+    :param prompt: command line to *display*, when it differs from the one run.
+        An empty string draws no prompt at all; `None` shows what was run.
+    :param background: chrome the capture is headed for, which picks the theme
+        the line is styled with.
+    :param preset: terminal being pictured, which names the sigil its shell
+        draws. `None` keeps this platform's.
+    :return: the styled line, or empty when nothing is to be drawn.
+    """
+    displayed = args_cleanup(args) if prompt is None else tuple(shlex.split(prompt))
+    if not displayed:
+        return ""
+    return _styled_prompt(displayed, background, preset)
+
+
+def append_prompt(
+    text: str,
+    *,
+    background: TerminalBackground = TerminalBackground.DARK,
+    preset: TerminalPreset | None = None,
+) -> str:
+    """Put the shell's prompt back on the row under a finished command.
+
+    What a terminal actually shows once a command exits: the shell comes back
+    and waits, so the row under the output holds its sigil rather than nothing.
+    Paired with a cursor it costs no height at all, the cursor having already
+    claimed that row, see {func}`~click_extra.capture.svg.cursor_cell`. It also
+    puts the cursor somewhere that reads: after a prompt, instead of alone on an
+    empty line.
+
+    ```{caution}
+    Only for a screen the command has finished drawing. Mid-animation the shell
+    has not come back, and a sigil there says the command exited when it did
+    not. {func}`~click_extra.capture.recording.record_and_render` therefore closes its
+    last frame alone.
+    ```
+
+    :param text: the captured text to close.
+    :param background: chrome the capture is headed for, which picks the theme
+        the sigil is styled with.
+    :param preset: terminal being pictured, which names the sigil its shell
+        draws. `None` keeps this platform's.
+    :return: the same text, closed by a prompt.
+    """
+    sigil = _styled_prompt((), background, preset)
+    # A screen closing on a newline already carries the empty row the prompt
+    # belongs on: filling it costs nothing, where appending would leave a blank
+    # row between the output and the shell.
+    return f"{text}{sigil}" if text.endswith("\n") else f"{text}\n{sigil}"
+
+
 def capture_output(
     args: TArg | TNestedArgs,
     *,
     columns: TColumns = DEFAULT_COLUMNS,
-    background: CaptureBackground = CaptureBackground.DARK,
+    background: TerminalBackground = TerminalBackground.DARK,
     merge_stderr: bool = False,
     timeout: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
@@ -681,52 +529,6 @@ def capture_output(
             timeout=timeout,
             merge_stderr=merge_stderr,
         )
-
-
-def trim_lines(
-    text: str,
-    *,
-    head: int | None = None,
-    tail: int | None = None,
-    truncation: str = DEFAULT_TRUNCATION,
-    columns: TColumns = DEFAULT_COLUMNS,
-    wrap_marker: str = DEFAULT_WRAP_MARKER,
-    width_floor: int = 0,
-) -> str:
-    """Keep only the first `head` and last `tail` lines of `text`.
-
-    Whatever is dropped is replaced by a single `truncation` line, so the image
-    admits that it was cut rather than pretending to be the whole output. Text
-    short enough to survive both bounds comes back untouched, with no marker.
-
-    :param text: the captured output.
-    :param head: number of leading lines to keep, or `None` for no head bound.
-    :param tail: number of trailing lines to keep, or `None` for no tail bound.
-    :param truncation: line standing in for what was cut.
-    :param columns: width the text is drawn at, which bounds the rule
-        {data}`AUTO_TRUNCATION` draws, see {func}`_rule_marker`.
-    :param wrap_marker: what closes a folded row, see {func}`render`. It takes a
-        cell of every row, so it narrows the rule by as much.
-    :param width_floor: under {data}`AUTO_COLUMNS`, the width of a line the
-        picture draws besides `text`, like the prompt, which the rule spans too.
-    :return: the trimmed text.
-    """
-    if head is None and tail is None:
-        return text
-    lines = text.splitlines()
-    kept = (head or 0) + (tail or 0)
-    if kept >= len(lines):
-        return text
-    head_lines = lines[:head] if head else []
-    tail_lines = lines[-tail:] if tail else []
-    marker = truncation
-    if truncation == AUTO_TRUNCATION:
-        marker = _rule_marker(
-            [*head_lines, *tail_lines], columns, wrap_marker, width_floor
-        )
-    if _leaves_style_open(head_lines):
-        marker = SGR_RESET + marker
-    return "\n".join([*head_lines, marker, *tail_lines])
 
 
 def _leaves_style_open(lines: Sequence[str]) -> bool:
@@ -775,7 +577,7 @@ def _rule_marker(
     :param lines: the lines the marker is drawn between.
     :param columns: width the capture is drawn at, or {data}`AUTO_COLUMNS` when
         nothing folds.
-    :param wrap_marker: what closes a folded row, {data}`AUTO_WRAP_MARKER`
+    :param wrap_marker: what closes a folded row, {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER`
         included.
     :param width_floor: under {data}`AUTO_COLUMNS`, the width of the widest line
         drawn besides `lines`.
@@ -792,6 +594,55 @@ def _rule_marker(
         opening=" ",
         closing=" ",
     )
+
+
+def trim_lines(
+    text: str,
+    *,
+    head: int | None = None,
+    tail: int | None = None,
+    truncation: str = DEFAULT_TRUNCATION,
+    columns: TColumns = DEFAULT_COLUMNS,
+    wrap_marker: str = DEFAULT_WRAP_MARKER,
+    width_floor: int = 0,
+) -> str:
+    """Keep only the first `head` and last `tail` lines of `text`.
+
+    Whatever is dropped is replaced by a single `truncation` line, so the image
+    admits that it was cut rather than pretending to be the whole output. Text
+    short enough to survive both bounds comes back untouched, with no marker.
+
+    A cut leaving a style open above it closes that style before the marker, see
+    {func}`_leaves_style_open`.
+
+    :param text: the captured output.
+    :param head: number of leading lines to keep, or `None` for no head bound.
+    :param tail: number of trailing lines to keep, or `None` for no tail bound.
+    :param truncation: line standing in for what was cut.
+    :param columns: width the text is drawn at, which bounds the rule
+        {data}`AUTO_TRUNCATION` draws, see {func}`_rule_marker`.
+    :param wrap_marker: what closes a folded row, see {func}`render`. It takes a
+        cell of every row, so it narrows the rule by as much.
+    :param width_floor: under {data}`AUTO_COLUMNS`, the width of a line the
+        picture draws besides `text`, like the prompt, which the rule spans too.
+    :return: the trimmed text.
+    """
+    if head is None and tail is None:
+        return text
+    lines = text.splitlines()
+    kept = (head or 0) + (tail or 0)
+    if kept >= len(lines):
+        return text
+    head_lines = lines[:head] if head else []
+    tail_lines = lines[-tail:] if tail else []
+    marker = truncation
+    if truncation == AUTO_TRUNCATION:
+        marker = _rule_marker(
+            [*head_lines, *tail_lines], columns, wrap_marker, width_floor
+        )
+    if _leaves_style_open(head_lines):
+        marker = RESET + marker
+    return "\n".join([*head_lines, marker, *tail_lines])
 
 
 def emphasize_ansi(
@@ -826,31 +677,17 @@ def emphasize_ansi(
     # Escapes occupy no cell, so a styled row measures as its glyphs do.
     widths = [cell_width(row) for row in rows]
     width = max(widths, default=0)
-    red, green, blue = _hex_to_rgb(paint)
+    red, green, blue = hex_to_rgb(paint)
     band = f"\x1b[48;2;{red};{green};{blue}m"
     painted = []
-    for number, (row, measured) in enumerate(zip(rows, widths), 1):
+    for number, (row, measured) in enumerate(zip(rows, widths, strict=True), 1):
         if number not in wanted:
             painted.append(row)
             continue
         filled = row + " " * (width - measured)
-        restated = _ANSI_SGR_RE.sub(lambda match: f"{match.group(0)}{band}", filled)
+        restated = ANSI_SGR_RE.sub(lambda match: f"{match.group(0)}{band}", filled)
         painted.append(f"{band}{restated}\x1b[49m")
     return "\n".join(painted)
-
-
-_SVG_ONLY_CHROME = frozenset({
-    "buttons",
-    "buttons_color",
-    "titlebar",
-    "collapse_titlebar",
-})
-"""The window decorations {func}`render` hands to the SVG renderer alone.
-
-An HTML capture reflows with the page embedding it, so it carries the text and
-its colors, not a window drawn around them: see
-{func}`~click_extra.screenshot_html.render_html`.
-"""
 
 
 def render(
@@ -869,7 +706,7 @@ def render(
     cursor: Cursor | None = None,
     wrap_marker: str = DEFAULT_WRAP_MARKER,
     full: bool = True,
-    background: CaptureBackground = CaptureBackground.DARK,
+    background: TerminalBackground = TerminalBackground.DARK,
     preset: TerminalPreset | None = None,
     palette: TerminalPalette | None = None,
     chrome: Chrome = Chrome(),
@@ -893,50 +730,71 @@ def render(
         every class as soon as a single character of output changes. Characters
         a CSS class name cannot carry are folded to a dash.
     :param frames: SVG only. The animation's frames, see
-        {func}`~click_extra.screenshot_svg.render_svg`.
+        {func}`~click_extra.capture.svg.render_svg`.
     :param interval: SVG only. How long each of them is shown, see
-        {func}`~click_extra.screenshot_svg.render_svg`.
+        {func}`~click_extra.capture.svg.render_svg`.
     :param hold: SVG only. Extra seconds the last frame stays up, or
-        {data}`~click_extra.screenshot_svg.AUTO_HOLD` to scale them to that frame's line
-        count, see {func}`~click_extra.screenshot_svg.render_svg`.
+        {data}`~click_extra.capture.svg.AUTO_HOLD` to scale them to that frame's line
+        count, see {func}`~click_extra.capture.svg.render_svg`.
     :param blank: SVG only. Seconds of empty screen closing the cycle, see
-        {func}`~click_extra.screenshot_svg.render_svg`.
+        {func}`~click_extra.capture.svg.render_svg`.
     :param speed: SVG only. How much faster to play than recorded, see
-        {func}`~click_extra.screenshot_svg.render_svg`.
-    :param emphasize: SVG only. Lines to draw a band behind, see
-        {func}`~click_extra.screenshot_svg.render_svg`.
+        {func}`~click_extra.capture.svg.render_svg`.
+    :param emphasize: SVG and ANSI. Lines to draw a band behind, see
+        {func}`~click_extra.capture.svg.render_svg` and {func}`emphasize_ansi`.
     :param cursor: SVG only. The terminal cursor to draw, see
-        {class}`~click_extra.screenshot_presets.Cursor`. `None` draws none. A
+        {class}`~click_extra.capture.presets.Cursor`. `None` draws none. A
         cursor naming no shape takes the one the `preset` says that terminal
         draws, so `--preset windows` gets its bar without stating it.
     :param wrap_marker: SVG only. What closes each row a fold cut short,
-        {data}`AUTO_WRAP_MARKER` for {data}`WRAP_MARKER_LABEL`, or empty to fold
+        {data}`~click_extra.capture.screenshot.AUTO_WRAP_MARKER` for {data}`WRAP_MARKER_LABEL`, or empty to fold
         silently, see {func}`~click_extra.layout.grid`. HTML reflows with the page
         embedding it, and a terminal reading ANSI folds on its own, so neither
         has a fold of the capture's to mark.
-    :param full: HTML only. See {func}`~click_extra.screenshot_html.render_html`.
+    :param full: HTML only. See {func}`~click_extra.capture.html.render_html`.
     :param background: chrome to draw on, see
-        {class}`~click_extra.screenshot_presets.CaptureBackground`.
+        {class}`~click_extra.color.TerminalBackground`.
+    :param preset: terminal to draw the capture as, see
+        {class}`~click_extra.capture.presets.TerminalPreset`. `None` keeps
+        the renderer's own neutral window.
     :param palette: colors the text resolves against. `None` takes the ones the
         preset and chrome name, which is what a terminal capture wants. The
         window's decorations keep answering to the chrome either way: a stated
         palette repaints the terminal's body, not the desktop's frame around it.
     :param chrome: how the window around the text is drawn, see
-        {class}`Chrome`.
+        {class}`~click_extra.capture.presets.Chrome`.
     :return: the rendered document.
-    :raises ValueError: asking an HTML capture to animate.
+    :raises ValueError: asking an ANSI or HTML capture to animate.
     """
-    frame: dict[str, Any] = asdict(chrome.resolve(background, preset))
+    if frames is not None and format is not CaptureFormat.SVG:
+        # Only the SVG draws a picture that can hold several frames: an HTML
+        # capture is a `<pre>` of selectable text, and an ANSI one is the stream
+        # a terminal paints as it arrives.
+        raise ValueError(f"{format.name} captures do not animate.")
     # What the chrome would paint on its own, kept apart from the `palette` the
     # text is drawn with: the two differ for a capture whose colors come from
     # elsewhere, and the decorations below stay the chrome's in that case.
     chrome_palette = resolve_palette(preset, background)
     if palette is None:
         palette = chrome_palette
+    if format is CaptureFormat.ANSI:
+        # The text already is the document, so there is nothing to render: what
+        # a terminal reads is the stream a capture was carried in all along.
+        # Only the emphasis survives, being the one mark that lives in the rows
+        # rather than around them.
+        return emphasize_ansi(text, emphasize, emphasis_paint(palette))
+
+    frame: dict[str, Any] = {"chrome": chrome.resolve(background, preset)}
+    if preset is not None:
+        frame["font_stack"] = preset.font_stack
+    if format is CaptureFormat.HTML:
+        # The title bar and its decorations are drawn by the SVG alone: HTML
+        # reflows with the page embedding it.
+        return render_html(text, title=title, full=full, palette=palette, **frame)
+
     if preset is not None:
         frame["buttons"] = preset.buttons
         frame["buttons_color"] = chrome_palette.foreground
-        frame["font_stack"] = preset.font_stack
         frame["titlebar"] = chrome_palette.titlebar
         # A window wearing neither decoration nor caption has nothing to seat in
         # its title bar, so it closes over the first line of output instead.
@@ -945,34 +803,6 @@ def render(
         )
         if cursor is not None and cursor.shape is None:
             cursor = cursor._replace(shape=preset.cursor)
-    if format is CaptureFormat.ANSI:
-        if frames is not None:
-            raise ValueError(f"{CaptureFormat.ANSI} captures do not animate.")
-        # The text already is the document, so there is nothing to render: what
-        # a terminal reads is the stream a capture was carried in all along.
-        # Only the emphasis survives, being the one mark that lives in the rows
-        # rather than around them.
-        return emphasize_ansi(text, emphasize, emphasis_paint(palette))
-    if format is CaptureFormat.HTML:
-        if frames is not None:
-            # An HTML capture is a `<pre>` of selectable text, which has no
-            # frame to hide: only the SVG draws a picture that can hold several.
-            raise ValueError(f"{CaptureFormat.HTML} captures do not animate.")
-        return render_html(
-            text,
-            title=title,
-            full=full,
-            background=background,
-            preset=preset,
-            palette=palette,
-            # The window decorations are drawn by the SVG alone: HTML reflows
-            # with the page embedding it.
-            **{
-                key: value
-                for key, value in frame.items()
-                if key not in _SVG_ONLY_CHROME
-            },
-        )
     return render_svg(
         text,
         columns=(
@@ -995,36 +825,6 @@ def render(
     )
 
 
-def prompt_line(
-    args: TArg | TNestedArgs,
-    *,
-    prompt: str | None = None,
-    background: CaptureBackground = CaptureBackground.DARK,
-    preset: TerminalPreset | None = None,
-) -> str:
-    """Compose the invocation a capture draws above its output.
-
-    The one place three pipelines agree on what a prompt looks like: a still
-    capture, a recording, and a documentation block that records one. Each drew
-    its own before, which is three chances for the sigil, the theme or the
-    preset to disagree between an image and the image beside it.
-
-    :param args: the command line that was run, in the nested form
-        {func}`~click_extra.execution.run_cli` accepts.
-    :param prompt: command line to *display*, when it differs from the one run.
-        An empty string draws no prompt at all; `None` shows what was run.
-    :param background: chrome the capture is headed for, which picks the theme
-        the line is styled with.
-    :param preset: terminal being pictured, which names the sigil its shell
-        draws. `None` keeps this platform's.
-    :return: the styled line, or empty when nothing is to be drawn.
-    """
-    displayed = args_cleanup(args) if prompt is None else tuple(shlex.split(prompt))
-    if not displayed:
-        return ""
-    return _styled_prompt(displayed, background, preset)
-
-
 def capture(
     args: TArg | TNestedArgs,
     *,
@@ -1044,7 +844,7 @@ def capture(
     title: str = "",
     unique_id: str | None = None,
     full: bool = True,
-    background: CaptureBackground = CaptureBackground.DARK,
+    background: TerminalBackground = TerminalBackground.DARK,
     preset: TerminalPreset | None = None,
     chrome: Chrome = Chrome(),
 ) -> tuple[str, int]:
@@ -1071,7 +871,7 @@ def capture(
         {func}`~click_extra.layout.number_lines`. The prompt counts as the first
         of them, being the invocation everything under it came from.
     :param emphasize: lines to draw a band behind, see
-        {func}`~click_extra.screenshot_svg.render_svg`. The prompt is line 1 here too,
+        {func}`~click_extra.capture.svg.render_svg`. The prompt is line 1 here too,
         and a gutter does not shift the count.
     :param cursor: see {func}`render`. A still capture leaves its cursor after
         the last thing the command printed, which is where the shell finds it.
@@ -1130,32 +930,3 @@ def capture(
         ),
         process.returncode,
     )
-
-
-def format_from_path(path: Path) -> CaptureFormat:
-    """Pick the capture format a file name asks for.
-
-    A bare {data}`~click_extra.output.STDOUT_SENTINEL` names the terminal, whose
-    format is the escape
-    sequences themselves, see {func}`~click_extra.output.is_stdout`. A file
-    *named* `-` in some directory is a file like any other, and answers by its
-    extension, which it has none of. It is answered here rather than at the call
-    site so the one question "what does this destination want?" has one answer.
-
-    :param path: where the capture is to be written.
-    :return: the {class}`CaptureFormat` its extension names.
-    :raises ValueError: when the extension names no format.
-    """
-    if is_stdout(path):
-        return CaptureFormat.ANSI
-    suffix = path.suffix.lower().lstrip(".")
-    # `.htm` is the same document under the older extension.
-    if suffix == "htm":
-        suffix = CaptureFormat.HTML.value
-    try:
-        return CaptureFormat(suffix)
-    except ValueError:
-        known = ", ".join(sorted(f".{member.value}" for member in CaptureFormat))
-        raise ValueError(
-            f"Cannot tell the capture format of {path.name!r}: name it {known}."
-        ) from None

@@ -6,7 +6,7 @@
 For these helpers to work, you need to install `click_extra`'s additional dependencies from the `pytest` [extra group](install.md#extra-dependencies):
 
 ```{code-block} shell-session
-$ uv pip install click-extra[pytest]
+$ uv pip install 'click-extra[pytest]'
 ```
 ````
 
@@ -65,7 +65,7 @@ def test_unit_option(invoke, cmd_decorator):
     assert result.stdout == "Temperature in fahrenheit.\n"
 ```
 
-Cases are named after the decorator they carry (`click.command`, `cloup.command()`, …), so a failure points at the framework and the calling convention that broke. The bare Cloup variants come pre-marked with `skip_naked`, since [Cloup does not support parenthesis-less decorators](https://github.com/janluke/cloup/issues/127): a run reports those cases as skipped instead of failing.
+Cases are named after the decorator they carry (`click.command`, `cloup.command()`, …), so a failure points at the framework and the calling convention that broke.
 
 ### Ready-made patterns
 
@@ -173,7 +173,7 @@ Without `--config`, a Click Extra CLI [searches the host configuration folder](c
 :caption: `test_forecast.py`
 def test_config_autodiscovery(invoke, isolated_app_dir):
     (isolated_app_dir / "forecast.toml").write_text(
-        '[forecast]\nunit = "fahrenheit"\n', encoding="utf-8"
+        '[forecast]\nunit = "fahrenheit"\n', encoding="UTF-8"
     )
     result = invoke(forecast)
     assert result.stdout == "Temperature in fahrenheit.\n"

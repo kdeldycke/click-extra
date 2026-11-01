@@ -94,6 +94,49 @@ def test_accessible_via_envvar(invoke, report_cli):
     assert "table_format=plain" in result.stdout
 
 
+def test_cli_envvar_outranks_accessible_envvar(invoke, report_cli):
+    """The variable of one CLI is more specific than the machine-wide one."""
+    result = invoke(
+        report_cli,
+        color=True,
+        env={"ACCESSIBLE": "1", "REPORT_ACCESSIBLE": "0"},
+    )
+    assert result.exit_code == 0
+    assert "color=None" in result.stdout
+    assert "table_format=rounded-outline" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("configured", "envvar", "expected_color", "expected_format"),
+    (
+        ("false", "1", "color=False", "table_format=plain"),
+        ("true", "0", "color=None", "table_format=rounded-outline"),
+    ),
+)
+def test_accessible_envvar_outranks_configuration(
+    invoke,
+    report_cli,
+    create_config,
+    configured,
+    envvar,
+    expected_color,
+    expected_format,
+):
+    """Unlike the other machine-wide variables, `ACCESSIBLE` outranks a
+    configuration file: the mode is settled before the file loads."""
+    config = create_config("report.toml", f"[report]\naccessible = {configured}\n")
+    result = invoke(
+        report_cli,
+        "--config",
+        str(config),
+        color=True,
+        env={"ACCESSIBLE": envvar},
+    )
+    assert result.exit_code == 0
+    assert expected_color in result.stdout
+    assert expected_format in result.stdout
+
+
 def test_explicit_flag_overrides_accessible_envvar(invoke, report_cli):
     result = invoke(report_cli, "--color", color=True, env={"ACCESSIBLE": "1"})
     assert result.exit_code == 0

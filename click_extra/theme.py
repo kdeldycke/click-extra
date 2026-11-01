@@ -15,20 +15,20 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Help-screen color themes for Click Extra.
 
-Holds the {class}`HelpTheme` dataclass (pure data, no factory methods),
-the {data}`NOCOLOR_THEME` constant, the process-wide fallback accessed via
+Holds the {class}`HelpTheme` dataclass, the {data}`NOCOLOR_THEME` constant,
+the process-wide fallback accessed via
 {func}`get_default_theme` / {func}`set_default_theme`, the named-theme
 {data}`theme_registry` plus {func}`register_theme` helper, and the
 {class}`ThemeOption` that exposes `--theme` on every Click Extra command.
 
 The built-in themes (`dark`, `dracula`, `light`, `manpage`,
-`monokai`, `nord`, `solarized-dark`) live in the package data file
-`click_extra/themes.toml` and are loaded at module import time via
-{meth}`HelpTheme.from_dict`. `manpage` is a colorless theme that
+`monokai`, `nord`, `solarized-dark`) are plain mappings declared in this module,
+each built through {meth}`HelpTheme.from_dict` on its first lookup: importing
+the package builds none of them, and a help screen builds only the one it
+renders with. `manpage` is a colorless theme that
 shadows man-pages(7) typography (bold literals, italic replaceable); the
 others apply that same bold/italic split on top of their color palettes.
-Adding a new built-in theme is a one-file edit in that TOML file: no Python
-needed. The same TOML schema is used for user-defined themes loaded from
+Those mappings follow the schema of user-defined themes loaded from
 configuration: see {doc}`/theme` for the user guide.
 
 ```{note}
@@ -49,26 +49,25 @@ from __future__ import annotations
 import dataclasses
 import logging
 import os
-import tomllib
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from gettext import gettext as _
-from pathlib import Path
-from typing import cast
 
 import click
 import cloup
-from click.core import ParameterSource
 from click.shell_completion import CompletionItem
 from cloup._util import identity
 
 from . import color, context
+from ._utils import AUTO
+from .envvar import machine_envvars_apply
 from .parameters import ExtraOption
 from .styling import Style, dict_to_fields, fields_to_dict
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-    from typing import Any, Final
+    from collections.abc import Iterator, Mapping, Sequence
+    from typing import Any, Final, Self
 
     from cloup.styling import IStyle
 
@@ -89,6 +88,16 @@ Read by {meth}`~click_extra.theme.ThemeOption.set_theme` as a last resort, so a
 it. See that method for why it is read directly instead of being wired through
 the option's `envvar`.
 """
+
+
+def _widen_style(value: Any) -> Any:
+    """Widen a `cloup.Style` to {class}`~click_extra.styling.Style`.
+
+    Any other slot value, a `Style` already included, passes through.
+    """
+    if isinstance(value, cloup.Style) and not isinstance(value, Style):
+        return Style() | value
+    return value
 
 
 @dataclass(frozen=True)
@@ -259,86 +268,53 @@ class HelpTheme(cloup.HelpTheme):
     def with_(  # type: ignore[override]
         self,
         **kwargs: IStyle | bool | None,
-    ) -> HelpTheme:
-        """Derives a new theme from the current one, with some styles overridden.
+    ) -> Self:
+        """Derive a new theme from this one, with some slots overridden.
 
-        Returns the same instance if the provided styles are the same as the current.
+        Returns the same instance when every slot keeps its value, where cloup's
+        version builds a copy whatever it is given. `None` is a value like any
+        other, not a slot left alone.
 
-        ```{todo}
-        Re-scope this override once this package's cloup floor reaches `4.0.0`,
-        which fixed [janluke/cloup#225](https://github.com/janluke/cloup/issues/225).
-        Cloup 3.x's own `with_()` collects its arguments from a fixed
-        `locals()`, so it rejects every slot this subclass adds. That reason
-        expires with the floor; what stays is returning the same instance when
-        a style is unchanged, and the message naming an unrecognized argument.
-        The same fix also covers `dark()` and `light()`, shadowed below.
-        ```
+        :raises TypeError: listing every argument that names no slot.
         """
-        # Check for unrecognized arguments.
-        unrecognized_args = set(kwargs).difference(self.__dataclass_fields__)
-        if unrecognized_args:
-            raise TypeError(
-                f"Got unexpected keyword argument(s): {', '.join(unrecognized_args)}"
-            )
-
-        # List of styles that are different from the base theme.
-        new_styles = {
-            field_id: new_style
-            for field_id, new_style in kwargs.items()
-            if new_style != getattr(self, field_id)
+        changed = {
+            name: value
+            for name, value in dict_to_fields(type(self), kwargs).items()
+            if value != getattr(self, name)
         }
-        if new_styles:
-            return dataclasses.replace(self, **new_styles)  # type: ignore[arg-type]
+        return dataclasses.replace(self, **changed) if changed else self
 
-        # No new styles, return the same instance.
-        return self
+    def _with_cloup_slots(self, theme: cloup.HelpTheme) -> Self:
+        """Derive a new theme carrying the slots `cloup.HelpTheme` declares.
 
-    @classmethod
-    def _from_cloup(cls, base: cloup.HelpTheme) -> HelpTheme:
-        """Re-wrap a `cloup.HelpTheme` as this class.
-
-        Copies the slots cloup declares and leaves the ones this subclass adds
-        at their default, which is what cloup's own constructors produce from
-        `4.0.0` on, where they take `cls`. Each `cloup.Style` is widened to
+        Reads each of those slots from *theme* and keeps the ones this subclass
+        adds. Each `cloup.Style` is widened to
         {class}`~click_extra.styling.Style` on the way, the only class
         {meth}`to_dict` and {meth}`cascade` accept.
         """
-        slots: dict[str, Any] = {}
-        for field in dataclasses.fields(cloup.HelpTheme):
-            value = getattr(base, field.name)
-            if isinstance(value, cloup.Style) and not isinstance(value, Style):
-                value = Style().cascade(value)
-            slots[field.name] = value
-        return cls(**slots)
+        return self.with_(**{
+            field.name: _widen_style(getattr(theme, field.name))
+            for field in dataclasses.fields(cloup.HelpTheme)
+        })
 
     @classmethod
-    def dark(cls) -> HelpTheme:
+    def dark(cls) -> Self:
         """A theme assuming a dark terminal background color.
 
-        Carries cloup's palette unchanged. For a theme coloring the slots this
-        subclass adds, reach for {data}`~click_extra.theme.BUILTIN_THEMES` instead.
-
-        ```{todo}
-        Re-scope this method and {meth}`light`, along with {meth}`_from_cloup`,
-        once this package's cloup floor reaches `4.0.0`, which fixed
-        [janluke/cloup#225](https://github.com/janluke/cloup/issues/225).
-        Cloup 3.x declares both as static methods naming `HelpTheme` in their
-        return expression, so the inherited ones hand back a bare
-        `cloup.HelpTheme` carrying none of the slots below. Their cloup 4.0.0
-        versions build this class, but fill its slots with `cloup.Style`
-        instances, which {meth}`to_dict` and {meth}`cascade` reject: the
-        widening to {class}`~click_extra.styling.Style` stays.
-        ```
+        Carries cloup's palette, each style widened to
+        {class}`~click_extra.styling.Style`, and leaves the slots this subclass
+        adds at their default. For a theme coloring those too, reach for
+        {data}`~click_extra.theme.BUILTIN_THEMES` instead.
         """
-        return cls._from_cloup(cloup.HelpTheme.dark())
+        return cls()._with_cloup_slots(cloup.HelpTheme.dark())
 
     @classmethod
-    def light(cls) -> HelpTheme:
+    def light(cls) -> Self:
         """A theme assuming a light terminal background color.
 
-        Carries cloup's palette unchanged, like {meth}`dark`.
+        Carries cloup's palette, like {meth}`dark`.
         """
-        return cls._from_cloup(cloup.HelpTheme.light())
+        return cls()._with_cloup_slots(cloup.HelpTheme.light())
 
     @staticmethod
     def _encode_slot(field: Any, value: Any) -> Any:
@@ -451,9 +427,9 @@ Every built-in theme applies this classification: literal slots render
 bold and {data}`REPLACEABLE_STYLES` italic, mirroring a man page even in
 the color palettes. `tests/test_theme.py` enforces the invariant, and
 the `manpage` built-in theme is its pure-monochrome embodiment
-(bold/italic, no color). A man-page generator can reuse the same two sets
-to map each styled token to `\fB` / `\fI`. See {doc}`/benchmark` for
-the man-page generation gap.
+(bold/italic, no color). The man-page generator of
+{mod}`click_extra.command_doc` follows the same split, setting each token in
+`\fB` or `\fI`.
 ```
 """
 
@@ -481,11 +457,293 @@ calls return the raw text unchanged.
 """
 
 
-_default_theme: HelpTheme = NOCOLOR_THEME
-"""Process-wide fallback theme. See {func}`get_default_theme`.
+_BUILTIN_THEME_DEFINITIONS: Final[dict[str, dict[str, Any]]] = {
+    # Theme tuned for terminals with a dark background. Used as the process-wide
+    # default, returned by get_default_theme().
+    "dark": {
+        "invoked_command": {"fg": "bright_white", "bold": True},
+        "heading": {"fg": "bright_blue", "underline": True},
+        "constraint": {"fg": "magenta"},
+        "alias": {"fg": "cyan", "bold": True},
+        "alias_secondary": {"fg": "cyan", "dim": True, "bold": True},
+        "critical": {"fg": "red", "bold": True},
+        "error": {"fg": "red"},
+        "warning": {"fg": "yellow"},
+        "debug": {"fg": "blue"},
+        "option": {"fg": "cyan", "bold": True},
+        "subcommand": {"fg": "cyan", "bold": True},
+        "choice": {"fg": "magenta", "bold": True},
+        "metavar": {"fg": "cyan", "dim": True, "italic": True},
+        "bracket": {"dim": True},
+        "envvar": {"fg": "yellow", "dim": True},
+        "default": {"fg": "green", "dim": True, "italic": True},
+        "range_label": {"fg": "cyan", "dim": True},
+        "required": {"fg": "red", "dim": True},
+        "argument": {"fg": "cyan", "italic": True},
+        "separator": {"fg": "bright_white", "dim": True, "bold": True},
+        "deprecated": {"fg": "bright_yellow"},
+        "search": {"fg": "green"},
+        "success": {"fg": "green"},
+        "subheading": {"fg": "blue"},
+    },
+    # Dracula by Zeno Rocha. High-contrast dark theme with vivid neon accents,
+    # from the https://draculatheme.com/contribute palette.
+    "dracula": {
+        "invoked_command": {"fg": "#f8f8f2", "bold": True},
+        "heading": {"fg": "#ff79c6", "underline": True},
+        "constraint": {"fg": "#ff79c6"},
+        "alias": {"fg": "#8be9fd", "bold": True},
+        "alias_secondary": {"fg": "#8be9fd", "dim": True, "bold": True},
+        "critical": {"fg": "#ff5555", "bold": True},
+        "error": {"fg": "#ff5555"},
+        "warning": {"fg": "#ffb86c"},
+        "debug": {"fg": "#6272a4"},
+        "option": {"fg": "#bd93f9", "bold": True},
+        "subcommand": {"fg": "#bd93f9", "bold": True},
+        "choice": {"fg": "#ff79c6", "bold": True},
+        "metavar": {"fg": "#bd93f9", "dim": True, "italic": True},
+        "bracket": {"fg": "#6272a4"},
+        "envvar": {"fg": "#ffb86c", "dim": True},
+        "default": {"fg": "#50fa7b", "dim": True, "italic": True},
+        "range_label": {"fg": "#bd93f9", "dim": True},
+        "required": {"fg": "#ff5555", "dim": True},
+        "argument": {"fg": "#bd93f9", "italic": True},
+        "separator": {"fg": "#f8f8f2", "dim": True, "bold": True},
+        "deprecated": {"fg": "#ffb86c"},
+        "search": {"fg": "#f1fa8c"},
+        "success": {"fg": "#50fa7b"},
+        "subheading": {"fg": "#8be9fd"},
+    },
+    # Theme tuned for terminals with a light/white background. Mirrors `dark`
+    # but swaps the palette for one that stays legible on white: bright variants
+    # (washed-out on most terminals) become standard counterparts, bright_white
+    # becomes black, and cyan accents become blue (cyan on white is hard to read).
+    "light": {
+        "invoked_command": {"fg": "black", "bold": True},
+        "heading": {"fg": "magenta", "underline": True},
+        "constraint": {"fg": "magenta"},
+        "alias": {"fg": "blue", "bold": True},
+        "alias_secondary": {"fg": "blue", "dim": True, "bold": True},
+        "critical": {"fg": "red", "bold": True},
+        "error": {"fg": "red"},
+        "warning": {"fg": "magenta"},
+        "debug": {"fg": "blue", "dim": True},
+        "option": {"fg": "blue", "bold": True},
+        "subcommand": {"fg": "blue", "bold": True},
+        "choice": {"fg": "magenta", "bold": True},
+        "metavar": {"fg": "blue", "dim": True, "italic": True},
+        "bracket": {"dim": True},
+        "envvar": {"fg": "magenta", "dim": True},
+        "default": {"fg": "green", "dim": True, "italic": True},
+        "range_label": {"fg": "blue", "dim": True},
+        "required": {"fg": "red", "dim": True},
+        "argument": {"fg": "blue", "italic": True},
+        "separator": {"fg": "black", "dim": True, "bold": True},
+        "deprecated": {"fg": "red"},
+        "search": {"fg": "green"},
+        "success": {"fg": "green"},
+        "subheading": {"fg": "blue", "dim": True},
+    },
+    # Monochrome theme shadowing man-pages(7) typography: bold for literal tokens,
+    # italic for replaceable ones, no color. Useful for low-color terminals,
+    # screenshots, or matching how a command reads in its own man page. The
+    # literal/replaceable split is the one LITERAL_STYLES and REPLACEABLE_STYLES
+    # encode.
+    "manpage": {
+        "invoked_command": {"bold": True},
+        "heading": {"underline": True},
+        "alias": {"bold": True},
+        "alias_secondary": {"bold": True},
+        "option": {"bold": True},
+        "subcommand": {"bold": True},
+        "choice": {"bold": True},
+        "metavar": {"italic": True},
+        "argument": {"italic": True},
+        "separator": {"bold": True},
+    },
+    # Monokai by Wimer Hazenberg. Classic dark theme with high-saturation magenta
+    # and lime accents, from the https://monokai.pro/ palette.
+    "monokai": {
+        "invoked_command": {"fg": "#f8f8f2", "bold": True},
+        "heading": {"fg": "#a6e22e", "underline": True},
+        "constraint": {"fg": "#ae81ff"},
+        "alias": {"fg": "#a6e22e", "bold": True},
+        "alias_secondary": {"fg": "#a6e22e", "dim": True, "bold": True},
+        "critical": {"fg": "#f92672", "bold": True},
+        "error": {"fg": "#f92672"},
+        "warning": {"fg": "#fd971f"},
+        "debug": {"fg": "#75715e"},
+        "option": {"fg": "#66d9ef", "bold": True},
+        "subcommand": {"fg": "#66d9ef", "bold": True},
+        "choice": {"fg": "#ae81ff", "bold": True},
+        "metavar": {"fg": "#66d9ef", "dim": True, "italic": True},
+        "bracket": {"fg": "#75715e"},
+        "envvar": {"fg": "#fd971f", "dim": True},
+        "default": {"fg": "#e6db74", "dim": True, "italic": True},
+        "range_label": {"fg": "#66d9ef", "dim": True},
+        "required": {"fg": "#f92672", "dim": True},
+        "argument": {"fg": "#66d9ef", "italic": True},
+        "separator": {"fg": "#f8f8f2", "dim": True, "bold": True},
+        "deprecated": {"fg": "#fd971f"},
+        "search": {"fg": "#e6db74"},
+        "success": {"fg": "#a6e22e"},
+        "subheading": {"fg": "#a6e22e"},
+    },
+    # Nord by Arctic Ice Studio. Cool-toned dark theme built around frost-blue
+    # and aurora accents, from the
+    # https://www.nordtheme.com/docs/colors-and-palettes palette.
+    "nord": {
+        "invoked_command": {"fg": "#eceff4", "bold": True},  # nord6: snow storm.
+        "heading": {"fg": "#5e81ac", "underline": True},  # nord10.
+        "constraint": {"fg": "#b48ead"},  # nord15.
+        "alias": {"fg": "#8fbcbb", "bold": True},  # nord7.
+        "alias_secondary": {"fg": "#8fbcbb", "dim": True, "bold": True},
+        "critical": {"fg": "#bf616a", "bold": True},  # nord11: aurora.
+        "error": {"fg": "#bf616a"},
+        "warning": {"fg": "#d08770"},  # nord12.
+        "debug": {"fg": "#4c566a"},  # nord3: polar night.
+        "option": {"fg": "#81a1c1", "bold": True},  # nord9.
+        "subcommand": {"fg": "#81a1c1", "bold": True},
+        "choice": {"fg": "#b48ead", "bold": True},
+        "metavar": {"fg": "#81a1c1", "dim": True, "italic": True},
+        "bracket": {"fg": "#4c566a"},
+        "envvar": {"fg": "#d08770", "dim": True},
+        "default": {"fg": "#a3be8c", "dim": True, "italic": True},  # nord14.
+        "range_label": {"fg": "#81a1c1", "dim": True},
+        "required": {"fg": "#bf616a", "dim": True},
+        "argument": {"fg": "#81a1c1", "italic": True},
+        "separator": {"fg": "#e5e9f0", "dim": True, "bold": True},
+        "deprecated": {"fg": "#d08770"},
+        "search": {"fg": "#ebcb8b"},  # nord13.
+        "success": {"fg": "#a3be8c"},
+        "subheading": {"fg": "#88c0d0"},  # nord8.
+    },
+    # Solarized Dark by Ethan Schoonover. Warm-toned dark theme with selective
+    # accent contrast, from the https://ethanschoonover.com/solarized/ palette.
+    "solarized-dark": {
+        "invoked_command": {"fg": "#eee8d5", "bold": True},  # base2: emphasized.
+        "heading": {"fg": "#6c71c4", "underline": True},
+        "constraint": {"fg": "#6c71c4"},
+        "alias": {"fg": "#2aa198", "bold": True},
+        "alias_secondary": {"fg": "#2aa198", "dim": True, "bold": True},
+        "critical": {"fg": "#dc322f", "bold": True},
+        "error": {"fg": "#dc322f"},
+        "warning": {"fg": "#b58900"},
+        "debug": {"fg": "#586e75"},  # base01.
+        "option": {"fg": "#268bd2", "bold": True},
+        "subcommand": {"fg": "#268bd2", "bold": True},
+        "choice": {"fg": "#6c71c4", "bold": True},
+        "metavar": {"fg": "#268bd2", "dim": True, "italic": True},
+        "bracket": {"fg": "#586e75"},
+        "envvar": {"fg": "#cb4b16", "dim": True},
+        "default": {"fg": "#859900", "dim": True, "italic": True},
+        "range_label": {"fg": "#268bd2", "dim": True},
+        "required": {"fg": "#dc322f", "dim": True},
+        "argument": {"fg": "#268bd2", "italic": True},
+        "separator": {"fg": "#93a1a1", "dim": True, "bold": True},
+        "deprecated": {"fg": "#d33682"},
+        "search": {"fg": "#b58900"},
+        "success": {"fg": "#859900"},
+        "subheading": {"fg": "#2aa198"},
+    },
+}
+"""Slot styles of each built-in theme, keyed by theme name.
 
-Initialized to {data}`NOCOLOR_THEME` here, then reassigned to the `dark`
-built-in theme at the bottom of this module once {file}`themes.toml` is loaded.
+Each value is the mapping {meth}`HelpTheme.from_dict` reads, in the shape of a
+`[tool.<cli>.themes.<name>]` configuration table. Adding a built-in theme is a
+one-entry edit here. Names are kept in alphabetical order, which
+`tests/test_theme.py` enforces.
+"""
+
+
+_built_themes: dict[str, HelpTheme] = {}
+"""The built-in themes built so far, keyed by name. See {func}`_builtin_theme`."""
+
+
+def _builtin_theme(name: str) -> HelpTheme:
+    """Return the built-in theme *name*, built from its definition on first call.
+
+    Later calls return the same instance, so an identity check against a
+    built-in theme holds wherever it was looked up.
+
+    :raises KeyError: when *name* is not a built-in theme.
+    """
+    theme = _built_themes.get(name)
+    if theme is None:
+        # setdefault keeps one instance per name if two threads build it at once.
+        theme = _built_themes.setdefault(
+            name, HelpTheme.from_dict(_BUILTIN_THEME_DEFINITIONS[name])
+        )
+    return theme
+
+
+class _LazyThemes(MutableMapping[str, HelpTheme]):
+    """A `{name: HelpTheme}` mapping that builds a built-in theme on its first lookup.
+
+    A built-in theme is a `None` placeholder until something reads its value.
+    Listing, counting or testing the names builds nothing, so `--theme` lists
+    its choices for free and a help screen builds only the theme it renders
+    with. Any other value is stored and returned as given.
+    """
+
+    def __init__(self, themes: Mapping[str, HelpTheme] | None = None) -> None:
+        """Start from every built-in theme, or from a copy of *themes*.
+
+        A `_LazyThemes` hands over its placeholders as they are, so copying one
+        builds no theme.
+        """
+        self._themes: dict[str, HelpTheme | None]
+        if themes is None:
+            self._themes = dict.fromkeys(_BUILTIN_THEME_DEFINITIONS)
+        elif isinstance(themes, _LazyThemes):
+            self._themes = themes._themes.copy()
+        else:
+            self._themes = dict(themes)
+
+    def __getitem__(self, name: str) -> HelpTheme:
+        theme = self._themes[name]
+        return _builtin_theme(name) if theme is None else theme
+
+    def __setitem__(self, name: str, theme: HelpTheme) -> None:
+        self._themes[name] = theme
+
+    def __delitem__(self, name: str) -> None:
+        del self._themes[name]
+
+    def __contains__(self, name: object) -> bool:
+        # Overridden: the inherited version reads the value, building the theme.
+        return name in self._themes
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._themes)
+
+    def __len__(self) -> int:
+        return len(self._themes)
+
+    def clear(self) -> None:
+        # Overridden: the inherited version pops, and so builds, every theme.
+        self._themes.clear()
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({list(self._themes)!r})"
+
+
+BUILTIN_THEMES: Mapping[str, HelpTheme] = _LazyThemes()
+"""Mapping of built-in theme names to their {class}`HelpTheme` instances.
+
+Each theme is built from its definition in this module on its first lookup, and
+the same instance is returned from then on. {data}`theme_registry` starts with
+the same entries.
+
+Index by name to access any palette, like `BUILTIN_THEMES["dark"]` or
+`BUILTIN_THEMES["solarized-dark"]`.
+"""
+
+
+_default_theme: HelpTheme | None = None
+"""Process-wide fallback theme set by {func}`set_default_theme`, if any.
+
+`None` until then: {func}`get_default_theme` answers the built-in `dark` theme.
 """
 
 
@@ -498,11 +756,10 @@ def get_default_theme() -> HelpTheme:
     via {func}`set_default_theme` for the duration of a patched session.
 
     Resolved through a function rather than a module attribute so callers
-    always observe the current value: capturing `default_theme` as a
-    default function parameter (the previous pattern) would freeze whatever
-    was set at import time.
+    always observe the current value: a module attribute bound once, like a
+    default parameter value, keeps whatever was set at import time.
     """
-    return _default_theme
+    return _builtin_theme("dark") if _default_theme is None else _default_theme
 
 
 def set_default_theme(theme: HelpTheme) -> None:
@@ -537,18 +794,17 @@ def get_current_theme() -> HelpTheme:
     """
     ctx = click.get_current_context(silent=True)
     if ctx is not None:
-        active = context.get(ctx, context.THEME)
+        active: HelpTheme | None = context.get(ctx, context.THEME)
         if active is not None:
-            return cast("HelpTheme", active)
-    return _default_theme
+            return active
+    return get_default_theme()
 
 
-theme_registry: dict[str, HelpTheme] = {}
+theme_registry: MutableMapping[str, HelpTheme] = _LazyThemes()
 """Process-wide registry of named themes used by {class}`ThemeOption`.
 
-Each entry maps a theme name to its {class}`HelpTheme` instance.
-Built-in themes are seeded here at module load time from
-{data}`BUILTIN_THEMES` (loaded from `click_extra/themes.toml`).
+Each entry maps a theme name to its {class}`HelpTheme` instance. It starts with
+the entries of {data}`BUILTIN_THEMES`, each built on its first lookup.
 
 Use {func}`register_theme` to add your own at import time, *or* declare
 them in your CLI's config file under `[tool.<cli>.themes.<name>]`: the
@@ -571,7 +827,7 @@ def register_theme(name: str, theme: HelpTheme) -> None:
 
 def get_theme_registry(
     ctx: click.Context | None = None,
-) -> dict[str, HelpTheme]:
+) -> MutableMapping[str, HelpTheme]:
     """Return the theme registry visible to *ctx*.
 
     Merges the module-level {data}`theme_registry` with any per-invocation
@@ -582,9 +838,10 @@ def get_theme_registry(
     for one invocation without touching the global registry.
 
     When *ctx* is `None` or has no overrides, returns a copy of the
-    module-level registry.
+    module-level registry. Either way, a built-in theme is built only when its
+    value is read.
     """
-    merged: dict[str, HelpTheme] = dict(theme_registry)
+    merged = _LazyThemes(theme_registry)
     if ctx is not None:
         overrides = context.get(ctx, context.THEME_OVERRIDES)
         if overrides:
@@ -592,7 +849,7 @@ def get_theme_registry(
     return merged
 
 
-AUTO_THEME: str = "auto"
+AUTO_THEME: str = AUTO
 """Reserved `--theme` value resolving the palette from the terminal background.
 
 Unlike the named built-in palettes, `auto` is not a registry entry: it is a
@@ -635,9 +892,9 @@ def resolve_auto_theme(
         environment-variable signals. Off by default because the query reads
         stdin.
     :return: the chosen {class}`HelpTheme`, or `None` when neither the
-        detected palette nor the `dark` fallback is registered (the
-        `themes.toml` data file was dropped). A `None` leaves `ctx.meta`
-        untouched so {func}`get_current_theme` keeps the no-color default.
+        detected palette nor the `dark` fallback is registered (both were
+        removed from the registry). A `None` leaves `ctx.meta` untouched so
+        {func}`get_current_theme` keeps the default theme.
     """
     registry = get_theme_registry(ctx)
     mode = color.resolve_background(query_background=query_background)
@@ -688,7 +945,7 @@ def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
                 message=(
                     f"theme definition must be a table, got {type(slots).__name__}"
                 ),
-                code="invalid-theme-shape",
+                code="invalid_theme_shape",
             )
         try:
             HelpTheme.from_dict(slots)
@@ -696,7 +953,7 @@ def validate_themes_config(themes_subtree: dict[str, Any]) -> None:
             raise ValidationError(
                 path=name,
                 message=str(exc),
-                code="invalid-theme",
+                code="invalid_theme",
             ) from exc
 
 
@@ -713,13 +970,9 @@ class ThemeChoice(click.ParamType):
     `[tool.<cli>.themes.<name>]` tables before `--theme` is processed)
     are valid choices and appear in the `--help` metavar.
 
-    Implemented as a fresh {class}`click.ParamType` rather than a
-    {class}`click.Choice` subclass to avoid relying on Click's setter
-    semantics for `self.choices`: the previous subclass design swallowed
-    Click's `__init__`-time assignment with a no-op setter, which
-    would silently break under any future Click version that uses
-    `object.__setattr__` (like for slots) instead of regular attribute
-    assignment.
+    A plain {class}`click.ParamType` rather than a {class}`click.Choice`
+    subclass: `click.Choice.__init__` assigns `self.choices`, which a
+    read-only property cannot take.
     """
 
     # Match `click.Choice.name` so machinery that branches on parameter
@@ -734,9 +987,7 @@ class ThemeChoice(click.ParamType):
         """Values `--theme` takes, alphabetically sorted.
 
         The theme names visible in the current context, plus
-        {data}`AUTO_THEME`: it resolves to a palette rather than being one, but
-        a value a CLI accepts everywhere and advertises nowhere is a value
-        nobody finds, and `--color` lists its own `auto` alongside the rest.
+        {data}`AUTO_THEME`, which says why a directive is listed among them.
         """
         return _theme_choices(click.get_current_context(silent=True))
 
@@ -779,11 +1030,11 @@ class ThemeChoice(click.ParamType):
         if self._normalize(value) == self._normalize(AUTO_THEME):
             return AUTO_THEME
         registry = get_theme_registry(ctx)
-        # No themes available at all: themes.toml was dropped by the packaging
-        # step and no config themes are defined. The --theme option is inert,
-        # so ignore the value (including the built-in "dark" default that can
-        # no longer be resolved) and let get_current_theme() fall back to the
-        # no-color default instead of failing the whole invocation.
+        # No themes available at all: every palette was removed from the
+        # registry and no config themes are defined. The --theme option is
+        # inert, so ignore the value (including the built-in "dark" default,
+        # which then resolves to nothing) and let get_current_theme() fall back
+        # to the default theme instead of failing the whole invocation.
         if not registry:
             return None
         lookup = {self._normalize(name): name for name in registry}
@@ -860,7 +1111,9 @@ class ThemeOption(ExtraOption):
         keeps its default.
 
         Before that, {data}`~click_extra.theme.THEME_ENVVAR` is consulted when
-        the value still comes from the option's own default, which yields the
+        the value still comes from the option's own default, as for every
+        machine-wide variable (see
+        {func}`~click_extra.envvar.machine_envvars_apply`). This yields the
         precedence: `--theme` > `<CLI>_THEME` > configuration file >
         `CLICK_EXTRA_THEME` > built-in default. The global variable therefore
         only names the palette of the CLIs nothing else has an opinion about.
@@ -885,8 +1138,7 @@ class ThemeOption(ExtraOption):
 
         # Nothing more specific picked a palette, so let the machine-wide
         # variable have the last word before the built-in default.
-        source = ctx.get_parameter_source(param.name) if param.name else None
-        if source is ParameterSource.DEFAULT:
+        if machine_envvars_apply(ctx, param):
             raw = os.environ.get(THEME_ENVVAR)
             if raw:
                 try:
@@ -896,7 +1148,7 @@ class ThemeOption(ExtraOption):
                         "Ignoring %s=%r: not one of [%s].",
                         THEME_ENVVAR,
                         raw,
-                        "|".join(sorted(get_theme_registry(ctx))),
+                        "|".join(_theme_choices(ctx)),
                     )
 
         if value is None:
@@ -939,77 +1191,6 @@ class ThemeOption(ExtraOption):
         )
 
 
-def _load_builtin_themes() -> dict[str, HelpTheme]:
-    """Parse `themes.toml` into a ``{name: HelpTheme}`` mapping.
-
-    Each top-level table maps to a {class}`HelpTheme` via
-    {meth}`HelpTheme.from_dict`. A malformed payload still surfaces
-    immediately at import time so a corrupt shipped TOML cannot silently
-    degrade `--theme`.
-
-    Reads the file via {mod}`importlib.resources` so the load works under
-    zipped imports (PyOxidizer, PEX, certain Nuitka modes) where
-    `Path(__file__).parent` doesn't resolve to a real filesystem location.
-
-    ```{note}
-    Some packaging and distribution setups drop the `themes.toml` data
-    file because they don't bundle package data (Nuitka onefile without
-    `--include-package-data`, trimmed downstream rebuilds). A missing
-    file is tolerated rather than fatal: the function logs a warning on
-    the `click_extra` logger and returns an empty mapping, so importing
-    the package never aborts. The CLI then keeps the colorless
-    {data}`NOCOLOR_THEME` as its default (see the module footer) and
-    `--theme` offers no built-in choices, though themes declared in a
-    CLI's config file (`[tool.<cli>.themes.<name>]`) remain available.
-    ```
-    """
-    try:
-        payload = Path(__file__).with_name("themes.toml").read_text(encoding="utf-8")
-    except OSError:
-        # A zipped or compiled package has no file beside this module: ask
-        # the import system instead.
-        # Deferred import: keeps importlib.resources off the startup path of every CLI.
-        from importlib import resources
-
-        try:
-            payload = (
-                resources
-                .files(__package__)
-                .joinpath("themes.toml")
-                .read_text(encoding="utf-8")
-            )
-        except OSError as error:
-            logger.warning(
-                "Could not read the packaged %r data file (%s). Built-in themes "
-                "are unavailable: falling back to the no-color theme. The file "
-                "was likely dropped by a packaging or distribution step. You can "
-                "still define your own themes in your config file, like a "
-                "[tool.<cli>.themes.<name>] table in pyproject.toml.",
-                f"{__package__}/themes.toml",
-                error,
-            )
-            return {}
-    raw = tomllib.loads(payload)
-    return {name: HelpTheme.from_dict(data) for name, data in raw.items()}
-
-
-BUILTIN_THEMES: dict[str, HelpTheme] = _load_builtin_themes()
-"""Mapping of built-in theme names to their {class}`HelpTheme` instances.
-
-Loaded from the package data file `click_extra/themes.toml` at module
-import time and seeded into {data}`theme_registry`. Adding a new built-in
-theme is a one-file edit in that TOML file: declare a new `[<name>]`
-table with one inline-table per styled slot.
-
-Index by name to access any palette, like `BUILTIN_THEMES["dark"]` or
-`BUILTIN_THEMES["solarized-dark"]`.
-
-Empty when the `themes.toml` data file is absent (some packaging and
-distribution setups drop it); see `_load_builtin_themes` for the
-fallback behavior.
-"""
-
-
 OK_GLYPH: str = "✓"
 """Plain check-mark glyph for success indicators.
 
@@ -1026,11 +1207,3 @@ Style at the call site with the active theme's `error` slot:
 `get_current_theme().error(KO_GLYPH)`. See {data}`~click_extra.theme.OK_GLYPH` for why
 the glyph is exposed unstyled.
 """
-
-
-theme_registry.update(BUILTIN_THEMES)
-# When themes.toml is missing (some packaging/distribution setups drop the data
-# file), BUILTIN_THEMES is empty: keep the no-color fallback installed above
-# rather than crashing on a missing "dark" key.
-if "dark" in BUILTIN_THEMES:
-    set_default_theme(BUILTIN_THEMES["dark"])

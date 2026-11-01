@@ -12,6 +12,9 @@ resolution-markers = [
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P1W"
 
+[options.exclude-newer-package]
+extra-platforms = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
+
 [[package]]
 name = "accessible-pygments"
 version = "0.0.5"
@@ -267,6 +270,7 @@ all = [
     { name = "json5" },
     { name = "mkdocs" },
     { name = "myst-parser" },
+    { name = "packaging" },
     { name = "pygments" },
     { name = "pymdown-extensions" },
     { name = "pytest" },
@@ -299,6 +303,7 @@ pytest = [
 sphinx = [
     { name = "docutils" },
     { name = "myst-parser" },
+    { name = "packaging" },
     { name = "pygments" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
@@ -340,6 +345,7 @@ test = [
     { name = "mkdocs" },
     { name = "mkdocs-click" },
     { name = "myst-parser" },
+    { name = "packaging" },
     { name = "pymdown-extensions" },
     { name = "pytest" },
     { name = "pytest-github-actions-annotate-failures" },
@@ -363,15 +369,16 @@ docs = ">=3.14"
 
 [package.metadata]
 requires-dist = [
-    { name = "click", specifier = ">=8.4.1" },
+    { name = "click", specifier = ">=8.5.0" },
     { name = "click-extra", extras = ["carapace", "hjson", "json5", "mkdocs", "pygments", "pytest", "sphinx", "toml", "yaml"], marker = "extra == 'all'" },
-    { name = "cloup", specifier = ">=3.0.7" },
+    { name = "cloup", specifier = ">=4.0.0" },
     { name = "docutils", marker = "extra == 'sphinx'", specifier = ">=0.20" },
-    { name = "extra-platforms", specifier = ">=13.4" },
+    { name = "extra-platforms", specifier = ">=14" },
     { name = "hjson", marker = "extra == 'hjson'", specifier = ">=3.1" },
     { name = "json5", marker = "extra == 'json5'", specifier = ">=0.12.1" },
     { name = "mkdocs", marker = "extra == 'mkdocs'", specifier = ">=1.4" },
     { name = "myst-parser", marker = "extra == 'sphinx'", specifier = ">=5.1" },
+    { name = "packaging", marker = "extra == 'sphinx'", specifier = ">=23" },
     { name = "pygments", marker = "extra == 'mkdocs'", specifier = ">=2.14" },
     { name = "pygments", marker = "extra == 'pygments'", specifier = ">=2.14" },
     { name = "pygments", marker = "extra == 'sphinx'", specifier = ">=2.18" },
@@ -380,7 +387,7 @@ requires-dist = [
     { name = "pyyaml", marker = "extra == 'carapace'", specifier = ">=6.0.3" },
     { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0.3" },
     { name = "sphinx", marker = "extra == 'sphinx'", specifier = ">=8" },
-    { name = "tabulate", extras = ["widechars"], specifier = ">=0.9" },
+    { name = "tabulate", extras = ["widechars"], specifier = ">=0.10" },
     { name = "tomlrt", marker = "extra == 'toml'", specifier = ">=2.2.10" },
     { name = "wcmatch", specifier = ">=10" },
     { name = "wcwidth", specifier = ">=0.8.3" },
@@ -411,11 +418,12 @@ docs = [
 ]
 test = [
     { name = "coverage", extras = ["toml"], specifier = ">=7.13" },
-    { name = "extra-platforms", extras = ["pytest"], specifier = ">=13.4" },
+    { name = "extra-platforms", extras = ["pytest"], specifier = ">=14" },
     { name = "jsonschema", specifier = ">=4.18" },
     { name = "mkdocs", specifier = ">=1.4" },
     { name = "mkdocs-click", specifier = ">=0.8.1" },
     { name = "myst-parser", specifier = ">=5.1" },
+    { name = "packaging", specifier = ">=23" },
     { name = "pymdown-extensions", specifier = ">=10" },
     { name = "pytest", specifier = ">=9" },
     { name = "pytest-github-actions-annotate-failures", specifier = ">=0.2" },
@@ -429,7 +437,7 @@ typing = [
     { name = "types-jsonschema", specifier = ">=4.18" },
     { name = "types-pygments", specifier = ">=2.19.0.20251121" },
     { name = "types-pyyaml", specifier = ">=6.0.12.9" },
-    { name = "types-tabulate", specifier = ">=0.9.0.2" },
+    { name = "types-tabulate", specifier = ">=0.10.0.20260308" },
 ]
 
 [[package]]
@@ -591,11 +599,11 @@ wheels = [
 
 [[package]]
 name = "extra-platforms"
-version = "13.12.0"
+version = "14.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2b/7e/b92eb5fe6c14b00c1469357622ee32e8b96ba8247b90b9da4cba3743ab32/extra_platforms-13.12.0.tar.gz", hash = "sha256:883feefe546402e1ccfe6f53b3f248dbaee3cd72d82e137549769db452c4712c", size = 494651, upload-time = "2026-10-12T18:13:30.702Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/37/5c2fde6d7c6036fd53144e63b37d8632314f791f3d681d3fcf0456d06292/extra_platforms-14.0.1.tar.gz", hash = "sha256:c58c5cb5dab87ee907b977be403ed2fa2e923bdc27bd39c76c6b60c99ea0700c", size = 506679, upload-time = "2026-10-31T14:39:37.474Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/36/26/7f61812ba2cc540edd3889802e90deeee03cd9569fafe41c64f1e35e03f7/extra_platforms-13.12.0-py3-none-any.whl", hash = "sha256:68a0cc9a16be81e6a9795bf413da7e14b1e8707dee260a47bedff7b6a5db58b3", size = 107721, upload-time = "2026-10-12T18:13:28.764Z" },
+    { url = "https://files.pythonhosted.org/packages/90/b8/4679e946fbb68bc3889595c612fa79e0d95f30b9c2f815b64e5a03769425/extra_platforms-14.0.1-py3-none-any.whl", hash = "sha256:39be8b76a407d5f2506484fa164bafb0c2ecd7578cc9b0b1bc3507477d2f296a", size = 106791, upload-time = "2026-10-31T14:39:35.994Z" },
 ]
 
 [package.optional-dependencies]

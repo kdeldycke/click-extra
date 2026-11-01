@@ -17,7 +17,11 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
 import pytest
+from sphinx.errors import ExtensionError
 
 from click_extra.sphinx.myst_docstrings import _TYPEHINTS_EXT, myst_to_rst, setup
 
@@ -249,6 +253,105 @@ def test_plain_code_fence_idempotent():
     """Already-converted code-block directive passes through unchanged."""
     rst = ".. code-block:: python\n\n    print(1)"
     assert _convert(rst) == rst
+
+
+# ---- Directive options: right under the reST header ---------------------------
+
+
+@pytest.mark.parametrize(
+    ("myst", "expected"),
+    [
+        (
+            "```{list-table}\n:header-rows: 1\n\n* - Fruit\n  - Color\n```",
+            ".. list-table::\n    :header-rows: 1\n\n    * - Fruit\n      - Color\n\n",
+        ),
+        (
+            ":::{code-block} python\n:caption: Orchard\n:linenos:\nfruit = 1\n:::",
+            (
+                ".. code-block:: python\n"
+                "    :caption: Orchard\n"
+                "    :linenos:\n"
+                "\n"
+                "    fruit = 1\n"
+                "\n"
+            ),
+        ),
+    ],
+    ids=["backtick-fence", "colon-fence-flag-option"],
+)
+def test_directive_options_follow_the_header(myst, expected):
+    """reST reads options on the lines right under the header, never after a
+    blank line: a blank line there turns them into content."""
+    assert _convert(myst) == expected
+
+
+def test_role_opening_a_body_is_not_an_option():
+    """A body opening on a role keeps it as content: an option needs a space
+    after its colon-wrapped name."""
+    myst = "```{note}\n{mod}`sqlite3` is imported here.\n```"
+    assert _convert(myst) == ".. note::\n\n    :mod:`sqlite3` is imported here.\n\n"
+
+
+# ---- Code blocks keep their content verbatim ---------------------------------
+
+
+@pytest.mark.parametrize(
+    ("myst", "expected"),
+    [
+        (
+            '```python\nbasket = "`kiwi`"  # {func}`peel`, [docs](https://e.org)\n```',
+            (
+                ".. code-block:: python\n"
+                "\n"
+                '    basket = "`kiwi`"  # {func}`peel`, [docs](https://e.org)\n'
+                "\n"
+            ),
+        ),
+        (
+            "```{code-block} markdown\n:caption: Recipe\n\nSee [^1] and `x`.\n```",
+            (
+                ".. code-block:: markdown\n"
+                "    :caption: Recipe\n"
+                "\n"
+                "    See [^1] and `x`.\n"
+                "\n"
+            ),
+        ),
+        (
+            ":::{tip}\nRun `peel`:\n\n```shell-session\n$ peel `basket`\n```\n:::",
+            (
+                ".. tip::\n"
+                "\n"
+                "    Run ``peel``:\n"
+                "\n"
+                "    .. code-block:: shell-session\n"
+                "\n"
+                "        $ peel `basket`\n"
+                "\n"
+            ),
+        ),
+    ],
+    ids=["plain-fence", "code-block-directive", "nested-in-colon-directive"],
+)
+def test_code_block_content_is_verbatim(myst, expected):
+    """Code is not prose: no backtick, role, link or footnote in it converts."""
+    assert _convert(myst) == expected
+
+
+def test_closing_fence_does_not_open_a_code_block():
+    """The bare line closing a directive fence pairs with that fence.
+
+    Read as the opener of a plain code fence instead, it would hold everything
+    up to the next bare fence as code, the directive after it included.
+    """
+    myst = (
+        "```{list-table}\n* - Fig\n```\n"
+        "\n"
+        "```{code-block} python\n:emphasize-lines: 1\n\nfig = 1\n```"
+    )
+    result = _convert(myst)
+    assert ".. list-table::" in result
+    assert ".. code-block:: python\n    :emphasize-lines: 1\n\n    fig = 1\n" in result
 
 
 # ---- Footnotes: [^label] -> [#label]_ / [^label]: -> .. [#label] -----------
@@ -550,6 +653,20 @@ def test_leading_underscore_span_not_a_hyperlink_ref(myst, expected):
 )
 def test_rst_literals_are_opaque(text):
     """Double-backtick reST literals pass through every step verbatim."""
+    assert _convert(text) == text
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["`see ``basket`` here`_", ":func:`peel ``kiwi`` now`"],
+    ids=["literal-in-hyperlink-reference", "literal-in-role"],
+)
+def test_nested_protected_spans_are_restored(text):
+    """A reST literal inside a span protected later comes back whole.
+
+    Both are stashed behind placeholders: restored in the wrong order, the
+    inner one would leave its NUL-delimited placeholder in the output.
+    """
     assert _convert(text) == text
 
 
@@ -903,12 +1020,47 @@ def test_plain_code_fence_empty_body():
     assert ".. code-block:: python" in result
 
 
+@pytest.mark.parametrize(
+    ("myst", "expected"),
+    [
+        # A longer directive fence holds a code fence of its own character.
+        (
+            "````{note}\nRun it:\n\n```python\nfruit = 1\n```\n````",
+            (
+                ".. note::\n"
+                "\n"
+                "    Run it:\n"
+                "\n"
+                "    .. code-block:: python\n"
+                "\n"
+                "        fruit = 1\n"
+                "\n"
+            ),
+        ),
+        # A longer code fence shows a directive fence as an example, verbatim.
+        (
+            "````markdown\n```{tip}\nPeel `kiwi`.\n```\n````",
+            ".. code-block:: markdown\n\n    ```{tip}\n    Peel `kiwi`.\n    ```\n\n",
+        ),
+    ],
+    ids=["directive-holds-code", "code-holds-directive"],
+)
+def test_longer_fence_holds_a_shorter_one(myst, expected):
+    """A fence closes on a run of its own length, as in any MyST document."""
+    assert _convert(myst) == expected
+
+
+def test_blank_line_opening_a_body_goes_with_the_header():
+    """MyST drops the blank line opening a directive body, options or not."""
+    assert _convert("```{note}\n\nRipe.\n```") == ".. note::\n\n    Ripe.\n\n"
+
+
 def test_nested_same_type_fences_not_supported():
-    """Nested fences of the same type are not reliably converted.
+    """Nested fences of the same length are not reliably converted.
 
     A colon fence inside a colon fence, or a backtick fence inside a backtick
-    fence, may not parse correctly because the regex matches the first closing
-    fence it finds.
+    fence, may not parse correctly: a fence closes on the first bare run of its
+    character at least as long as its opener.
     """
     myst = ":::{note}\nOuter content.\n\n:::{warning}\nInner content.\n:::\n\n:::"
     result = _convert(myst)
@@ -935,12 +1087,9 @@ def test_directive_inside_field_list_not_supported():
 
 
 def test_link_with_parentheses_in_url():
-    """Markdown links where the URL contains parentheses."""
+    """A URL holding a balanced pair of parentheses is kept whole."""
     myst = "[wiki](https://en.wikipedia.org/wiki/Foo_(bar))"
-    result = _convert(myst)
-    # The regex matches the first closing `)`, so the URL is truncated.
-    # This is a known limitation of the simple regex approach.
-    assert "`_" in result
+    assert _convert(myst) == "`wiki <https://en.wikipedia.org/wiki/Foo_(bar)>`_"
 
 
 def test_consecutive_field_list_entries_all_converted():
@@ -991,12 +1140,6 @@ def test_link_with_backtick_label_in_field_list():
 
 def test_setup_rejects_wrong_extension_order():
     """Extension must error if sphinx_autodoc_typehints loaded first."""
-    from types import SimpleNamespace
-    from unittest.mock import MagicMock
-
-    sphinx_errors = pytest.importorskip("sphinx.errors")
-    ExtensionError = sphinx_errors.ExtensionError
-
     app = MagicMock()
     # Simulate sphinx_autodoc_typehints already registered.
     app.extensions = {_TYPEHINTS_EXT: SimpleNamespace()}
@@ -1007,8 +1150,6 @@ def test_setup_rejects_wrong_extension_order():
 
 def test_setup_accepts_correct_order():
     """Extension loads normally when sphinx_autodoc_typehints is absent."""
-    from unittest.mock import MagicMock
-
     app = MagicMock()
     app.extensions = {}
 

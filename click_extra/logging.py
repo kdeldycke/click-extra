@@ -16,9 +16,8 @@
 """Logging utilities.
 
 ```{todo}
-Let the `-v`/`-q` counter reach beyond the current {class}`LogLevel` range, as
-sketched by the `-vvvv` (trace) and `-q` (silence everything) notes that used
-to live on `_VerbosityOption`:
+Let the `-v`/`-q` counter reach beyond the {class}`LogLevel` range, where it
+clamps at `DEBUG` and `CRITICAL`:
 
 - a `TRACE` pseudo-level below {attr}`LogLevel.DEBUG` (numeric value `5`,
   mirroring `logging.DEBUG - 5`) so repeated `-v` can surface finer-grained
@@ -29,9 +28,7 @@ to live on `_VerbosityOption`:
 
 Both require extending {class}`LogLevel`, which ripples into the `--verbosity`
 {class}`~click_extra.types.EnumChoice`, the {class}`Formatter` level-name color
-lookup and the level-ordering tests. They are intentionally left out of the
-symmetric-counter change that introduced `-q`, where the counter simply clamps
-at `DEBUG`/`CRITICAL`.
+lookup and the level-ordering tests.
 ```
 """
 
@@ -43,7 +40,7 @@ import weakref
 from contextlib import nullcontext
 from enum import IntEnum
 from functools import partial
-from gettext import gettext as _
+from gettext import gettext as _, ngettext
 from logging import (
     FileHandler,
     Handler,
@@ -57,14 +54,18 @@ from click.types import IntRange
 
 from . import context
 from ._utils import patch_attr
-from .parameters import ExtraOption, last_param
-from .styling import strip_ansi
+from .ansi import strip_ansi
+from .color import invocation_color
+from .param_tools import last_param
+from .parameters import ExtraOption
+from .spinner import _active_line
 from .theme import get_current_theme
 from .types import EnumChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Mapping, Sequence
+    from collections.abc import Iterable, Iterator, Mapping, Sequence
+    from contextlib import AbstractContextManager
     from logging import LogRecord
     from typing import IO, Any, ClassVar, Literal
 
@@ -74,7 +75,7 @@ logger = getLogger(__name__)
 class LogLevel(IntEnum):
     """Mapping of {ref}`canonical log level names <levels>` to their integer level.
 
-    That's our own version of [logging._nameToLevel](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L115-L124),
+    Mirrors [logging._nameToLevel](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L115-L124),
     but:
 
     - sorted from lowest to highest verbosity,
@@ -105,11 +106,11 @@ Extra attaches to the `root` logger for the time of a run.
 
 
 DEFAULT_LEVEL: LogLevel = LogLevel.WARNING
-"""{data}`WARNING <logging.WARNING>` is the default level we expect any loggers to starts their lives at.
+"""The level a logger starts its life at: {data}`WARNING <logging.WARNING>`.
 
-{data}`WARNING <logging.WARNING>` has been chosen as it is [the level at which the default Python's global root logger is set up](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997).
+It is [the level Python sets its global root logger up at](https://github.com/python/cpython/blob/3.14/Lib/logging/__init__.py#L1997).
 
-This value is also used as the default level for {class}`VerbosityOption` .
+This value is also the default level of {class}`VerbosityOption`.
 """
 
 
@@ -120,44 +121,12 @@ The default of {func}`basicConfig`, where {func}`logging.basicConfig` defaults t
 """
 
 
-_LEVEL_TOKEN: str = f"{context.META_NAMESPACE}_log_level_token"
-"""Internal `ctx.meta` slot for the token a run owns its log levels with.
-
-Set by the first verbosity option that applies a level, which also queues the
-reset of the loggers. It lives in `ctx.meta` so the verbosity inheritance chain
-(`_VerbosityOption` / `VerbosityOption` / `VerboseOption` / `QuietOption`)
-queues that reset at most once per invocation, even when several verbosity
-options are passed. See `_level_owner`.
-"""
-
-
-_COUNTER_SCANNED: str = f"{context.META_NAMESPACE}_verbosity_counter_scanned"
-"""Internal sentinel marking that the `-v`/`-q` counter was pre-resolved.
-
-The first verbosity option reaching {meth}`_VerbosityOption.handle_parse_result`
-reads the raw `--verbose`/`--quiet` repetition counts from the parsed
-`opts` and stashes them on the context before any option applies a level. This
-way the option that fires first already reconciles the full counter and never
-applies an intermediate, louder level that a later `-q` would have to lower
-(which would leak its `Set ... DEBUG` debug trace).
-"""
-
-
 _CONFIGURED_HANDLERS: weakref.WeakSet[Handler] = weakref.WeakSet()
 """Handlers {func}`basicConfig` attached, so the ones of {func}`new_logger` too.
 
 A logger holding one of them is set up the way its owner asked, whatever the
 classes involved, and `_hold_invocation_handler` leaves it alone. The set holds
 its handlers weakly, so it never keeps a discarded one alive.
-"""
-
-
-_HANDLER_TOKEN: str = f"{context.META_NAMESPACE}_log_handler_token"
-"""Internal `ctx.meta` slot for the token a run holds the log handler with.
-
-`ctx.meta` is shared down the context hierarchy, so the options of a command and
-of its subcommands find the same token there, and a run takes one hold however
-many of them it carries. See `_hold_invocation_handler`.
 """
 
 
@@ -204,17 +173,18 @@ to give back are the ones found before the first of the two.
 class StreamHandler(logging.StreamHandler):
     """A handler to output logs to the console.
 
-    Wraps {class}`logging.StreamHandler`, but use {func}`click.echo` to support color printing.
+    Wraps {class}`logging.StreamHandler`, but uses {func}`click.echo` to support
+    color printing.
 
-    Only :py:data:`<stderr> <sys.stderr>` or :py:data:`<stdout> <sys.stdout>` are allowed as output stream.
-
-    If stream is not specified, :py:data:`<stderr> <sys.stderr>` is used by default
+    Only {data}`sys.stderr` or {data}`sys.stdout` are allowed as output stream,
+    and {data}`sys.stderr` is the default.
     """
 
     _stderr_output: bool = True
     """{func}`click.echo`'s `err` parameter to be used at printing time."""
 
     _stream: IO[Any] = sys.stderr
+    """The stream behind {attr}`stream`, which the constructor sets."""
 
     @property
     def stream(self) -> IO[Any]:
@@ -241,7 +211,7 @@ class StreamHandler(logging.StreamHandler):
 
         Cooperates with any live terminal line currently drawing on the same
         stream (a {class}`~click_extra.spinner.Spinner`, or an
-        {class}`~click_extra.spinner.OperationTrail` progress bar): the record
+        {class}`~click_extra.trail.OperationTrail` progress bar): the record
         is then printed through its `echo`, which erases the in-progress render
         first, so a log line emitted mid-draw lands on its own line instead of
         garbling the indicator (and vice versa).
@@ -254,12 +224,6 @@ class StreamHandler(logging.StreamHandler):
         keep its ANSI codes on a TTY.
         """
         try:
-            # Imported here, not at module level: spinner.py and color.py are
-            # leaves this logging module must not force-load (nor risk an import
-            # cycle with) just to emit a record.
-            from .color import invocation_color
-            from .spinner import _active_line
-
             message = self.format(record)
             color = invocation_color()
             line = _active_line(self._stream)
@@ -386,7 +350,7 @@ def basicConfig(
     to be all passed as explicit keywords arguments.
 
     :param filename: Specifies that a {class}`logging.FileHandler` be created, using the
-        specified filename, rather than an :py:class:`StreamHandler`.
+        specified filename, rather than a {class}`StreamHandler`.
     :param filemode: If *filename* is specified, open the file in this {func}`mode <.open>`.
 
         Defaults to `a`.
@@ -404,7 +368,7 @@ def basicConfig(
         Defaults to ``{``.
     :param level: Set the `root` logger level to the specified {ref}`level <levels>`.
     :param stream: Use the specified stream to initialize the
-        :py:class:`StreamHandler`. Note that this argument is incompatible with
+        {class}`StreamHandler`. Note that this argument is incompatible with
         *filename* - if both are present, a `ValueError` is raised.
     :param handlers: If specified, this should be an iterable of already created
         handlers to add to the `root` logger. Any handlers which don't already have a
@@ -430,20 +394,19 @@ def basicConfig(
 
     These new arguments are available for better configurability:
 
-    :param stream_handler_class: A :py:class:`logging.Handler` class that will be used in
+    :param stream_handler_class: A {class}`logging.Handler` class that will be used in
         {func}`logging.basicConfig` to create a default stream-based handler. Defaults to
-        :py:class:`StreamHandler`.
-    :param file_handler_class: A :py:class:`logging.Handler` class that will be used in
+        {class}`StreamHandler`.
+    :param file_handler_class: A {class}`logging.Handler` class that will be used in
         {func}`logging.basicConfig` to create a default file-based handler. Defaults to
         {class}`logging.FileHandler`.
-    :param formatter_class: A :py:class:`logging.Formatter` class of the formatter that
+    :param formatter_class: A {class}`logging.Formatter` class of the formatter that
         will be used in {func}`logging.basicConfig` to setup the default formatter. Defaults to
-        :py:class:`Formatter`.
+        {class}`Formatter`.
 
     ```{note}
-    I don't like the camel-cased name of this function and would have called it
-    `basic_config()`, but it's kept this way for consistency with Python's
-    standard library {func}`logging.basicConfig`.
+    The camel-cased name mirrors the one of Python's standard library
+    {func}`logging.basicConfig`.
     ```
     """
     # Only the arguments that are set are passed on: the standard library tests
@@ -507,7 +470,7 @@ def new_logger(
       with that name if it doesn't exist,
     - Set the logger's {attr}`propagate <logging.Logger.propagate>` attribute to `False`,
     - Force removal of any existing handlers and formatters attached to the logger,
-    - Attach a new :py:class:`StreamHandler` with :py:class:`Formatter`,
+    - Attach a new {class}`StreamHandler` with {class}`Formatter`,
     - Return the logger object.
 
     This function is a wrapper around {func}`basicConfig` and takes the same keywords arguments.
@@ -536,23 +499,20 @@ def new_logger(
     :param force: Same as the *force* parameter from {func}`logging.basicConfig` and {func}`basicConfig`. Defaults to `True`.
     :param kwargs: Any other keyword parameters supported by {func}`logging.basicConfig` and {func}`basicConfig`.
     """
+    target: Logger
+    root_logger_patch: AbstractContextManager[None]
     if name == logging.root.name:
-        logger = logging.root
+        target = logging.root
         root_logger_patch = nullcontext()
-
     else:
-        logger = getLogger(name)  # type: ignore[assignment]
-        logger.propagate = propagate
-        root_logger_patch = patch_attr(  # type: ignore[assignment]
-            logging,
-            "root",
-            logger,
-        )
+        target = getLogger(name)
+        target.propagate = propagate
+        root_logger_patch = patch_attr(logging, "root", target)
 
     with root_logger_patch:
         basicConfig(force=force, **kwargs)
 
-    return logger
+    return target
 
 
 def _hold_invocation_handler(ctx: click.Context) -> None:
@@ -573,7 +533,7 @@ def _hold_invocation_handler(ctx: click.Context) -> None:
     A run releases its token when its root context closes, and through
     `click_extra.context._queue_run_cleanup` when it fails while parsing.
     """
-    if context.get(ctx, _HANDLER_TOKEN) in _INVOCATION_HOLDERS:
+    if context.get(ctx, context._LOG_HANDLER_TOKEN) in _INVOCATION_HOLDERS:
         return
 
     root = getLogger()
@@ -598,7 +558,7 @@ def _hold_invocation_handler(ctx: click.Context) -> None:
     # the logger in the meantime is put back.
     root.addHandler(handler)
 
-    context.set(ctx, _HANDLER_TOKEN, token)
+    context.set(ctx, context._LOG_HANDLER_TOKEN, token)
     release = partial(_release_invocation_handler, token)
     root_ctx = ctx.find_root()
     root_ctx.call_on_close(release)
@@ -720,8 +680,8 @@ def _fold_level(
 
 
 class _VerbosityOption(ExtraOption):
-    """A base class implementing all the common helpers to manipulated logger's
-    verbosity.
+    """A base class implementing all the common helpers to manipulate the verbosity
+    of loggers.
 
     Sets the level of the provided logger. If no logger is provided, sets the level of
     the global `root` logger.
@@ -733,7 +693,7 @@ class _VerbosityOption(ExtraOption):
 
     ```{caution}
     This class is not intended to be used as-is. It is the internal place where
-    the level requested by the three competing options is reconciled:
+    the level requested by the competing options is reconciled:
 
     - `--verbosity LEVEL` sets an absolute level (defaults to
       {const}`DEFAULT_LEVEL`).
@@ -777,16 +737,16 @@ class _VerbosityOption(ExtraOption):
     def get_help_record(self, ctx: click.Context) -> tuple[str, str] | None:
         """Dynamically generates the default help message.
 
-        We need that patch because {meth}`get_base_level` depends on the context, so we
-        cannot hard-code the help message as the option's `__init__` default.
+        {meth}`get_base_level` depends on the context, so the help message cannot be
+        hard-coded as the option's `__init__` default.
 
         Only the `-v`/`-q` counting options derive their help from the base level
         (via {attr}`_help_verb`). The base and {class}`VerbosityOption` carry a static
         help and fall straight through to the parent implementation.
         """
-        help_message_patch = nullcontext()
+        help_message_patch: AbstractContextManager[None] = nullcontext()
         if self.help is None and self._help_verb is not None:
-            help_message_patch = patch_attr(  # type:ignore[assignment]
+            help_message_patch = patch_attr(
                 self,
                 "help",
                 (
@@ -800,10 +760,10 @@ class _VerbosityOption(ExtraOption):
             return super().get_help_record(ctx)
 
     @property
-    def all_loggers(self) -> Generator[Logger, None, None]:
-        """Returns the list of logger IDs affected by the verbosity option.
+    def all_loggers(self) -> Iterator[Logger]:
+        """The loggers the verbosity option sets the level of.
 
-        Will returns `click_extra` internal logger first, then the option's
+        The internal `click_extra` logger first, then the option's
         {attr}`logger_name`.
         """
         for name in ("click_extra", self.logger_name):
@@ -832,7 +792,7 @@ class _VerbosityOption(ExtraOption):
             every logger when it is not provided.
         """
         levels = levels or {}
-        for managed_logger in list(self.all_loggers)[::-1]:
+        for managed_logger in reversed(tuple(self.all_loggers)):
             level = levels.get(managed_logger.name, DEFAULT_LEVEL.value)
             target = _resulting_level(managed_logger, level)
             logger.debug(f"Reset {managed_logger} to {target}.")
@@ -870,17 +830,19 @@ class _VerbosityOption(ExtraOption):
         {meth}`resolve_level` already sees the full counter, so the option that fires
         first lands on the final level directly instead of applying a louder
         intermediate that a later `-q` would have to walk back. See
-        {data}`_COUNTER_SCANNED`.
+        {data}`~click_extra.context._VERBOSITY_COUNTER_SCANNED`.
         """
-        if not ctx.resilient_parsing and not context.get(ctx, _COUNTER_SCANNED):
-            context.set(ctx, _COUNTER_SCANNED, True)
+        if not ctx.resilient_parsing and not context.get(
+            ctx, context._VERBOSITY_COUNTER_SCANNED
+        ):
+            context.set(ctx, context._VERBOSITY_COUNTER_SCANNED, True)
             for klass, key in (
                 (VerboseOption, context.VERBOSE),
                 (QuietOption, context.QUIET),
             ):
                 option = last_param(ctx.command.params, klass)
                 if option is not None:
-                    value, _ = option.consume_value(ctx, opts)
+                    value, _source = option.consume_value(ctx, opts)
                     context.set(ctx, key, value)
 
         return super().handle_parse_result(ctx, opts, args)
@@ -899,12 +861,13 @@ class _VerbosityOption(ExtraOption):
         return verbosity_option.default  # type: ignore[return-value]
 
     def resolve_level(self, ctx: click.Context) -> LogLevel:
-        """Reconcile `--verbosity`, `-v` and `-q` into a single level.
+        """Reconcile `--verbosity`, `-v`, `-q` and `--debug` into a single level.
 
         Reads the raw value each option recorded on the context
         ({data}`~click_extra.context.VERBOSITY`,
-        {data}`~click_extra.context.VERBOSE` and
-        {data}`~click_extra.context.QUIET`) and folds them with this rule:
+        {data}`~click_extra.context.VERBOSE`,
+        {data}`~click_extra.context.QUIET` and
+        {data}`~click_extra.context.DEBUG`) and folds them with this rule:
 
         - `--debug` wins outright, naming the loudest level there is;
         - `net = verbose - quiet`;
@@ -916,9 +879,8 @@ class _VerbosityOption(ExtraOption):
           value wins.
 
         The counter starts from {meth}`get_base_level` and is clamped to the
-        {class}`LogLevel` range. This keeps `-v` backward compatible (it still counts
-        up from the default and the loudest request wins), while letting `-q` mirror
-        it downwards.
+        {class}`LogLevel` range: `-v` counts up from the default and the loudest
+        request wins, and `-q` mirrors it downwards.
         """
         base = self.get_base_level(ctx)
         return _fold_level(
@@ -965,11 +927,11 @@ class _VerbosityOption(ExtraOption):
 
         # Own the levels before setting them. An earlier run that failed while
         # parsing, if it gives its levels back now, then leaves these alone.
-        token = context.get(ctx, _LEVEL_TOKEN)
+        token = context.get(ctx, context._LOG_LEVEL_TOKEN)
         queued = token is not None
         if not queued:
             token = object()
-            context.set(ctx, _LEVEL_TOKEN, token)
+            context.set(ctx, context._LOG_LEVEL_TOKEN, token)
         _level_owner = token
 
         for managed_logger in self.all_loggers:
@@ -1028,8 +990,7 @@ class _VerbosityOption(ExtraOption):
             self.logger_name = default_logger
         # Create a new logger with Click Extra's default configuration.
         else:
-            logger = new_logger(name=default_logger)
-            self.logger_name = logger.name
+            self.logger_name = new_logger(name=default_logger).name
 
         kwargs.setdefault("callback", self.set_level)
 
@@ -1085,9 +1046,8 @@ class VerbosityOption(_VerbosityOption):
 class DebugOption(_VerbosityOption):
     """`--debug` flag, a shorthand for `--verbosity DEBUG`.
 
-    The one level people actually reach for by name, so it earns a flag of its
-    own. The quiet end of the scale needs no such thing: `-q` already walks
-    down it, repeatably, and nobody types `--critical` to be told less.
+    The one level people reach for by name, so it gets a flag of its own. The
+    quiet end of the scale needs no such thing: `-q` walks down it, repeatably.
 
     ```{note}
     It outranks `--verbosity`, `-v` and `-q` alike rather than joining their
@@ -1161,9 +1121,16 @@ class _CounterOption(_VerbosityOption):
         # chance to be seen at DEBUG level.
         if value and not ctx.resilient_parsing:
             logger.debug(
-                f"{self._help_verb}d log verbosity by {value} levels: "
-                f"from {self.get_base_level(ctx)} "
-                f"to {context.get(ctx, context.VERBOSITY_LEVEL)}."
+                ngettext(
+                    "{verb}d log verbosity by {count} level: from {base} to {level}.",
+                    "{verb}d log verbosity by {count} levels: from {base} to {level}.",
+                    value,
+                ).format(
+                    verb=self._help_verb,
+                    count=value,
+                    base=self.get_base_level(ctx),
+                    level=context.get(ctx, context.VERBOSITY_LEVEL),
+                )
             )
 
     def __init__(
@@ -1173,8 +1140,7 @@ class _CounterOption(_VerbosityOption):
         count: bool = True,
         **kwargs: Any,
     ) -> None:
-        # Force type and default to have them aligned with the counting option's
-        # original behavior:
+        # Force the type and the default Click gives a counting option:
         # https://github.com/pallets/click/blob/5dd6288/src/click/core.py#L2612-L2618
         kwargs["type"] = IntRange(min=0)
         kwargs["default"] = 0
@@ -1280,7 +1246,7 @@ def requested_level(
         option = options[klass]
         if option is None:
             return fallback
-        value, _ = option.consume_value(ctx, opts)
+        value, _source = option.consume_value(ctx, opts)
         if value is None or value is UNSET:
             return fallback
         return option.type_cast_value(ctx, value)

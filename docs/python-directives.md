@@ -83,7 +83,7 @@ for name in sorted(sys.builtin_module_names)[:5]:
 
 ### Self-updating source with `:mirror:`
 
-`python:render` accepts a `:mirror:` flag. On top of rendering live, a mirror block keeps a copy of its generated Markdown in the source `.md`, between two HTML-comment markers directly below the fence. The output stays reviewable in the raw file, in diffs, and on GitHub, which renders the mirrored Markdown even though it never executes the block. This revives the `docs_update.py` marker-region pattern with the generator inlined into the page: no separate regenerator script, and no drift.
+`python:render` accepts a `:mirror:` flag. On top of rendering live, a mirror block keeps a copy of its generated Markdown in the source `.md`, between two HTML-comment markers directly below the fence. The output stays reviewable in the raw file, in diffs, and on GitHub, which renders the mirrored Markdown even though it never executes the block. It is the marker region of a `docs_update.py` script, with the generator inlined into the page: no separate regenerator script, and no drift.
 
 Add `:mirror:` to a `python:render` fence:
 
@@ -355,7 +355,7 @@ The same command also refreshes the `python:render` `:mirror:` regions found in 
 Only the updater (and the empty-block fallback) needs the release tags, since it is the part that shells out to `git`. Run it wherever the full tag history is available. The HTML build renders the embedded table verbatim and needs no git access, so shallow clones and read-only build hosts render the matrix fine.
 ```
 
-For content a directive cannot produce on its own, like a shared registry dumped into several files or an external generator's output, the same marker machinery is exposed as three primitives, importable from `click_extra.sphinx`:
+For content a directive cannot produce on its own, like a shared registry dumped into several files or an external generator's output, the same marker machinery is exposed as three primitives, importable from `click_extra.markdown.blocks` without the sphinx extra:
 
 - `marker_res(name)` builds the `(open, close)` regexes of a `<!-- name … -->` / `<!-- name-end -->` region, the grammar every self-updating marker shares.
 - `replace_region(text, name, content)` swaps the body between those markers for `content`, keeping the markers so the region round-trips. It returns the text unchanged when either marker is absent, so it is safe to fan out over files that do not all carry the region.

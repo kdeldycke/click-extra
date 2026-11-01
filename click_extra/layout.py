@@ -23,8 +23,8 @@ it once, and every line this package composes is built on that answer.
 
 The module holds the composition helpers built on it, starting with
 {func}`center_in_rule`. They are terminal-text primitives, not capture
-machinery: {mod}`click_extra.screenshot` consumes them to lay a picture out on
-the same grid, and so can any CLI drawing a divider of its own.
+machinery: {mod}`click_extra.capture.screenshot` consumes them to lay a picture
+out on the same grid, and so can any CLI drawing a divider of its own.
 """
 
 from __future__ import annotations
@@ -34,13 +34,14 @@ from unicodedata import bidirectional
 
 from click import style
 
+from .ansi import RESET
 from .styling import Style, split_ansi
 
 PADDING = " \N{NO-BREAK SPACE}"
 """Characters that separate one column of terminal text from the next.
 
 Both are one cell wide and draw nothing.
-{func}`~click_extra.screenshot_svg.render_svg` emits every space as a non-breaking
+{func}`~click_extra.capture.svg.render_svg` emits every space as a non-breaking
 one, so the padding survives an XML round-trip and no renderer collapses a run
 of them.
 """
@@ -60,10 +61,6 @@ and the marker standing in for what a capture cut. A rule a caller spells out
 in full is written as given, color included, since a caller naming one has
 already decided how it should look.
 """
-
-
-RESET = "\x1b[0m"
-"""Escape closing every style a line left open, written before any padding."""
 
 
 def cell_width(text: str, term_program: str | None = None) -> int:
@@ -152,12 +149,13 @@ def center_in_rule(
     :return: the whole line.
     """
     label = label or ""
-    if not cell_width(label):
+    label_width = cell_width(label)
+    if not label_width:
         opening = closing = ""
-    framed = cell_width(label) + cell_width(opening) + cell_width(closing)
+    framed = label_width + cell_width(opening) + cell_width(closing)
     if framed > width:
         opening = closing = ""
-        framed = cell_width(label)
+        framed = label_width
     padding = max(width - framed, 0)
     left = padding // 2
 
@@ -203,12 +201,11 @@ def number_lines(text: str, start: int = 1) -> str:
     if not lines:
         return text
     width = len(str(start + len(lines) - 1))
-    gutter = (
-        f"{style(str(number).rjust(width), dim=True)}"
-        f"{style(LINE_NUMBER_SEPARATOR, dim=True)}"
-        for number in range(start, start + len(lines))
+    separator = style(LINE_NUMBER_SEPARATOR, dim=True)
+    return "\n".join(
+        f"{style(str(number).rjust(width), dim=True)}{separator}{line}"
+        for number, line in enumerate(lines, start)
     )
-    return "\n".join(f"{prefix}{line}" for prefix, line in zip(gutter, lines))
 
 
 def is_bidirectional(text: str) -> bool:
@@ -217,7 +214,7 @@ def is_bidirectional(text: str) -> bool:
     Arabic, Hebrew and their neighbours are reordered by whoever draws them, and
     the cursive ones are shaped: a letter's form depends on what it joins. A
     terminal grid describes neither, which is why
-    {func}`~click_extra.screenshot_svg.render_svg` stops pinning such a run to an
+    {func}`~click_extra.capture.svg.render_svg` stops pinning such a run to an
     exact width.
 
     :param text: the text to inspect.
@@ -299,9 +296,16 @@ def grid(
     :return: one list of `(style, text, column)` runs per row.
     """
     marker_runs = (
-        tuple(split_ansi(style(wrap_marker, fg=RULE_COLOR))) if wrap_marker else ()
+        [
+            (marker_style, marker_text, cell_width(marker_text))
+            for marker_style, marker_text in split_ansi(
+                style(wrap_marker, fg=RULE_COLOR)
+            )
+        ]
+        if wrap_marker
+        else []
     )
-    marker_width = sum(cell_width(run) for _, run in marker_runs)
+    marker_width = sum(cells for *_, cells in marker_runs)
     # `max(..., 1)` keeps a marker wider than the whole grid from folding the
     # text away entirely: it would otherwise leave no cell for a glyph.
     wrap_width = max(columns - marker_width, 1)
@@ -315,6 +319,12 @@ def grid(
                 column = 0
             if not line:
                 continue
+            # A line that fits whole needs no walk, glyph by glyph, for a fold.
+            line_width = sum(map(_char_width, line))
+            if column + line_width <= wrap_width:
+                rows[-1].append((run_style, line, column))
+                column += line_width
+                continue
             kept: list[str] = []
             start = column
             for char in line:
@@ -325,9 +335,9 @@ def grid(
                     if kept:
                         rows[-1].append((run_style, "".join(kept), start))
                         kept = []
-                    for marker_style, marker_text in marker_runs:
+                    for marker_style, marker_text, cells in marker_runs:
                         rows[-1].append((marker_style, marker_text, column))
-                        column += cell_width(marker_text)
+                        column += cells
                     rows.append([])
                     column = start = 0
                 kept.append(char)

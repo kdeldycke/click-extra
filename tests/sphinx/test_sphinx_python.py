@@ -106,7 +106,7 @@ def test_python_run_screenshot_writes_the_asset(sphinx_app_myst):
     )
     asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "papaya-screen.svg"
     assert asset.exists(), "the capture was not written"
-    svg = asset.read_text(encoding="utf-8")
+    svg = asset.read_text(encoding="UTF-8")
     assert "papaya-screen-r1" in svg
     assert "papaya" in svg
     # The results block is still rendered, rather than swapped for the image.
@@ -409,12 +409,32 @@ def test_mirror_src_rewrite_is_idempotent():
     assert twice.count(MIRROR_SRC_MARKER_END) == 1
 
 
+def test_mirror_src_first_sight_stops_at_the_next_generator():
+    """A new generator above a refreshed one gets its own region.
+
+    The terminator below the second generator closes that generator's region:
+    read as the end of the first one's, it would replace the prose and the
+    second generator between them.
+    """
+    first_refresh = _rewrite_mirror_src_regions(_MIRROR_SRC_BLOCK, "<test>")
+    new_generator = '<!-- mirror-src\nprint("| kiwi |")\n-->\n\nPlanted rows.\n'
+    text = first_refresh.replace("# Title\n", f"# Title\n\n{new_generator}", 1)
+
+    out = _rewrite_mirror_src_regions(text, "<test>")
+    assert "Planted rows." in out
+    assert out.count("<!-- mirror-src\n") == 2
+    assert out.count(MIRROR_SRC_MARKER_END) == 2
+    assert out.index("| kiwi |") < out.index("Planted rows.")
+    assert out.index("Planted rows.") < out.index("| apple | 3 |")
+    assert _rewrite_mirror_src_regions(out, "<test>") == out
+
+
 def test_mirror_src_via_update_mirror_blocks(tmp_path):
     """The offline refresher fills a mirror-src region, then round-trips clean."""
     doc = tmp_path / "readme.md"
-    doc.write_text(_MIRROR_SRC_BLOCK, encoding="utf-8")
+    doc.write_text(_MIRROR_SRC_BLOCK, encoding="UTF-8")
     assert update_mirror_blocks([doc]) == [doc]
-    source = doc.read_text(encoding="utf-8")
+    source = doc.read_text(encoding="UTF-8")
     assert MIRROR_SRC_MARKER_END in source
     assert "| apple | 3 |" in source
     assert update_mirror_blocks([doc]) == []
@@ -510,17 +530,17 @@ def test_python_render_mirror_renders_fresh_without_touching_source(sphinx_app_m
         assert fruit in html
     # The build is read-only: the committed source is byte-for-byte untouched
     # (the disk region is refreshed offline by update_mirror_blocks).
-    source = (Path(sphinx_app_myst.srcdir) / "index.md").read_text(encoding="utf-8")
+    source = (Path(sphinx_app_myst.srcdir) / "index.md").read_text(encoding="UTF-8")
     assert source == _MIRROR_TABLE_BLOCK
 
 
 def test_update_mirror_blocks_populates_and_idempotent(tmp_path):
     """The offline refresher inserts the region, then round-trips clean."""
     doc = tmp_path / "page.md"
-    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="utf-8")
+    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="UTF-8")
     # First pass inserts the region on disk.
     assert update_mirror_blocks([doc]) == [doc]
-    source = doc.read_text(encoding="utf-8")
+    source = doc.read_text(encoding="UTF-8")
     assert MIRROR_MARKER_START in source
     assert MIRROR_MARKER_END in source
     assert "| apple | 3 |" in source
@@ -531,9 +551,9 @@ def test_update_mirror_blocks_populates_and_idempotent(tmp_path):
 def test_update_mirror_blocks_check_mode(tmp_path):
     """`check=True` reports the stale file without writing it."""
     doc = tmp_path / "page.md"
-    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="utf-8")
+    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="UTF-8")
     assert update_mirror_blocks([doc], check=True) == [doc]
-    assert doc.read_text(encoding="utf-8") == _MIRROR_TABLE_BLOCK
+    assert doc.read_text(encoding="UTF-8") == _MIRROR_TABLE_BLOCK
 
 
 def test_update_mirror_blocks_imports_sibling_module(tmp_path):
@@ -545,7 +565,7 @@ def test_update_mirror_blocks_imports_sibling_module(tmp_path):
     """
     (tmp_path / "sibling_helper_module.py").write_text(
         'VALUE = "sibling-import-works"\n',
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     doc = tmp_path / "page.md"
     doc.write_text(
@@ -557,30 +577,58 @@ def test_update_mirror_blocks_imports_sibling_module(tmp_path):
             print(VALUE)
             ```
             """),
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     assert update_mirror_blocks([doc]) == [doc]
-    assert "sibling-import-works" in doc.read_text(encoding="utf-8")
+    assert "sibling-import-works" in doc.read_text(encoding="UTF-8")
     assert str(tmp_path) not in sys.path
 
 
 def test_refresh_directives_cli_refreshes_mirror_blocks(tmp_path):
     """`click-extra refresh-directives` covers mirror regions too."""
     doc = tmp_path / "page.md"
-    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="utf-8")
+    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="UTF-8")
     runner = CliRunner()
     # A missing region exits non-zero under --check, without writing.
     result = runner.invoke(refresh_directives_cmd, ["--check", str(doc)])
     assert result.exit_code == 1
-    assert doc.read_text(encoding="utf-8") == _MIRROR_TABLE_BLOCK
+    assert doc.read_text(encoding="UTF-8") == _MIRROR_TABLE_BLOCK
     # Write mode inserts the region and names the file.
     result = runner.invoke(refresh_directives_cmd, [str(doc)])
     assert result.exit_code == 0
     assert "refreshed" in result.output
-    assert MIRROR_MARKER_START in doc.read_text(encoding="utf-8")
+    assert MIRROR_MARKER_START in doc.read_text(encoding="UTF-8")
     # A freshly refreshed region is clean.
     result = runner.invoke(refresh_directives_cmd, ["--check", str(doc)])
     assert result.exit_code == 0
+
+
+def test_refresh_directives_cli_reads_and_writes_a_page_once(tmp_path, monkeypatch):
+    """Every kind of block of a page is refreshed in one read and one write.
+
+    The matrix, mirror and screenshot refreshers each read and wrote every page
+    on their own.
+    """
+    doc = tmp_path / "page.md"
+    doc.write_text(_MIRROR_TABLE_BLOCK, encoding="UTF-8")
+    calls: list[str] = []
+    read_text, write_text = Path.read_text, Path.write_text
+
+    def counted_read(self, *args, **kwargs):
+        if self == doc:
+            calls.append("read")
+        return read_text(self, *args, **kwargs)
+
+    def counted_write(self, *args, **kwargs):
+        if self == doc:
+            calls.append("write")
+        return write_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", counted_read)
+    monkeypatch.setattr(Path, "write_text", counted_write)
+    result = CliRunner().invoke(refresh_directives_cmd, [str(doc)])
+    assert result.exit_code == 0, result.output
+    assert calls == ["read", "write"]
 
 
 def test_python_render_mirror_show_source_still_single_table(sphinx_app_myst):

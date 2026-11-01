@@ -30,6 +30,7 @@ from click_extra import (
     LogLevel,
     Spinner,
     VerbosityOption,
+    color as color_module,
     command,
     echo,
     group,
@@ -311,6 +312,36 @@ def test_custom_quiet_option_name(invoke, args):
     # A single -q lowers the level one step, from WARNING to ERROR, so the warning
     # is suppressed while the error is still shown.
     assert result.stderr == "error: my error message.\n"
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    ("args", "trace"),
+    (
+        (
+            ("--verbosity", "DEBUG", "-v"),
+            "debug: Increased log verbosity by 1 level: from WARNING to DEBUG.\n",
+        ),
+        (
+            ("-vv",),
+            "debug: Increased log verbosity by 2 levels: from WARNING to DEBUG.\n",
+        ),
+        (
+            ("--verbosity", "DEBUG", "-v", "-q"),
+            "debug: Decreased log verbosity by 1 level: from WARNING to DEBUG.\n",
+        ),
+    ),
+)
+def test_counter_trace_agrees_with_its_count(invoke, args, trace):
+    """The `-v`/`-q` trace says one level in the singular, and more in the plural."""
+
+    @command
+    def forecast():
+        echo("Sunny.")
+
+    result = invoke(forecast, args, color=False)
+    assert result.stdout == "Sunny.\n"
+    assert trace in result.stderr
     assert result.exit_code == 0
 
 
@@ -948,7 +979,7 @@ def test_file_handler_of_the_root_logger_keeps_writing(
     which is the mode of the one behind pytest's ``--log-file``.
     """
     log_file = tmp_path / "harvest.log"
-    file_handler = logging.FileHandler(log_file, mode="w", encoding="utf-8")
+    file_handler = logging.FileHandler(log_file, mode="w", encoding="UTF-8")
     restored_root_logger.addHandler(file_handler)
     orchard_logger = logging.getLogger("orchard")
     try:
@@ -964,7 +995,7 @@ def test_file_handler_of_the_root_logger_keeps_writing(
     finally:
         file_handler.close()
 
-    assert log_file.read_text(encoding="utf-8").splitlines() == [
+    assert log_file.read_text(encoding="UTF-8").splitlines() == [
         "before the command",
         "during the run",
         "after the run",
@@ -1573,7 +1604,7 @@ def test_importing_a_cli_leaves_the_root_logger_alone():
         (sys.executable, "-c", script),
         capture_output=True,
         text=True,
-        encoding="utf-8",
+        encoding="UTF-8",
         check=False,
     )
     assert process.returncode == 0, process.stderr
@@ -1609,7 +1640,7 @@ def test_root_logger_prints_in_a_new_interpreter_beside_a_named_logger():
         (sys.executable, "-c", script),
         capture_output=True,
         text=True,
-        encoding="utf-8",
+        encoding="UTF-8",
         check=False,
     )
     assert process.returncode == 0, process.stderr
@@ -1623,8 +1654,6 @@ def test_stream_handler_honors_no_color_from_background_threads(capsys, monkeypa
     """A record emitted with no reachable Click context (as from run_cli's stream
     reader threads) still honors --no-color, through the process-wide mirror
     published by the color options."""
-    from click_extra import color as color_module
-
     handler = StreamHandler()
     handler.setFormatter(Formatter("{levelname}: {message}", style="{"))
     record = logging.LogRecord(

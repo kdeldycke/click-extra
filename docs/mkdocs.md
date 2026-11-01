@@ -6,7 +6,7 @@
 For these helpers to work, you need to install `click_extra`'s additional dependencies from the `mkdocs` extra group:
 
 ```{code-block} shell-session
-$ pip install click-extra[mkdocs]
+$ uv pip install 'click-extra[mkdocs]'
 ```
 ````
 

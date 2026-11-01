@@ -43,8 +43,8 @@ GitHub. The committed region is refreshed by {func}`update_mirror_blocks`
 (behind the `click-extra refresh-directives` command, alongside the
 ``{matrix}`` blocks of {mod}`click_extra.sphinx.matrix`), while Sphinx builds
 always render the fresh output by regenerating the region in memory at
-`source-read` time. This revives the `docs_update.py` marker-region
-pattern with the generator inlined into the page.
+`source-read` time: the marker region of a `docs_update.py` script, with the
+generator inlined into the page.
 """
 
 from __future__ import annotations
@@ -59,13 +59,15 @@ from docutils import nodes
 from docutils.parsers.rst import Parser as RstParser
 from docutils.utils import new_document
 
-from ..blocks import (
+from ..markdown.blocks import (
     fence_spans,
     marker_res,
     region_markers,
     rewrite_fenced_regions,
+    rewrite_fences,
     split_options,
     update_blocks,
+    walk_fences,
 )
 from ._base import (
     PLACEHOLDER_FILE,
@@ -86,6 +88,8 @@ if TYPE_CHECKING:
     from docutils.parsers import Parser
     from sphinx.application import Sphinx
 
+    from ..markdown.blocks import FenceSpan
+
 
 MIRROR_MARKER_START = region_markers("mirror")[0]
 """Opening marker of a `python:render` `:mirror:` region.
@@ -100,7 +104,7 @@ as the `<!-- matrix … -->` regions of {mod}`click_extra.sphinx.matrix`.
 MIRROR_MARKER_END = region_markers("mirror")[1]
 """Closing marker of a `:mirror:` region. See {data}`MIRROR_MARKER_START`."""
 
-_MIRROR_FENCE_OPEN = re.compile(r"^[ \t]*`{3,}\{python:render\}[ \t]*\S*[ \t]*$")
+_MIRROR_FENCE_OPEN_RE = re.compile(r"^[ \t]*`{3,}\{python:render\}[ \t]*\S*[ \t]*$")
 """Match a MyST `python:render` backtick-fence opening line.
 
 Anchored on ``{python:render}`` so the sibling `python:render-myst` and
@@ -192,9 +196,10 @@ class PythonRunner:
 class PythonDirective(ClickDirective):
     """Base class for `python:*` directives.
 
-    Reuses {class}`ClickDirective`'s option spec and rendering scaffolding
-    but rebinds the per-document runner so the Click and Python namespaces
-    don't collide within the same document.
+    Reuses the option spec and rendering scaffolding of
+    {class}`~click_extra.sphinx.click.ClickDirective`, but rebinds the
+    per-document runner so the Click and Python namespaces don't collide within
+    the same document.
     """
 
     runner_attr = "python_runner"
@@ -257,8 +262,9 @@ class PythonRenderBaseDirective(PythonDirective):
     """Common scaffolding for the `python:render` directive family.
 
     Subclasses set `forced_parser` to either `None` (use the host
-    document's parser via `state.nested_parse`) or a {class}`Parser`
-    factory that produces the parser to apply to the captured output.
+    document's parser via `state.nested_parse`) or a
+    {class}`~docutils.parsers.Parser` factory that produces the parser to apply
+    to the captured output.
     """
 
     default_language = "markdown"
@@ -274,30 +280,16 @@ class PythonRenderBaseDirective(PythonDirective):
     class forces that parser regardless of host file format.
     """
 
-    def _run_mirror(self) -> list[nodes.Node]:
-        """Render (at most) the source block in `:mirror:` mode.
-
-        In mirror mode the executed output is written as a raw Markdown
-        region below the fence by {func}`rewrite_python_mirror_regions` during
-        the `source-read` pass, and that region is what the host parser
-        renders. Emitting the results here as well would duplicate the
-        content, so the directive stays silent (or shows only its Python
-        source when `:show-source:` is set) and never runs the block a
-        second time.
-        """
-        if not self.show_source:
-            return []
-        return parse_into_section(self, self.render_code_block(self.content, "python"))
-
     def run(self) -> list[nodes.Node]:
-        """Render the captured stdout as live document content."""
-        if "mirror" in self.options:
-            return self._run_mirror()
+        """Render the captured stdout as live document content.
 
-        results = self.runner.run_python(self)
-
-        if not self.show_source and not self.show_results:
-            return []
+        A `:mirror:` block is not run here. {func}`rewrite_python_mirror_regions`
+        writes its output as a raw Markdown region below the fence during the
+        `source-read` pass, and the host parser renders that region: the
+        directive shows at most its Python source, so the content is not
+        rendered twice.
+        """
+        results = [] if "mirror" in self.options else self.runner.run_python(self)
 
         children: list[nodes.Node] = []
 
@@ -367,10 +359,8 @@ class PythonRenderMystDirective(PythonRenderBaseDirective):
 
     @property
     def forced_parser(self) -> type[Parser]:  # type: ignore[override]
-        """Lazy-import the MyST docutils parser.
-
-        Deferred so reST-only consumers don't need `myst-parser`.
-        """
+        """The MyST docutils parser, imported on first use."""
+        # Deferred import: keeps myst-parser optional for a reST-only project.
         from myst_parser.parsers.docutils_ import Parser as MystParser
 
         return MystParser
@@ -422,7 +412,7 @@ def _rewrite_mirror_regions(text: str, location: str) -> str:
     Only a top-level `python:render` fence carrying a `:mirror:` option is
     executed, its output written into the marker region directly below it. The
     walk, the insertion and the idempotency are those of
-    {func}`click_extra.blocks.rewrite_fenced_regions`. The blocks of one
+    {func}`click_extra.markdown.blocks.rewrite_fenced_regions`. The blocks of one
     document share a namespace, so a later block can reuse an earlier block's
     imports and variables.
 
@@ -442,7 +432,7 @@ def _rewrite_mirror_regions(text: str, location: str) -> str:
             return None
         return _execute_mirror_block(body, namespace, location)
 
-    return rewrite_fenced_regions(text, "mirror", _MIRROR_FENCE_OPEN, generate)
+    return rewrite_fenced_regions(text, "mirror", _MIRROR_FENCE_OPEN_RE, generate)
 
 
 def _rewrite_mirror_src_regions(text: str, location: str) -> str:
@@ -457,74 +447,75 @@ def _rewrite_mirror_src_regions(text: str, location: str) -> str:
     closing `-->` and {data}`MIRROR_SRC_MARKER_END`, which is inserted on first
     sight. Idempotent: a region whose generator is unchanged round-trips.
 
-    Like {func}`_rewrite_mirror_regions`, the walk skips backtick fences via
-    {func}`click_extra.blocks.fence_spans`, so a `<!-- mirror-src -->`
-    example nested inside a longer `code-block` fence (a documented illustration)
-    is copied verbatim, never executed or refreshed.
+    Like {func}`_rewrite_mirror_regions`, the walk steps over backtick fences
+    through {func}`click_extra.markdown.blocks.rewrite_fences`, so a
+    `<!-- mirror-src -->` example nested inside a longer `code-block` fence (a
+    documented illustration) is copied verbatim, never executed or refreshed.
     """
     lines = text.split("\n")
     spans = fence_spans(lines)
     total = len(lines)
-    out: list[str] = []
     namespace: dict[str, object] = {"__file__": PLACEHOLDER_FILE}
-    index = 0
-    while index < total:
-        span = spans.get(index)
-        if span is not None:
-            # A backtick fence: emit it as an opaque unit, never scanning inside
-            # for a mirror-src marker (a documented example must not run).
-            if span.close is None:
-                # Unterminated fence: leave the tail untouched.
-                out.extend(lines[index:])
-                break
-            out.extend(lines[index : span.close + 1])
-            index = span.close + 1
-            continue
 
-        if not _MIRROR_SRC_OPEN_RE.match(lines[index]):
-            out.append(lines[index])
-            index += 1
-            continue
+    def refresh(index: int, span: FenceSpan | None) -> tuple[list[str], int] | None:
+        # A backtick fence is an opaque unit, never scanned inside for a
+        # mirror-src marker: a documented example must not run.
+        if span is not None or not _MIRROR_SRC_OPEN_RE.match(lines[index]):
+            return None
 
         # Copy the opening comment and generator body verbatim, up to `-->`.
-        out.append(lines[index])
-        index += 1
-        body: list[str] = []
-        while index < total and not _MIRROR_SRC_CODE_CLOSE_RE.match(lines[index]):
-            body.append(lines[index])
-            out.append(lines[index])
-            index += 1
-        if index >= total:
+        cursor = index + 1
+        while cursor < total and not _MIRROR_SRC_CODE_CLOSE_RE.match(lines[cursor]):
+            cursor += 1
+        if cursor >= total:
             # Unterminated comment: leave the tail untouched.
-            break
-        out.append(lines[index])  # the `-->` line
-        index += 1
+            return lines[index:], total
+        body = lines[index + 1 : cursor]
+        # Past the `-->` line.
+        cursor += 1
 
         generated = _execute_mirror_block(body, namespace, location)
+        end = _mirror_src_end(lines, spans, cursor)
 
-        # Find any existing generated body, up to the region terminator.
-        end = index
-        while end < total and not _MIRROR_SRC_END_RE.match(lines[end]):
-            end += 1
-
-        out.extend(["", *generated, ""])
-        if end < total:
-            # Replace the existing body, consume through the terminator, and
-            # collapse the gap to the following content to a single blank line.
-            out.append(lines[end])
-            index = end + 1
-            while index < total and not lines[index].strip():
-                index += 1
-            if index < total:
-                out.append("")
-        else:
+        chunk = [*lines[index:cursor], "", *generated, ""]
+        if end is None:
             # First sight: insert a fresh region; following content stays put.
-            out.append(MIRROR_SRC_MARKER_END)
+            chunk.append(MIRROR_SRC_MARKER_END)
+            return chunk, cursor
+        # Replace the existing body, consume through the terminator, and
+        # collapse the gap to the following content to a single blank line.
+        chunk.append(lines[end])
+        resume = end + 1
+        while resume < total and not lines[resume].strip():
+            resume += 1
+        if resume < total:
+            chunk.append("")
+        return chunk, resume
 
-    return "\n".join(out)
+    return "\n".join(rewrite_fences(lines, refresh, spans))
 
 
-def _rewrite_mirrors(text: str, location: str) -> str:
+def _mirror_src_end(
+    lines: list[str], spans: dict[int, FenceSpan], start: int
+) -> int | None:
+    """Index of the terminator closing the region a generator writes from `start`.
+
+    `None` when the generator has no region yet. The walk stops at the next
+    `<!-- mirror-src` comment, since a terminator below it closes the region of
+    that other generator, and steps over fences, whose content is never a
+    marker.
+    """
+    for index, span in walk_fences(lines, spans, start):
+        if span is not None:
+            continue
+        if _MIRROR_SRC_END_RE.match(lines[index]):
+            return index
+        if _MIRROR_SRC_OPEN_RE.match(lines[index]):
+            return None
+    return None
+
+
+def rewrite_mirrors(text: str, location: str) -> str:
     """Return `text` with both kinds of mirror region refreshed.
 
     The fence form first (`_rewrite_mirror_regions`), then the comment form
@@ -541,7 +532,7 @@ def _rewrite_mirrors(text: str, location: str) -> str:
 def update_mirror_blocks(paths: Iterable[Path], *, check: bool = False) -> list[Path]:
     """Refresh every `python:render` `:mirror:` region in the given sources.
 
-    See {func}`click_extra.blocks.update_blocks` for the walk, write, and
+    See {func}`click_extra.markdown.blocks.update_blocks` for the walk, write, and
     `check`-mode contract.
 
     ```{danger}
@@ -553,10 +544,9 @@ def update_mirror_blocks(paths: Iterable[Path], *, check: bool = False) -> list[
     :return: the files whose mirror regions were (or, under `check`, would
         be) updated.
     """
-
     return update_blocks(
         paths,
-        lambda text, path: _rewrite_mirrors(text, str(path)),
+        lambda text, path: rewrite_mirrors(text, str(path)),
         check=check,
     )
 
@@ -568,13 +558,13 @@ def rewrite_python_mirror_regions(
 ) -> None:
     """`source-read` handler refreshing `:mirror:` regions in memory.
 
-    Applies {func}`_rewrite_mirror_regions` (the visible `{python:render}`
-    `:mirror:` fence) and {func}`_rewrite_mirror_src_regions` (the invisible
-    `<!-- mirror-src -->` comment) to the in-memory `source` before the document
-    is parsed, so every build renders the fresh output even when the committed
-    region is stale. Nothing is written to disk: the committed region is
-    refreshed offline by {func}`update_mirror_blocks`, behind the
-    `click-extra refresh-directives` command.
+    Refreshes both kinds of region, below a visible `{python:render}`
+    `:mirror:` fence and below an invisible `<!-- mirror-src -->` comment, in the
+    in-memory `source` before the document is parsed, so every build renders the
+    fresh output even when the committed region is stale. Nothing is written to
+    disk: the committed region is refreshed offline by
+    {func}`update_mirror_blocks`, behind the `click-extra refresh-directives`
+    command.
 
     ```{danger}
     Like the `python:*` directives, this executes arbitrary Python at
@@ -582,7 +572,7 @@ def rewrite_python_mirror_regions(
     registered only when `click_extra_enable_exec_directives` is set.
     ```
     """
-    source[0] = _rewrite_mirrors(source[0], str(app.env.doc2path(docname)))
+    source[0] = rewrite_mirrors(source[0], str(app.env.doc2path(docname)))
 
 
 class PythonDomain(StatelessDomain):
@@ -614,5 +604,5 @@ class PythonDomain(StatelessDomain):
     }
 
 
-cleanup_python_runner = make_cleanup("python_runner")
+cleanup_python_runner = make_cleanup(PythonDirective.runner_attr)
 """Drop the {class}`PythonRunner` from the doctree once the document is read."""

@@ -14,33 +14,35 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Tests for :mod:`click_extra.context`.
+"""Tests for :mod:`click_extra.context`, and the context class that carries it.
 
-Covers four surfaces the module exposes:
+Covers four surfaces:
 
 - The registry of ``ctx.meta`` key constants.
 - The :func:`~click_extra.context.get` / :func:`~click_extra.context.set`
   helpers that read and write them.
-- :class:`~click_extra.context.Context`, Click Extra's :class:`cloup.Context` subclass.
+- :class:`~click_extra.commands.Context`, Click Extra's :class:`cloup.Context`
+  subclass, defined in :mod:`click_extra.commands`.
 - :class:`_LazyMetaDict`, the lazy ``ctx._meta`` proxy used by
   :class:`~click_extra.version.VersionOption`.
 """
 
 from __future__ import annotations
 
+import ast
+import importlib
+import re
+from pathlib import Path
+
 import click
 import pytest
 from click.testing import CliRunner
 
+import click_extra
 from click_extra import context
 from click_extra.color import COLOR_ENVVARS
-from click_extra.commands import Command
-from click_extra.context import (
-    META_NAMESPACE,
-    POSIXLY_CORRECT_ENVVAR,
-    Context,
-    _LazyMetaDict,
-)
+from click_extra.commands import POSIXLY_CORRECT_ENVVAR, Command, Context
+from click_extra.context import META_NAMESPACE, _LazyMetaDict
 from click_extra.highlight import HelpFormatter
 
 TYPE_CHECKING = False
@@ -123,6 +125,99 @@ def test_registry_covers_all_module_constants() -> None:
     assert found == declared
 
 
+NON_META_KEYS = frozenset({
+    # Dataclass field metadata keys of configuration schemas.
+    "click_extra.config_path",
+    "click_extra.extension",
+    "click_extra.normalize_keys",
+    # The types of Sphinx warnings.
+    "click_extra.config_docstring_heading",
+    "click_extra.todo_unrendered",
+})
+"""Literals sharing :data:`~click_extra.context.META_NAMESPACE` that name no
+``ctx.meta`` key."""
+
+
+def _names_a_module_attribute(value: str) -> bool:
+    """Whether ``value`` is the dotted path of an object a submodule defines.
+
+    A lazy subcommand target or a monkeypatch path shares the namespace of the
+    ``ctx.meta`` keys, but names an attribute of an importable submodule. The
+    package root is never a match: it binds a submodule of every name.
+    """
+    module_name, _, attribute = value.rpartition(".")
+    if module_name in ("", "click_extra"):
+        return False
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError:
+        return False
+    return hasattr(module, attribute)
+
+
+def _string_literals(tree: ast.AST) -> list[tuple[int, str]]:
+    """The line and value of each string literal of ``tree`` but docstrings."""
+    docstrings = {
+        id(node.value)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+    }
+    return [
+        (node.lineno, node.value)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and id(node) not in docstrings
+    ]
+
+
+def test_meta_keys_are_spelled_in_context_only() -> None:
+    """No module but :mod:`click_extra.context` spells a ``ctx.meta`` key.
+
+    Every other module reads its keys from there: none builds one from
+    :data:`~click_extra.context.META_NAMESPACE`, or writes one as a literal.
+    """
+    package = Path(click_extra.__file__).parent
+    # A dotted name, not a message that happens to start with the package.
+    key_re = re.compile(rf"{re.escape(META_NAMESPACE)}[a-z_][a-z0-9_.]*")
+    found = []
+    for path in sorted(package.rglob("*.py")):
+        if path.name == "context.py" and path.parent == package:
+            continue
+        tree = ast.parse(path.read_text(encoding="UTF-8"))
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Name) and node.id == "META_NAMESPACE") or (
+                isinstance(node, ast.Attribute) and node.attr == "META_NAMESPACE"
+            ):
+                found.append(f"{path.name}:{node.lineno}: META_NAMESPACE")
+        for lineno, value in _string_literals(tree):
+            if (
+                key_re.fullmatch(value)
+                and value not in NON_META_KEYS
+                and not _names_a_module_attribute(value)
+            ):
+                found.append(f"{path.name}:{lineno}: {value!r}")
+    assert not found
+
+
+def test_internal_keys_are_private_and_unique() -> None:
+    """The keys only Click Extra reads sit under ``click_extra._``, apart from the
+    public ones."""
+    internal = {
+        name: getattr(context, name)
+        for name in dir(context)
+        if name.startswith("_")
+        and name[1:].isupper()
+        and isinstance(getattr(context, name), str)
+    }
+    assert internal
+    for value in internal.values():
+        assert value.startswith(f"{META_NAMESPACE}_")
+    public = {v for _, v in KEY_CONSTANTS}
+    assert len(set(internal.values())) == len(internal)
+    assert not public & set(internal.values())
+
+
 # --- get / set helpers ------------------------------------------------------
 
 
@@ -155,11 +250,34 @@ def test_set_then_get_round_trip() -> None:
     assert result.exit_code == 0
 
 
+def test_setdefault_stores_the_factory_value_once() -> None:
+    """:func:`~click_extra.context.setdefault` creates a missing value, then keeps
+    it."""
+    calls = []
+
+    def basket() -> set[str]:
+        calls.append(1)
+        return set()
+
+    @click.command
+    @click.pass_context
+    def cli(ctx):
+        first = context.setdefault(ctx, "click_extra.basket", basket)
+        first.add("apple")
+        second = context.setdefault(ctx, "click_extra.basket", basket)
+        assert second is first
+        assert second == {"apple"}
+        assert len(calls) == 1
+
+    result = CliRunner().invoke(cli, [])
+    assert result.exit_code == 0
+
+
 # --- Context -----------------------------------------------------------
 
 
 def test_context_uses_help_formatter() -> None:
-    """:class:`~click_extra.context.Context` installs Click Extra's colorized
+    """:class:`~click_extra.commands.Context` installs Click Extra's colorized
     formatter.
     """
     assert Context.formatter_class is HelpFormatter
@@ -201,7 +319,7 @@ def test_context_color(
     child_color: bool | None,
     expected: bool | None,
 ) -> None:
-    """:class:`~click_extra.context.Context` color resolution covers every
+    """:class:`~click_extra.commands.Context` color resolution covers every
     parent/child path.
 
     Root contexts without an explicit ``color=`` resolve the GNU auto default: with no
@@ -384,6 +502,130 @@ def test_lazy_meta_dict_independent_keys_resolve_independently() -> None:
     d["click_extra.alpha"]
     assert source.access_count["alpha"] == 1
     assert source.access_count["beta"] == 0
+
+
+LAZY_ENTRIES = {
+    "existing.key": "existing-value",
+    "click_extra.alpha": "alpha-value",
+    "click_extra.beta": "beta-value",
+}
+"""Every entry of the lazy dicts below once resolved, in iteration order."""
+
+
+def _lazy_dict(source: _SourceSpy) -> _LazyMetaDict:
+    """A lazy dict holding one stored entry and two pending lazy keys."""
+    return _LazyMetaDict({"existing.key": "existing-value"}, source, ("alpha", "beta"))
+
+
+def test_lazy_meta_dict_lists_pending_keys_without_resolving() -> None:
+    """``len()``, iteration and ``keys()`` count the keys ``in`` claims.
+
+    Listing a key does not read its value, so nothing resolves.
+    """
+    source = _SourceSpy()
+    d = _lazy_dict(source)
+
+    assert all(key in d for key in LAZY_ENTRIES)
+    assert len(d) == len(LAZY_ENTRIES)
+    assert list(d) == list(LAZY_ENTRIES)
+    assert list(d.keys()) == list(LAZY_ENTRIES)
+    assert list(reversed(d)) == list(reversed(LAZY_ENTRIES))
+    assert source.access_count == {"alpha": 0, "beta": 0}
+
+
+@pytest.mark.parametrize(
+    "read",
+    [
+        pytest.param(lambda d: dict(d.items()), id="items"),
+        pytest.param(
+            lambda d: dict(zip(LAZY_ENTRIES, d.values(), strict=True)), id="values"
+        ),
+        pytest.param(dict, id="dict"),
+        pytest.param(lambda d: {**d}, id="unpacking"),
+        pytest.param(lambda d: dict(d.copy()), id="copy"),
+    ],
+)
+def test_lazy_meta_dict_reads_pending_values(read) -> None:
+    """Whatever reads every value resolves the pending keys, and sees them all."""
+    source = _SourceSpy()
+
+    assert read(_lazy_dict(source)) == LAZY_ENTRIES
+    assert source.access_count == {"alpha": 1, "beta": 1}
+
+
+def test_lazy_meta_dict_equality_reads_pending_values() -> None:
+    """Equality compares every entry, pending ones included, on both sides."""
+    d = _lazy_dict(_SourceSpy())
+
+    assert d == LAZY_ENTRIES
+    assert LAZY_ENTRIES == d
+    assert d == _lazy_dict(_SourceSpy())
+    assert d != {"existing.key": "existing-value"}
+
+
+def test_lazy_meta_dict_copy_keeps_pending_keys_pending() -> None:
+    """A copy lists the pending keys, and resolves them only when read."""
+    source = _SourceSpy()
+    copy = _lazy_dict(source).copy()
+
+    assert list(copy) == list(LAZY_ENTRIES)
+    assert source.access_count == {"alpha": 0, "beta": 0}
+    assert copy["click_extra.alpha"] == "alpha-value"
+
+
+@pytest.mark.parametrize(
+    ("remove", "removed"),
+    [
+        pytest.param(
+            lambda d: d.__delitem__("click_extra.alpha"),
+            ("click_extra.alpha",),
+            id="del",
+        ),
+        pytest.param(
+            lambda d: d.pop("click_extra.alpha"), ("click_extra.alpha",), id="pop"
+        ),
+        pytest.param(lambda d: d.popitem(), ("click_extra.beta",), id="popitem"),
+        pytest.param(lambda d: d.clear(), tuple(LAZY_ENTRIES), id="clear"),
+    ],
+)
+def test_lazy_meta_dict_removed_key_stays_removed(remove, removed) -> None:
+    """A pending key removed from the mapping does not come back."""
+    d = _lazy_dict(_SourceSpy())
+
+    remove(d)
+    assert all(key not in d for key in removed)
+    assert list(d) == [key for key in LAZY_ENTRIES if key not in removed]
+    assert len(d) == len(LAZY_ENTRIES) - len(removed)
+
+
+def test_lazy_meta_dict_pop_returns_pending_values() -> None:
+    """``pop()`` and ``popitem()`` resolve the pending key they remove."""
+    d = _lazy_dict(_SourceSpy())
+
+    assert d.pop("click_extra.alpha") == "alpha-value"
+    assert d.popitem() == ("click_extra.beta", "beta-value")
+    assert d.popitem() == ("existing.key", "existing-value")
+    assert d.pop("click_extra.alpha", "default") == "default"
+
+
+def test_lazy_meta_dict_setdefault_resolves_pending_key() -> None:
+    """``setdefault()`` keeps the value of a pending key rather than the default."""
+    d = _lazy_dict(_SourceSpy())
+
+    assert d.setdefault("click_extra.alpha", "fallback") == "alpha-value"
+    assert d["click_extra.alpha"] == "alpha-value"
+    assert d.setdefault("other.key", "fallback") == "fallback"
+
+
+def test_lazy_meta_dict_wraps_another_without_resolving() -> None:
+    """Wrapping a lazy dict, as each ``--version`` of a command tree does, keeps
+    its pending keys pending.
+    """
+    source = _SourceSpy()
+
+    outer = _LazyMetaDict(_lazy_dict(source), _SourceSpy(), ("alpha", "beta"))
+    assert source.access_count == {"alpha": 0, "beta": 0}
+    assert dict(outer) == LAZY_ENTRIES
 
 
 def test_pass_context_typed_for_enhanced_context(invoke):

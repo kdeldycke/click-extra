@@ -18,6 +18,24 @@
    :undoc-members:
 ```
 
+## click_extra.sphinx.click_reference module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.click_reference
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.sphinx.click_runner module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.click_runner
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.sphinx.fail_on_warnings module
 
 ```{eval-rst}
@@ -54,10 +72,28 @@
    :undoc-members:
 ```
 
+## click_extra.sphinx.python module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.python
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## click_extra.sphinx.tables module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.tables
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## click_extra.sphinx.theme_docs module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.theme_docs
    :members:
    :show-inheritance:
    :undoc-members:

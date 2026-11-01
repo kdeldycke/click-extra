@@ -15,10 +15,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Configuration file formats and their stateless content parsers.
 
-Holds the {class}`ConfigFormat` enum, the parser probes that decide which formats
-are enabled, and {func}`parse_content`, the stateless dispatch used by
-{class}`~click_extra.config.option.ConfigOption` for every format that does not
-need the CLI parameter structure.
+Holds the {class}`ConfigFormat` enum, which probes on first use the modules that
+decide whether a format is enabled, and {func}`parse_content`, the stateless
+dispatch used by {class}`~click_extra.config.option.ConfigOption` for every format
+that does not need the CLI parameter structure.
 
 ```{caution}
 This module is imported early in the package's import graph
@@ -37,9 +37,11 @@ import importlib.util
 import json
 import logging
 import re
-import tomllib
 from enum import Enum
 from fnmatch import fnmatch
+from functools import cache
+
+from .._utils import missing_extra_message
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -50,75 +52,42 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-_OPTIONAL_PARSERS: tuple[tuple[str, str, str], ...] = (
-    # (import module name, click-extra[extra] name, display label).
-    ("yaml", "yaml", "YAML"),
-    ("json5", "json5", "JSON5"),
-    ("hjson", "hjson", "Hjson"),
-)
-"""Third-party parsers each gating one optional configuration format.
-
-Each entry pairs the importable module name (probed without importing it) with
-the `click-extra[extra]` install target and the human-readable format label
-used in the disabled-support debug message."""
-
-PARSER_SUPPORT: dict[str, bool] = {}
-"""Availability of each optional parser, keyed by `click-extra[extra]` name.
-
-Populated once at import time by probing each module in `_OPTIONAL_PARSERS`
-with {func}`importlib.util.find_spec`. Read by {class}`ConfigFormat` to mark the
-matching format as enabled or disabled. The probe does not import the module, so
-the actual parser is loaded lazily by {func}`parse_content` only when used."""
-
-for _module_name, _extra, _label in _OPTIONAL_PARSERS:
-    PARSER_SUPPORT[_extra] = importlib.util.find_spec(_module_name) is not None
-    if not PARSER_SUPPORT[_extra]:
-        logger.debug(
-            f"{_label} support disabled: install click-extra[{_extra}] to enable it."
-        )
-
 _NO_SQLITE_MESSAGE = (
     "SQLite support disabled: this Python provides no sqlite3 module. "
     "Install the sqlite3 package of your Python distribution to enable it."
 )
 """Reason and remedy reported for a Python whose SQLite bindings are missing.
 
-Shared by the import-time debug log and {func}`disabled_format_message`, which
-cannot derive it the way it does for the other formats: `SQLITE` is backed by a
-standard library module, so no `click-extra[extra]` install target enables it."""
+{func}`disabled_format_message` cannot derive it the way it does for the other
+formats: `SQLITE` is backed by a standard library module, so no
+`click-extra[extra]` install target enables it."""
 
-SQLITE_SUPPORT: bool = importlib.util.find_spec("_sqlite3") is not None
-"""Availability of the standard library's {mod}`sqlite3` module.
+_JSONC_COMMENT = r'(?s)("(?:\\.|[^"\\])*")|//[^\n]*|/\*.*?\*/'
+"""Match a JSON string, kept, or a `//` line or `/* */` block comment, dropped.
 
-Gates {attr}`ConfigFormat.SQLITE` the way `PARSER_SUPPORT` gates the formats
-backed by a third-party parser, because a distribution can ship a Python without
-it: FreeBSD packages the bindings apart from the interpreter, as
-`pyXXX-sqlite3`.
+A pattern string rather than a compiled pattern: {mod}`re` compiles and caches it
+on the first {func}`parse_jsonc` call, which keeps the compilation off the
+startup path of every CLI."""
 
-The probe targets `_sqlite3`, the extension module holding the bindings, and not
-`sqlite3`, the pure-Python package importing them. The latter belongs to every
-standard library, so it answers the probe on an interpreter that raises
-`ModuleNotFoundError: No module named '_sqlite3'` as soon as it is imported."""
+_JSONC_TRAILING_COMMA = r'("(?:\\.|[^"\\])*")|,(\s*[}\]])'
+"""Match a JSON string, kept, or the comma closing an object or an array, dropped.
 
-if not SQLITE_SUPPORT:
-    logger.debug(_NO_SQLITE_MESSAGE)
+Compiled on first use, like `_JSONC_COMMENT`."""
 
 
 class ConfigFormat(Enum):
     """All configuration formats, associated to their support status.
 
-    The first element of the tuple is a sequence of file extensions associated to the
-    format. Patterns are fed to `wcmatch.glob` for matching, and are influenced by the
-    flags set on the `ConfigOption` instance.
+    Each member's value is a tuple of four elements:
 
-    The second element indicates whether the format is supported or not, depending on
-    the availability of the module backing it: a third-party parser for most formats,
-    and the standard library's `sqlite3` for `SQLITE`. This evaluation is performed
-    at runtime when this module is imported.
-
-    The third element is the human-readable label of the format, and the fourth
-    the media types a server may serve it as, as matched by
-    {func}`format_from_mime`.
+    1. The file patterns associated to the format. Patterns are fed to
+       `wcmatch.glob` for matching, and are influenced by the flags set on the
+       `ConfigOption` instance.
+    2. The module backing the format, or `None` for a format the interpreter
+       always supports. {attr}`enabled` probes it on first use.
+    3. The human-readable label of the format.
+    4. The media types a server may serve it as, as matched by
+       {func}`format_from_mime`.
 
     ```{caution}
     The order is important for both format members and file patterns. It defines the
@@ -126,37 +95,37 @@ class ConfigFormat(Enum):
     ```
     """
 
-    TOML = (("*.toml",), True, "TOML", ("application/toml", "text/x-toml"))
+    TOML = (("*.toml",), None, "TOML", ("application/toml", "text/x-toml"))
     YAML = (
         ("*.yaml", "*.yml"),
-        PARSER_SUPPORT["yaml"],
+        "yaml",
         "YAML",
         ("application/yaml", "text/yaml", "application/x-yaml", "text/x-yaml"),
     )
-    JSON = (("*.json",), True, "JSON", ("application/json", "text/json"))
+    JSON = (("*.json",), None, "JSON", ("application/json", "text/json"))
     # `*.jwcc` reads through the JSON5 parser: a JWCC document is JSON plus
     # comments and trailing commas, both of which JSON5 already accepts, so the
     # format needs no parser of its own. See
     # https://nigeltao.github.io/blog/2021/json-with-commas-comments.html.
-    JSON5 = (
-        ("*.json5", "*.jwcc"),
-        PARSER_SUPPORT["json5"],
-        "JSON5",
-        ("application/json5",),
-    )
-    JSONC = (("*.jsonc",), True, "JSONC", ("application/jsonc",))
-    HJSON = (("*.hjson",), PARSER_SUPPORT["hjson"], "Hjson", ("application/hjson",))
-    INI = (("*.ini",), True, "INI", ())
-    XML = (("*.xml",), True, "XML", ("application/xml", "text/xml"))
-    PLIST = (("*.plist",), True, "plist", ("application/x-plist",))
+    JSON5 = (("*.json5", "*.jwcc"), "json5", "JSON5", ("application/json5",))
+    JSONC = (("*.jsonc",), None, "JSONC", ("application/jsonc",))
+    HJSON = (("*.hjson",), "hjson", "Hjson", ("application/hjson",))
+    INI = (("*.ini",), None, "INI", ())
+    XML = (("*.xml",), None, "XML", ("application/xml", "text/xml"))
+    PLIST = (("*.plist",), None, "plist", ("application/x-plist",))
+    # A distribution can ship a Python without the SQLite bindings: FreeBSD
+    # packages them apart from the interpreter, as `pyXXX-sqlite3`. The probe
+    # targets `_sqlite3`, the extension module holding the bindings, and not the
+    # `sqlite3` package importing them: every standard library has the latter,
+    # including one that raises `ModuleNotFoundError` on its first import.
     SQLITE = (
         ("*.sqlite", "*.sqlite3"),
-        SQLITE_SUPPORT,
+        "_sqlite3",
         "SQLite",
         ("application/vnd.sqlite3", "application/x-sqlite3"),
     )
-    ARGFILE = (("*.conf",), True, "Argfile", ())
-    PYPROJECT_TOML = (("pyproject.toml",), True, "pyproject.toml", ())
+    ARGFILE = (("*.conf",), None, "Argfile", ())
+    PYPROJECT_TOML = (("pyproject.toml",), None, "pyproject.toml", ())
 
     def __str__(self) -> str:
         return self.label
@@ -168,8 +137,13 @@ class ConfigFormat(Enum):
 
     @property
     def enabled(self) -> bool:
-        """Returns `True` if the format is supported, `False` otherwise."""
-        return self.value[1]  # type: ignore[no-any-return]
+        """Whether the module backing the format is available.
+
+        The module is probed on the first read, without being imported, and the
+        answer is cached for the life of the process. Importing `click_extra`
+        probes nothing: the first `ConfigOption` built does.
+        """
+        return _module_available(self)
 
     @property
     def patterns(self) -> tuple[str, ...]:
@@ -186,6 +160,21 @@ class ConfigFormat(Enum):
         no media type tells it apart from plain `TOML`.
         """
         return self.value[3]  # type: ignore[no-any-return]
+
+
+@cache
+def _module_available(fmt: ConfigFormat) -> bool:
+    """Probe the module backing `fmt`, without importing it.
+
+    Logs {func}`disabled_format_message` at debug level when the module is missing.
+    The parser itself is imported by {func}`parse_content`, on the first file it
+    parses.
+    """
+    module = fmt.value[1]
+    if module is None or importlib.util.find_spec(module) is not None:
+        return True
+    logger.debug(disabled_format_message(fmt))
+    return False
 
 
 SQLITE_CONFIG_TABLE = "config"
@@ -210,13 +199,6 @@ def _toml_ready(data: Any) -> Any:
     return data
 
 
-_JSONC_COMMENT_RE = re.compile(r'("(?:\\.|[^"\\])*")|//[^\n]*|/\*.*?\*/', re.DOTALL)
-"""Match a JSON string, kept, or a `//` line or `/* */` block comment, dropped."""
-
-_JSONC_TRAILING_COMMA_RE = re.compile(r'("(?:\\.|[^"\\])*")|,(\s*[}\]])')
-"""Match a JSON string, kept, or the comma closing an object or an array, dropped."""
-
-
 def parse_jsonc(content: str) -> Any:
     """Read a JSONC document: JSON with comments and trailing commas.
 
@@ -230,8 +212,9 @@ def parse_jsonc(content: str) -> Any:
             return match.group(1)
         return "\n" * match.group().count("\n")
 
-    content = _JSONC_COMMENT_RE.sub(blank_comment, content)
-    content = _JSONC_TRAILING_COMMA_RE.sub(
+    content = re.sub(_JSONC_COMMENT, blank_comment, content)
+    content = re.sub(
+        _JSONC_TRAILING_COMMA,
         lambda match: match.group(1) if match.group(1) is not None else match.group(2),
         content,
     )
@@ -247,10 +230,7 @@ def parse_xml(content: str) -> dict[str, Any]:
     `@`, a child under its tag, and the text under `#text`. Elements repeating
     a tag under the same parent are collected into a list, in document order.
     Comments and processing instructions are skipped, and a tag keeps its
-    namespace prefix as written.
-
-    These are the conventions of `xmltodict`, which every XML configuration file
-    read so far was parsed with, so a file keeps the same meaning.
+    namespace prefix as written. These are the conventions of `xmltodict`.
 
     :raises xml.parsers.expat.ExpatError: on a malformed document.
     """
@@ -355,26 +335,31 @@ def serialize_xml(data: Mapping[str, Any], *, indent: str = "\t") -> str:
 def parse_content(fmt: ConfigFormat, content: str) -> Any:
     """Parse content with a single stateless format.
 
-    INI is excluded: it needs the CLI parameter structure for type
-    coercion and is handled by ConfigOption.load_ini_config. ARGFILE is
-    excluded for the same reason: it maps command-line tokens to the CLI's
-    parameters and is handled by ConfigOption.load_argfile_config. SQLITE is
-    excluded too: it is a binary format, read from its file path by
-    ConfigOption.load_sqlite_config instead of a text payload.
+    `INI` is excluded: it needs the CLI parameter structure for type coercion and
+    is handled by {meth}`~click_extra.config.option.ConfigOption.load_ini_config`.
+    `ARGFILE` is excluded for the same reason: it maps command-line tokens to the
+    CLI's parameters and is handled by
+    {meth}`~click_extra.config.option.ConfigOption.load_argfile_config`. `SQLITE`
+    is excluded too: it is a binary format, read from its file path by
+    {meth}`~click_extra.config.option.ConfigOption.load_sqlite_config` instead of
+    a text payload.
 
-    `PLIST` parses here from its XML variant, the only one expressible as a
-    text payload; the binary variant is read from its file path by
-    ConfigOption.load_plist_config.
+    `PLIST` parses here from its XML variant, the only one expressible as a text
+    payload. The binary variant is read from its file path by
+    {meth}`~click_extra.config.option.ConfigOption.load_plist_config`.
 
     ```{note}
-    Optional third-party parsers are imported lazily, at the point of use,
-    rather than at module load. Only enabled formats reach this function
-    (disabled ones are filtered out of `ConfigOption.file_format_patterns`),
-    so the import always resolves for the formats actually parsed here.
+    Optional third-party parsers are imported at the point of use. Only enabled
+    formats reach this function (disabled ones are filtered out of
+    `ConfigOption.file_format_patterns`), so the import always resolves for the
+    formats parsed here.
     ```
     """
     match fmt:
         case ConfigFormat.TOML:
+            # Deferred import: keeps tomllib off the startup path of every CLI.
+            import tomllib
+
             return tomllib.loads(content)
 
         case ConfigFormat.YAML:
@@ -405,9 +390,12 @@ def parse_content(fmt: ConfigFormat, content: str) -> Any:
             # Deferred import: keeps plistlib off the startup path of every CLI.
             import plistlib
 
-            return plistlib.loads(content.encode("utf-8"))
+            return plistlib.loads(content.encode("UTF-8"))
 
         case ConfigFormat.PYPROJECT_TOML:
+            # Deferred import: keeps tomllib off the startup path of every CLI.
+            import tomllib
+
             return tomllib.loads(content).get("tool", {})
 
     raise ValueError(f"{fmt!r} is not handled by parse_content().")
@@ -449,8 +437,8 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
     Not every format round-trips: `TOML`, `XML` and `PLIST` have no null
     type (`plistlib` even raises on `None` values), and `XML` expects a
     single root mapping, so the caller is responsible for shaping `data`
-    accordingly. `INI`, `SQLITE` and `pyproject.toml` have no serializer
-    here.
+    accordingly. `INI`, `SQLITE`, `ARGFILE` and `PYPROJECT_TOML` have no
+    serializer.
     ```
 
     ```{note}
@@ -490,8 +478,69 @@ def serialize_content(fmt: ConfigFormat, data: Any, **kwargs: Any) -> str:
             # Deferred import: keeps plistlib off the startup path of every CLI.
             import plistlib
 
-            return plistlib.dumps(data, **kwargs).decode("utf-8") + "\n"
+            return plistlib.dumps(data, **kwargs).decode("UTF-8") + "\n"
     raise ValueError(f"{fmt!r} is not handled by serialize_content().")
+
+
+def _serialize_toml_with_unset(tree: dict[str, Any]) -> str:
+    """Render *tree* as TOML, emitting `None` leaves as commented-out keys.
+
+    TOML has no null type, so parameters without a value cannot round-trip as
+    real entries. Instead of dropping them from the export, each one is
+    rendered as a `# key =` comment line: the generated file documents every
+    key that can be set, while leaving the unset ones inert.
+
+    Relies on `tomlrt` (the `[toml]` extra), like
+    {func}`~click_extra.config.formats.serialize_content` does for TOML.
+
+    `tomlrt` attaches a comment to the key or the section header below it. The
+    tree is walked in the order TOML renders it, the keys of a table before its
+    sub-tables. Each comment waits for the next key or header, or goes to the
+    end of the document.
+
+    `tomlrt` writes no header for a table that holds only sub-tables. When such a
+    table also has commented-out keys, they would read as keys of the table
+    above. A comment or a blank line set above a header pins it, so each section
+    gets a blank line there.
+
+    :raises ImportError: when `tomlrt` is not installed.
+    """
+    import tomlrt
+
+    pending: list[str] = []
+
+    def fill(container: Any, mapping: dict[str, Any]) -> None:
+        for key, value in mapping.items():
+            if isinstance(value, dict):
+                continue
+            if value is None:
+                pending.append(f"{key} =")
+                continue
+            container[key] = _toml_ready(value)
+            if pending:
+                container.leading_comments[key] = tuple(pending)
+                pending.clear()
+        for key, value in mapping.items():
+            if not isinstance(value, dict):
+                continue
+            section = tomlrt.Table.section()
+            # A blank line above the header pins it, and separates the section
+            # from the one above.
+            section.header_leading_block = (None,)
+            container[key] = section
+            # Comments waiting for this header are set on the installed table:
+            # set on the detached one, tomlrt adds a second blank line above them.
+            table = container[key]
+            if pending:
+                table.header_leading_block = (*pending, None)
+                pending.clear()
+            fill(table, value)
+
+    doc = tomlrt.Document()
+    fill(doc, tree)
+    if pending:
+        doc.epilogue = tuple(pending)
+    return tomlrt.dumps(doc)
 
 
 def format_from_path(
@@ -506,8 +555,7 @@ def format_from_path(
     orders the candidates (the first match wins); it defaults to every
     {class}`~click_extra.config.formats.ConfigFormat`.
     """
-    candidates = tuple(ConfigFormat) if formats is None else formats
-    for fmt in candidates:
+    for fmt in ConfigFormat if formats is None else formats:
         if any(fnmatch(path.name, pattern) for pattern in fmt.patterns):
             return fmt
     return None
@@ -562,21 +610,20 @@ def format_from_mime(
 def disabled_format_message(fmt: ConfigFormat) -> str:
     """Build the "format support disabled" message for a format.
 
-    The single source for the {exc}`ImportError` text raised when a format whose
-    parser is unavailable is requested, shared by {func}`read_file` and
+    The single source for the debug line logged when {attr}`ConfigFormat.enabled`
+    finds the parser missing, and for the {exc}`ImportError` text raised when such
+    a format is requested, shared by {func}`read_file` and
     {func}`click_extra.test_suite.parse_test_suite`. A format's
     {attr}`~click_extra.config.formats.ConfigFormat.label`, lower-cased, is its
-    `click-extra[<extra>]` install target.
+    `click-extra[<extra>]` install target, worded like every other missing
+    optional dependency of the package.
 
     {attr}`~ConfigFormat.SQLITE` is the exception: it reads through the standard
     library, so no extra installs it and it gets `_NO_SQLITE_MESSAGE` instead.
     """
     if fmt is ConfigFormat.SQLITE:
         return _NO_SQLITE_MESSAGE
-    return (
-        f"{fmt} support disabled: install click-extra[{fmt.label.lower()}] "
-        "to enable it."
-    )
+    return missing_extra_message(fmt.label.lower(), subject=f"{fmt} support")
 
 
 def read_file(path: Path, formats: Iterable[ConfigFormat] | None = None) -> Any:
@@ -594,4 +641,4 @@ def read_file(path: Path, formats: Iterable[ConfigFormat] | None = None) -> Any:
         raise ValueError(f"Unsupported file extension: {path.name!r}")
     if not fmt.enabled:
         raise ImportError(disabled_format_message(fmt))
-    return parse_content(fmt, path.read_text(encoding="utf-8"))
+    return parse_content(fmt, path.read_text(encoding="UTF-8"))

@@ -53,7 +53,7 @@ $ pygmentize -l python ripen.py | click-extra snippet --output ripen.svg --langu
 Highlighting needs the `pygments` extra:
 
 ```shell-session
-$ uv pip install click-extra[pygments]
+$ uv pip install 'click-extra[pygments]'
 ```
 
 ## Where the code goes
@@ -195,10 +195,10 @@ The `:mirror:` regions are refreshed offline, without a build:
 $ click-extra refresh-directives docs/
 ```
 
-## `click_extra.snippet` API
+## `click_extra.capture.snippet` API
 
 ```{eval-rst}
-.. automodule:: click_extra.snippet
+.. automodule:: click_extra.capture.snippet
    :no-index:
    :members:
    :show-inheritance:

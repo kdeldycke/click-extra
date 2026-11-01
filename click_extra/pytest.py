@@ -45,10 +45,17 @@ TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
-    from typing import Any
+    from typing import Any, TypeAlias
 
-    from _pytest.mark import MarkDecorator
     from _pytest.mark.structures import ParameterSet
+
+    _TKindRow: TypeAlias = tuple[str, bool, tuple[Any, Any, Any]]
+    """One decorator kind of a matrix: its name, whether to leave it out, and its
+    Click, Cloup and Click Extra decorators.
+
+    The decorators are typed `Any`: mypy cannot join Click's overloaded callables
+    with Click Extra's decorator protocols into one iterable type.
+    """
 
 
 @pytest.fixture
@@ -124,7 +131,7 @@ def isolated_app_dir(monkeypatch, tmp_path):
     ```{note}
     The {func}`runner` fixture pins `HOME` and its platform equivalents
     inside an isolated filesystem, which also redirects the discovery
-    paths built from the home directory — but only for tests requesting
+    paths built from the home directory, but only for tests requesting
     that fixture. This one intercepts `get_app_dir` directly, covering
     any in-process invocation, without touching `HOME` (a suite may need
     the real one elsewhere) and without leaking into subprocesses.
@@ -154,21 +161,12 @@ def isolated_app_dir(monkeypatch, tmp_path):
     return app_dir
 
 
-skip_naked = pytest.mark.skip(reason="Naked decorator not supported.")
-"""Mark to skip Cloup decorators without parenthesis.
-
-```{warning}
-[Cloup does not yet support decorators without parenthesis](https://github.com/janluke/cloup/issues/127).
-```
-"""
-
-
 _FRAMEWORKS = ("click", "cloup", "click_extra")
 """The frameworks a decorator matrix spans, in the order its rows list them."""
 
 
 def _expand_decorator_params(
-    kind_rows: Iterable[tuple[str, bool, tuple[Any, Any, Any]]],
+    kind_rows: Iterable[_TKindRow],
     skip_frameworks: tuple[bool, bool, bool],
     *,
     with_parenthesis: bool,
@@ -176,40 +174,32 @@ def _expand_decorator_params(
 ) -> tuple[ParameterSet, ...]:
     """Expand a decorator matrix into pytest parameters.
 
-    `kind_rows` holds one `(kind, skip, decorators)` row per decorator kind,
-    its decorators in {data}`_FRAMEWORKS` order, and `skip_frameworks` the
-    frameworks to leave out in that same order.
+    `kind_rows` holds one row per decorator kind, its decorators in
+    {data}`_FRAMEWORKS` order, and `skip_frameworks` the frameworks to leave out
+    in that same order.
 
     Each kept decorator yields the naked variant, then (`with_parenthesis`)
     the parenthesized one. Parameter IDs are `<framework>.<kind>` and
-    `<framework>.<kind>()`. Naked Cloup decorators carry the
-    {data}`skip_naked` mark, since Cloup does not support the
-    parenthesis-less form. With `with_types`, each parameter also carries
+    `<framework>.<kind>()`. With `with_types`, each parameter also carries
     its ``{framework-tag, kind}`` descriptor set (the `click_extra`
     framework is tagged `extra`).
     """
-    matrix = [
-        (deco, framework, kind)
-        for kind, skip_kind, decorators in kind_rows
-        if not skip_kind
+    params = []
+    for kind, skip_kind, decorators in kind_rows:
+        if skip_kind:
+            continue
         for deco, framework, skip_framework in zip(
-            decorators, _FRAMEWORKS, skip_frameworks
-        )
-        if not skip_framework
-    ]
-    params: list[ParameterSet] = []
-    for deco, framework, kind in matrix:
-        tags = {framework.removeprefix("click_"), kind}
-        variants: list[tuple[Any, str, tuple | MarkDecorator]] = [
-            (deco, f"{framework}.{kind}", skip_naked if framework == "cloup" else ()),
-        ]
-        if with_parenthesis:
-            variants.append((deco(), f"{framework}.{kind}()", ()))
-        for variant, label, marks in variants:
-            args: list[Any] = [variant]
-            if with_types:
-                args.append(tags)
-            params.append(pytest.param(*args, id=label, marks=marks))
+            decorators, _FRAMEWORKS, skip_frameworks, strict=True
+        ):
+            if skip_framework:
+                continue
+            tags = {framework.removeprefix("click_"), kind}
+            variants = [(deco, f"{framework}.{kind}")]
+            if with_parenthesis:
+                variants.append((deco(), f"{framework}.{kind}()"))
+            for variant, label in variants:
+                values = (variant, tags) if with_types else (variant,)
+                params.append(pytest.param(*values, id=label))
     return tuple(params)
 
 
@@ -222,7 +212,7 @@ def command_decorators(
     with_parenthesis: bool = True,
     with_types: bool = False,
 ) -> tuple[ParameterSet, ...]:
-    """Returns collection of Pytest parameters to test all command-like decorators.
+    """Return the Pytest parameters testing every command-like decorator.
 
     :return: Pytest parameters covering each command-like decorator variant:
 
@@ -239,9 +229,7 @@ def command_decorators(
         - `click_extra.group`
         - `click_extra.group()`
     """
-    # The decorator cells are typed `Any`: mypy cannot join Click's overloaded
-    # callables with Click Extra's decorator protocols into one iterable type.
-    kind_rows: tuple[tuple[str, bool, tuple[Any, Any, Any]], ...] = (
+    kind_rows: tuple[_TKindRow, ...] = (
         ("command", no_commands, (click.command, cloup.command, command)),
         ("group", no_groups, (click.group, cloup.group, group)),
     )
@@ -262,7 +250,7 @@ def option_decorators(
     with_parenthesis: bool = True,
     with_types: bool = False,
 ) -> tuple[ParameterSet, ...]:
-    """Returns collection of Pytest parameters to test all parameter-like decorators.
+    """Return the Pytest parameters testing every parameter-like decorator.
 
     :return: Pytest parameters covering each parameter-like decorator variant:
 
@@ -279,9 +267,7 @@ def option_decorators(
         - `click_extra.argument`
         - `click_extra.argument()`
     """
-    # The decorator cells are typed `Any`: mypy cannot join Click's overloaded
-    # callables with Click Extra's decorator protocols into one iterable type.
-    kind_rows: tuple[tuple[str, bool, tuple[Any, Any, Any]], ...] = (
+    kind_rows: tuple[_TKindRow, ...] = (
         ("option", no_options, (click.option, cloup.option, option)),
         ("argument", no_arguments, (click.argument, cloup.argument, argument)),
     )
@@ -307,7 +293,7 @@ def create_config(tmp_path):
 
         # Create the missing folder structure, like "mkdir -p" does.
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(content, encoding="utf-8")
+        config_path.write_text(content, encoding="UTF-8")
 
         return config_path
 
@@ -442,7 +428,8 @@ default_debug_colored_logging = _colored_debug_log(default_debug_uncolored_loggi
 
 
 default_debug_uncolored_verbose_log = (
-    r"debug: Increased log verbosity by \d+ levels: from WARNING to [A-Z]+.\n"
+    r"debug: Increased log verbosity by (?:1 level|[2-9] levels|[1-9]\d+ levels): "
+    r"from WARNING to [A-Z]+.\n"
 )
 default_debug_colored_verbose_log = _colored_debug_log(
     default_debug_uncolored_verbose_log
@@ -450,7 +437,8 @@ default_debug_colored_verbose_log = _colored_debug_log(
 
 
 default_debug_uncolored_quiet_log = (
-    r"debug: Decreased log verbosity by \d+ levels: from WARNING to [A-Z]+.\n"
+    r"debug: Decreased log verbosity by (?:1 level|[2-9] levels|[1-9]\d+ levels): "
+    r"from WARNING to [A-Z]+.\n"
 )
 default_debug_colored_quiet_log = _colored_debug_log(default_debug_uncolored_quiet_log)
 

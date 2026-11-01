@@ -21,11 +21,11 @@ fatal. A project that lives with some warnings, like the unresolved references
 autodoc produces for third-party names, then cannot stop the build on the ones
 it does not accept.
 
-The case this module was written for is `myst.xref_missing`. myst-parser
-resolves every `[text](#anchor)` and `[text](page.md#anchor)` link against what
-the build produced. For a link it cannot place, it logs that warning and ships
-the link as written anyway, so a dead fragment reaches the published site
-behind a green build.
+The main case is `myst.xref_missing`. myst-parser resolves every
+`[text](#anchor)` and `[text](page.md#anchor)` link against what the build
+produced. For a link it cannot place, it logs that warning and ships the link as
+written anyway, so a dead fragment reaches the published site behind a green
+build.
 
 A handler on the `sphinx` logger records each warning whose type the project
 lists in {data}`FAIL_ON_WARNINGS_CONFIG`. Once the build is over, it reports

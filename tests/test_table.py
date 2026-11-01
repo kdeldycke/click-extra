@@ -26,16 +26,12 @@ import pytest
 import tabulate
 import yaml
 from extra_platforms import is_windows
-from tabulate import tabulate_formats
 from wcwidth import list_term_programs, wcswidth, width as cell_width
 
-# tabulate 0.10 introduced the ``colon_grid`` format and changed the asciidoc
-# cell-alignment marker from ``8<`` to ``<8``. Older releases (still shipped
-# by some distributions) need a different fixture.
-TABULATE_HAS_COLON_GRID = "colon_grid" in tabulate_formats
-
 from click_extra import (
+    BadParameter,
     Color,
+    Style,
     columns_option,
     command,
     echo,
@@ -50,34 +46,39 @@ from click_extra import (
 )
 from click_extra.columns import ColumnSpec, select_columns
 from click_extra.config.formats import parse_xml
+from click_extra.output import MissingExtraError
 from click_extra.pytest import command_decorators
 from click_extra.table import (
+    CSV_FORMATS,
     SERIALIZATION_FORMATS,
     STYLED_FORMATS,
     WRAPPABLE_FORMATS,
-    ColumnsOption,
-    SortByOption,
     TableFormat,
     _apply_default,
-    _column_sort_key,
     _setup_tabulate,
     _strip_none,
     _visible_width,
-    column_sort_key,
     corner_header,
     print_data,
     print_table,
     render_table,
     serialize_data,
 )
+from click_extra.table_options import (
+    ColumnsOption,
+    ColumnsType,
+    SortByOption,
+    _column_sort_key,
+    column_sort_key,
+)
 
 
 @pytest.mark.once
 def test_table_formats_definition():
     """Check all table formats are accounted for and properly named."""
-    # Click Extra registers its custom formats (``aligned``, ``colon_grid``
-    # backport) into tabulate lazily, on first render. Trigger that setup so the
-    # registry below reflects the fully-configured state.
+    # Click Extra registers its custom `aligned` format into tabulate lazily, on
+    # first render. Trigger that setup so the registry below reflects the
+    # fully-configured state.
     _setup_tabulate()
 
     # Formats from tabulate.
@@ -90,8 +91,10 @@ def test_table_formats_definition():
     csv_dialects = [
         (f"CSV_{d.replace('-', '_').upper()}", f"csv-{d}") for d in csv.list_dialects()
     ]
+    # Every format named after a dialect is rendered by the csv module.
+    assert {f for f in TableFormat if f.value.startswith("csv")} == CSV_FORMATS
 
-    # Formats inherited from previous legacy cli-helpers dependency.
+    # Formats re-implemented after cli-helpers.
     cli_helpers_formats = [("CSV", "csv"), ("VERTICAL", "vertical")]
 
     # Structured data serialization formats.
@@ -113,7 +116,7 @@ def test_table_formats_definition():
     # All CSV variants are listed in our TableFormat enum.
     assert set(csv_dialects) <= table_formats
 
-    # All legacy cli-helpers formats are listed in our TableFormat enum.
+    # All cli-helpers formats are listed in our TableFormat enum.
     assert set(cli_helpers_formats) <= table_formats
 
     # All serialization formats are listed in our TableFormat enum.
@@ -176,7 +179,7 @@ Friday Hot 🥵
 """
 
 asciidoc_table = (
-    f'[cols="{"<8,<13" if TABULATE_HAS_COLON_GRID else "8<,13<"}",options="header"]\n'
+    '[cols="<8,<13",options="header"]\n'
     "|====\n"
     "| Day    | Temperature \n"
     "| 1      | 42.9        \n"
@@ -725,25 +728,13 @@ def test_all_table_formats_have_test_rendering():
     assert set(TableFormat) == set(expected_renderings.keys())
 
 
-def _table_format_marks(format_name):
-    """Skip ``colon_grid`` when tabulate <0.10 aliases it to ``grid``."""
-    if format_name is TableFormat.COLON_GRID and not TABULATE_HAS_COLON_GRID:
-        return (
-            pytest.mark.skip(reason="colon_grid is aliased to grid on tabulate <0.10"),
-        )
-    return ()
-
-
 @pytest.mark.parametrize("cmd_decorator", command_decorators(no_groups=True))
 @pytest.mark.parametrize(
     "option_decorator", (table_format_option, table_format_option())
 )
 @pytest.mark.parametrize(
     ("format_name", "expected"),
-    [
-        pytest.param(k, v, id=str(k), marks=_table_format_marks(k))
-        for k, v in expected_renderings.items()
-    ],
+    [pytest.param(k, v, id=str(k)) for k, v in expected_renderings.items()],
 )
 def test_all_table_rendering(
     invoke, cmd_decorator, option_decorator, format_name, expected
@@ -809,9 +800,7 @@ def test_markup_pads_emoji_presentation_by_unicode_width(monkeypatch):
 
     Whatever terminal renders it: a Markdown table is read by a formatter and a
     browser that never see that terminal, and `mdformat` pads it with
-    `wcswidth`. Rendered from Apple Terminal, a `github` table came out one
-    column wider on every row carrying such a sequence, which `mdformat` took
-    back on its next pass, one commit at a time.
+    `wcswidth`.
     """
     rows = (("⁉️ ripe",), ("✅ ripe",))
     monkeypatch.setenv("TERM_PROGRAM", "Ghostty")
@@ -819,6 +808,21 @@ def test_markup_pads_emoji_presentation_by_unicode_width(monkeypatch):
     monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
     assert render_table(rows, ("state",), table_format=TableFormat.GITHUB) == reference
     assert len({wcswidth(line) for line in reference.splitlines()}) == 1
+
+
+def test_print_table_pads_markup_by_unicode_width(monkeypatch, capsys):
+    """`print_table` measures a markup table like `render_table` does.
+
+    A narrow-emoji terminal must not leak into a Markdown table that a
+    subcommand prints with `ctx.print_table`.
+    """
+    rows = (("⁉️ ripe",), ("✅ ripe",))
+    monkeypatch.setenv("TERM_PROGRAM", "Apple_Terminal")
+    reference = render_table(rows, ("state",), table_format=TableFormat.GITHUB)
+    print_table(rows, ("state",), table_format=TableFormat.GITHUB)
+    printed = capsys.readouterr().out
+    assert printed == f"{reference}\n"
+    assert len({wcswidth(line) for line in printed.splitlines()}) == 1
 
 
 @pytest.mark.parametrize("term_program", sorted(list_term_programs()))
@@ -1133,36 +1137,42 @@ def test_apply_default_custom_type_converted(data, expected):
 
 
 @pytest.mark.parametrize(
-    ("func", "args", "kwargs", "match"),
+    ("func", "args", "kwargs", "message"),
     (
         pytest.param(
             print_data,
             ({"a": 1}, TableFormat.YAML),
             {},
-            "pip install click-extra",
+            "yaml output requires an optional dependency. "
+            "Install it with: uv pip install 'click-extra[yaml]'",
             id="print-data-default-package",
         ),
         pytest.param(
             print_data,
             ({"a": 1}, TableFormat.YAML),
             {"package": "my-project"},
-            "pip install my-project",
+            "yaml output requires an optional dependency. "
+            "Install it with: uv pip install 'my-project[yaml]'",
             id="print-data-custom-package",
         ),
         pytest.param(
             print_table,
             ([["a"]], ["col"], TableFormat.YAML),
             {},
-            "pip install click-extra",
+            "yaml output requires an optional dependency. "
+            "Install it with: uv pip install 'click-extra[yaml]'",
             id="print-table",
         ),
     ),
 )
-def test_missing_dependency_clean_error(monkeypatch, func, args, kwargs, match):
+def test_missing_dependency_clean_error(monkeypatch, func, args, kwargs, message):
     """Missing optional dependency produces a clean error, no traceback."""
     monkeypatch.setitem(__import__("sys").modules, "yaml", None)
-    with pytest.raises(SystemExit, match=match):
+    with pytest.raises(MissingExtraError) as excinfo:
         func(*args, **kwargs)
+    assert excinfo.value.message == message
+    # Click prints it after `Error:` and exits with the status a failed run gets.
+    assert excinfo.value.exit_code == 1
 
 
 @pytest.mark.parametrize(
@@ -1386,6 +1396,36 @@ def test_vertical_wrapping_keeps_the_label_gutter():
         "Notes | A very long note about the",
         "      | weather that will certainly",
     ]
+
+
+@pytest.mark.parametrize(
+    "headers",
+    (
+        pytest.param(
+            (Style(bold=True)("City"), Style(bold=True)("Notes")), id="styled"
+        ),
+        pytest.param((Style(bold=True)("City"), "Notes"), id="partly-styled"),
+        pytest.param(("都市", "Notes"), id="double-width"),
+        pytest.param((None, "Notes"), id="missing"),
+    ),
+)
+def test_vertical_labels_align_on_their_visible_width(headers):
+    """Labels are padded to the columns they occupy, not to their length.
+
+    Escape codes take no column and a double-width character takes two, so the
+    separators and the continuation lines of a wrapped cell stay in one column.
+    """
+    output = strip_ansi(
+        render_table(
+            WRAP_DATA,
+            headers,
+            table_format=TableFormat.VERTICAL,
+            max_column_widths=[None, 30],
+        )
+    )
+    lines = [line for line in output.splitlines() if " | " in line]
+    assert len(lines) > len(WRAP_DATA) * len(headers)
+    assert len({cell_width(line.split(" | ", 1)[0]) for line in lines}) == 1
 
 
 @pytest.mark.parametrize(
@@ -1703,6 +1743,14 @@ def test_sort_by_option_rejects_positional_and_columns():
         SortByOption(
             ColumnSpec("fruit", "Fruit"), columns=[ColumnSpec("fruit", "Fruit")]
         )
+
+
+def test_columns_type_matches_ids_exactly():
+    """Column IDs are identifiers: a comma list, matched with their case."""
+    columns_type = ColumnsType(choices=("city", "country"))
+    assert columns_type.convert("country,city", None, None) == ("country", "city")
+    with pytest.raises(BadParameter, match=r"Unknown value\(s\): 'City'"):
+        columns_type.convert("City", None, None)
 
 
 def test_sort_by_and_columns_share_registry():

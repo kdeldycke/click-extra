@@ -24,8 +24,8 @@ where the parameter table flattens the hierarchy into dotted `id` paths
 (`cli.subcommand.param`), the tree renders the skeleton those paths hang
 off. Both share the same dynamic discovery ({meth}`click.Group.list_commands`
 / {meth}`click.Group.get_command` via
-{func}`~click_extra.parameters.iter_subcommands`) and the same one-line
-descriptions ({func}`~click_extra.parameters.full_short_help`).
+{func}`~click_extra.param_tools.iter_subcommands`) and the same one-line
+descriptions ({func}`~click_extra.param_tools.full_short_help`).
 
 The tree is a human rendering only: machine-readable hierarchies are already
 served by `--params --table-format json` (parameters with dotted
@@ -40,7 +40,6 @@ compares to the tree views of neighboring packages.
 
 from __future__ import annotations
 
-import logging
 import textwrap
 from dataclasses import dataclass
 from gettext import gettext as _
@@ -51,12 +50,12 @@ import cloup
 from . import context
 from .highlight import DEPRECATED_RE, highlight, style_choice_metavar
 from .layout import cell_width
-from .parameters import (
-    ExtraOption,
+from .param_tools import (
     full_short_help,
-    iter_subcommands,
+    iter_subcommand_contexts,
     make_resilient_context,
 )
+from .parameters import ExtraOption
 from .theme import get_current_theme
 
 TYPE_CHECKING = False
@@ -64,7 +63,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator, Sequence
     from typing import Any
 
-logger = logging.getLogger(__name__)
+    from .theme import HelpTheme
 
 
 @dataclass(frozen=True)
@@ -116,11 +115,12 @@ def _command_labels(
     command: click.Command,
     name: str,
     ctx: click.Context,
+    theme: HelpTheme,
     style_name: Callable[[str], str],
 ) -> tuple[str, str]:
     """Build the plain and styled labels of a tree node.
 
-    The label is the command *name*, followed by its parenthesized aliases when
+    The label is the command `name`, followed by its parenthesized aliases when
     the command declares any (a Cloup feature), mirroring the group help-screen
     listing (like `wrap (run)`), then the metavars of its operands (like
     `CITY` or `[ARGS]...`), mirroring the usage line. Option synopses are
@@ -132,8 +132,9 @@ def _command_labels(
     separators the `alias_secondary` slot, exactly like the help-screen
     keyword pass ({class}`~click_extra.highlight.HelpFormatter`), which
     routes through the same formatter.
+
+    :param style_name: the `theme` slot painting the name.
     """
-    theme = get_current_theme()
     aliases = tuple(getattr(command, "aliases", None) or ())
     plain = name
     styled = style_name(name)
@@ -165,6 +166,7 @@ def _tree_rows(
     command: click.Command,
     ctx: click.Context,
     glyphs: TreeGlyphs,
+    theme: HelpTheme,
     prefix: str = "",
 ) -> Iterator[tuple[str, str, str, str, str]]:
     """Depth-first walk yielding a `(rail, cont, plain, styled, help)` row per
@@ -176,20 +178,18 @@ def _tree_rows(
     first child when it has any, so the child connector below stays visually
     attached through the wrapped lines. `plain` and `styled` are the two
     label variants, `help` the one-line description. Subcommands are
-    discovered dynamically and hidden ones skipped, like help screens (see
-    {func}`~click_extra.parameters.iter_subcommands`). Each level is walked
-    under its own resilient child context, like the man-page and Carapace
-    exporters.
+    discovered dynamically and hidden ones skipped, like help screens, each
+    level walked under its own resilient child context, like the man-page and
+    Carapace exporters (see
+    {func}`~click_extra.param_tools.iter_subcommand_contexts`).
     """
-    theme = get_current_theme()
-    subs = list(iter_subcommands(command, ctx))
-    for index, (name, sub) in enumerate(subs):
+    subs = list(iter_subcommand_contexts(command, ctx))
+    for index, (name, sub, sub_ctx) in enumerate(subs):
         is_last = index == len(subs) - 1
         rail = prefix + (glyphs.last if is_last else glyphs.branch)
         cont = prefix + (glyphs.space if is_last else glyphs.pipe)
-        sub_ctx = make_resilient_context(sub, name, parent=ctx)
-        plain, styled = _command_labels(sub, name, sub_ctx, theme.subcommand)
-        child_rows = list(_tree_rows(sub, sub_ctx, glyphs, cont))
+        plain, styled = _command_labels(sub, name, sub_ctx, theme, theme.subcommand)
+        child_rows = list(_tree_rows(sub, sub_ctx, glyphs, theme, cont))
         desc_cont = cont + glyphs.pipe if child_rows else cont
         yield rail, desc_cont, plain, styled, full_short_help(sub)
         yield from child_rows
@@ -209,7 +209,7 @@ def render_command_tree(
 
     Each node carries the command name, its aliases, its operand metavars
     (mirroring the usage line) and a column-aligned description from
-    {func}`~click_extra.parameters.full_short_help`, so deprecated commands
+    {func}`~click_extra.param_tools.full_short_help`, so deprecated commands
     carry Click's own `(DEPRECATED)` label. Everything is styled with the same
     theme slots as help screens (`invoked_command` for the root,
     `subcommand` and `alias` for children, `metavar` for operands,
@@ -249,27 +249,30 @@ def render_command_tree(
         command,
         prog_name or ctx.command_path or command.name or "",
         ctx,
+        theme,
         theme.invoked_command,
     )
-    child_rows = list(_tree_rows(command, ctx, glyphs))
+    child_rows = list(_tree_rows(command, ctx, glyphs, theme))
     root_cont = glyphs.pipe if child_rows else ""
     rows = [("", root_cont, root_plain, root_styled, full_short_help(command))]
     rows.extend(child_rows)
+    # Each label measured once, for the column and for its own line.
+    row_widths = [cell_width(rail + plain) for rail, _, plain, _, _ in rows]
 
     # The root is left out of the column measurement (when it has children):
     # it can be an arbitrarily long script path under `wrap --tree`, and
     # letting it drive the column would crush every description against the
     # right edge. An over-wide label hangs its description on the next line
     # instead (see below).
-    measure_rows = child_rows or rows
-    label_width = max(cell_width(rail + plain) for rail, _, plain, _, _ in measure_rows)
+    label_width = max(row_widths[1:] if child_rows else row_widths)
     desc_column = label_width + COLUMN_GAP
     desc_width = max(width - desc_column, MIN_DESCRIPTION_WIDTH)
 
     lines = []
-    for rail, cont, plain, styled, help_text in rows:
+    for (rail, cont, _plain, styled, help_text), row_width in zip(
+        rows, row_widths, strict=True
+    ):
         line = rail + styled
-        row_width = cell_width(rail + plain)
         wrapped = textwrap.wrap(help_text, width=desc_width) if help_text else []
         # Painted after wrapping, so the escapes never count toward the column
         # width, and a marker the wrap split across two lines keeps its own
@@ -312,11 +315,10 @@ class TreeOption(ExtraOption):
     itself (`ps --forest` being the lone dissenter). `--commands`
     would suggest the flat listing `--help` already provides.
 
-    The bare noun also lines up with the neighbouring `--man`,
-    `--version` and `--help` informational flags; `--params` is
-    the historical outlier, not the pattern. A flag was preferred over a
-    registered `tree` subcommand, which could collide with the user's
-    own command namespace.
+    The bare noun also lines up with the neighbouring `--help`, `--man`,
+    `--params` and `--version` informational flags. It is a flag rather than a
+    registered `tree` subcommand, which could collide with the user's own
+    command namespace.
     ```
     """
 
@@ -342,7 +344,9 @@ class TreeOption(ExtraOption):
             **kwargs,
         )
 
-    def print_tree(self, ctx: click.Context, param: click.Parameter, value: bool):
+    def print_tree(
+        self, ctx: click.Context, param: click.Parameter, value: bool
+    ) -> None:
         """Render and print the invoked command's subcommand tree, then exit."""
         if not value or ctx.resilient_parsing:
             return

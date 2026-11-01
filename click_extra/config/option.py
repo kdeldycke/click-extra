@@ -16,20 +16,9 @@
 """Utilities to load parameters and options from a configuration file.
 
 ```{hint}
-Why `config`?
-
-That whole namespace is using the common `config` short-name to designate
-configuration files.
-
-Not `conf`, not `cfg`, not `configuration`, not `settings`. Just `config`.
-
-A quick survey of existing practices, and poll to my friends informed me that
-`config` is more explicit and less likely to be misunderstood.
-
-After all, is there a chance for it to be misunderstood, in the context of a CLI,
-for something else? *Confirm*? *Conference*? *Conflict* *Confuse*?...
-
-So yes, `config` is good enough.
+The whole namespace designates configuration files by the short name `config`:
+not `conf`, `cfg`, `configuration` or `settings`. In the context of a CLI,
+`config` reads as nothing else.
 ```
 
 Dotted keys in configuration files (like `"subcommand.option": value`) are
@@ -44,113 +33,74 @@ import json
 import logging
 import os
 import shlex
-import stat
 from collections import ChainMap
-from collections.abc import Iterable
 from enum import Enum
-from functools import cached_property, partial
+from functools import cache, cached_property, partial
 from gettext import gettext as _
+from itertools import islice
 from pathlib import Path, PurePosixPath
-from threading import Lock
 
 import click
 from click import (
     UNPROCESSED,
-    Choice,
     echo,
     get_app_dir,
     get_current_context,
 )
-from click._utils import UNSET
 from click.core import ParameterSource
 from click.parser import _split_opt
 
 from .. import context
-from .._utils import deep_merge, flatten, shrinkuser
+from .._utils import (
+    deep_merge,
+    flatten,
+    parse_bool,
+    remove_blanks,
+    set_nested,
+    shrinkuser,
+)
 from ..logging import LogLevel, requested_level
-from ..parameters import (
+from ..param_tools import (
     PARAM_PATH_SEP,
-    ExtraOption,
     ParamStructure,
     canonical_param_name,
-    replay_raw_args,
     require_sibling_param,
     resolve_flag_value,
-    search_params,
 )
-from ..types import EnumChoice
-from .builtin import THEMES_CONFIG_KEY, _builtin_config_validators
+from ..parameters import ExtraOption
+from .discovery import _PATH_READ_FORMATS, ConfigDiscovery
 from .formats import (
-    SERIALIZABLE_FORMATS,
     SQLITE_CONFIG_TABLE,
     ConfigFormat,
-    _toml_ready,
-    disabled_format_message,
     format_from_mime,
     format_from_path,
     parse_content,
-    serialize_content,
 )
 from .schema import (
     ConfigValidator,
+    ValidationError,
     ValidationReport,
-    _merge_into_template,
-    _normalize_conf,
-    _opaque_paths,
-    _rooted_path,
-    _scope_app_sections,
-    _select_app_section,
-    _strip_opaque_subtrees,
+    _build_merged_conf,
+    _collect_opaque_paths,
     make_schema_callable,
     run_config_validation,
 )
-from .subcommands import inject_reserved_subcommands
+from .subcommands import _patch_group_parse_args, inject_reserved_subcommands
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
-    from typing import Any, Literal
+    from collections.abc import Callable, Iterable, Mapping, Sequence
+    from typing import Any, Literal, NoReturn
 
 logger = logging.getLogger(__name__)
-
-
-_PRELOADED: str = f"{context.META_NAMESPACE}_config_preloaded"
-"""Context key listing the command paths whose configuration is loaded ahead of time.
-
-Filled by {meth}`ConfigOption._resolve_subcommands_eagerly`, which processes the
-option before Click's parameter loop does. That loop then calls
-{meth}`ConfigOption.load_conf` again with the same value: the call removes its entry
-and returns, in place of loading the document a second time.
-"""
-
-
-_STATUS_SILENCED: str = f"{context.META_NAMESPACE}_config_status_silenced"
-"""Context key marking that the command line asks for less than `WARNING` output.
-
-Set by {meth}`ConfigOption.handle_parse_result` before the configuration loads, and
-read by {meth}`ConfigOption.load_conf` to keep its status lines quiet.
-"""
-
-
-VCS_DIRS = (".git", ".hg", ".svn", ".bzr", "CVS", ".darcs")
-"""VCS directory names used to identify version control system roots.
-
-Includes:
-- `.git`: Git
-- `.hg`: Mercurial
-- `.svn`: Subversion
-- `.bzr`: Bazaar
-- `CVS`: CVS (note: uppercase, no leading dot)
-- `.darcs`: Darcs
-"""
 
 
 CONFIG_OPTION_NAME = "config"
 """Hardcoded name of the configuration option.
 
-This name is going to be shared by both the `--config` and `--no-config` options
-below, so they can compete with each other to either set a path pattern or disable the
-use of any configuration file at all.
+The `--config` and `--no-config` options share this name, so they compete with
+each other to either set a path pattern or disable the use of any configuration file
+at all.
 """
 
 
@@ -182,6 +132,19 @@ rename on Click's own side does not silently stop excluding it.
 """
 
 
+THEMES_CONFIG_KEY: str = "themes"
+"""Sub-key under `[tool.<cli>]` where user-defined themes live in config.
+
+Used by {class}`~click_extra.config.option.ConfigOption` to find `[tool.<cli>.themes.<name>]` tables,
+build them via {meth}`HelpTheme.from_dict
+<click_extra.theme.HelpTheme.from_dict>`, and stash the result on
+`ctx.meta[click_extra.context.THEME_OVERRIDES]`. The constant is the
+single source of truth shared by `_builtin_config_validators`,
+`ConfigOption._apply_theme_overrides`, and
+{func}`click_extra.theme.themes_from_config`.
+"""
+
+
 _EXPLICIT_SOURCES = frozenset({
     ParameterSource.COMMANDLINE,
     ParameterSource.ENVIRONMENT,
@@ -197,21 +160,12 @@ fall between them.
 _JSON_ENCODED_TYPES = frozenset({list, tuple, set, frozenset, dict})
 """Parameter types a typeless format carries as JSON-serialized strings."""
 
-_PATH_READ_FORMATS = (ConfigFormat.SQLITE, ConfigFormat.PLIST)
-"""Formats a local file is parsed from by its path, not from its text.
-
-A SQLite database is binary, and so is the binary variant of a plist: see
-{meth}`ConfigOption.load_sqlite_config` and {meth}`ConfigOption.load_plist_config`.
-{meth}`ConfigOption.search_and_read_file` returns such a file with an empty
-placeholder as its content.
-"""
-
 
 class Sentinel(Enum):
     """Enum used to define sentinel values.
 
     ```{note}
-    This reuse the same pattern as `Click._utils.Sentinel`.
+    This reuses the pattern of `click._utils.Sentinel`.
     ```
 
     ```{seealso}
@@ -267,8 +221,9 @@ def _coerce_scalar(target_type: type | None, raw_value: str, subject: str) -> An
 
     An INI file and an argfile hold text only, so the parameter each entry
     feeds decides how its text is read: a `bool` takes the spellings
-    {attr}`~configparser.ConfigParser.BOOLEAN_STATES` accepts, a container is
-    JSON-decoded, and an entry matching no parameter keeps its text.
+    {attr}`~configparser.ConfigParser.BOOLEAN_STATES` accepts (see
+    {func}`~click_extra._utils.parse_bool`), a container is JSON-decoded, and an
+    entry matching no parameter keeps its text.
 
     :param target_type: the parameter's Python type, or `None` when the entry
         matches no parameter.
@@ -278,14 +233,14 @@ def _coerce_scalar(target_type: type | None, raw_value: str, subject: str) -> An
     :raises ValueError: when `target_type` has no conversion, or `raw_value`
         does not read as one.
     """
-    # Deferred import: keeps configparser off the startup path of every CLI.
-    from configparser import ConfigParser
-
+    if target_type is bool:
+        state = parse_bool(raw_value)
+        if state is None:
+            raise ValueError(f"Cannot convert {subject} to {target_type} type.")
+        return state
     try:
         if target_type in (None, str):
             return raw_value
-        if target_type is bool:
-            return ConfigParser.BOOLEAN_STATES[raw_value.strip().lower()]
         if target_type is int:
             return int(raw_value)
         if target_type is float:
@@ -293,7 +248,7 @@ def _coerce_scalar(target_type: type | None, raw_value: str, subject: str) -> An
         if target_type in _JSON_ENCODED_TYPES:
             return json.loads(raw_value)
     # A JSONDecodeError is a ValueError.
-    except (KeyError, ValueError) as ex:
+    except ValueError as ex:
         raise ValueError(f"Cannot convert {subject} to {target_type} type.") from ex
     raise ValueError(
         f"Cannot handle the conversion of {subject} to {target_type} type."
@@ -302,99 +257,46 @@ def _coerce_scalar(target_type: type | None, raw_value: str, subject: str) -> An
 
 def _exit_on_validation_error(
     ctx: click.Context,
-    report: ValidationReport,
+    error: ValidationError,
     location: Path | str | None = None,
-) -> None:
-    """Log the first error of a failed validation and exit the CLI with code `1`.
+) -> NoReturn:
+    """Log a validation error and exit the CLI with code `1`.
 
-    A passing report returns silently. The exit fires before any subcommand
-    callback does, so the user reads one critical line rather than a
-    traceback, and code `1` matches what `--validate-config` answers for the
-    same failure.
+    The exit fires before any subcommand callback does, so the user reads one
+    critical line rather than a traceback, and code `1` matches what
+    `--validate-config` answers for the same failure.
 
-    :param location: the file the report is about, named in the message when
+    :param location: the file the error is about, named in the message when
         several were validated.
     """
-    if report.ok:
-        return
     where = f" in {location}" if location is not None else ""
-    logger.critical(f"Configuration validation error{where}: {report.errors[0]}")
+    logger.critical(f"Configuration validation error{where}: {error}")
     ctx.exit(1)
 
 
-_GROUP_PATCH_LOCK = Lock()
-"""Serializes {func}`_patch_group_parse_args`, which two threads can enter at once
-when each builds a `ConfigOption`."""
+@cache
+def _builtin_config_validators() -> tuple[ConfigValidator, ...]:
+    """Return the validators click-extra registers on every {class}`~click_extra.config.option.ConfigOption`.
 
-_click_group_parse_args: (
-    Callable[[click.Group, click.Context, list[str]], list[str]] | None
-) = None
-"""`click.Group.parse_args` as {func}`_patch_group_parse_args` found it.
-
-`None` while Click is untouched, which is until the first `ConfigOption` is built.
-"""
-
-
-def _group_parse_args(
-    self: click.Group,
-    ctx: click.Context,
-    args: list[str],
-) -> list[str]:
-    """Stand in for `click.Group.parse_args`, applying the reserved subcommand keys.
-
-    {meth}`ConfigOption.handle_parse_result` splices the subcommands named by the
-    configuration into the arguments of the group carrying the option. Two cases
-    never reach it, and this function covers both:
-
-    - A bare invocation. Click raises its `no_args_is_help` screen before it runs
-      any parameter, so the group's `ConfigOption` is asked for the names ahead of
-      that check. They go to Click in place of the empty command line, and an empty
-      answer leaves the help screen in place.
-    - A group reached through an ancestor's `--config`. It holds no option of its
-      own, so its `[parent.group]` section is applied here. The document is already
-      loaded by the time a subgroup is parsed.
-
-    Every other call goes to Click unchanged. That covers each group of a CLI
-    carrying no `ConfigOption`, since nothing loads a document for it.
+    A single validator, for `[tool.<cli>.themes.<name>]` tables. Built on the
+    first call and shared by every option, as a validator is immutable.
     """
-    if not ctx.resilient_parsing:
-        bare = not args and self.no_args_is_help
-        loaded = bool(context.get(ctx, context.CONF_FULL))
-        if bare or loaded:
-            config_option = next(
-                (p for p in self.get_params(ctx) if isinstance(p, ConfigOption)),
-                None,
-            )
-            if config_option is None and loaded:
-                # Injecting before delegating also settles no_args_is_help, since
-                # an injected subcommand makes the invocation non-empty.
-                args = inject_reserved_subcommands(ctx, args)
-            elif config_option is not None and bare:
-                args = config_option._resolve_subcommands_eagerly(ctx)
-    # The patch sets the original before it installs this function.
-    assert _click_group_parse_args is not None
-    return _click_group_parse_args(self, ctx, args)
+    # Deferred import: click_extra.theme and this package import each other.
+    from ..theme import validate_themes_config
+
+    return (
+        ConfigValidator(
+            extension_path=THEMES_CONFIG_KEY,
+            validator=validate_themes_config,
+            description=(
+                "Validate user-defined and override themes declared under "
+                "[tool.<cli>.themes.<name>]."
+            ),
+        ),
+    )
 
 
-def _patch_group_parse_args() -> None:
-    """Put {func}`_group_parse_args` in place of `click.Group.parse_args`, once.
-
-    Runs as each `ConfigOption` is built, so a process declaring no `--config`
-    leaves Click untouched. The replacement then stays for the life of the process,
-    and reaches every `click.Group` in it, whichever library built the group.
-
-    A group class click-extra does not own offers no other way in. Click calls
-    nothing on a parameter ahead of the no-args check, and a subgroup holds no
-    parameter of click-extra's.
-    """
-    global _click_group_parse_args
-    with _GROUP_PATCH_LOCK:
-        if _click_group_parse_args is None:
-            _click_group_parse_args = click.Group.parse_args
-            click.Group.parse_args = _group_parse_args  # type: ignore[method-assign]
-
-
-class ConfigOption(ExtraOption, ParamStructure):
+class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
     """A pre-configured option adding `--config LOCATION`.
 
     ```{caution}
@@ -485,21 +387,22 @@ class ConfigOption(ExtraOption, ParamStructure):
         ```
         """
 
-        if isinstance(file_format_patterns, ConfigFormat):
-            self.file_format_patterns = {
-                file_format_patterns: file_format_patterns.patterns
-            }
-        elif isinstance(file_format_patterns, dict):
-            self.file_format_patterns = {
-                fmt: (patterns,) if isinstance(patterns, str) else tuple(patterns)
-                for fmt, patterns in file_format_patterns.items()
-            }
-        elif isinstance(file_format_patterns, Iterable):
-            self.file_format_patterns = {
-                fmt: fmt.patterns for fmt in file_format_patterns
-            }
-        else:
-            self.file_format_patterns = {fmt: fmt.patterns for fmt in ConfigFormat}
+        match file_format_patterns:
+            case None:
+                self.file_format_patterns = {fmt: fmt.patterns for fmt in ConfigFormat}
+            case ConfigFormat():
+                self.file_format_patterns = {
+                    file_format_patterns: file_format_patterns.patterns
+                }
+            case dict():
+                self.file_format_patterns = {
+                    fmt: (patterns,) if isinstance(patterns, str) else tuple(patterns)
+                    for fmt, patterns in file_format_patterns.items()
+                }
+            case _:
+                self.file_format_patterns = {
+                    fmt: fmt.patterns for fmt in file_format_patterns
+                }
 
         self.auto_file_formats = file_format_patterns is None
         """Whether the format set was inherited instead of chosen by the developer.
@@ -574,7 +477,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         - `None`: walk up to filesystem root.
         - `VCS`: stop at the nearest VCS root, whichever system marks it (see
-          {data}`~click_extra.config.option.VCS_DIRS`) (default).
+          {data}`~click_extra.config.discovery.VCS_DIRS`) (default).
         - A `Path` or `str`: stop at that directory.
         """
 
@@ -593,8 +496,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         An explicit `--config` value never cascades: it pins a single source,
         whatever the pattern matches.
 
-        Defaults to `False`, which preserves the historical behavior of the
-        first successfully parsed file winning.
+        Defaults to `False`: the first successfully parsed file wins.
         """
 
         if excluded_params is not None and included_params is not None:
@@ -667,10 +569,9 @@ class ConfigOption(ExtraOption, ParamStructure):
           {func}`~click_extra.config.schema.make_schema_callable`.
 
         ```{note}
-        This is distinct from `strict`, which controls whether
-        `merge_default_map` rejects config keys not matching CLI
-        parameters.  `schema_strict` validates against dataclass fields
-        instead.
+        This is distinct from `strict`, which controls whether config keys not
+        matching CLI parameters are rejected. `schema_strict` validates against
+        dataclass fields instead.
         ```
         """
 
@@ -696,44 +597,23 @@ class ConfigOption(ExtraOption, ParamStructure):
         validation pipeline as `warn_unknown`.
         """
 
-        self._config_schema_callable = make_schema_callable(
-            config_schema,
-            strict=schema_strict,
-            warn_unknown=self.schema_warn_unknown,
-        )
-
         self.config_validators: tuple[ConfigValidator, ...] = (
             _builtin_config_validators() + tuple(config_validators)
         )
         """Extension validators for sub-trees of the configuration file.
 
-        Each {class}`~click_extra.config.schema.ConfigValidator` targets a dotted `extension_path` relative
-        to the app section. Validators run after click-extra's built-in
-        CLI-parameter strict check (during `--validate-config`) and after the
-        schema callable produces the typed configuration object (during normal
-        config loading).
+        Each {class}`~click_extra.config.schema.ConfigValidator` targets a dotted
+        `extension_path` relative to the app section. Validators run after
+        click-extra's built-in CLI-parameter strict check (during
+        `--validate-config`) and after the schema callable produces the typed
+        configuration object (during normal config loading).
 
-        The list is seeded with click-extra's built-in validators (currently the
-        one for `[tool.<cli>.themes.<name>]` tables, see
+        The list is seeded with click-extra's built-in validators (the one for
+        `[tool.<cli>.themes.<name>]` tables, see
         {func}`click_extra.theme.validate_themes_config`); user-supplied
         validators are appended after them. App code that registers its own
-        validator on the same `extension_path` simply runs alongside the
-        built-in: both validators are called, both sets of errors surface.
-        """
-
-        # Pre-compute the unified opaque-path set: every dotted path that
-        # click-extra must skip during its CLI-parameter strict check. See
-        # :py:func:`_opaque_paths` for how the schema and validator sources merge.
-        self._opaque_paths: frozenset[str] = _opaque_paths(
-            config_schema, self.config_validators
-        )
-        """Dotted paths, relative to the app section, that strict CLI-parameter
-        validation must skip.
-
-        Union of schema-inferred extension fields and explicit
-        {class}`~click_extra.config.schema.ConfigValidator` registrations. Used by
-        :py:meth:`merge_default_map` and
-        :py:meth:`ValidateConfigOption.validate_config`.
+        validator on the same `extension_path` runs alongside the built-in: both
+        validators are called, both sets of errors surface.
         """
 
         kwargs.setdefault("callback", self.load_conf)
@@ -748,13 +628,13 @@ class ConfigOption(ExtraOption, ParamStructure):
             **kwargs,
         )
 
-        # Run by the first `load_conf` call rather than here: its checks need
-        # wcmatch, which stays off the startup path of every CLI.
+        # Run by the first `load_conf` call logging at DEBUG level rather than here:
+        # its checks need wcmatch, which stays off the startup path of every CLI.
         self._pattern_sanity_checked = False
 
         # The group this option lands on is not built yet, and may be of a class
         # click-extra does not own.
-        _patch_group_parse_args()
+        _patch_group_parse_args(ConfigOption)
 
     def apply_command_settings(
         self,
@@ -812,11 +692,6 @@ class ConfigOption(ExtraOption, ParamStructure):
             self.schema_strict = schema_strict
         if config_schema is not None:
             self.config_schema = config_schema
-            self._config_schema_callable = make_schema_callable(
-                config_schema,
-                strict=self.schema_strict,
-                warn_unknown=self.schema_warn_unknown,
-            )
         if fallback_sections:
             self.fallback_sections = tuple(fallback_sections)
         if cascade:
@@ -825,12 +700,22 @@ class ConfigOption(ExtraOption, ParamStructure):
             self.config_validators = _builtin_config_validators() + tuple(
                 config_validators
             )
-        # Recompute the opaque-path union whenever the schema or validators have
-        # been forwarded, so the strict-check skip set stays in sync with them.
+        # A new schema or new validators change the opaque paths: drop the cached
+        # set, so the next read derives it from them.
         if config_schema is not None or config_validators:
-            self._opaque_paths = _opaque_paths(
-                self.config_schema, self.config_validators
-            )
+            self.__dict__.pop("_opaque_paths", None)
+
+    @cached_property
+    def _opaque_paths(self) -> frozenset[str]:
+        """Dotted paths, relative to the app section, that strict CLI-parameter
+        validation must skip.
+
+        Union of schema-inferred extension fields and explicit
+        {class}`~click_extra.config.schema.ConfigValidator` registrations, see
+        `click_extra.config.schema._collect_opaque_paths`. Derived on first use
+        rather than at decoration: walking a large schema costs startup time.
+        """
+        return _collect_opaque_paths(self.config_schema, self.config_validators)
 
     @cached_property
     def file_pattern_flags(self) -> int:
@@ -954,17 +839,12 @@ class ConfigOption(ExtraOption, ParamStructure):
             return
 
         file_part = PurePosixPath(self.default).name
-        default_is_magic = glob.is_magic(
-            self.default.replace("\\", "/"), flags=self.search_pattern_flags
-        )
+        default_is_magic = self._is_magic(self.default)
         all_format_patterns = tuple(flatten(self.file_format_patterns.values()))
 
         # Check 1: broad glob + all-literal format patterns.
         if default_is_magic:
-            all_literal = all(
-                not glob.is_magic(p.replace("\\", "/"), flags=self.search_pattern_flags)
-                for p in all_format_patterns
-            )
+            all_literal = all(not self._is_magic(p) for p in all_format_patterns)
             if all_literal:
                 logger.debug(
                     f"Broad search pattern {self.default!r} with literal format "
@@ -1006,20 +886,20 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Generates the default list of fully-qualified IDs to exclude.
 
         ```{danger}
-        It is only called once to produce the default exclusion list if the user did
-        not provided its own.
+        Resolved once, on first read, and only when the user did not provide a
+        list of their own.
 
-        It was not implemented in the constructor but made as a property, to allow
-        for a just-in-time call within the current context. Without this trick we could
-        not have fetched the CLI name.
+        The IDs are rooted at the CLI name, which only the running context
+        knows: hence a property, read within that context, rather than a value
+        set by the constructor.
         ```
         """
         ctx = get_current_context()
         cli = ctx.find_root().command
         excluded_ids = list(DEFAULT_EXCLUDED_PARAMS)
-        # Resolve the help option's ID from Click itself instead of assuming it is
-        # named "help": Click's development branch renamed it to
-        # "_click_default_help", and click-extra does not control that name.
+        # Read the help option's ID from Click instead of assuming it is named
+        # "help": Click's development branch names it "_click_default_help", and
+        # click-extra does not control that name.
         help_option = cli.get_help_option(ctx)
         if help_option is not None and help_option.name is not None:
             excluded_ids.append(help_option.name)
@@ -1039,6 +919,16 @@ class ConfigOption(ExtraOption, ParamStructure):
         """
         patterns = dict.fromkeys(flatten(self.file_format_patterns.values()))
         return ",".join(patterns)
+
+    @cached_property
+    def _file_pattern_glob(self) -> str:
+        """The `file_pattern` as the last segment of a search pattern.
+
+        Several patterns are wrapped in ``{…}`` braces, so that `BRACE` expansion
+        applies the directory prefix to every one of them.
+        """
+        fp = self.file_pattern
+        return f"{{{fp}}}" if "," in fp else fp
 
     def default_pattern(self) -> str:
         """Returns the default pattern used to search for the configuration file.
@@ -1063,14 +953,11 @@ class ConfigOption(ExtraOption, ParamStructure):
         ctx = get_current_context()
         cli_name = ctx.find_root().info_name
         if not cli_name:
-            raise ValueError
+            raise ValueError("No CLI name to locate the configuration folder from.")
         app_dir = Path(
             get_app_dir(cli_name, roaming=self.roaming, force_posix=self.force_posix),
         ).resolve()
-        fp = self.file_pattern
-        # Wrap multi-pattern with braces for BRACE expansion.
-        suffix = f"{{{fp}}}" if "," in fp else fp
-        return f"{app_dir}{os.path.sep}{suffix}"
+        return f"{app_dir}{os.path.sep}{self._file_pattern_glob}"
 
     def get_help_extra(self, ctx: click.Context) -> click.types.OptionHelpExtra:
         """Replaces the default value of the configuration option.
@@ -1160,243 +1047,12 @@ class ConfigOption(ExtraOption, ParamStructure):
             show = not self.auto_file_formats
         if show:
             return default
-        fp = self.file_pattern
-        suffix = f"{{{fp}}}" if "," in fp else fp
         folder, sep, tail = default.rpartition(os.path.sep)
         # Leave a custom default alone: only the pattern this option built for
         # itself ends with its own file patterns.
-        if not sep or tail != suffix:
+        if not sep or tail != self._file_pattern_glob:
             return default
         return folder + sep
-
-    @staticmethod
-    def _find_vcs_root(start: Path) -> Path | None:
-        """Walk up from `start` looking for a VCS root directory.
-
-        Returns the directory containing one of the VCS directories defined in
-        `VCS_DIRS`, or `None` if no VCS root is found before reaching the
-        filesystem root.
-        """
-        current = start if start.is_dir() else start.parent
-        for directory in (current, *current.parents):
-            if any((directory / vcs_dir).exists() for vcs_dir in VCS_DIRS):
-                return directory
-        return None
-
-    def _resolve_stop_at(self, start_dir: Path) -> Path | None:
-        """Resolve the `stop_at` value to an absolute `Path` or `None`.
-
-        - `None` → `None` (no boundary).
-        - `VCS` → calls `_find_vcs_root(start_dir)`.
-        - `Path` or other `str` → resolves to absolute.
-        """
-        if self.stop_at is None:
-            return None
-        if self.stop_at is VCS:
-            return self._find_vcs_root(start_dir)
-        # Mypy cannot narrow `Literal[Sentinel.VCS]` via the `is` check above.
-        assert isinstance(self.stop_at, (str, Path))
-        return Path(self.stop_at).resolve()
-
-    @staticmethod
-    def _should_stop_walking(directory: Path, stop_at: Path | None) -> bool:
-        """Return `True` if the parent-directory walk should stop.
-
-        Stops when:
-        - `stop_at` is set and `directory` is not equal to or a child of it.
-        - The directory exists but is not readable.
-        """
-        if stop_at is not None:
-            try:
-                directory.relative_to(stop_at)
-            except ValueError:
-                return True
-        return bool(directory.exists() and not os.access(directory, os.R_OK))
-
-    def parent_patterns(self, pattern: str) -> Iterable[tuple[str | None, str]]:
-        """Generate `(root_dir, file_pattern)` pairs for searching.
-
-        Each yielded pair can be passed directly to
-        `glob.iglob(file_pattern, root_dir=root_dir)` so that every
-        sub-pattern (whether from `BRACE` or `SPLIT` expansion) is
-        correctly scoped to the same directory.
-
-        `root_dir` is `None` for entirely magic patterns that will be
-        evaluated relative to the current working directory.
-
-        Stops when reaching the root folder, the `stop_at` boundary, or an
-        inaccessible directory.
-        """
-        # Deferred import: keeps wcmatch off the startup path of every CLI.
-        from wcmatch import glob
-
-        # Normalize path separators for magic detection: on Windows, backslashes
-        # in paths are mistaken for glob escape characters by wcmatch.
-        def is_magic(p: str) -> bool:
-            return glob.is_magic(p.replace("\\", "/"), flags=self.search_pattern_flags)
-
-        # Split pattern into non-magic directory prefix (root_dir) and magic
-        # file suffix (file_pattern).
-        root_dir: Path | None
-        if not is_magic(pattern):
-            resolved = Path(pattern).resolve()
-            if resolved.is_file():
-                root_dir = resolved.parent
-                file_pattern = resolved.name
-            else:
-                root_dir = resolved
-                file_pattern = ""
-        else:
-            parts = Path(pattern).parts
-            magic_idx = next(i for i, part in enumerate(parts) if is_magic(part))
-            if magic_idx == 0:
-                # Entirely magic (like "{*.toml,*.yaml}").
-                root_dir = None
-                file_pattern = pattern
-            else:
-                root_dir = Path(*parts[:magic_idx]).resolve()
-                file_pattern = str(Path(*parts[magic_idx:]))
-
-        # Yield the original location.
-        root_str = str(root_dir) if root_dir is not None else None
-        yield root_str, file_pattern
-
-        if not self.search_parents:
-            return
-
-        if root_dir is None:
-            logger.debug("Entirely magic pattern, skipping parent search.")
-            return
-
-        logger.debug("Parent search enabled.")
-        stop_at = self._resolve_stop_at(root_dir)
-
-        for parent in root_dir.parents:
-            if self._should_stop_walking(parent, stop_at):
-                logger.debug(f"Stopped walking at {parent}")
-                return
-            yield str(parent), file_pattern
-
-    def search_and_read_file(
-        self,
-        pattern: str,
-    ) -> Iterable[tuple[Path | str, str, str | None]]:
-        """Search filesystem or URL for files matching the `pattern`.
-
-        If `pattern` is an URL, download its content. A pattern is considered an URL
-        only if it validates as one and starts with `http://` or `https://`. All
-        other patterns are considered glob patterns for local filesystem search.
-
-        Returns an iterator of `(location, content, media_type)` triples, for each
-        one matching the pattern. `location` is normalized and `content` raw.
-        `media_type` is the bare `type/subtype` the server advertised in its
-        `Content-Type` header, and is `None` for a local file, whose format is
-        derived from its name. Only regular files are returned, directories are
-        silently skipped. The exception is a `pattern` naming a character device
-        or a named pipe, like `/dev/null`: it is read from that path.
-
-        This method returns the raw content of all matching patterns, without trying to
-        parse them. If the content is empty, it is still returned as-is.
-
-        Also includes lookups into parents directories if `self.search_parents` is
-        `True`.
-
-        Raises `FileNotFoundError` if no file was found after searching all locations.
-        """
-        files_found = 0
-
-        # Deferred imports: keep urllib, extra_platforms and wcmatch off the
-        # startup path of every CLI.
-        from urllib.parse import urlsplit
-
-        from extra_platforms import is_windows
-        from wcmatch import glob
-
-        # Check if the pattern is an URL.
-        if urlsplit(pattern).scheme in ("http", "https"):
-            location = pattern
-            # It's an URL, try to download it.
-            logger.debug(f"Download file from URL: {location}")
-            # Fetch the remote config with the standard library rather than
-            # `requests`: downloading a file is the only HTTP call Click Extra
-            # makes, and `urllib` handles it (TLS, redirects, and the
-            # `*_proxy` environment variables) without forcing `requests`
-            # and its urllib3 / charset-normalizer / idna stack onto every
-            # install. It is still imported lazily, on this rare path only, so
-            # `http.client` / `ssl` stay off every CLI's startup. Do not
-            # hoist these back to module scope.
-            from urllib.error import HTTPError
-            from urllib.request import urlopen
-
-            try:
-                with urlopen(location) as response:
-                    files_found += 1
-                    # Decode using the charset advertised in the Content-Type
-                    # header, defaulting to UTF-8: the near-universal encoding
-                    # for configuration files.
-                    charset = response.headers.get_content_charset() or "utf-8"
-                    # The same header types the payload. A server sending no
-                    # Content-Type at all reads as `text/plain`, which no format
-                    # claims, so the URL's file name still decides.
-                    media_type = response.headers.get_content_type()
-                    yield location, response.read().decode(charset), media_type
-            # A 4xx/5xx leaves files_found at 0, so the search falls through to
-            # the FileNotFoundError below, like a missing local file. Lower-level
-            # URLError failures (DNS, refused connection, TLS) still propagate.
-            except HTTPError as error:
-                logger.warning(f"Can't download {location}: {error.reason}")
-
-        # Not an URL, search local file system.
-        else:
-            logger.debug(f"Search filesystem for {pattern}")
-            # wcmatch expect patterns to be written with Unix-like syntax by default,
-            # even on Windows. See more details at:
-            # https://facelessuser.github.io/wcmatch/glob/#windows-separators
-            # https://github.com/facelessuser/wcmatch/issues/194
-            if is_windows():
-                win_path = Path(pattern)
-                pattern = str(win_path.as_posix())
-                logger.debug(f"Windows pattern converted from {win_path} to {pattern}")
-
-            # A path naming a character device or a named pipe, like the null
-            # device, is read as given. The glob below keeps to regular files, so a
-            # pattern never blocks on a pipe it happens to match, and could not find
-            # the `nul` device of Windows anyway, which no directory lists.
-            try:
-                mode = os.stat(pattern).st_mode
-            except OSError:
-                mode = 0
-            if stat.S_ISCHR(mode) or stat.S_ISFIFO(mode):
-                stream = Path(pattern)
-                logger.debug(f"Read {stream} as a stream.")
-                yield stream, stream.read_text(encoding="utf-8"), None
-                return
-
-            for root_dir, file_pattern in self.parent_patterns(pattern):
-                # Sort matches within each directory: iglob yields in filesystem
-                # order, so without this the winner among sibling files (and
-                # the layering order of a cascade) would be arbitrary.
-                for file in sorted(
-                    glob.iglob(
-                        file_pattern,
-                        root_dir=root_dir,
-                        flags=self.search_pattern_flags,
-                    )
-                ):
-                    base = Path(root_dir) if root_dir else Path()
-                    file_path = (base / file).resolve()
-                    logger.debug(f"Found candidate: {file_path}")
-                    if not file_path.is_file():
-                        logger.debug(f"Skipping non-file {file_path}")
-                        continue
-                    files_found += 1
-                    if format_from_path(file_path, _PATH_READ_FORMATS):
-                        yield file_path, "", None
-                    else:
-                        yield file_path, file_path.read_text(encoding="utf-8"), None
-
-        if not files_found:
-            raise FileNotFoundError(f"No file found matching {pattern}")
 
     def parse_conf(
         self,
@@ -1429,23 +1085,25 @@ class ConfigOption(ExtraOption, ParamStructure):
         conf = None
         for fmt in formats:
             try:
-                if fmt is ConfigFormat.INI:
-                    conf = self.load_ini_config(content)
-                elif fmt is ConfigFormat.ARGFILE:
-                    conf = self.load_argfile_config(content)
-                elif fmt is ConfigFormat.SQLITE:
-                    if not isinstance(location, Path):
-                        raise ValueError(
-                            "SQLite configurations can only be read from a local file."
-                        )
-                    conf = self.load_sqlite_config(location)
-                elif fmt is ConfigFormat.PLIST and isinstance(location, Path):
-                    # Local files are read as raw bytes so the binary plist
-                    # variant parses too; text payloads (URL downloads) fall
-                    # through to parse_content(), which handles the XML one.
-                    conf = self.load_plist_config(location)
-                else:
-                    conf = parse_content(fmt, content)
+                match fmt:
+                    case ConfigFormat.INI:
+                        conf = self.load_ini_config(content)
+                    case ConfigFormat.ARGFILE:
+                        conf = self.load_argfile_config(content)
+                    case ConfigFormat.SQLITE:
+                        if not isinstance(location, Path):
+                            raise TypeError(
+                                "SQLite configurations can only be read from a "
+                                "local file."
+                            )
+                        conf = self.load_sqlite_config(location)
+                    case ConfigFormat.PLIST if isinstance(location, Path):
+                        # Local files are read as raw bytes so the binary plist
+                        # variant parses too. Text payloads (URL downloads) fall
+                        # through to parse_content(), which handles the XML one.
+                        conf = self.load_plist_config(location)
+                    case _:
+                        conf = parse_content(fmt, content)
 
             except Exception as ex:  # noqa: BLE001
                 logger.debug(f"{fmt} parsing failed: {ex}")
@@ -1462,67 +1120,6 @@ class ConfigOption(ExtraOption, ParamStructure):
 
             logger.debug(f"{fmt} parsing successful, got {conf!r}.")
             yield conf
-
-    def _search_pyproject_cwd_all(
-        self,
-    ) -> Iterable[tuple[Path, dict[str, Any]]]:
-        """Yield every `pyproject.toml` from CWD upward, deepest first.
-
-        Mimics the discovery behavior of uv, ruff, and mypy: start in the
-        current working directory and walk up to the VCS root (or filesystem
-        root), yielding each `pyproject.toml` containing a
-        `[tool.<cli_name>]` section as a `(path, parsed_document)` pair.
-
-        A `pyproject.toml` without a `[tool.<cli_name>]` section is
-        skipped so unrelated project configs (like a dotfiles repo's
-        `[tool.ruff]`) do not shadow the user's app-dir config.
-
-        Only runs when `ConfigFormat.PYPROJECT_TOML` is in
-        `file_format_patterns`. Yields nothing when no valid
-        `pyproject.toml` is found.
-        """
-        cwd = Path.cwd()
-        stop_at = self._resolve_stop_at(cwd)
-
-        cli_name = get_current_context().find_root().info_name
-
-        for directory in (cwd, *cwd.parents):
-            if self._should_stop_walking(directory, stop_at):
-                logger.debug(f"pyproject.toml CWD search stopped at {directory}.")
-                break
-
-            candidate = directory / "pyproject.toml"
-            if not candidate.is_file():
-                continue
-
-            logger.debug(f"Found {candidate}, parsing as pyproject.toml.")
-            try:
-                content = candidate.read_text(encoding="utf-8")
-            except OSError as ex:
-                logger.debug(f"Cannot read {candidate}: {ex}")
-                continue
-
-            for conf in self.parse_conf(
-                content, formats=(ConfigFormat.PYPROJECT_TOML,)
-            ):
-                if conf and cli_name in conf:
-                    yield candidate, conf
-                    break
-            else:
-                logger.debug(f"{candidate} has no [tool.{cli_name}] section; skipping.")
-
-    def _search_pyproject_cwd(
-        self,
-    ) -> tuple[Path, dict[str, Any]] | tuple[None, None]:
-        """Return the nearest `pyproject.toml` from CWD upward, if any.
-
-        Thin wrapper over {meth}`_search_pyproject_cwd_all` keeping the
-        single-file discovery contract: the deepest `pyproject.toml` with a
-        `[tool.<cli_name>]` section wins, matching the behavior of uv, ruff
-        and mypy. Returns `(None, None)` when no valid `pyproject.toml` is
-        found.
-        """
-        return next(iter(self._search_pyproject_cwd_all()), (None, None))
 
     def _parse_matches(
         self,
@@ -1728,9 +1325,12 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Utility method to parse INI configuration file.
 
         Internal convention is to use a dot (`.`, as set by
-        {data}`~click_extra.parameters.PARAM_PATH_SEP`) in section IDs as a
+        {data}`~click_extra.param_tools.PARAM_PATH_SEP`) in section IDs as a
         separator between levels. This is a workaround the limitation of `INI`
         format which doesn't allow for sub-sections.
+
+        Each value is converted to the type of the parameter its section and key
+        address, like `[my-cli.subcommand]` for the options of `subcommand`.
 
         Returns a ready-to-use data structure.
         """
@@ -1742,37 +1342,28 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         conf: dict[str, Any] = {}
         for section_id in ini_config.sections():
-            # Extract all options of the section.
+            section_path = section_id.split(PARAM_PATH_SEP)
             sub_conf = {}
             for option_id in ini_config.options(section_id):
-                # Fetch the expected type of the CLI parameter.
+                # An item matching no parameter keeps its text.
                 try:
                     target_params = self.get_tree_value(
-                        self.params_objects, section_id, option_id
+                        self.params_objects, *section_path, option_id
                     )
-                # The item in the INI config file does not correspond to any existing
-                # parameter in the CLI structure.
-                except KeyError:
-                    target_type = None
-                # The item in the INI config file corresponds to a single parameter
-                # in the CLI structure.
-                else:
-                    # Because one variable name can be shared by multiple options, we
-                    # need to fetch all of those we detected in the CLI structure.
-                    assert isinstance(target_params, list)
-                    # We deduplicate them to simplify the next steps. If we are lucky,
-                    # all options sharing the same name also share the same type.
+                except (KeyError, TypeError):
+                    target_params = None
+                target_type = None
+                if isinstance(target_params, list):
+                    # One name can be shared by several options, which must then
+                    # share a type for the item to be read as it.
                     target_types = [self.get_param_type(p) for p in target_params]
-                    dedup_types = set(target_types)
-
-                    # XXX This case is tricky and not even covered in Click unittests.
-                    if len(dedup_types) > 1:
+                    if len(set(target_types)) > 1:
                         raise ValueError(
                             f"Cannot handle the {target_types!r} types defined by the "
                             "multiple options associated to the "
                             f"[{section_id}]:{option_id} INI config item."
                         )
-                    target_type = dedup_types.pop()
+                    target_type = target_types[0]
 
                 sub_conf[option_id] = _coerce_scalar(
                     target_type,
@@ -1781,10 +1372,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 )
 
             # Place collected options at the right level of the dict tree.
-            conf = deep_merge(
-                conf,
-                self.init_tree_dict(*section_id.split(PARAM_PATH_SEP), leaf=sub_conf),
-            )
+            set_nested(conf, section_path, sub_conf)
 
         return conf
 
@@ -1888,7 +1476,7 @@ class ConfigOption(ExtraOption, ParamStructure):
                 continue
 
             # Flags carry their value in the declaration itself, which
-            # {func}`~click_extra.parameters.resolve_flag_value` reads the same
+            # {func}`~click_extra.param_tools.resolve_flag_value` reads the same
             # way on every Click line. Reading `flag_value` directly stores the
             # UNSET sentinel under Click's development branch, and a boolean
             # flag set from an argfile then comes back off.
@@ -1915,7 +1503,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         The database holds a single {data}`~click_extra.config.formats.SQLITE_CONFIG_TABLE`
         table of `key`/`value` rows. Keys are parameter paths, with a dot
-        (`.`, as set by {data}`~click_extra.parameters.PARAM_PATH_SEP`)
+        (`.`, as set by {data}`~click_extra.param_tools.PARAM_PATH_SEP`)
         separating each level, like `my-cli.default.int_param`. Values are
         JSON-encoded, which carries every type the other formats do:
         booleans, numbers, strings, lists and nested objects alike.
@@ -1927,9 +1515,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         the optional parsers of
         {func}`~click_extra.config.formats.parse_content`. A distribution can
         ship a Python without the SQLite bindings, and an unconditional import
-        would then break every CLI at import time.
-        {data}`~click_extra.config.formats.SQLITE_SUPPORT` reports whether they
-        are there, and disables the format if they are not.
+        would then break every CLI at import time. `ConfigFormat.SQLITE.enabled`
+        reports whether they are there, and the format is disabled if they are
+        not.
         ```
         """
         import sqlite3
@@ -1944,12 +1532,7 @@ class ConfigOption(ExtraOption, ParamStructure):
 
         conf: dict[str, Any] = {}
         for key, raw_value in rows:
-            conf = deep_merge(
-                conf,
-                self.init_tree_dict(
-                    *key.split(PARAM_PATH_SEP), leaf=json.loads(raw_value)
-                ),
-            )
+            set_nested(conf, key.split(PARAM_PATH_SEP), json.loads(raw_value))
 
         return conf
 
@@ -1972,94 +1555,76 @@ class ConfigOption(ExtraOption, ParamStructure):
         return conf
 
     def _app_section_name(self, ctx: click.Context) -> str:
-        """Return the app section name used for both schema processing and opaque
-        path resolution.
+        """Return the name of the app's section in a configuration document.
 
-        Matches the name resolution logic in :py:meth:`_apply_config_schema`:
-        prefers the root command's name, falls back to `ctx.info_name`, and
-        defaults to empty string for fully-defensive callers.
+        Prefers the root command's name, falls back to `ctx.info_name`, and
+        defaults to an empty string, which makes the whole document the section.
         """
         return ctx.find_root().command.name or ctx.info_name or ""
 
-    def _app_section(
+    def _merged_conf(self, ctx: click.Context, conf: dict[str, Any]) -> dict[str, Any]:
+        """Merge the app's section of `conf` onto this option's parameter template.
+
+        Runs the strict check alone, with this option's settings: the opaque
+        sub-trees and the reserved keys are left out, so neither a key of an
+        extension point nor a dot inside one trips `strict=True`, and neither does
+        a key the schema reads.
+
+        :raises ValidationError: in strict mode, on an invalid dotted key or a key
+            matching no parameter.
+        """
+        return _build_merged_conf(
+            conf,
+            app_name=self._app_section_name(ctx),
+            params_template=self.params_template,
+            opaque_paths=self._opaque_paths,
+            fallback_sections=self.fallback_sections,
+            strict=self.strict,
+            blocked=self.excluded_params,
+            config_schema=self.config_schema,
+        )
+
+    def _validate_conf(
         self,
         ctx: click.Context,
-        user_conf: dict[str, Any],
-    ) -> tuple[str, dict[str, Any]]:
-        """Return `(app_name, app_section)` for the current context.
-
-        Convenience pair that bundles :py:meth:`_app_section_name` and
-        :py:meth:`_resolve_app_section`. Used by every callback that operates
-        on the app's slice of the parsed config (schema processing, validator
-        dispatch, theme-override extraction).
-        """
-        app_name = self._app_section_name(ctx)
-        return app_name, self._resolve_app_section(user_conf, app_name)
-
-    def _rooted_opaque_paths(self, ctx: click.Context) -> tuple[str, ...]:
-        """Return the opaque paths, each prefixed with the app's section name.
-
-        Opaque paths are relative to the app's section. Rooted at the
-        configuration file, they locate their sub-trees in a whole document.
-        """
-        app_name = self._app_section_name(ctx)
-        return tuple(_rooted_path(app_name, path) for path in self._opaque_paths)
-
-    def _strip_opaque_from_conf(
-        self,
-        ctx: click.Context,
-        normalized_conf: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Remove opaque sub-trees from a normalized config before strict-check.
-
-        Opaque paths are relative to the app's section, so they are prefixed with
-        the app name when stripping. Returns `normalized_conf` unchanged if no
-        opaque paths are declared, so the helper is safe to call unconditionally.
-        """
-        if not self._opaque_paths:
-            return normalized_conf
-        return _strip_opaque_subtrees(normalized_conf, self._rooted_opaque_paths(ctx))
-
-    def _resolve_app_section(
-        self,
         conf: dict[str, Any],
-        app_name: str,
-    ) -> dict[str, Any]:
-        """Extract the app's configuration section from the parsed config.
+        *,
+        params_template: dict[str, Any] | None,
+        strict: bool,
+        collect_all: bool = False,
+    ) -> ValidationReport:
+        """Run {func}`~click_extra.config.schema.run_config_validation` on `conf`.
 
-        Thin instance-bound wrapper around :py:func:`_select_app_section` that
-        supplies this option's :py:attr:`fallback_sections`.
+        The schema, the validators and the section settings are this option's.
+        `collect_all` defaults to `False`: a configuration being loaded stops at
+        its first error.
         """
-        return _select_app_section(conf, app_name, self.fallback_sections)
-
-    def _apply_config_schema(
-        self,
-        ctx: click.Context,
-        user_conf: dict[str, Any],
-    ) -> None:
-        """Apply the config schema to the app's section and store the result.
-
-        Extracts the app-specific section from the full parsed config, passes
-        it through the schema callable, and stores the result in
-        `ctx.meta[click_extra.context.TOOL_CONFIG]`.
-        """
-        if self._config_schema_callable is None:
-            return
-        _, app_section = self._app_section(ctx, user_conf)
-        context.set(ctx, context.TOOL_CONFIG, self._config_schema_callable(app_section))
+        return run_config_validation(
+            conf,
+            app_name=self._app_section_name(ctx),
+            params_template=params_template,
+            config_schema=self.config_schema,
+            config_validators=self.config_validators,
+            fallback_sections=self.fallback_sections,
+            schema_strict=self.schema_strict,
+            schema_warn_unknown=self.schema_warn_unknown,
+            strict=strict,
+            blocked_params=self.excluded_params,
+            collect_all=collect_all,
+        )
 
     def _apply_theme_overrides(
         self,
         ctx: click.Context,
-        user_conf: dict[str, Any],
+        report: ValidationReport,
     ) -> None:
         """Build per-invocation theme overrides from the config and stash on `ctx.meta`.
 
-        Reads the `[tool.<cli>.themes.<name>]` sub-tree, builds each entry into
-        a {class}`HelpTheme <click_extra.theme.HelpTheme>` (cascading
-        on top of an existing built-in theme when *name* matches one already in
-        {data}`~click_extra.theme.theme_registry`), and writes the result to
-        `ctx.meta[click_extra.context.THEME_OVERRIDES]`. The module-level
+        Reads the `[tool.<cli>.themes.<name>]` sub-tree the validation extracted,
+        builds each entry into a {class}`HelpTheme <click_extra.theme.HelpTheme>`
+        (cascading on top of an existing built-in theme when *name* matches one
+        already in {data}`~click_extra.theme.theme_registry`), and writes the result
+        to `ctx.meta[click_extra.context.THEME_OVERRIDES]`. The module-level
         registry is never mutated, so themes defined here apply to the current
         invocation only.
 
@@ -2067,25 +1632,18 @@ class ConfigOption(ExtraOption, ParamStructure):
         {func}`~click_extra.theme.validate_themes_config` validator, so failures
         below this point would be a click-extra bug rather than user error.
         """
-        # Lazy-imported to avoid the load-time config-theme cycle, like
-        # _builtin_config_validators in click_extra.config.builtin.
+        themes_subtree = report.opaque_subtrees.get(THEMES_CONFIG_KEY)
+        if not themes_subtree:
+            return
+        # Deferred import: click_extra.theme and this package import each other.
         from ..theme import themes_from_config
 
-        _, app_section = self._app_section(ctx, user_conf)
-        themes_subtree = app_section.get(THEMES_CONFIG_KEY)
-        if not isinstance(themes_subtree, dict) or not themes_subtree:
-            return
         overrides = themes_from_config(themes_subtree)
         if overrides:
             context.set(ctx, context.THEME_OVERRIDES, overrides)
 
-    def _publish_report(
-        self,
-        ctx: click.Context,
-        report: ValidationReport,
-        user_conf: dict[str, Any],
-    ) -> None:
-        """Publish on `ctx.meta` what a passing validation of `user_conf` produced.
+    def _publish_report(self, ctx: click.Context, report: ValidationReport) -> None:
+        """Publish on `ctx.meta` what a passing validation produced.
 
         The typed instance the schema callable built, under
         {data}`~click_extra.context.TOOL_CONFIG`, when a schema is configured, and
@@ -2093,52 +1651,32 @@ class ConfigOption(ExtraOption, ParamStructure):
         {data}`~click_extra.context.THEME_OVERRIDES`. The pipeline validated the
         themes table already, so building it here cannot surface a user error.
         """
-        if self._config_schema_callable is not None:
+        if self.config_schema is not None:
             context.set(ctx, context.TOOL_CONFIG, report.schema_instance)
-        self._apply_theme_overrides(ctx, user_conf)
+        self._apply_theme_overrides(ctx, report)
 
     def merge_default_map(self, ctx: click.Context, user_conf: dict) -> None:
         """Save the user configuration into the context's `default_map`.
 
         Merge the user configuration into the pre-computed template structure, which
         filters out all unrecognized options not supported by the command, then hand
-        the result to :py:meth:`_install_default_map`.
+        the result to {meth}`_install_default_map`.
 
         Opaque sub-trees declared by the schema or by registered
-        {class}`~click_extra.config.schema.ConfigValidator` instances are stripped from the conf before
-        dotted-key expansion and the CLI-parameter strict check, so user-controlled
-        keys (like mappings whose keys are data, not flag names) neither split on a
-        dot nor trip `strict=True`.
+        {class}`~click_extra.config.schema.ConfigValidator` instances are stripped
+        from the conf before dotted-key expansion and the CLI-parameter strict
+        check, so user-controlled keys (like mappings whose keys are data, not flag
+        names) neither split on a dot nor trip `strict=True`.
 
         ```{note}
-        This recomputes the filtered config that
-        :py:func:`~click_extra.config.schema.run_config_validation` already
-        produces as
-        :py:attr:`~click_extra.config.schema.ValidationReport.merged_conf`.
-        :py:meth:`load_conf` installs that result directly and skips this
-        method; it stays as the standalone entry point for external callers.
+        {meth}`load_conf` installs the same merged configuration, as part of the
+        validation it runs: it does not call this method.
         ```
+
+        :raises ValidationError: in strict mode, on an invalid dotted key or a key
+            matching no parameter.
         """
-        normalized_conf = _normalize_conf(
-            user_conf, strict=self.strict, opaque_paths=self._rooted_opaque_paths(ctx)
-        )
-        normalized_conf = self._strip_opaque_from_conf(ctx, normalized_conf)
-        # Scope the merge (and its strict check) to the app's own section, so
-        # foreign sections in a shared file are ignored and legacy fallback
-        # sections are honored.
-        app_name = self._app_section_name(ctx)
-        scoped_conf = (
-            _scope_app_sections(normalized_conf, app_name, self.fallback_sections)
-            if app_name
-            else normalized_conf
-        )
-        filtered_conf = _merge_into_template(
-            copy.deepcopy(self.params_template),
-            scoped_conf,
-            self.strict,
-            blocked=self.excluded_params,
-        )
-        self._install_default_map(ctx, filtered_conf)
+        self._install_default_map(ctx, self._merged_conf(ctx, user_conf))
 
     def _apply_cascaded_conf(
         self,
@@ -2158,23 +1696,13 @@ class ConfigOption(ExtraOption, ParamStructure):
         That merged view is returned, for publication in
         `ctx.meta[click_extra.context.CONF_FULL]`.
         """
-        app_name = self._app_section_name(ctx)
-
         # Strict-check each file against the CLI-parameter template.
         per_file_conf = []
         for location, conf in layers:
-            report = run_config_validation(
-                conf,
-                app_name=app_name,
-                params_template=self.params_template,
-                fallback_sections=self.fallback_sections,
-                strict=self.strict,
-                blocked_params=self.excluded_params,
-                collect_all=False,
-            )
-            _exit_on_validation_error(ctx, report, location)
-            assert report.merged_conf is not None  # params_template is always set.
-            per_file_conf.append(report.merged_conf)
+            try:
+                per_file_conf.append(self._merged_conf(ctx, conf))
+            except ValidationError as error:
+                _exit_on_validation_error(ctx, error, location)
 
         # Deep-merge the raw documents, highest-precedence layer winning, for
         # the schema and the extension validators. Merging starts from the
@@ -2183,26 +1711,18 @@ class ConfigOption(ExtraOption, ParamStructure):
         for _location, conf in reversed(layers):
             merged_view = deep_merge(merged_view, copy.deepcopy(conf))
 
-        report = run_config_validation(
-            merged_view,
-            app_name=app_name,
-            params_template=None,
-            config_schema=self.config_schema,
-            config_validators=self.config_validators,
-            fallback_sections=self.fallback_sections,
-            schema_strict=self.schema_strict,
-            schema_warn_unknown=self.schema_warn_unknown,
-            strict=self.strict,
-            collect_all=False,
+        report = self._validate_conf(
+            ctx, merged_view, params_template=None, strict=self.strict
         )
-        _exit_on_validation_error(ctx, report)
+        if not report.ok:
+            _exit_on_validation_error(ctx, report.errors[0])
 
         # Install one default_map layer per file, lowest precedence first.
         for merged_conf in reversed(per_file_conf):
             self._install_default_map(ctx, merged_conf)
         logger.debug(f"New defaults: {ctx.default_map}")
 
-        self._publish_report(ctx, report, merged_view)
+        self._publish_report(ctx, report)
         return merged_view
 
     def _install_default_map(
@@ -2216,12 +1736,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         layer wins on key lookup, which makes parameter-source precedence explicit
         and future-proofs for multi-file config loading.
         """
-        # Deferred import: keeps extra_platforms off the startup path of every CLI.
-        from extra_platforms._utils import _remove_blanks
-
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.
-        clean_conf = _remove_blanks(filtered_conf, remove_str=False)
+        clean_conf = remove_blanks(filtered_conf, remove_str=False)
 
         # Layer the config values on top of any existing default_map via ChainMap.
         # Click only calls .get() on default_map, which ChainMap supports with
@@ -2240,9 +1757,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         User configuration is merged to the [context's default_map](https://click.palletsprojects.com/en/stable/commands/#overriding-defaults),
         [like Click does](https://click.palletsprojects.com/en/stable/commands/#context-defaults).
 
-        By relying on Click's `default_map`, we make sure that precedence is
-        respected. Direct CLI parameters, environment variables or interactive prompts
-        take precedence over any values from the config file.
+        Relying on Click's `default_map` keeps the precedence: direct CLI
+        parameters, environment variables or interactive prompts take precedence
+        over any values from the config file.
 
         ```{hint}
         Once loading is complete, the resolved file path and its full parsed content
@@ -2250,10 +1767,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         `ctx.meta[click_extra.context.CONF_FULL]` respectively. This is the
         recommended way to identify which configuration file was loaded.
 
-        We intentionally do not
-        add a custom `ParameterSource.CONFIG_FILE` enum member: `ParameterSource`
-        is a closed enum in Click, and monkeypatching it would be fragile. Besides,
-        config values end up in `default_map`, so Click already reports them as
+        There is no `ParameterSource.CONFIG_FILE` enum member: `ParameterSource`
+        is a closed enum in Click, and monkeypatching it would be fragile. Config
+        values end up in `default_map`, so Click reports them as
         `ParameterSource.DEFAULT_MAP`, which is accurate.
         ```
         """
@@ -2262,13 +1778,15 @@ class ConfigOption(ExtraOption, ParamStructure):
         if ctx.resilient_parsing:
             return
 
-        if not self._pattern_sanity_checked:
+        # The checks only log at DEBUG level: below it, they would cost the import
+        # of wcmatch for nothing.
+        if not self._pattern_sanity_checked and logger.isEnabledFor(logging.DEBUG):
             self._pattern_sanity_checked = True
             self._check_pattern_sanity()
 
         # A bare invocation already loaded this document ahead of the no-args help
         # screen: skip the visit Click's parameter loop makes next.
-        preloaded = context.get(ctx, _PRELOADED)
+        preloaded = context.get(ctx, context._CONFIG_PRELOADED)
         if preloaded and ctx.command_path in preloaded:
             preloaded.remove(ctx.command_path)
             return
@@ -2277,7 +1795,7 @@ class ConfigOption(ExtraOption, ParamStructure):
         # logger still sits at its default level here, because the verbosity options
         # run after this one. handle_parse_result() reads the level they will settle
         # on ahead of time, so -q and a quieter --verbosity still silence the lines.
-        silenced = context.get(ctx, _STATUS_SILENCED, False)
+        silenced = context.get(ctx, context._CONFIG_STATUS_SILENCED, False)
 
         assert self.name is not None  # Always set for Option subclasses.
 
@@ -2315,12 +1833,10 @@ class ConfigOption(ExtraOption, ParamStructure):
             not explicit_conf
             and ConfigFormat.PYPROJECT_TOML in self.file_format_patterns
         ):
-            if self.cascade:
-                layers.extend(self._search_pyproject_cwd_all())
-            else:
-                pyproject_result = self._search_pyproject_cwd()
-                if pyproject_result[0] is not None:
-                    layers.append(pyproject_result)
+            # Without a cascade, the deepest pyproject.toml wins, as with uv, ruff
+            # and mypy.
+            pyprojects = self._search_pyproject_cwd()
+            layers.extend(pyprojects if self.cascade else islice(pyprojects, 1))
             if layers:
                 logger.debug(f"Using {layers[0][0]} from CWD search.")
 
@@ -2380,41 +1896,36 @@ class ConfigOption(ExtraOption, ParamStructure):
                 logger.debug(f"Parsed user configuration: {user_conf}")
                 logger.debug(f"Initial defaults: {ctx.default_map}")
 
-                # Run every check through the unified pipeline. collect_all=False
-                # fails fast on the first error.
-                report = run_config_validation(
+                # Run every check through the unified pipeline, which stops at
+                # the first error.
+                report = self._validate_conf(
+                    ctx,
                     user_conf,
-                    app_name=self._app_section_name(ctx),
                     params_template=self.params_template,
-                    config_schema=self.config_schema,
-                    config_validators=self.config_validators,
-                    fallback_sections=self.fallback_sections,
-                    schema_strict=self.schema_strict,
-                    schema_warn_unknown=self.schema_warn_unknown,
                     strict=self.strict,
-                    blocked_params=self.excluded_params,
-                    collect_all=False,
                 )
-                _exit_on_validation_error(ctx, report)
+                if not report.ok:
+                    _exit_on_validation_error(ctx, report.errors[0])
 
-                # Validation passed. Install the recognized values into default_map,
-                # then publish what the pipeline built. It already filtered
-                # user_conf against the template, so the merged result is installed
-                # directly instead of recomputing it via merge_default_map.
+                # Validation passed. Install the recognized values the pipeline
+                # merged onto the template into default_map, then publish what
+                # it built.
                 assert report.merged_conf is not None  # params_template is always set.
                 self._install_default_map(ctx, report.merged_conf)
                 logger.debug(f"New defaults: {ctx.default_map}")
-                self._publish_report(ctx, report, user_conf)
+                self._publish_report(ctx, report)
 
         # When a schema is configured but no config file was found, still
         # produce the default instance so get_tool_config() never returns None.
-        elif self._config_schema_callable is not None:
+        elif self.config_schema is not None:
             logger.debug("No config file found; instantiating schema defaults.")
-            self._apply_config_schema(ctx, {})
+            schema_callable = make_schema_callable(self.config_schema)
+            assert schema_callable is not None  # The schema is set.
+            context.set(ctx, context.TOOL_CONFIG, schema_callable({}))
 
         # Expose the resolved config file path and its full parsed content via
         # ctx.meta, so downstream CLI code can inspect what was loaded and from where.
-        # See the load_conf docstring for why we use ctx.meta instead of a custom
+        # See the load_conf docstring for why ctx.meta stands in for a custom
         # ParameterSource enum member.
         context.set(ctx, context.CONF_SOURCE, conf_path)
         context.set(ctx, context.CONF_FULL, user_conf)
@@ -2452,7 +1963,7 @@ class ConfigOption(ExtraOption, ParamStructure):
             level = requested_level(ctx, opts)
             context.set(
                 ctx,
-                _STATUS_SILENCED,
+                context._CONFIG_STATUS_SILENCED,
                 level is not None and level > LogLevel.WARNING,
             )
         value, args = super().handle_parse_result(ctx, opts, args)
@@ -2464,9 +1975,10 @@ class ConfigOption(ExtraOption, ParamStructure):
         """Settle the reserved subcommand keys ahead of the no-args help screen.
 
         Processes this option on its own, which loads the document and returns the
-        names to dispatch. {func}`_group_parse_args` is the only caller, and the
-        command line is empty by the time it reaches here, so the option is handed
-        no parsed value and falls back to its own auto-discovery.
+        names to dispatch. {func}`~click_extra.config.subcommands._group_parse_args`
+        is the only caller, and the command line is empty by the time it reaches
+        here, so the option is handed no parsed value and falls back to its own
+        auto-discovery.
 
         Returns an empty list when the configuration names nothing, which leaves
         Click's help screen in place. A usage error does the same, like a reserved
@@ -2483,11 +1995,9 @@ class ConfigOption(ExtraOption, ParamStructure):
         except click.ClickException:
             return []
         if injected:
-            preloaded = context.get(ctx, _PRELOADED)
-            if preloaded is None:
-                preloaded = set()
-                context.set(ctx, _PRELOADED, preloaded)
-            preloaded.add(ctx.command_path)
+            context.setdefault(ctx, context._CONFIG_PRELOADED, set).add(
+                ctx.command_path
+            )
         return injected
 
 
@@ -2518,9 +2028,8 @@ class NoConfigOption(ExtraOption):
     ) -> None:
         """`flag_value=NO_CONFIG` is the `Sentinel` enum member that
         signals "skip configuration loading" to {class}`ConfigOption`. Click
-        `8.4.0` (PR [pallets/click#3363](https://github.com/pallets/click/pull/3363)) auto-detects
-        `type=UNPROCESSED` for non-basic `flag_value` types, so the sentinel
-        passes through `Option` unchanged without an explicit `type` override.
+        picks `type=UNPROCESSED` for a `flag_value` of a non-basic type, so the
+        sentinel passes through `Option` unchanged.
 
         ```{seealso}
         An alternative implementation of this class would be to create a custom
@@ -2638,18 +2147,13 @@ class ValidateConfigOption(ExtraOption):
         # Delegate every check to the unified pipeline in collect-all mode so a
         # single run surfaces the full punch list. `--validate-config` always
         # runs the CLI-parameter check in strict mode regardless of the sibling
-        # option's `strict` setting; schema strictness honors the option's
-        # configured `schema_strict`.
-        report = run_config_validation(
+        # option's `strict` setting. The schema checks follow the option's own
+        # settings, as when it loads the file.
+        report = config_option._validate_conf(
+            ctx,
             user_conf,
-            app_name=config_option._app_section_name(ctx),
             params_template=config_option.params_template,
-            config_schema=config_option.config_schema,
-            config_validators=config_option.config_validators,
-            fallback_sections=config_option.fallback_sections,
-            schema_strict=config_option.schema_strict,
             strict=True,
-            blocked_params=config_option.excluded_params,
             collect_all=True,
         )
 
@@ -2660,358 +2164,3 @@ class ValidateConfigOption(ExtraOption):
 
         info_msg(f"Configuration file {value} is valid.")
         ctx.exit(0)
-
-
-_EXPORT_FORMAT_BY_TOKEN: dict[str, ConfigFormat] = {
-    fmt.label.lower(): fmt for fmt in SERIALIZABLE_FORMATS
-}
-"""Mapping of `--export-config` choice tokens to their {class}`ConfigFormat`.
-
-Built from {data}`~click_extra.config.formats.SERIALIZABLE_FORMATS`, so the
-accepted tokens are exactly the formats
-{func}`~click_extra.config.formats.serialize_content` can write: `toml`,
-`yaml`, `json`, `json5`, `jsonc`, `hjson`, `xml` and `plist`.
-"""
-
-
-def ensure_config_loaded(ctx: click.Context) -> None:
-    """Run the sibling {class}`ConfigOption`'s resolution if it has not run yet.
-
-    Click processes eager parameters given on the command line before eager
-    parameters left at their defaults, so an explicitly-passed introspection
-    flag (`--params`, `--export-config`) fires before the `--config`
-    option had a chance to discover and load the configuration file. The views
-    those flags render would then miss the configuration layer entirely,
-    showing defaults where the user's config applies.
-
-    Idempotent: does nothing when the config option already resolved (its
-    callback stamps {data}`~click_extra.context.CONF_SOURCE` on the context
-    even when no file was found), when the command has no config option, or
-    when the option carries no callback.
-    """
-    if context.get(ctx, context.CONF_SOURCE, UNSET) is not UNSET:
-        return
-    config_option = search_params(ctx.command.params, ConfigOption)
-    if config_option is None:
-        return
-    if config_option.callback is None:
-        return
-    opts = replay_raw_args(ctx)
-    value, source = config_option.consume_value(ctx, opts)
-    if value is UNSET:
-        return
-    # Record the provenance so the callback's explicit-vs-discovery logic sees
-    # the same source as it would under normal parameter processing.
-    if config_option.name is not None and source is not None:
-        ctx.set_parameter_source(config_option.name, source)
-    config_option.callback(ctx, config_option, value)
-
-
-def _serialize_toml_with_unset(tree: dict[str, Any]) -> str:
-    """Render *tree* as TOML, emitting `None` leaves as commented-out keys.
-
-    TOML has no null type, so parameters without a value cannot round-trip as
-    real entries. Instead of dropping them from the export, each one is
-    rendered as a `# key =` comment line: the generated file documents every
-    key that can be set, while leaving the unset ones inert.
-
-    Relies on `tomlrt` (the `[toml]` extra), like
-    {func}`~click_extra.config.formats.serialize_content` does for TOML.
-
-    `tomlrt` attaches a comment to the key or the section header below it. The
-    tree is walked in the order TOML renders it, the keys of a table before its
-    sub-tables. Each comment waits for the next key or header, or goes to the
-    end of the document.
-
-    `tomlrt` writes no header for a table that holds only sub-tables. When such a
-    table also has commented-out keys, they would read as keys of the table
-    above. A comment or a blank line set above a header pins it, so each section
-    gets a blank line there.
-
-    :raises ImportError: when `tomlrt` is not installed.
-    """
-    import tomlrt
-
-    pending: list[str] = []
-
-    def fill(container: Any, mapping: dict[str, Any]) -> None:
-        for key, value in mapping.items():
-            if isinstance(value, dict):
-                continue
-            if value is None:
-                pending.append(f"{key} =")
-                continue
-            container[key] = _toml_ready(value)
-            if pending:
-                container.leading_comments[key] = tuple(pending)
-                pending.clear()
-        for key, value in mapping.items():
-            if not isinstance(value, dict):
-                continue
-            section = tomlrt.Table.section()
-            # A blank line above the header pins it, and separates the section
-            # from the one above.
-            section.header_leading_block = (None,)
-            container[key] = section
-            # Comments waiting for this header are set on the installed table:
-            # set on the detached one, tomlrt adds a second blank line above them.
-            table = container[key]
-            if pending:
-                table.header_leading_block = (*pending, None)
-                pending.clear()
-            fill(table, value)
-
-    doc = tomlrt.Document()
-    fill(doc, tree)
-    if pending:
-        doc.epilogue = tuple(pending)
-    return tomlrt.dumps(doc)
-
-
-def _under_opaque_path(keys: Sequence[str], opaque_paths: frozenset[str]) -> bool:
-    """Does the parameter reached by *keys* sit inside an opaque schema sub-tree?
-
-    `keys` opens with the CLI name, which the opaque paths do not carry: they are
-    relative to the app's configuration section.
-    """
-    if not opaque_paths:
-        return False
-    relative = PARAM_PATH_SEP.join(keys[1:])
-    return any(
-        relative == path or relative.startswith(f"{path}{PARAM_PATH_SEP}")
-        for path in opaque_paths
-    )
-
-
-def _config_dump_value(param: click.Parameter, value: Any) -> Any:
-    """Coerce a resolved parameter value into a config-serializable form.
-
-    Produces what a user would write in a configuration file, so the dump
-    round-trips back through `--config`:
-
-    - native scalars (`str`, `int`, `float`, `bool`) and `None` pass
-      through unchanged;
-    - sequences are coerced element-wise into a `list`;
-    - an {class}`~enum.Enum` member becomes its
-      {class}`~click_extra.types.EnumChoice` token (or its value/name otherwise);
-    - a scalar string whose parameter resolves to a numeric Python type is
-      converted to that type, so `--count 7` dumps as `count = 7` rather than
-      `count = "7"` (Click hands back raw strings for command-line and
-      environment values, ahead of its own type conversion);
-    - anything else (a {class}`~pathlib.Path`, a custom object) is stringified.
-    """
-    # A repeatable boolean flag collects occurrences of a toggle rather than
-    # values, so none of them means unset, not an empty list of booleans.
-    if (
-        param.multiple
-        and getattr(param, "is_bool_flag", False)
-        and isinstance(value, (list, tuple))
-        and not value
-    ):
-        value = None
-    if value is None:
-        # An unset multi-value parameter reads naturally as an empty list,
-        # which also survives serialization in null-less formats like TOML.
-        if ParamStructure.get_param_type(param) is list:
-            return []
-        return None
-    if isinstance(value, (list, tuple, set, frozenset)):
-        return [_config_dump_value(param, item) for item in value]
-    # bool is an int subclass: handle it before the numeric coercion below.
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, Enum):
-        param_type = getattr(param, "type", None)
-        if isinstance(param_type, EnumChoice):
-            return param_type.get_choice_string(value)
-        member_value = value.value
-        if isinstance(member_value, (str, int, float, bool)):
-            return member_value
-        return value.name
-    if isinstance(value, str):
-        python_type = ParamStructure.get_param_type(param)
-        if python_type is int:
-            try:
-                return int(value)
-            except ValueError:
-                return value
-        if python_type is float:
-            try:
-                return float(value)
-            except ValueError:
-                return value
-        return value
-    if isinstance(value, (int, float)):
-        return value
-    return str(value)
-
-
-class ExportConfigOption(ExtraOption):
-    """A pre-configured option adding `--export-config FORMAT`.
-
-    Resolves the CLI's current parameter values following Click's precedence
-    chain (command line, then environment variables, then configuration file,
-    then defaults), renders them as a configuration file in the requested format
-    on `<stdout>`, and exits.
-
-    ```{hint}
-    Combine the flag with other options or environment variables to capture
-    them in the generated configuration. For example, ``mycli --verbosity
-    DEBUG --export-config toml` emits a configuration whose `verbosity`` is
-    already set to `DEBUG`.
-    ```
-
-    Like {class}`ValidateConfigOption`, it relies on a sibling
-    {class}`ConfigOption` to provide the parameter structure and the
-    `excluded_params` / `included_params` filter, so the export contains
-    exactly the parameters that can be loaded back from a configuration file.
-
-    ```{note}
-    The accepted formats are those
-    {func}`~click_extra.config.formats.serialize_content` can write
-    ({data}`~click_extra.config.formats.SERIALIZABLE_FORMATS`). `INI`,
-    `Argfile` and `pyproject.toml` have no serializer and cannot be dumped.
-    ```
-    """
-
-    def __init__(
-        self,
-        param_decls: Sequence[str] | None = None,
-        *,
-        type: click.ParamType | Any = None,
-        metavar: str = "FORMAT",
-        is_eager: bool = True,
-        expose_value: bool = False,
-        help: str = _(
-            "Export the configuration in the selected format to <stdout>, then exit.",
-        ),
-        **kwargs: Any,
-    ) -> None:
-        if not param_decls:
-            param_decls = ("--export-config",)
-
-        # Restrict the choice to the writable formats, addressed by their
-        # lower-case token (`toml`, `json`, ...). A short `FORMAT` metavar
-        # keeps the token list out of the one-line help while the full set still
-        # surfaces in the Choice error message.
-        if type is None:
-            type = Choice(tuple(_EXPORT_FORMAT_BY_TOKEN), case_sensitive=False)
-
-        kwargs.setdefault("callback", self.export_config)
-
-        super().__init__(
-            param_decls=param_decls,
-            type=type,
-            metavar=metavar,
-            is_eager=is_eager,
-            expose_value=expose_value,
-            help=help,
-            **kwargs,
-        )
-
-    def build_config(
-        self,
-        ctx: click.Context,
-        config_option: ConfigOption,
-    ) -> dict[str, Any]:
-        """Resolve every config-eligible parameter into a dumpable tree.
-
-        Walks the sibling {class}`ConfigOption`'s parameter structure, resolves
-        each parameter's effective value by replaying
-        {data}`~click_extra.context.RAW_ARGS` (falling back to defaults when the
-        command did not capture them), drops the parameters
-        {meth}`~click_extra.parameters.ParamStructure.is_excluded` rejects, and
-        layers the coerced values into the ``{cli-name: {param: value, ...}}``
-        shape a configuration file uses. Parameter keys are rendered in their
-        kebab-case spelling, the canonical presentation for configuration
-        files; either spelling loads back to the same parameter.
-
-        Parameters without a default are kept as `None` leaves so the export
-        names every key a configuration file can set: serializers render them
-        as `null`, except TOML which comments them out (see
-        :py:func:`_serialize_toml_with_unset`). Loading `null` back is
-        harmless: {meth}`ConfigOption._install_default_map` cleans blank
-        values out of the merged result.
-        """
-        opts = replay_raw_args(ctx)
-        has_raw_args = context.get(ctx, context.RAW_ARGS) is not None
-        if not has_raw_args:
-            logger.warning(
-                f"Cannot resolve parameter values: {ctx.command} does not "
-                "inherit from Command; dumping defaults.",
-            )
-
-        # Deferred import: keeps extra_platforms off the startup path of every CLI.
-        from extra_platforms._utils import _remove_blanks
-
-        tree: dict[str, Any] = {}
-        for keys, target in config_option.walk_params():
-            if config_option.is_excluded(PARAM_PATH_SEP.join(keys)):
-                continue
-            # A sub-tree the schema marks opaque holds app-owned data, not CLI
-            # parameters: the loader hands it to the app's own validator, which
-            # knows nothing of a subcommand sharing the namespace. Exporting
-            # that subcommand's options there writes a file the same loader
-            # refuses to read back.
-            if _under_opaque_path(keys, config_option._opaque_paths):
-                continue
-            if has_raw_args:
-                raw, _source = target.consume_value(ctx, opts)
-                resolved = None if raw is UNSET else raw
-            else:
-                resolved = target.get_default(ctx)
-            leaf = _config_dump_value(target, resolved)
-            # Render the option under its kebab-case spelling, the canonical
-            # presentation for configuration files (matching the CLI flags and
-            # the TOML/YAML convention). Loading normalizes either spelling
-            # back to the parameter ID. Section keys (the CLI and subcommand
-            # names) are kept verbatim: the app-section lookup matches the
-            # root exactly, and command names are displayed as invoked.
-            file_keys = (*keys[:-1], keys[-1].replace("_", "-"))
-            tree = deep_merge(
-                tree, ParamStructure.init_tree_dict(*file_keys, leaf=leaf)
-            )
-
-        return _remove_blanks(tree, remove_none=False, remove_str=False)
-
-    def export_config(
-        self,
-        ctx: click.Context,
-        param: click.Parameter,
-        value: str | None,
-    ) -> None:
-        """Render the resolved configuration to `<stdout>` and exit."""
-        # Deferred import: keeps extra_platforms off the startup path of every CLI.
-        from extra_platforms._utils import _remove_blanks
-
-        # Stay dormant during help rendering and shell completion, like Click's
-        # own eager callbacks, so a typed `--export-config FORMAT` does not
-        # export and exit mid-completion.
-        if not value or ctx.resilient_parsing:
-            return
-
-        # Load the configuration file first, so the export reflects the full
-        # precedence chain the docstring promises (config file included) even
-        # when this flag was processed ahead of the --config option.
-        ensure_config_loaded(ctx)
-
-        fmt = _EXPORT_FORMAT_BY_TOKEN[value.lower()]
-        config_option = require_sibling_param(ctx.command.params, param, ConfigOption)
-        tree = self.build_config(ctx, config_option)
-
-        try:
-            # TOML cannot hold nulls: unset parameters are commented out.
-            if fmt is ConfigFormat.TOML:
-                output = _serialize_toml_with_unset(tree)
-            elif fmt is ConfigFormat.PLIST:
-                # plist has no null type either, and plistlib raises on None
-                # values: unset parameters are dropped from the export.
-                output = serialize_content(fmt, _remove_blanks(tree, remove_str=False))
-            else:
-                output = serialize_content(fmt, tree)
-        except ImportError:
-            echo(disabled_format_message(fmt), err=True)
-            ctx.exit(1)
-
-        echo(output.rstrip("\n"))
-        ctx.exit()

@@ -27,7 +27,9 @@ from click_extra import command, echo, option
 from click_extra.envvar import (
     clean_envvar_id,
     env_copy,
+    machine_envvars_apply,
     merge_envvar_ids,
+    parse_envvar_flag,
     temporary_env,
 )
 
@@ -56,6 +58,58 @@ from click_extra.envvar import (
 )
 def test_merge_envvar_ids(envvars, result):
     assert merge_envvar_ids(*envvars) == result
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        # Bare presence is the signal.
+        ("", True),
+        ("1", True),
+        ("yes", True),
+        ("TRUE", True),
+        # Any value that is no boolean spelling counts as activation too.
+        ("enabled", True),
+        ("2", True),
+        ("0", False),
+        ("no", False),
+        ("Off", False),
+        ("FALSE", False),
+        # Surrounding blanks do not hide a refusal.
+        (" 0 ", False),
+        ("false\n", False),
+    ),
+)
+def test_parse_envvar_flag(value, expected):
+    assert parse_envvar_flag(value) is expected
+
+
+@pytest.mark.parametrize(
+    ("args", "envvar", "default_map", "expected"),
+    (
+        pytest.param((), None, None, True, id="built-in-default"),
+        pytest.param(("--ripe",), None, None, False, id="command-line"),
+        pytest.param((), "1", None, False, id="own-envvar"),
+        pytest.param((), None, {"ripe": True}, False, id="configuration"),
+    ),
+)
+def test_machine_envvars_apply_to_the_built_in_default_only(
+    invoke, args, envvar, default_map, expected
+):
+    """A machine-wide variable fills in only for a value nothing else set."""
+
+    def check(ctx, param, value):
+        echo(f"applies={machine_envvars_apply(ctx, param)}")
+
+    @click.command(context_settings={"default_map": default_map})
+    @click.option("--ripe", is_flag=True, envvar="ORCHARD_RIPE", callback=check)
+    def orchard(ripe):
+        pass
+
+    env = {"ORCHARD_RIPE": envvar} if envvar is not None else {}
+    result = invoke(orchard, *args, env=env)
+    assert result.exit_code == 0
+    assert result.stdout == f"applies={expected}\n"
 
 
 @pytest.mark.parametrize(

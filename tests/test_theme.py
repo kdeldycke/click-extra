@@ -13,17 +13,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Tests for ``click_extra.theme``: in-process isolation, built-in TOML themes
-and ``[tool.<cli>.themes.<name>]`` config integration."""
+"""Tests for ``click_extra.theme``: in-process isolation, built-in themes and
+``[tool.<cli>.themes.<name>]`` config integration."""
 
 from __future__ import annotations
 
 import dataclasses
-import importlib.resources
-import logging
 import re
-import tomllib
-from pathlib import Path
+import sys
+from subprocess import run
 from textwrap import dedent
 
 import click
@@ -57,12 +55,8 @@ from click_extra.theme import (
     resolve_auto_theme,
     theme_registry,
     themes_from_config,
+    validate_themes_config,
 )
-
-# Alias kept for the built-in-themes section, which reaches module-private
-# helpers (``_load_builtin_themes``, ``resources``) and patches module-level
-# state on the same object as ``_theme``.
-theme_mod = _theme
 
 
 @command
@@ -184,7 +178,7 @@ def test_font_role_slots_are_known_and_disjoint():
     assert "metavar" in _theme.REPLACEABLE_STYLES
 
 
-# --- Built-in themes loaded from ``click_extra/themes.toml`` ----------------
+# --- Built-in themes ---------------------------------------------------------
 
 # Each theme's assumed background. Branded themes use the canonical hex
 # from each scheme's spec; ANSI themes assume the conventional terminal
@@ -232,53 +226,82 @@ _LEGIBILITY_FLOOR: float = 1.5
 # https://www.w3.org/TR/WCAG22/#contrast-minimum
 _WCAG_AA_LARGE: float = 3.0
 
-_THEMES_TOML = Path(__file__).parent.parent / "click_extra" / "themes.toml"
-
-
-def _toml_table_order() -> list[str]:
-    """Return the top-level table names in the order they appear in ``themes.toml``."""
-    text = _THEMES_TOML.read_text(encoding="utf-8")
-    return re.findall(r"^\[([A-Za-z_][\w]*)\]\s*$", text, flags=re.MULTILINE)
-
-
-def _parsed_themes_toml() -> dict[str, dict]:
-    """Load ``themes.toml`` raw (without going through ``HelpTheme.from_dict``)."""
-    result: dict[str, dict] = tomllib.loads(_THEMES_TOML.read_text(encoding="utf-8"))
-    return result
-
 
 # --- Source-of-truth checks -------------------------------------------------
 
 
-def test_themes_toml_tables_alphabetical():
-    """Top-level tables in ``themes.toml`` are declared alphabetically."""
-    declared = _toml_table_order()
-    assert declared == sorted(declared), (
-        f"Theme tables in click_extra/themes.toml must be alphabetical. "
-        f"Got: {declared}\nExpected: {sorted(declared)}"
-    )
-
-
 def test_builtin_themes_alphabetical():
-    """``BUILTIN_THEMES`` keys are alphabetical (matters for ``--theme`` choices)."""
+    """Built-in themes are declared alphabetically (matters for ``--theme`` choices)."""
     keys = list(BUILTIN_THEMES)
     assert keys == sorted(keys), (
-        f"BUILTIN_THEMES keys must be alphabetical. "
+        f"Built-in themes in click_extra/theme.py must be alphabetical. "
         f"Got: {keys}\nExpected: {sorted(keys)}"
     )
 
 
-def test_builtin_themes_match_toml():
-    """Every TOML table maps to a ``BUILTIN_THEMES`` entry, and vice versa."""
-    parsed = _parsed_themes_toml()
-    assert set(parsed) == set(BUILTIN_THEMES), (
-        f"Mismatch between themes.toml tables and BUILTIN_THEMES.\n"
-        f"In TOML only: {set(parsed) - set(BUILTIN_THEMES)}\n"
-        f"In BUILTIN_THEMES only: {set(BUILTIN_THEMES) - set(parsed)}"
+@pytest.mark.once
+def test_builtin_themes_build_on_first_lookup():
+    """Importing the package builds no theme, and a ``--help`` builds ``dark`` only.
+
+    Reading the theme names, which ``--theme`` does to list its choices, builds
+    nothing either. Checked in a pristine interpreter, since the other tests have
+    built every theme already.
+    """
+    probe = dedent("""\
+        from click_extra import command, theme
+
+        assert not theme._built_themes, list(theme._built_themes)
+        assert "nord" in theme.BUILTIN_THEMES
+        assert "nord" in theme.theme_registry
+        assert "nord" in theme.ThemeChoice().choices
+        assert len(theme.get_theme_registry()) >= len(theme.BUILTIN_THEMES)
+        assert not theme._built_themes, list(theme._built_themes)
+
+        @command
+        def hello():
+            pass
+
+        hello.main(["--help"], prog_name="hello", standalone_mode=False)
+        assert list(theme._built_themes) == ["dark"], list(theme._built_themes)
+        assert theme.get_default_theme() is theme.BUILTIN_THEMES["dark"]
+        """)
+    process = run(
+        (sys.executable, "-c", probe), capture_output=True, text=True, check=False
     )
+    assert process.returncode == 0, process.stderr
 
 
-def test_builtin_themes_are_helpextratheme_instances():
+def test_builtin_themes_resolve_to_one_instance():
+    """A built-in theme is the same instance in every mapping that holds it."""
+    registry = get_theme_registry()
+    for name, theme in BUILTIN_THEMES.items():
+        assert theme_registry[name] is theme
+        assert registry[name] is theme
+
+
+def test_theme_registry_takes_dict_mutations(monkeypatch):
+    """Registering, replacing and removing entries work on built-in names too."""
+    registry = _theme._LazyThemes()
+    monkeypatch.setattr(_theme, "theme_registry", registry)
+    custom = HelpTheme.from_dict({"option": {"fg": "magenta"}})
+
+    _theme.register_theme("midnight", custom)
+    registry["nord"] = custom
+    del registry["manpage"]
+
+    builtins = [name for name in BUILTIN_THEMES if name != "manpage"]
+    assert list(registry) == [*builtins, "midnight"]
+    assert registry["midnight"] is custom
+    assert registry["nord"] is custom
+    assert registry["dark"] is BUILTIN_THEMES["dark"]
+    assert "manpage" not in get_theme_registry()
+
+    registry.clear()
+    assert not registry
+    assert len(BUILTIN_THEMES) == len(builtins) + 1
+
+
+def test_builtin_themes_are_helptheme_instances():
     """Every ``BUILTIN_THEMES`` entry is a :class:`~click_extra.theme.HelpTheme`
     instance.
     """
@@ -290,11 +313,10 @@ def test_builtin_themes_are_helpextratheme_instances():
 
 @pytest.mark.parametrize("palette", ("dark", "light"))
 def test_cloup_constructors_keep_the_subclass(palette):
-    """``dark()`` and ``light()`` are shadowed to return a click-extra theme.
+    """``dark()`` and ``light()`` return a click-extra theme carrying cloup's palette.
 
-    Cloup declares both as static methods naming its own class, so the
-    inherited ones hand back a bare :class:`cloup.HelpTheme`. Reported at
-    https://github.com/janluke/cloup/issues/225
+    Cloup builds both palettes from ``cloup.Style``, which ``to_dict`` and
+    ``cascade`` reject, so each style is widened to click-extra's.
     """
     theme = getattr(HelpTheme, palette)()
     assert type(theme) is HelpTheme
@@ -311,6 +333,21 @@ def test_cloup_constructors_keep_the_subclass(palette):
         if isinstance(value, cloup.Style):
             assert isinstance(value, Style)
     assert theme.to_dict()
+
+
+def test_with_rejects_unknown_slots():
+    """Every argument naming no slot is listed, in a stable order."""
+    with pytest.raises(
+        TypeError, match=r"^Unknown HelpTheme field\(s\): optoin, xoption$"
+    ):
+        HelpTheme().with_(xoption=Style(), optoin=Style(), option=Style())
+
+
+def test_with_takes_none_as_a_value():
+    """``None`` resets a slot, where cloup's version reads it as no change."""
+    theme = BUILTIN_THEMES["dark"]
+    assert theme.alias_secondary is not None
+    assert theme.with_(alias_secondary=None).alias_secondary is None
 
 
 @pytest.mark.parametrize("theme_name", sorted(BUILTIN_THEMES))
@@ -346,10 +383,14 @@ def test_theme_round_trips_through_dict(theme_name):
 
 
 @pytest.mark.parametrize("theme_name", sorted(BUILTIN_THEMES))
-def test_themes_toml_payload_matches_to_dict(theme_name):
-    """The TOML payload for each theme equals what ``to_dict`` would emit."""
-    parsed = _parsed_themes_toml()
-    assert parsed[theme_name] == BUILTIN_THEMES[theme_name].to_dict()
+def test_builtin_theme_definition_matches_to_dict(theme_name):
+    """Each built-in definition equals what ``to_dict`` emits for its theme.
+
+    So a definition sets no slot to its default value, which ``to_dict`` leaves
+    out.
+    """
+    definition = _theme._BUILTIN_THEME_DEFINITIONS[theme_name]
+    assert definition == BUILTIN_THEMES[theme_name].to_dict()
 
 
 def test_to_dict_omits_identity_slots():
@@ -504,65 +545,29 @@ def test_themes_meet_legibility_floor(theme_name):
     )
 
 
-# --- Missing data file tolerance --------------------------------------------
-
-
-class _MissingResource:
-    """Stand-in for a Traversable whose ``themes.toml`` was dropped.
-
-    Some packaging and distribution setups (Nuitka onefile without
-    ``--include-package-data``, trimmed downstream rebuilds) omit the package
-    data file, so ``read_text`` raises as if the file never shipped.
-    """
-
-    def joinpath(self, *args: str) -> _MissingResource:
-        return self
-
-    def read_text(self, *args: object, **kwargs: object) -> str:
-        raise FileNotFoundError("simulated missing themes.toml")
-
-
-def test_load_builtin_themes_tolerates_missing_file(caplog, monkeypatch, tmp_path):
-    """A dropped themes.toml degrades to an empty mapping plus a warning.
-
-    Both reads must miss: the file beside the module, then the import system
-    the loader falls back to.
-    """
-    monkeypatch.setattr(theme_mod, "__file__", str(tmp_path / "theme.py"))
-    monkeypatch.setattr(
-        importlib.resources, "files", lambda package: _MissingResource()
-    )
-
-    with caplog.at_level(logging.WARNING, logger="click_extra"):
-        result = theme_mod._load_builtin_themes()
-
-    assert result == {}
-    assert "themes.toml" in caplog.text
-    assert "no-color theme" in caplog.text
-    # The warning points users at the config-file fallback for custom themes.
-    assert "[tool.<cli>.themes.<name>]" in caplog.text
+# --- Empty registry tolerance -----------------------------------------------
 
 
 def test_themechoice_inert_when_registry_empty(monkeypatch):
     """With no themes available, ThemeChoice ignores any value instead of failing.
 
-    Mirrors the runtime state once themes.toml is dropped: an empty registry
-    means even the built-in ``dark`` default cannot resolve, so ``convert``
-    returns None rather than aborting the invocation.
+    A program can empty the registry: then even the built-in ``dark`` default
+    cannot resolve, so ``convert`` returns None rather than aborting the
+    invocation.
     """
-    monkeypatch.setattr(theme_mod, "theme_registry", {})
-    choice = theme_mod.ThemeChoice()
+    monkeypatch.setattr(_theme, "theme_registry", {})
+    choice = _theme.ThemeChoice()
     assert choice.convert("dark", None, None) is None
     assert choice.convert("light", None, None) is None
 
 
 def test_cli_runs_with_empty_theme_registry(invoke, monkeypatch):
-    """A CLI still runs when no themes are available (themes.toml dropped).
+    """A CLI still runs when no themes are available.
 
     The built-in --theme option defaults to ``dark``; with an empty registry
     that default must stay inert instead of crashing the whole command.
     """
-    monkeypatch.setattr(theme_mod, "theme_registry", {})
+    monkeypatch.setattr(_theme, "theme_registry", {})
 
     @command
     @option("--fruit", default="apple")
@@ -729,6 +734,24 @@ def test_config_theme_validation_error(invoke, create_config):
     assert "optoin" in result.stderr
 
 
+@pytest.mark.parametrize(
+    ("themes", "code"),
+    (
+        pytest.param({"midnight": "blue"}, "invalid_theme_shape", id="not-a-table"),
+        pytest.param(
+            {"midnight": {"optoin": {"fg": "blue"}}}, "invalid_theme", id="no-such-slot"
+        ),
+    ),
+)
+def test_validate_themes_config_codes(themes, code):
+    """A malformed themes table is reported under a snake-case code, like every
+    other configuration error."""
+    with pytest.raises(click_extra.ValidationError) as excinfo:
+        validate_themes_config(themes)
+    assert excinfo.value.code == code
+    assert excinfo.value.path == "midnight"
+
+
 def test_command_validators_keep_the_theme_validator(invoke, create_config):
     """Validators a command declares join the built-in themes validator.
 
@@ -740,7 +763,7 @@ def test_command_validators_keep_the_theme_validator(invoke, create_config):
 
     def check_orchard(tree: dict) -> None:
         if "pear" not in tree:
-            raise click_extra.ValidationError("pear", "missing fruit", code="no-pear")
+            raise click_extra.ValidationError("pear", "missing fruit", code="no_pear")
 
     @click_extra.command(
         config_validators=(click_extra.ConfigValidator("orchard", check_orchard),),
@@ -982,6 +1005,10 @@ def test_unknown_theme_envvar_warns_and_keeps_default(invoke, monkeypatch):
     assert result.exit_code == 0
     assert THEME_ENVVAR in result.stderr
     assert "zenburn" in result.stderr
+    # The warning lists every value the variable takes, like the flag's error.
+    assert (
+        "[auto|dark|dracula|light|manpage|monokai|nord|solarized-dark]" in result.stderr
+    )
     assert captured["theme"] is DARK
 
 

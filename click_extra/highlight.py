@@ -18,32 +18,33 @@
 Hosts the engine that collects highlightable keywords from a Click context
 ({class}`HelpKeywords`, `_HelpColorsMixin`) and renders them with the
 active theme: {class}`HelpFormatter` styles `--help` output and
-{func}`highlight` applies a styling function to arbitrary matches. Split out of
-{mod}`click_extra.color`, which now focuses on `--color`/`--no-color`
-resolution.
+{func}`highlight` applies a styling function to arbitrary matches.
+
+```{note}
+The patterns of the help screen stay uncompiled strings at module level. Most
+runs of a CLI render no help screen, so none of them is worth compiling on
+import: `re` compiles each on its first use and caches it from then on.
+```
 """
 
 from __future__ import annotations
 
-import inspect
 import re
 from dataclasses import dataclass, field, fields
 from functools import lru_cache
 
 import click
 import cloup
-from click.core import _format_deprecated_label
 from cloup._util import identity
 
 from . import theme as _theme
-from .parameters import choice_values, param_spellings
-from .styling import open_ansi
+from .ansi import open_ansi
+from .param_tools import choice_values, iter_subcommands, param_spellings
 from .theme import HelpTheme, ThemeChoice
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterable
-    from typing import ClassVar
 
     from cloup.styling import IStyle
 
@@ -55,10 +56,54 @@ The canonical spelling comes from Click's shared `_format_deprecated_label`
 helper; the case-insensitive flag also catches the variants a CLI author writes
 by hand in a help string.
 
-Read by the help screen through {attr}`HelpFormatter._deprecated_re` and by
-{func}`~click_extra.tree.render_command_tree`, so one marker is painted the same
-wherever a command's description is drawn.
+Read by the help screen and by {func}`~click_extra.tree.render_command_tree`, so
+one marker is painted the same wherever a command's description is drawn.
 """
+
+_RANGE_PATTERN = r"(?:[^\]\s]+(?:<|<=))?x(?:<|<=|>|>=)[^\]\s]+"
+r"""Matches range expressions like `0<=x<=9`, `x>=1024`, `0<=x<100`.
+
+Bounds use `[^\]\s]+` (not `\S+`) so a bound can't absorb the closing `]` of its
+own field: with `\S+`, `[x>=1]` matches `1]` and {data}`_BRACKET_PATTERN`, which
+embeds this one, runs on to the next `]` on screen.
+"""
+
+_BRACKET_PATTERN = (
+    r"(?s)"  # The content may span lines.
+    r"(  )"  # 2 spaces (column or description spacing).
+    r"\["  # Opening bracket.
+    r"("  # Capture the bracket content.
+    # It must start with a recognized label, or a range.
+    rf"(?:env\s+var:|default:|required|{_RANGE_PATTERN})"
+    # Followed by any non-] characters, plus whole bracketed runs, so a
+    # default that is itself bracketed (`[default: [...]]`) closes on its
+    # own `]` instead of the first one on screen. The alternation cannot
+    # eat a bare `]`, so a field still stops at its own end.
+    r"(?:[^\]\[]|\[[^\]]*\])*"
+    r")"
+    r"\]"  # Closing bracket.
+)
+"""Matches a trailing `[env var: ...; default: ...; ...]` field and the gap before it."""
+
+_FIELD_SEPARATOR_PATTERN = r"(;\s+)"
+"""Splits the content of a bracket field into its parts, separators kept."""
+
+_ENVVAR_FIELD_PATTERN = r"(?s)(env\s+var:\s+)(.*)"
+"""Splits the `env var:` label of a bracket field from its value."""
+
+_DEFAULT_FIELD_PATTERN = r"(?s)(default:\s+)(.*)"
+"""Splits the `default:` label of a bracket field from its value."""
+
+_END_OF_OPTIONS_PATTERN = r"(?<!\S)--(?!\S)"
+"""Matches a lone `--`, the POSIX end-of-options separator."""
+
+_PROMPT_PATTERN = r"[ \t]*(?:[$>#]\s+)?"
+"""Matches what an example line puts before the CLI name: an indent, and the
+shell prompt a transcript is written with."""
+
+_OPERAND_PATTERN = r"[A-Z][A-Z0-9_]*"
+"""Matches an operand name inside a compound metavar, ignoring the brackets and
+ellipsis marking it optional or variadic."""
 
 
 @dataclass
@@ -114,9 +159,9 @@ class HelpKeywords:
 class _HelpColorsMixin:
     """Adds extra-keywords highlighting to Click commands.
 
-    This mixin for `click.Command`-like classes intercepts the top-level helper-
-    generation method to initialize the formatter with dynamic settings. This is
-    implemented at this stage so we have access to the global context.
+    This mixin for `click.Command`-like classes intercepts the top-level help
+    generation method to initialize the formatter with dynamic settings: only
+    that stage has the whole context at hand.
     """
 
     #: Extra keywords to merge into the auto-collected set. Consumers can set
@@ -157,17 +202,19 @@ class _HelpColorsMixin:
         kw.metavars.update(command.collect_usage_pieces(ctx))
 
         # Get subcommands and their aliases. Process in listed order for stable
-        # and predictable loading, which is important on lazy-loading.
-        if isinstance(command, click.Group):
-            for sub_id in command.list_commands(ctx):
-                subcommand = command.get_command(ctx, sub_id)
-                if not subcommand:
-                    raise RuntimeError(f"Subcommand {sub_id!r} not found.")
-                kw.subcommands.add(sub_id)
-                kw.command_aliases.update(getattr(subcommand, "aliases", []))
-                # Keep reference to subcommand object for deprecated message
-                # collection below.
-                subcommand_objs.add(subcommand)
+        # and predictable loading, which is important on lazy-loading. Hidden
+        # subcommands are kept: an example invoking one still names it, while a
+        # name the group lists but cannot resolve is skipped, as every other walk
+        # of the tree skips it. Each is the command the screen describes, so a
+        # lazy subcommand declaring its help is not imported to draw it.
+        for sub_id, subcommand in iter_subcommands(
+            command, ctx, skip_hidden=False, listing=True
+        ):
+            kw.subcommands.add(sub_id)
+            kw.command_aliases.update(getattr(subcommand, "aliases", []))
+            # Keep reference to subcommand object for deprecated message
+            # collection below.
+            subcommand_objs.add(subcommand)
 
         # Collect options, choices, metavars, envvars, defaults from current
         # command parameters. User-defined help options (like -h, --help) are
@@ -214,11 +261,10 @@ class _HelpColorsMixin:
                         kw.choice_metavars.add(param.make_metavar(ctx=parent_ctx))
             parent_ctx = parent_ctx.parent
 
-        # Split options into short and long by length heuristic. Short options
-        # are no longer than 2 characters like "-D", "/d", "/?", "+w", "-w".
-        # XXX We cannot reuse the _short_opts and _long_opts attributes from
-        # Click's parser because their values are not passed when the context
-        # is updated. So we rely on simple heuristics to guess the category.
+        # Split options into short and long by length: a short option is at
+        # most 2 characters, like "-D", "/d", "/?", "+w", "-w". Click's parser
+        # keeps its own `_short_opts` / `_long_opts` split, but never hands it
+        # to the context, so the length decides.
         for name in options:
             if len(name) <= 2:
                 kw.short_options.add(name)
@@ -377,11 +423,6 @@ class _HelpColorsMixin:
         super().format_help(ctx, formatter)  # type: ignore[misc]
 
 
-#: Matches an operand name inside a compound metavar, ignoring the brackets and
-#: ellipsis marking it optional or variadic.
-_OPERAND_RE = re.compile(r"[A-Z][A-Z0-9_]*")
-
-
 def _metavar_operands(metavar: str) -> set[str]:
     """Split a compound metavar into the operand names it holds.
 
@@ -389,27 +430,27 @@ def _metavar_operands(metavar: str) -> set[str]:
     caller already has. Returns nothing for a single-operand metavar, so no
     keyword is added twice.
     """
-    operands = set(_OPERAND_RE.findall(metavar))
+    operands = set(re.findall(_OPERAND_PATTERN, metavar))
     if operands == {metavar}:
         return set()
     return operands
 
 
 @lru_cache(maxsize=512)
-def _escape_for_help_screen(text: str) -> str:
-    """Prepares a string to be used in a regular expression for matches in help screen.
+def _escape_for_help_screen(text: str, wrapped: bool = True) -> str:
+    r"""Prepare a string for a regular expression matching it on a help screen.
 
     Applies [re.escape](https://docs.python.org/3/library/re.html#re.escape), then
-    accounts for long strings being wrapped on multiple lines and padded with spaces to
-    fit the columnar layout.
+    lets a space match any run of blank characters (line-returns, spaces, tabs...),
+    as the columnar layout wraps long strings over several lines and pads them.
 
-    It allows for:
-
-    - additional number of optional blank characters (line-returns, spaces, tabs, ...)
-      after a dash, as the help renderer is free to wrap strings after a dash.
-    - a space to be replaced by any number of blank characters.
+    :param wrapped: also let any number of blank characters follow a dash, as the
+        help renderer is free to wrap a string after a dash. Only worth it when
+        the help screen holds a dash followed by a blank character: compiling
+        a `\s*` per dash costs more than the rest of the pattern.
     """
-    return re.escape(text).replace("-", "-\\s*").replace("\\ ", "\\s+")
+    escaped = re.escape(text).replace("\\ ", "\\s+")
+    return escaped.replace("-", "-\\s*") if wrapped else escaped
 
 
 def _longest_first(names: Iterable[str]) -> list[str]:
@@ -427,15 +468,21 @@ def _alternation(names: Iterable[str]) -> str:
     return "|".join(re.escape(name) for name in _longest_first(names))
 
 
+def _help_screen_alternation(names: Iterable[str], wrapped: bool) -> str:
+    """Like {func}`_alternation`, each name escaped by {func}`_escape_for_help_screen`."""
+    return "|".join(
+        _escape_for_help_screen(name, wrapped) for name in _longest_first(names)
+    )
+
+
 class HelpFormatter(cloup.HelpFormatter):
     """Extends Cloup's custom HelpFormatter to highlight options, choices, metavars and
     default values.
 
-    Cloup does not integrate this highlighting. It closed
-    [janluke/cloup#95](https://github.com/janluke/cloup/issues/95), which proposed the
-    regex-based approach used here, as not suitable. It then closed the follow-up
-    [janluke/cloup#97](https://github.com/janluke/cloup/issues/97#issuecomment-5647207045)
-    as not planned, and entered maintenance mode. The same proposal is still open at
+    Cloup declined this regex-based highlighting, at
+    [janluke/cloup#95](https://github.com/janluke/cloup/issues/95) and
+    [janluke/cloup#97](https://github.com/janluke/cloup/issues/97#issuecomment-5647207045).
+    The same proposal is open at
     [click-contrib/click-help-colors#17](https://github.com/click-contrib/click-help-colors/issues/17).
     """
 
@@ -454,61 +501,23 @@ class HelpFormatter(cloup.HelpFormatter):
     """Keywords subtracted from the cross-reference passes, or `None`."""
 
     def __init__(self, *args, **kwargs) -> None:
-        """Forces theme to the active one for the current Click context.
+        """Force the theme to a {class}`~click_extra.theme.HelpTheme`.
 
-        Also transform Cloup's standard `HelpTheme` to our own `HelpTheme`.
-
-        Resolves the active theme via {func}`click_extra.theme.get_current_theme`,
-        which reads the per-invocation pick from the Click context (set by
-        {class}`~click_extra.theme.ThemeOption`) and falls back to the module-level
-        default when no context is active.
+        The theme defaults to the one active for the current invocation, as
+        {func}`click_extra.theme.get_current_theme` resolves it: the
+        per-invocation pick of {class}`~click_extra.theme.ThemeOption`, or the
+        process-wide default when no context is active. A plain
+        `cloup.HelpTheme` lends the slots it declares to that active theme,
+        which keeps the slots cloup lacks.
         """
         active_theme = _theme.get_current_theme()
         theme = kwargs.get("theme", active_theme)
         if not isinstance(theme, HelpTheme):
-            theme = active_theme.with_(**theme._asdict())
+            theme = active_theme._with_cloup_slots(theme)
         kwargs["theme"] = theme
         self.keywords = HelpKeywords()
         self.excluded_keywords = None
         super().__init__(*args, **kwargs)
-
-    #: Matches range expressions like `0<=x<=9`, `x>=1024`, `0<=x<100`.
-    #:
-    #: Bounds use `[^\]\s]+` (not `\S+`) so a bound can't absorb the closing
-    #: `]` of its own field: with `\S+`, `[x>=1]` matches `1]` and the
-    #: enclosing bracket regex then runs on to the next `]` on screen. Keep this
-    #: exclusion in sync with the range branch embedded in `_bracket_re`.
-    _range_re: ClassVar[re.Pattern] = re.compile(
-        r"(?:[^\]\s]+(?:<|<=))?x(?:<|<=|>|>=)[^\]\s]+"
-    )
-    _bracket_re: ClassVar[re.Pattern] = re.compile(
-        r"(  )"  # 2 spaces (column or description spacing).
-        r"\["  # Opening bracket.
-        r"("  # Capture the bracket content.
-        r"(?:env\s+var:|default:|required"  # Must start with a recognized label.
-        r"|(?:[^\]\s]+(?:<|<=))?x(?:<|<=|>|>=)[^\]\s]+)"  # Or a range (see _range_re).
-        # Followed by any non-] characters, plus whole bracketed runs, so a
-        # default that is itself bracketed (`[default: [...]]`) closes on its
-        # own `]` instead of the first one on screen. The alternation cannot
-        # eat a bare `]`, so a field still stops at its own end.
-        r"(?:[^\]\[]|\[[^\]]*\])*"
-        r")"
-        r"\]",  # Closing bracket.
-        re.DOTALL,
-    )
-    _sep_re: ClassVar[re.Pattern] = re.compile(r";\s+")
-    _envvar_re: ClassVar[re.Pattern] = re.compile(r"(env\s+var:\s+)(.*)", re.DOTALL)
-    _default_re: ClassVar[re.Pattern] = re.compile(r"(default:\s+)(.*)", re.DOTALL)
-
-    #: Matches a lone `--`, the POSIX end-of-options separator.
-    _separator_re: ClassVar[re.Pattern] = re.compile(r"(?<!\S)--(?!\S)")
-
-    #: Matches what an example line puts before the CLI name: an indent, and
-    #: the shell prompt a transcript is written with.
-    _prompt_re: ClassVar[re.Pattern] = re.compile(r"[ \t]*(?:[$>#]\s+)?")
-
-    #: The marker pattern the help screen paints, see {data}`DEPRECATED_RE`.
-    _deprecated_re: ClassVar[re.Pattern] = DEPRECATED_RE
 
     def _bracket_or(self, slot_name: str) -> IStyle:
         """Return `theme.<slot_name>` or fall back to `theme.bracket`.
@@ -537,54 +546,35 @@ class HelpFormatter(cloup.HelpFormatter):
         Inner-slot fallback: when a theme leaves `envvar` / `default` /
         `required` / `range_label` at {func}`identity <cloup._util.identity>`,
         the value token inherits the `bracket` styling via
-        :py:meth:`_bracket_or`. The bracket slot acts as the structural
+        `_bracket_or`. The bracket slot acts as the structural
         default for the whole field; the other four slots override
         piecemeal.
         """
-        prefix = match.group(1)
-        content = match.group(2)
-
-        # Split on semicolons, keeping the separators.
-        parts = re.split(r"(;\s+)", content)
+        prefix, content = match.groups()
+        bracket = self.theme.bracket
 
         styled: list[str] = []
-        for part in parts:
-            # Separator between fields.
-            if self._sep_re.fullmatch(part):
-                styled.append(self.theme.bracket(part))
+        # Splitting on a capturing group puts a separator at every odd index.
+        for index, part in enumerate(re.split(_FIELD_SEPARATOR_PATTERN, content)):
+            if index % 2:
+                styled.append(bracket(part))
             # Environment variable field.
-            elif m := self._envvar_re.match(part):
-                styled.append(
-                    self.theme.bracket(m.group(1))
-                    + self._bracket_or("envvar")(m.group(2))
-                )
+            elif m := re.match(_ENVVAR_FIELD_PATTERN, part):
+                styled.append(bracket(m[1]) + self._bracket_or("envvar")(m[2]))
             # Default value field.
-            elif m := self._default_re.match(part):
-                styled.append(
-                    self.theme.bracket(m.group(1))
-                    + self._bracket_or("default")(m.group(2))
-                )
+            elif m := re.match(_DEFAULT_FIELD_PATTERN, part):
+                styled.append(bracket(m[1]) + self._bracket_or("default")(m[2]))
             # Required label.
             elif part == "required":
                 styled.append(self._bracket_or("required")(part))
             # Range expression.
-            elif self._range_re.fullmatch(part):
+            elif re.fullmatch(_RANGE_PATTERN, part):
                 styled.append(self._bracket_or("range_label")(part))
             # Fallback: style as generic bracket content.
             else:
-                styled.append(self.theme.bracket(part))
+                styled.append(bracket(part))
 
-        return (  # type: ignore[no-any-return]
-            prefix + self.theme.bracket("[") + "".join(styled) + self.theme.bracket("]")
-        )
-
-    def _style_choice_metavar(self, metavar: str, choices: set[str]) -> str | None:
-        """Style individual choices inside a choice metavar string.
-
-        Thin wrapper over {func}`style_choice_metavar`, bound to this
-        formatter's theme.
-        """
-        return style_choice_metavar(metavar, choices, self.theme)
+        return f"{prefix}{bracket('[')}{''.join(styled)}{bracket(']')}"
 
     @staticmethod
     def _add_placeholder(styled: str, store: dict[str, str]) -> str:
@@ -622,8 +612,7 @@ class HelpFormatter(cloup.HelpFormatter):
             rf"(?<![\w\-])(?:{_alternation(kw.subcommands)})(?![\w\-])"
         )
         invocation_re = re.compile(
-            rf"^(?P<head>{self._prompt_re.pattern}(?:{cli_alt})(?![\w\-]))"
-            r"(?P<tail>.*)$",
+            rf"^(?P<head>{_PROMPT_PATTERN}(?:{cli_alt})(?![\w\-]))(?P<tail>.*)$",
             re.MULTILINE,
         )
 
@@ -647,17 +636,11 @@ class HelpFormatter(cloup.HelpFormatter):
         # Highlight deprecated messages. Uses a case-insensitive regex to catch
         # both Click-native "(DEPRECATED)" markers and manually-added variants
         # like "(Deprecated)" in help strings. A CLI's own markers ride in the
-        # same pass rather than a second one, so an entry overlapping Click's
-        # spelling is painted once instead of twice.
+        # same pass, as literals, rather than a second one, so an entry
+        # overlapping Click's spelling is painted once instead of twice.
         help_text = highlight(
             help_text,
-            [
-                self._deprecated_re,
-                *(
-                    re.compile(re.escape(marker))
-                    for marker in _longest_first(kw.deprecated)
-                ),
-            ],
+            [DEPRECATED_RE, *kw.deprecated],
             self.theme.deprecated,
         )
 
@@ -668,17 +651,15 @@ class HelpFormatter(cloup.HelpFormatter):
         if kw.subcommands:
             help_text = highlight(
                 help_text,
-                (
-                    re.compile(rf"(?<=  ){re.escape(name)}(?=\s)")
-                    for name in _longest_first(kw.subcommands)
-                ),
+                re.compile(rf"(?<=  )(?:{_alternation(kw.subcommands)})(?=\s)"),
                 self.theme.subcommand,
             )
 
         # Style the `--` end-of-options separator. Whitespace on each side is
         # what tells the separator apart from an option name, so `--help` and
         # a `--` inside a word are both left alone.
-        help_text = self._separator_re.sub(
+        help_text = re.sub(
+            _END_OF_OPTIONS_PATTERN,
             lambda match: self.theme.separator(match.group()),
             help_text,
         )
@@ -721,19 +702,27 @@ class HelpFormatter(cloup.HelpFormatter):
                 self._style_bracket_fields(match), bracket_placeholders
             )
 
-        help_text = self._bracket_re.sub(_bracket_to_placeholder, help_text)
+        help_text = re.sub(_BRACKET_PATTERN, _bracket_to_placeholder, help_text)
+
+        # A keyword the renderer wrapped at one of its dashes only matches with
+        # blank characters allowed after each dash. The passes below remove a
+        # dash followed by a blank, never add one, so when the screen holds
+        # none the plain keywords match the very same spans, and compile faster.
+        wrapped = re.search(r"-\s", help_text) is not None
 
         # Style and placeholder choice metavars (like `[json|xml|csv]`)
         # before applying excluded_keywords and running cross-ref passes.
         # This ensures that choices excluded from cross-ref highlighting
         # (like "version") are still highlighted inside their own metavar.
-        for metavar_str in kw.choice_metavars:
-            styled = self._style_choice_metavar(metavar_str, kw.choices)
+        # Longest first, so a metavar holding another one is replaced whole.
+        for metavar_str in _longest_first(kw.choice_metavars):
+            styled = style_choice_metavar(metavar_str, kw.choices, self.theme)
             if styled is None:
                 continue
-            pattern = re.compile(_escape_for_help_screen(metavar_str))
-            help_text = pattern.sub(
-                lambda m, s=styled: self._add_placeholder(s, bracket_placeholders),  # type: ignore[misc]
+            # A placeholder key holds no backslash: it is replaced as it stands.
+            help_text = re.sub(
+                _escape_for_help_screen(metavar_str, wrapped),
+                self._add_placeholder(styled, bracket_placeholders),
                 help_text,
             )
 
@@ -797,7 +786,7 @@ class HelpFormatter(cloup.HelpFormatter):
                     (
                         re.compile(
                             rf"(?<=[^\w{re.escape(symbol)}])"
-                            rf"(?:{'|'.join(map(_escape_for_help_screen, options))})"
+                            rf"(?:{_help_screen_alternation(options, wrapped)})"
                             rf"(?=[^\w\-])"
                         )
                         for symbol, options in by_symbol.items()
@@ -831,10 +820,7 @@ class HelpFormatter(cloup.HelpFormatter):
                     # One alternation for the whole set, longest keyword first,
                     # flags the same spans as one pattern per keyword would, for
                     # one compilation per style instead of one per keyword.
-                    alternation = "|".join(
-                        _escape_for_help_screen(keyword)
-                        for keyword in _longest_first(keywords)
-                    )
+                    alternation = _help_screen_alternation(keywords, wrapped)
                     help_text = highlight(
                         content=help_text,
                         patterns=re.compile(
@@ -877,32 +863,6 @@ class HelpFormatter(cloup.HelpFormatter):
         click.HelpFormatter.write_usage(
             self, self._style_command_path(prog), args, prefix
         )
-
-    def write_command_help_text(self, cmd: click.Command) -> None:
-        """Draw the command's description, with Click's deprecation label.
-
-        Reimplements `cloup.HelpFormatter.write_command_help_text`, which on cloup
-        3.x prefixes `(Deprecated) ` to the description. Click 8.2.0 moved that
-        marker to a suffix built by `_format_deprecated_label`, and gave
-        `deprecated` a `str` form carrying a reason the prefix has nowhere to put.
-        See https://github.com/janluke/cloup/issues/211.
-
-        Reusing Click's own helper keeps one marker across the whole screen: the
-        options already carry it through `Option.get_help_record`, and
-        {attr}`HelpFormatter._deprecated_re` highlights that spelling.
-        """
-        help_text = cmd.help or ""
-        if help_text:
-            help_text = inspect.cleandoc(help_text).partition("\f")[0]
-
-        if cmd.deprecated:
-            label = _format_deprecated_label(cmd.deprecated)
-            help_text = f"{help_text} {label}" if help_text else label
-
-        if help_text:
-            self.write_paragraph()
-            with self.indentation():
-                self.write_text(help_text, style=self.theme.command_help)
 
     def getvalue(self) -> str:
         """Wrap original `Click.HelpFormatter.getvalue()` to force extra-colorization on

@@ -31,14 +31,14 @@ from dataclasses import (
     fields as dc_fields,
     is_dataclass,
 )
-from functools import partial
+from functools import cache, partial
 from typing import NamedTuple, get_origin, get_type_hints
 
 from click import get_current_context
 
 from .. import context
-from .._utils import deep_merge
-from ..parameters import PARAM_PATH_SEP, ParamStructure, canonical_param_name
+from .._utils import set_nested
+from ..param_tools import PARAM_PATH_SEP, canonical_param_name
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -99,11 +99,10 @@ Schema authors set ``metadata={EXTENSION_METADATA_KEY: True}`` on a field when
 its sub-tree should pass through click-extra's CLI-parameter strict check and
 be validated by app-specific logic instead. Equivalent to typing the field as
 `dict[str, X]`: both forms are recognized by
-`_collect_opaque_paths_from_schema` (the internal pipeline still calls
-these paths "opaque" since they're skipped by the normalize/flatten/strict
-machinery). The metadata form is useful when the underlying Python type is
-something other than a `dict` (for example, a nested dataclass that
-nonetheless represents user-extensible content)."""
+`_collect_opaque_paths_from_schema` (the internal pipeline calls these paths
+*opaque*, as its normalize, flatten and strict stages skip them). The metadata
+form is useful when the underlying Python type is something other than a `dict`
+(for example, a nested dataclass that represents user-extensible content)."""
 
 
 CONFIG_PATH_METADATA_KEY = "click_extra.config_path"
@@ -125,7 +124,7 @@ rewritten to Python-style names (`python_version`). Read by
 `_from_dataclass` alongside `CONFIG_PATH_METADATA_KEY`."""
 
 
-class ValidationError(Exception):
+class ValidationError(ValueError):
     """Raised when a configuration file fails validation.
 
     A single, structured exception type that uniformly carries the dotted
@@ -134,6 +133,17 @@ class ValidationError(Exception):
     strict-mode check and by every user-registered {class}`ConfigValidator`, so
     downstream apps and `--validate-config` see the same error shape regardless
     of who detected the problem.
+
+    Click-extra raises it with one of these codes, all spelled in snake case:
+
+    - `invalid_key`: a dotted key conflicts with another key, or has an empty
+      segment, or a key is not a string.
+    - `invalid_theme`: a `[tool.<cli>.themes.<name>]` table builds no theme, like
+      one naming a slot no theme has.
+    - `invalid_theme_shape`: a `[tool.<cli>.themes.<name>]` entry is not a table.
+    - `schema_error`: the configuration schema rejects the section.
+    - `unknown_parameter`: a key matches no CLI parameter, or one excluded from
+      configuration files.
 
     :param path: Dotted path to the offending key, relative to the configuration
         file root (like `"my-cli.managers.winget.cli_searchpath"`). An empty
@@ -181,9 +191,7 @@ class ConfigValidator:
         effects on the click context, no print statements. The caller decides
         how to surface the error.
     :param description: Optional human-readable summary of what the validator
-        checks. Surfaces in documentation generators that introspect the
-        decorator (like autodoc), and may be reused in `--help` text in a
-        future release.
+        checks, for documentation generators that introspect the registration.
     """
 
     extension_path: str
@@ -191,16 +199,13 @@ class ConfigValidator:
     description: str = ""
 
 
-def _strip_reserved_keys(conf: dict, keys: frozenset[str] | None = None) -> dict:
+def _strip_reserved_keys(conf: dict) -> dict:
     """Recursively return a copy of *conf* with reserved keys removed at every level."""
-    if keys is None:
-        keys = _RESERVED_CONFIG_KEYS
-    cleaned: dict = {}
-    for k, v in conf.items():
-        if k in keys:
-            continue
-        cleaned[k] = _strip_reserved_keys(v, keys) if isinstance(v, dict) else v
-    return cleaned
+    return {
+        key: _strip_reserved_keys(value) if isinstance(value, dict) else value
+        for key, value in conf.items()
+        if key not in _RESERVED_CONFIG_KEYS
+    }
 
 
 def _check_type_conflict(
@@ -215,7 +220,7 @@ def _check_type_conflict(
     Checks every level (intermediate and leaf) so that deep conflicts like
     ``{"a.b.c": 1, "a.b": 2}`` are caught.
 
-    In strict mode, raises `ValueError` instead of logging a warning.
+    :raises ValidationError: in strict mode, instead of logging a warning.
     """
     node = target
     for i, part in enumerate(parts):
@@ -237,7 +242,7 @@ def _check_type_conflict(
                 f"mixing scalar and nested values."
             )
             if strict:
-                raise ValueError(msg)
+                raise ValidationError("", msg, code="invalid_key")
             logger.warning(f"{msg} Last value wins.")
             return
         if is_last:
@@ -248,70 +253,56 @@ def _check_type_conflict(
 def _expand_dotted_keys(conf: dict, strict: bool = False) -> dict:
     """Expand dotted keys into nested dicts, then deep-merge.
 
-    Allows configuration files to mix flat dot-notation and nested structures::
+    Allows configuration files to mix flat dot-notation and nested structures:
 
-        {"subcommand.option_a": 1, "subcommand": {"option_b": 2}}
+    ```{code-block} python
+    {"subcommand.option_a": 1, "subcommand": {"option_b": 2}}
+    ```
 
-    becomes::
+    becomes:
 
-        {"subcommand": {"option_a": 1, "option_b": 2}}
+    ```{code-block} python
+    {"subcommand": {"option_a": 1, "option_b": 2}}
+    ```
 
     Recurses into nested dicts so dotted keys at any level are expanded.
 
     In non-strict mode, logs a warning when a key resolves to both a scalar
     and a dict (like ``{"a": 1, "a.b": 2}``), as one value will silently
-    override the other.
+    override the other, and skips a dotted key with an empty segment.
 
-    In strict mode, raises `ValueError` on type conflicts and invalid
-    dotted keys (empty segments).
+    A key that is not a string, like the number YAML reads `1:` as, holds no dot
+    and is kept as it is: {func}`_merge_into_template` reports it.
+
+    :raises ValidationError: in strict mode, on type conflicts and on dotted keys
+        with an empty segment.
     """
     expanded: dict = {}
     for key, value in conf.items():
         if isinstance(value, dict):
             value = _expand_dotted_keys(value, strict=strict)
-        if "." in key:
+        if isinstance(key, str) and "." in key:
             parts = key.split(".")
             if not all(parts):
                 msg = f"Configuration key {key!r} contains empty segments."
                 if strict:
-                    raise ValueError(msg)
+                    raise ValidationError("", msg, code="invalid_key")
                 logger.warning(f"Ignoring {msg.lower()}")
                 continue
-            nested = ParamStructure.init_tree_dict(*parts, leaf=value)
             _check_type_conflict(expanded, parts, value, key, strict)
-            expanded = deep_merge(expanded, nested)
+            set_nested(expanded, parts, value)
         else:
             _check_type_conflict(expanded, [key], value, key, strict)
-            expanded = deep_merge(expanded, {key: value})
+            set_nested(expanded, (key,), value)
     return expanded
-
-
-def _normalize_conf(
-    conf: dict, strict: bool = False, opaque_paths: Iterable[str] = ()
-) -> dict:
-    """Strip opaque sub-trees and reserved keys, then expand dotted keys.
-
-    The single normalization recipe shared by :py:func:`run_config_validation`
-    (Stage 1) and
-    :py:meth:`~click_extra.config.option.ConfigOption.merge_default_map`, so the
-    document that gets validated and the document that gets merged into
-    `default_map` are normalized identically. A change to the recipe applies to
-    both at once instead of risking drift between the two call sites.
-
-    Opaque sub-trees leave before the expansion: their keys are data, not
-    parameter paths, so a dot inside one belongs to the key. `opaque_paths`
-    locates each one from the document root, as
-    :py:func:`_strip_opaque_subtrees` takes them.
-    """
-    stripped = _strip_opaque_subtrees(conf, opaque_paths)
-    return _expand_dotted_keys(_strip_reserved_keys(stripped), strict=strict)
 
 
 def _merge_into_template(
     template: dict[str, Any],
-    conf: dict[str, Any],
+    conf: dict[Any, Any],
     strict: bool = False,
     blocked: frozenset[str] = frozenset(),
+    exempt: frozenset[tuple[str, ...]] = frozenset(),
     _path: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Merge *conf* into *template* in place, bounded by the template's structure.
@@ -323,7 +314,7 @@ def _merge_into_template(
 
     1. with hyphens replaced by underscores, so the kebab-case conventional in
        TOML and YAML files (`hash-body`) reaches `hash_body`;
-    2. with {func}`~click_extra.parameters.canonical_param_name`, which also
+    2. with {func}`~click_extra.param_tools.canonical_param_name`, which also
        folds case, so `Hash-Body` and `HASH_BODY` reach it too.
 
     The second retry matches on the folded form but resolves to the template's
@@ -336,15 +327,24 @@ def _merge_into_template(
     When two spellings of the same key coexist (`hash-body` and
     `hash_body`), the last one wins and a warning names both.
 
-    Keys matching nothing in the template are silently ignored, or raise
-    `ValueError` when `strict` is `True`. The error distinguishes parameters
-    deliberately blocked from configuration files (their fully-qualified IDs
-    passed via `blocked`) from keys matching no CLI parameter at all.
+    Keys matching nothing in the template are silently ignored, unless `strict`
+    is `True`. The error message tells parameters deliberately blocked from
+    configuration files (their fully-qualified IDs passed via `blocked`) from
+    keys matching no CLI parameter at all.
+
+    A key that is not a string, like the number YAML reads `1:` as, matches no
+    parameter either. Strict mode rejects it as an invalid key, and lax mode
+    skips it with a warning.
 
     :param blocked: fully-qualified parameter IDs excluded from configuration
         files, used only to sharpen strict-mode error messages.
+    :param exempt: paths of the keys strict mode accepts although they match no
+        parameter, like the keys a configuration schema reads. Each path holds
+        the keys from the root of `conf` down to the key.
     :param _path: internal accumulator tracking the qualified path of the
         level being merged. Callers should not set this.
+    :raises ValidationError: in strict mode, on a key matching no parameter, or
+        on a key that is not a string.
     """
     # Index the template by the folded form of each of its keys, so a config
     # key can be resolved on the name Click would have derived from it. The
@@ -356,6 +356,12 @@ def _merge_into_template(
 
     spellings: dict[str, str] = {}
     for key, value in conf.items():
+        if not isinstance(key, str):
+            message = f"Configuration key {key!r} is not a string."
+            if strict:
+                raise ValidationError("", message, code="invalid_key")
+            logger.warning(f"{message} Ignoring it.")
+            continue
         target_key = key
         if target_key not in template:
             normalized = key.replace("-", "_")
@@ -383,17 +389,19 @@ def _merge_into_template(
                     value,
                     strict=strict,
                     blocked=blocked,
+                    exempt=exempt,
                     _path=(*_path, target_key),
                 )
             else:
                 template[target_key] = value
-        elif strict:
+        elif strict and (*_path, key) not in exempt:
             qualified = PARAM_PATH_SEP.join((*_path, key.replace("-", "_")))
-            if qualified in blocked:
-                raise ValueError(
-                    f"Configuration key {key!r} is not allowed in configuration files."
-                )
-            raise ValueError(f"Unknown configuration key {key!r}.")
+            message = (
+                f"Configuration key {key!r} is not allowed in configuration files."
+                if qualified in blocked
+                else f"Unknown configuration key {key!r}."
+            )
+            raise ValidationError("", message, code="unknown_parameter")
     return template
 
 
@@ -406,15 +414,18 @@ def _scope_app_sections(
     """Reduce a parsed config document to the app's own section.
 
     Returns ``{app_name: section}`` where the section is resolved by
-    :py:func:`_select_app_section` (so legacy `fallback_sections` are honored,
+    {func}`_select_app_section` (so legacy `fallback_sections` are honored,
     with their deprecation warning), or an empty dict when the document holds
-    no section for the app.
+    no section for the app. An empty `app_name` returns `conf` unchanged: the
+    section is then the document itself.
 
     Foreign sections are dropped: a shared configuration file (like a
     `pyproject.toml` carrying other tools' `[tool.*]` tables, or a global
     config file with several apps' sections) must not trip the CLI-parameter
     strict check over keys that were never addressed to this app.
     """
+    if not app_name:
+        return conf
     section = _select_app_section(conf, app_name, fallback_sections, warn=warn)
     if not section:
         return {}
@@ -435,7 +446,8 @@ def normalize_config_keys(
 
     Handles the convention mismatch between configuration formats (TOML, YAML,
     JSON all commonly use kebab-case) and Python identifiers. Works with all
-    configuration formats supported by `ConfigOption`.
+    configuration formats supported by `ConfigOption`. A key that is not a
+    string, like the number YAML reads `1:` as, is kept as it is.
 
     :param opaque_keys: Fully-qualified key names (using `"_"` as
         separator) where recursion stops. The key itself is still
@@ -446,17 +458,14 @@ def normalize_config_keys(
         path during recursion. Callers should not set this.
 
     ```{note}
-    Duplicating the one-liner is deliberate. Click applies the same
-    substitution in `Option._parse_decls` and `Argument._parse_decls`, but
-    names neither the transform nor a public accessor for it. A private
-    upstream helper would change nothing: importing a private symbol is no
-    more stable than writing the substitution. The expression is short enough
-    that a named indirection costs the reader more than it saves.
+    Click applies the same substitution in `Option._parse_decls` and
+    `Argument._parse_decls`, but exposes no public accessor for it, so the
+    one-liner is written out here.
     ```
     """
     normalized: dict[str, Any] = {}
     for key, value in conf.items():
-        py_key = key.replace("-", "_")
+        py_key = key.replace("-", "_") if isinstance(key, str) else key
         full_key = f"{_prefix}_{py_key}" if _prefix else py_key
         if isinstance(value, dict) and full_key not in opaque_keys:
             value = normalize_config_keys(value, opaque_keys, full_key)
@@ -694,23 +703,38 @@ def schema_field_infos(schema: type) -> list[SchemaFieldInfo]:
     return sorted(infos, key=lambda info: info.key.split("."))
 
 
+@cache
+def _resolved_type_hints(cls: type) -> dict[str, Any]:
+    """{func}`typing.get_type_hints` of `cls`, cached per class.
+
+    A schema is walked at each configuration load, and resolving the annotation
+    strings of a large one dominates the walk. A failed resolution raises, so it
+    is never cached: a forward reference resolves on a later call, once the module
+    defining it is loaded.
+
+    ```{caution}
+    Every caller shares the returned dictionary: read it, never modify it.
+    ```
+    """
+    return get_type_hints(cls)
+
+
 def _safe_get_type_hints(cls: type) -> dict[str, Any]:
     """Resolve type hints for a class, returning empty dict on failure.
 
-    Wraps `typing.get_type_hints` to handle cases where annotations
+    Wraps {func}`typing.get_type_hints` to handle cases where annotations
     reference types that are not importable in the current context (like
     forward references to types only available under `TYPE_CHECKING`).
 
     When the initial resolution fails (common for locally-defined classes
-    whose annotations are stringified by ``from __future__ import
-    annotations`), a second attempt is made with a `localns`` built from
-    `default_factory` values on the class's dataclass fields. This
-    allows nested dataclass types like ``sub: SubConfig =
-    field(default_factory=SubConfig)`` to be resolved even when
-    `SubConfig` is not in the module's global scope.
+    whose annotations are stringified by `from __future__ import annotations`),
+    a second attempt is made with a `localns` built from `default_factory`
+    values on the class's dataclass fields. This allows nested dataclass types
+    like `sub: SubConfig = field(default_factory=SubConfig)` to be resolved even
+    when `SubConfig` is not in the module's global scope.
     """
     try:
-        return get_type_hints(cls)
+        return _resolved_type_hints(cls)
     except (NameError, AttributeError, TypeError, RecursionError):
         pass
 
@@ -758,13 +782,9 @@ def _is_extension_field(field: Field, hint: object) -> bool:
       controls the keys, not the schema).
 
     Single source of truth for the per-field extension-point criteria. Both the
-    recursive schema walk in :py:func:`_collect_opaque_paths_from_schema` and the
-    flatten-boundary set computed inside :py:func:`_from_dataclass` route through
-    this helper so they cannot drift apart. The historical leak this closes:
-    :py:func:`_from_dataclass` used to inspect only the type hint, so a
-    non-mapping field flagged with `EXTENSION_METADATA_KEY` was opaque at the
-    outer strip yet transparent at the inner flatten, which then descended into a
-    sub-tree the schema author had marked off-limits.
+    recursive schema walk in {func}`_collect_opaque_paths_from_schema` and the
+    flatten-boundary set computed inside {func}`_from_dataclass` route through
+    this helper, so a field marked off-limits is opaque to both.
     """
     return bool(field.metadata.get(EXTENSION_METADATA_KEY, False)) or _is_mapping_type(
         hint
@@ -778,20 +798,11 @@ def _collect_opaque_paths_from_schema(
     """Collect dotted paths of *extension* fields from a dataclass schema.
 
     Walks the schema recursively. A field qualifies as an extension point (and
-    is therefore treated as opaque by the rest of the pipeline) when **any** of
-    the following is true:
+    is therefore treated as opaque by the rest of the pipeline) when
+    {func}`_is_extension_field` says so.
 
-    - The field's type hint is `dict[str, X]` or `Mapping[str, X]` (user
-      controls the keys, not the schema).
-    - The field carries ``metadata={EXTENSION_METADATA_KEY: True}`` (explicit
-      marker, useful when the underlying Python type is something other than a
-      mapping).
-
-    The helper name retains the historical `opaque` term because callers
-    inside :py:mod:`click_extra.config` use the result to bypass the
-    normalize/flatten/strict machinery: that pipeline's vocabulary is "opaque
-    paths." From a public API point of view those are the *extension paths*,
-    but inside this module the two names refer to the same set.
+    The public API calls these paths *extension paths*. The pipeline calls them
+    *opaque*, as it must not descend into them: both names refer to the same set.
 
     Nested dataclass fields are not themselves opaque: the function recurses
     into them, prepending the field name to every collected sub-path.
@@ -819,13 +830,13 @@ def _collect_opaque_paths_from_schema(
     return frozenset(paths)
 
 
-def _opaque_paths(
+def _collect_opaque_paths(
     schema: type | Callable[[dict[str, Any]], Any] | None,
     validators: Sequence[ConfigValidator],
 ) -> frozenset[str]:
     """Union the opaque paths from a schema and a set of extension validators.
 
-    Merges the dotted paths :py:func:`_collect_opaque_paths_from_schema` infers
+    Merges the dotted paths {func}`_collect_opaque_paths_from_schema` infers
     from `schema` with every validator's `extension_path`. The result is the
     single set of sub-trees, relative to the app section, that click-extra's
     normalize/flatten/strict machinery must skip. An app can declare an extension
@@ -863,7 +874,7 @@ def _strip_opaque_subtrees(
     document before running click-extra's CLI-parameter strict check. The
     sub-trees themselves are not returned: when callers need both the stripped
     document and the extracted sub-trees, they can read them out of the
-    original `conf` with :py:func:`_extract_dotted` before calling this
+    original `conf` with {func}`_extract_dotted` before calling this
     helper.
     """
     result = dict(conf)
@@ -882,7 +893,7 @@ def _match_dotted_segment(conf: dict[str, Any], part: str) -> str | None:
     the kebab-case spelling conventional in configuration files
     (`dependency-graph`). Returns `None` when neither spelling is present.
 
-    The tolerance stops there, unlike :py:func:`_merge_into_template`, which
+    The tolerance stops there, unlike {func}`_merge_into_template`, which
     also folds case. A path addresses a schema field a developer declared, not
     a parameter Click named, so there is no derivation to be faithful to.
     """
@@ -898,7 +909,7 @@ def _extract_dotted(conf: dict[str, Any], path: str) -> tuple[Any, bool]:
     """Extract a value at a dotted path from a nested dict.
 
     Path segments match kebab-case spellings too, see
-    :py:func:`_match_dotted_segment`.
+    {func}`_match_dotted_segment`.
 
     :param conf: Nested dict to search.
     :param path: Dotted path (like `"test-matrix.replace"`).
@@ -920,20 +931,19 @@ def _remove_dotted(conf: dict[str, Any], path: str) -> dict[str, Any]:
 
     Parent dicts that become empty after removal are also pruned. Path
     segments match kebab-case spellings too, see
-    :py:func:`_match_dotted_segment`.
+    {func}`_match_dotted_segment`.
     """
-    parts = path.split(".")
-    top = _match_dotted_segment(conf, parts[0])
+    head, _, rest = path.partition(".")
+    top = _match_dotted_segment(conf, head)
     if top is None:
         return conf
-    if len(parts) == 1:
-        return {k: v for k, v in conf.items() if k != top}
-    if not isinstance(conf[top], dict):
-        return conf
-    sub = _remove_dotted(conf[top], ".".join(parts[1:]))
-    if not sub:
-        return {k: v for k, v in conf.items() if k != top}
-    return {**conf, top: sub}
+    if rest:
+        if not isinstance(conf[top], dict):
+            return conf
+        sub = _remove_dotted(conf[top], rest)
+        if sub:
+            return {**conf, top: sub}
+    return {k: v for k, v in conf.items() if k != top}
 
 
 def _apply_nested_schema(
@@ -1044,7 +1054,8 @@ def _from_dataclass(
 
     if strict or warn_unknown:
         all_keys = set(result) | set(flattened)
-        unknown = sorted(all_keys - known)
+        # A key that is not a string, as YAML allows, sorts and reads by its text.
+        unknown = sorted(map(str, all_keys - known))
         if unknown:
             msg = (
                 f"Unknown configuration option(s): "
@@ -1134,10 +1145,11 @@ def _select_app_section(
     `False` when the caller already resolved the section once and the
     deprecation warning would repeat itself.
 
-    Free-function form of :py:meth:`~click_extra.config.option.ConfigOption._resolve_app_section`, shared
-    with :py:func:`run_config_validation` so both resolve the section (and warn
-    about leftover legacy sections) the exact same way.
+    An empty `app_name` returns `conf` itself, as {func}`_scope_app_sections` and
+    {func}`_rooted_path` read it: the section is then the whole document.
     """
+    if not app_name:
+        return conf
     section = conf.get(app_name)
     if isinstance(section, dict) and section:
         # Warn about leftover legacy sections.
@@ -1162,6 +1174,127 @@ def _select_app_section(
     return {}
 
 
+def _schema_keys(
+    section: dict[Any, Any],
+    schema: type | Callable[[dict[str, Any]], Any] | None,
+) -> frozenset[str]:
+    """Return the keys of `section` a dataclass `schema` reads in full.
+
+    Follows how {func}`_from_dataclass` consumes a section. A field pinned to a
+    path by {data}`CONFIG_PATH_METADATA_KEY` takes the sub-tree there. The other
+    keys are normalized and flattened, a nested dataclass or an extension field
+    taking its table whole, and each flattened key naming a field is read. A key
+    of `section` is returned when the schema reads all of it.
+
+    Returns an empty set for a schema that is not a dataclass: a callable does not
+    tell which keys it reads.
+    """
+    if schema is None or not is_dataclass(schema):
+        return frozenset()
+    all_fields = dc_fields(schema)
+    known = {f.name for f in all_fields}
+    hints = _safe_get_type_hints(schema)
+
+    # Phase 1 of _from_dataclass: a found pinned path leaves the section.
+    remaining = dict(section)
+    pinned: set[str] = set()
+    for f in all_fields:
+        path = f.metadata.get(CONFIG_PATH_METADATA_KEY)
+        if path is None:
+            continue
+        _value, found = _extract_dotted(remaining, path)
+        if found:
+            remaining = _remove_dotted(remaining, path)
+            pinned.add(f.name)
+
+    # Phase 2: the same flatten boundaries, so a table read whole stays one key.
+    boundaries = frozenset(
+        f.name
+        for f in all_fields
+        if f.name not in pinned
+        and (
+            _is_extension_field(f, hints.get(f.name)) or is_dataclass(hints.get(f.name))
+        )
+    )
+
+    keys: set[str] = set()
+    for key in section:
+        if key not in remaining:
+            keys.add(key)
+            continue
+        flattened = flatten_config_keys(
+            normalize_config_keys({key: remaining[key]}, opaque_keys=boundaries),
+            opaque_keys=boundaries,
+        )
+        if flattened and known.issuperset(flattened):
+            keys.add(key)
+    return frozenset(keys)
+
+
+def _build_merged_conf(
+    conf: dict[str, Any],
+    *,
+    app_name: str,
+    params_template: dict[str, Any],
+    opaque_paths: Iterable[str] = (),
+    fallback_sections: Sequence[str] = (),
+    strict: bool = False,
+    blocked: frozenset[str] = frozenset(),
+    warn: bool = True,
+    config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
+) -> dict[str, Any]:
+    """Merge the app's section of `conf` onto a copy of `params_template`.
+
+    The single recipe behind {attr}`ValidationReport.merged_conf` and
+    {meth}`~click_extra.config.option.ConfigOption.merge_default_map`, so the
+    document that gets validated and the one merged into `default_map` match:
+
+    1. Strip the opaque sub-trees and the reserved keys, then expand dotted keys.
+       Opaque sub-trees leave before the expansion: their keys are data, not
+       parameter paths, so a dot inside one belongs to the key.
+    2. Strip the opaque sub-trees again, to drop one whose path the document
+       spells as a dotted key.
+    3. Reduce the document to the app's section with {func}`_scope_app_sections`,
+       so foreign sections of a shared file are not checked.
+    4. Merge the section onto the template with {func}`_merge_into_template`.
+       Strict mode accepts a key of the section that matches no parameter when
+       the dataclass `config_schema` reads it: a section can mix parameters
+       with schema fields.
+
+    A template without the app's section, as `included_params=()` produces, reads
+    no parameter from the file: the section belongs to the schema alone, and
+    nothing is checked or merged.
+
+    :param opaque_paths: dotted paths of the opaque sub-trees, relative to the
+        app's section.
+    :param warn: log the deprecation warning of a fallback section. Set it to
+        `False` when the caller already resolved the section.
+    :param config_schema: the schema reading the app's section, whose keys strict
+        mode accepts.
+    :raises ValidationError: in strict mode, on an invalid dotted key or a key
+        matching no parameter.
+    """
+    if app_name and app_name not in params_template:
+        return {}
+    rooted_paths = tuple(_rooted_path(app_name, path) for path in opaque_paths)
+    stripped = _strip_reserved_keys(_strip_opaque_subtrees(conf, rooted_paths))
+    expanded = _expand_dotted_keys(stripped, strict=strict)
+    scoped = _scope_app_sections(
+        _strip_opaque_subtrees(expanded, rooted_paths),
+        app_name,
+        fallback_sections,
+        warn=warn,
+    )
+    exempt: frozenset[tuple[str, ...]] = frozenset()
+    if strict:
+        section = scoped.get(app_name, {}) if app_name else scoped
+        root = (app_name,) if app_name else ()
+        exempt = frozenset((*root, key) for key in _schema_keys(section, config_schema))
+    return _merge_into_template(
+        copy.deepcopy(params_template), scoped, strict, blocked=blocked, exempt=exempt
+    )
+
+
 def _collect_validator_errors(
     app_name: str,
     app_section: dict[str, Any],
@@ -1177,7 +1310,7 @@ def _collect_validator_errors(
     are re-anchored to the configuration file root so reporting is uniform across
     click-extra's own checks and user-registered validators.
 
-    Stage 5 of :py:func:`run_config_validation`. Generator interface so the
+    The last stage of {func}`run_config_validation`. Generator interface so the
     caller picks its error-handling strategy (collect all, or stop at the first).
     """
     for cv in config_validators:
@@ -1194,7 +1327,7 @@ def _collect_validator_errors(
 
 @dataclass(frozen=True)
 class ValidationReport:
-    """Outcome of one pass through :py:func:`run_config_validation`.
+    """Outcome of one pass through {func}`run_config_validation`.
 
     Bundles everything a caller needs after validating a parsed configuration
     document: the typed schema instance, the extracted opaque sub-trees, the
@@ -1211,7 +1344,7 @@ class ValidationReport:
     """Typed object produced by the configured schema callable.
 
     `None` when no schema is configured, or when the schema stage raised
-    (in which case the failure is recorded in :py:attr:`errors`)."""
+    (in which case the failure is recorded in {attr}`errors`)."""
 
     opaque_subtrees: dict[str, dict[str, Any]]
     """Extracted extension sub-trees, keyed by dotted path relative to the app
@@ -1219,21 +1352,20 @@ class ValidationReport:
     can re-route them to per-path validators or stash them on `ctx.meta`."""
 
     errors: tuple[ValidationError, ...]
-    """Every {class}`ValidationError` detected, in stage order (unknown CLI-flag
-    keys first, then schema errors, then validator failures). Empty on success.
+    """Every {class}`ValidationError` detected, in stage order (CLI-flag keys
+    first, then schema errors, then validator failures). Empty on success.
 
     With `collect_all=False` this holds at most one error: the first failure
     short-circuits the remaining stages."""
 
     merged_conf: dict[str, Any] | None = None
     """The CLI-flag-bound configuration merged onto `params_template`: the
-    payload :py:meth:`~click_extra.config.option.ConfigOption._install_default_map`
-    layers into the context's `default_map`.
+    payload {meth}`~click_extra.config.option.ConfigOption.load_conf` layers into
+    the context's `default_map`, as
+    {meth}`~click_extra.config.option.ConfigOption.merge_default_map` does.
 
     `None` when `params_template` was `None` (no strict check) or the strict
-    check raised. Read it only on a successful report: it is the same value
-    :py:meth:`~click_extra.config.option.ConfigOption.merge_default_map` would
-    recompute, so reusing it avoids a second normalize/strip/merge pass."""
+    check failed."""
 
     @property
     def ok(self) -> bool:
@@ -1257,28 +1389,26 @@ def run_config_validation(
 ) -> ValidationReport:
     """Validate a parsed configuration document in one schema-driven pass.
 
-    This is the module-level entry point that unifies click-extra's three
-    historical validation paths (CLI-parameter strict check, dataclass schema,
-    and app-registered {class}`ConfigValidator` hooks) behind a single function
-    yielding a single error type. It is deliberately *not* named
+    Runs click-extra's three checks (the CLI-parameter strict check, the
+    dataclass schema, and the app-registered {class}`ConfigValidator` hooks)
+    behind a single function yielding a single error type. It is not named
     `validate_config`: that name belongs to
-    :py:meth:`~click_extra.config.option.ValidateConfigOption.validate_config`, the callback powering the
-    `--validate-config` flag.
+    {meth}`~click_extra.config.option.ValidateConfigOption.validate_config`, the
+    callback powering the `--validate-config` flag.
 
     Stages, in order:
 
-    1. **Normalize.** Strip opaque sub-trees and reserved keys, then expand
-       dotted keys.
-    2. **Partition.** Split opaque sub-trees (schema extension fields plus every
+    1. **Partition.** Split opaque sub-trees (schema extension fields plus every
        registered validator's `extension_path`) from the CLI-flag-bound
        content. Extracted sub-trees land in
-       :py:attr:`ValidationReport.opaque_subtrees`.
-    3. **Strict-check** the CLI-flag-bound part against `params_template`,
-       keeping the merged result as :py:attr:`ValidationReport.merged_conf`
-       (skipped when `params_template` is `None`).
-    4. **Schema-build** the app section through the configured callable,
-       producing :py:attr:`ValidationReport.schema_instance`.
-    5. **Validate** every opaque sub-tree through its registered validator.
+       {attr}`ValidationReport.opaque_subtrees`.
+    2. **Strict-check** the CLI-flag-bound part against `params_template`, once
+       its dotted keys are expanded, keeping the merged result as
+       {attr}`ValidationReport.merged_conf` (skipped when `params_template` is
+       `None`). A key the dataclass schema reads is left to stage 3.
+    3. **Schema-build** the app section through the configured callable,
+       producing {attr}`ValidationReport.schema_instance`.
+    4. **Validate** every opaque sub-tree through its registered validator.
 
     :param user_conf: The full parsed configuration document.
     :param app_name: Name of the app's section (used to resolve the section and
@@ -1297,15 +1427,17 @@ def run_config_validation(
         dataclass schema does not recognize (see `warn_unknown` in
         {func}`make_schema_callable`). Ignored when `schema_strict` rejects
         them outright.
-    :param strict: Reject keys the CLI-parameter template does not recognize.
+    :param strict: Reject keys that neither the CLI-parameter template nor the
+        dataclass schema recognize, keys that are not strings, and dotted keys
+        that conflict with another key or have an empty segment.
     :param blocked_params: Fully-qualified IDs of parameters excluded from
         configuration files, used to sharpen strict-mode error messages (a
         blocked parameter is reported as such, not as unknown).
     :param collect_all: When `True` (default), run every stage and collect all
         errors. When `False`, the first error short-circuits the rest.
     :return: A {class}`ValidationReport`. `ValidationError` is the single error
-        type recorded by every stage; `ValueError` / `TypeError` raised by
-        the strict check or schema callable are wrapped into it.
+        type recorded by every stage; a `ValueError` or `TypeError` raised by
+        the schema callable is wrapped into it.
     """
     errors: list[ValidationError] = []
     merged_conf: dict[str, Any] | None = None
@@ -1315,13 +1447,9 @@ def run_config_validation(
         errors.append(error)
         return not collect_all
 
-    opaque_paths = _opaque_paths(config_schema, config_validators)
-    rooted_paths = tuple(_rooted_path(app_name, path) for path in opaque_paths)
+    opaque_paths = _collect_opaque_paths(config_schema, config_validators)
 
-    # Stage 1: normalize everything but the opaque sub-trees.
-    normalized = _normalize_conf(user_conf, strict=strict, opaque_paths=rooted_paths)
-
-    # Stage 2: partition opaque sub-trees from CLI-flag-bound content.
+    # Stage 1: partition opaque sub-trees from CLI-flag-bound content.
     app_section = _select_app_section(user_conf, app_name, fallback_sections)
     opaque_subtrees: dict[str, dict[str, Any]] = {}
     for path in opaque_paths:
@@ -1329,33 +1457,26 @@ def run_config_validation(
         if found and isinstance(subtree, dict):
             opaque_subtrees[path] = subtree
 
-    # Stage 3: strict-check the CLI-flag-bound part against the template.
+    # Stage 2: strict-check the CLI-flag-bound part against the template. Stage 1
+    # already resolved the section, so the legacy-section warning is muted here.
     if params_template is not None:
-        # Stage 1 removed every opaque sub-tree the file nests. This pass
-        # removes one whose path the file spells as a dotted key.
-        stripped = _strip_opaque_subtrees(normalized, rooted_paths)
-        # Scope the strict check to the app's own section: foreign sections in
-        # a shared file are not ours to police. Stage 2 already resolved the
-        # section once, so the legacy-section warning is muted here.
-        scoped = (
-            _scope_app_sections(stripped, app_name, fallback_sections, warn=False)
-            if app_name
-            else stripped
-        )
         try:
-            merged_conf = _merge_into_template(
-                copy.deepcopy(params_template),
-                scoped,
-                strict,
+            merged_conf = _build_merged_conf(
+                user_conf,
+                app_name=app_name,
+                params_template=params_template,
+                opaque_paths=opaque_paths,
+                fallback_sections=fallback_sections,
+                strict=strict,
                 blocked=frozenset(blocked_params),
+                warn=False,
+                config_schema=config_schema,
             )
-        except ValueError as exc:
-            # Path-1 error. Empty path keeps str(ValidationError) == str(exc),
-            # so existing message-based assertions and CLI output are preserved.
-            if record(ValidationError("", str(exc), code="unknown_parameter")):
+        except ValidationError as exc:
+            if record(exc):
                 return ValidationReport(None, opaque_subtrees, tuple(errors))
 
-    # Stage 4: build the typed schema instance from the app section.
+    # Stage 3: build the typed schema instance from the app section.
     schema_instance = None
     schema_callable = make_schema_callable(
         config_schema, strict=schema_strict, warn_unknown=schema_warn_unknown
@@ -1364,14 +1485,20 @@ def run_config_validation(
         try:
             schema_instance = schema_callable(app_section)
         except (ValueError, TypeError) as exc:
-            # Path-2 error (unknown schema field or type mismatch). The strict
-            # check already passed, so merged_conf is carried even on this exit.
-            if record(ValidationError("", str(exc), code="schema_error")):
+            # An unknown schema field or a type mismatch. A custom schema
+            # callable raising a ValidationError keeps its path and code. The
+            # strict check passed, so merged_conf is carried even on this exit.
+            schema_error = (
+                exc
+                if isinstance(exc, ValidationError)
+                else ValidationError("", str(exc), code="schema_error")
+            )
+            if record(schema_error):
                 return ValidationReport(
                     None, opaque_subtrees, tuple(errors), merged_conf
                 )
 
-    # Stage 5: run every ConfigValidator against its opaque sub-tree.
+    # Stage 4: run every ConfigValidator against its opaque sub-tree.
     for error in _collect_validator_errors(app_name, app_section, config_validators):
         if record(error):
             break

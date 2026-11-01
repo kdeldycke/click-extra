@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Tests for the reST-to-MyST docstring converter and its CLI command."""
+"""Tests for the reST-to-MyST converters and the `convert-to-myst` command."""
 
 from __future__ import annotations
 
@@ -23,16 +23,17 @@ import pytest
 from click.testing import CliRunner
 
 from click_extra.cli import convert_to_myst_cmd
-from click_extra.myst_converter import (
+from click_extra.markdown.myst import (
+    convert_apidoc_rst_to_myst,
     convert_comment_blocks,
     convert_directives,
     convert_directory,
     convert_file,
     convert_inline_code,
     convert_links,
+    convert_rst_files_in_directory,
     convert_source,
     convert_xrefs,
-    detect_source_package,
 )
 
 # ---- Cross-references: :role:`target` -> {role}`target` --------------------
@@ -288,10 +289,10 @@ SAMPLE_RST_MODULE = dedent('''\
 
 def test_convert_file_roundtrip_and_idempotence(tmp_path):
     module = tmp_path / "basket.py"
-    module.write_text(SAMPLE_RST_MODULE, encoding="utf-8")
+    module.write_text(SAMPLE_RST_MODULE, encoding="UTF-8")
 
     assert convert_file(module) is True
-    converted = module.read_text(encoding="utf-8")
+    converted = module.read_text(encoding="UTF-8")
     assert "{func}`ripeness`" in converted
     assert "[market guide](https://example.com/fruits)" in converted
     assert "```{note}" in converted
@@ -299,17 +300,17 @@ def test_convert_file_roundtrip_and_idempotence(tmp_path):
 
     # A second pass finds nothing to change.
     assert convert_file(module) is False
-    assert module.read_text(encoding="utf-8") == converted
+    assert module.read_text(encoding="UTF-8") == converted
 
 
 def test_convert_directory_reports_only_changed(tmp_path):
-    (tmp_path / "rest.py").write_text(SAMPLE_RST_MODULE, encoding="utf-8")
-    (tmp_path / "myst.py").write_text('"""Already `MyST`."""\n', encoding="utf-8")
+    (tmp_path / "rest.py").write_text(SAMPLE_RST_MODULE, encoding="UTF-8")
+    (tmp_path / "myst.py").write_text('"""Already `MyST`."""\n', encoding="UTF-8")
     changed = convert_directory(tmp_path)
     assert [path.name for path in changed] == ["rest.py"]
 
 
-# ---- Source-package auto-detection -----------------------------------------
+# ---- CLI command ------------------------------------------------------------
 
 
 def _write_pyproject(tmp_path, scripts: dict[str, str]) -> None:
@@ -317,39 +318,11 @@ def _write_pyproject(tmp_path, scripts: dict[str, str]) -> None:
     if scripts:
         lines.append("[project.scripts]")
         lines.extend(f'{name} = "{target}"' for name, target in scripts.items())
-    (tmp_path / "pyproject.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
-
-
-def test_detect_source_package_single(tmp_path):
-    _write_pyproject(tmp_path, {"orchard": "orchard.cli:main"})
-    assert detect_source_package(tmp_path / "pyproject.toml") == tmp_path / "orchard"
-
-
-def test_detect_source_package_no_entry_point(tmp_path):
-    _write_pyproject(tmp_path, {})
-    with pytest.raises(ValueError, match=r"no console script"):
-        detect_source_package(tmp_path / "pyproject.toml")
-
-
-def test_detect_source_package_multiple(tmp_path):
-    _write_pyproject(
-        tmp_path,
-        {"orchard": "orchard.cli:main", "grove": "grove.cli:main"},
-    )
-    with pytest.raises(ValueError, match="Multiple source packages"):
-        detect_source_package(tmp_path / "pyproject.toml")
-
-
-def test_detect_source_package_missing_pyproject(tmp_path):
-    with pytest.raises(ValueError, match=r"No pyproject\.toml"):
-        detect_source_package(tmp_path / "pyproject.toml")
-
-
-# ---- CLI command ------------------------------------------------------------
+    (tmp_path / "pyproject.toml").write_text("\n".join(lines) + "\n", encoding="UTF-8")
 
 
 def test_convert_to_myst_cli_explicit_directory(tmp_path):
-    (tmp_path / "basket.py").write_text(SAMPLE_RST_MODULE, encoding="utf-8")
+    (tmp_path / "basket.py").write_text(SAMPLE_RST_MODULE, encoding="UTF-8")
     result = CliRunner().invoke(convert_to_myst_cmd, [str(tmp_path)])
     assert result.exit_code == 0
     assert "Converted:" in result.output
@@ -360,7 +333,7 @@ def test_convert_to_myst_cli_autodetect(tmp_path, monkeypatch):
     _write_pyproject(tmp_path, {"orchard": "orchard.cli:main"})
     package = tmp_path / "orchard"
     package.mkdir()
-    (package / "basket.py").write_text(SAMPLE_RST_MODULE, encoding="utf-8")
+    (package / "basket.py").write_text(SAMPLE_RST_MODULE, encoding="UTF-8")
     monkeypatch.chdir(tmp_path)
     result = CliRunner().invoke(convert_to_myst_cmd, [])
     assert result.exit_code == 0
@@ -380,3 +353,81 @@ def test_convert_to_myst_cli_not_a_directory(tmp_path):
     result = CliRunner().invoke(convert_to_myst_cmd, [str(target)])
     assert result.exit_code != 0
     assert "Not a directory" in result.output
+
+
+# ---- sphinx-apidoc pages ---------------------------------------------------
+
+APIDOC_STUB = dedent("""\
+    orchard package
+    ===============
+
+    Submodules
+    ----------
+
+    orchard.basket module
+    ---------------------
+
+    .. automodule:: orchard.basket
+       :members:
+       :undoc-members:
+       :show-inheritance:
+    """)
+
+
+@pytest.mark.parametrize(
+    ("rst", "expected"),
+    [
+        # Underline characters map to heading levels.
+        ("Title\n=====", "# Title"),
+        ("Section\n-------", "## Section"),
+        ("Sub\n~~~", "### Sub"),
+        # Backslash escapes are stripped and identifiers wrapped in backticks.
+        (
+            "fruit\\_stand.apples module\n--------------------------",
+            "## `fruit_stand.apples` module",
+        ),
+    ],
+    ids=["h1", "h2", "h3", "escaped-identifier"],
+)
+def test_heading_conversion(rst, expected):
+    assert expected in convert_apidoc_rst_to_myst(rst)
+
+
+def test_automodule_block_wrapped_in_eval_rst():
+    result = convert_apidoc_rst_to_myst(APIDOC_STUB)
+    assert "# `orchard` package" in result
+    assert "## Submodules" in result
+    assert "## `orchard.basket` module" in result
+    # The directive block is preserved verbatim inside an eval-rst fence.
+    assert "```{eval-rst}" in result
+    assert ".. automodule:: orchard.basket" in result
+    assert "   :members:" in result
+    assert result.rstrip().endswith("```")
+
+
+def test_convert_rst_files_creates_md_and_deletes_rst(tmp_path):
+    rst_path = tmp_path / "orchard.rst"
+    rst_path.write_text(APIDOC_STUB, encoding="UTF-8")
+    converted = convert_rst_files_in_directory(tmp_path)
+    assert converted == [tmp_path / "orchard.md"]
+    assert not rst_path.exists()
+    assert "```{eval-rst}" in (tmp_path / "orchard.md").read_text(encoding="UTF-8")
+
+
+def test_convert_rst_files_skips_non_apidoc(tmp_path):
+    rst_path = tmp_path / "prose.rst"
+    rst_path.write_text("Just prose\n==========\n", encoding="UTF-8")
+    assert convert_rst_files_in_directory(tmp_path) == []
+    # Non-apidoc RST files are left in place.
+    assert rst_path.exists()
+
+
+def test_convert_rst_files_existing_md_wins(tmp_path):
+    rst_path = tmp_path / "orchard.rst"
+    rst_path.write_text(APIDOC_STUB, encoding="UTF-8")
+    md_path = tmp_path / "orchard.md"
+    md_path.write_text("# Hand-written page\n", encoding="UTF-8")
+    assert convert_rst_files_in_directory(tmp_path) == []
+    # The stale stub is deleted; the hand-written markdown is untouched.
+    assert not rst_path.exists()
+    assert md_path.read_text(encoding="UTF-8") == "# Hand-written page\n"

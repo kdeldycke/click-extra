@@ -20,8 +20,8 @@ BEFORE = "apples: 3\nbananas: 6\ncherries: 12\nplums: 4\n"
 AFTER = "apples: 5\nbananas: 6\ncherries: 12\nfigs: 2\n"
 target = Path(__srcdir__) / "assets" / "git-diff-screen.svg"
 with TemporaryDirectory() as basket:
-    Path(basket, "basket.txt").write_text(BEFORE, encoding="utf-8")
-    Path(basket, "basket.new.txt").write_text(AFTER, encoding="utf-8")
+    Path(basket, "basket.txt").write_text(BEFORE, encoding="UTF-8")
+    Path(basket, "basket.new.txt").write_text(AFTER, encoding="UTF-8")
     subprocess.run(
         (
             sys.executable,
@@ -104,7 +104,7 @@ Neither format needs an optional dependency.
 $ click-extra screenshot --output cli-help.html -- my-cli --help
 ```
 
-That writes a standalone document. Add `--fragment` to get a bare `<pre>` with inline styles, so it needs no stylesheet.
+That writes a standalone document. Add `--fragment` to get the bare `<pre>` and the credit line under it, both styled inline, so the page they are pasted into needs no stylesheet.
 
 ```{tip}
 An SVG capture needs no web font and no HTTP request to render, so it draws the same in any viewer that implements the whole of SVG's text styling.
@@ -402,7 +402,7 @@ Crediting your own project rather than the tool that drew it is the expected cas
 
 The mark is the one thing drawn outside the window, so it is also the one paint that cannot follow the chrome: the margin is transparent, and behind it sits a page this command never sees. Hence a neutral gray, which reads on a white README and a dark one alike. `--watermark-color` covers a capture whose backdrop it has to sit on.
 
-A capture written by a [`click:run` block](sphinx.md#committed-captures) carries no watermark by default. That image is regenerated on every documentation build, so a release number in it would rewrite every asset on release day, and the page around it already says what drew it. `:screenshot-watermark:`, or the `click_extra_screenshot_watermark` `conf.py` value, turns it on for a project that wants it anyway.
+A capture written by a [`click:run` block](sphinx.md#committed-captures) carries no watermark by default: the page around it already says what drew it. `:screenshot-watermark:`, or the `click_extra_screenshot_watermark` `conf.py` value, turns it on for a project that wants it anyway.
 
 #### All of it at once
 
@@ -461,7 +461,7 @@ None of that is limited to the still. An [animated capture](#animated-captures) 
 from time import sleep
 
 from click_extra import SPINNERS, Spinner, Style
-from click_extra.recording import ScreenRecorder
+from click_extra.capture.recording import ScreenRecorder
 
 
 def restock(stream=None):
@@ -509,7 +509,7 @@ A capture is a picture of a terminal, and terminals do not look alike. `--preset
 $ click-extra screenshot --output shot.svg --preset windows -- my-cli --help
 ```
 
-Each preset carries the four things that make a terminal recognizable: its window decorations, the palette its colors resolve against, the font it ships with, and the prompt sigil of its usual shell. An option stated alongside wins, so `--preset windows --radius 8` rounds the corners Windows squares.
+Each preset carries the five things that make a terminal recognizable: its window decorations, the palette its colors resolve against, the font it ships with, the prompt sigil of its usual shell, and the shape of its [cursor](#a-blinking-cursor). An option stated alongside wins, so `--preset windows --radius 8` rounds the corners Windows squares.
 
 A preset also paints the strip its buttons and caption sit in, a shade off the terminal's own background, because that strip belongs to the desktop. That makes `plain` the odd one out: it mimics no desktop, wears no buttons, and drops the strip entirely unless a `--title` gives it something to hold.
 
@@ -688,7 +688,7 @@ assert "apricot" in result.stdout
 
 Size a run by its character count instead and the picture drifts: the seven lines above would land on four different columns, the wide scripts drawn at half their width and stacking on each other. That is [`rich#2742`](https://github.com/Textualize/rich/issues/2742), open upstream since 2023 and one of the reasons this renderer is click-extra's own. The [upstream page](upstream.md#terminal-captures-as-svg) collects the rest.
 
-Two spaces are what mark a column. A capture cuts each line at its gutters ({func}`click_extra.screenshot_svg.column_segments`), then pins every piece to its own offset. One space is ordinary word spacing rather than a gutter, so a wide glyph and the word after it stay a single run, and where that word sits inside the run is left to the font. Pad a column to a fixed width, the way `market` does above, instead of separating it by one space. Captured output rarely trips on this: a table or a help screen already leaves two spaces or a rule between its columns. A hand-written example is where it shows.
+Two spaces are what mark a column. A capture cuts each line at its gutters ({func}`click_extra.capture.svg.column_segments`), then pins every piece to its own offset. One space is ordinary word spacing rather than a gutter, so a wide glyph and the word after it stay a single run, and where that word sits inside the run is left to the font. Pad a column to a fixed width, the way `market` does above, instead of separating it by one space. Captured output rarely trips on this: a table or a help screen already leaves two spaces or a rule between its columns. A hand-written example is where it shows.
 
 ```{note}
 Right-to-left scripts are the case cell arithmetic cannot settle. Arabic and Hebrew are reordered by whoever draws them, and the cursive ones are *shaped*: a letter's form depends on the letters it joins. A run carrying any of them is therefore left to size itself, rather than pinned to an exact width that would pay for the difference in letter spacing and pull the word apart at its joins. The run still starts on its own column, so the grid around it holds; only its own width floats.
@@ -705,7 +705,7 @@ An SVG capture can hold more than one frame. Pass `frames` a sequence of capture
 ```python
 from pathlib import Path
 
-from click_extra.screenshot_svg import render_svg
+from click_extra.capture.svg import render_svg
 from click_extra.spinner_presets import SPINNERS
 from click_extra.styling import Style
 
@@ -719,7 +719,7 @@ Path("brewing.svg").write_text(
         frames=[lemon(f"{frame}  brewing tea…") for frame in preset.frames],
         interval=preset.interval,
     ),
-    encoding="utf-8",
+    encoding="UTF-8",
 )
 ```
 
@@ -731,7 +731,7 @@ A row drawn the same in every frame is drawn once. Only the rows that move are c
 
 One frame stays visible wherever the animation does not run, so a capture is never a blank rectangle. The capture also honors a system asking for reduced motion, by keeping every animation rule behind a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard.
 
-A recorded animation also **pauses on its last frame** and then **closes on an empty beat**, 2.6 seconds by default. A loop restarting the instant it arrives gives a reader no time to read the end. The empty beat says plainly where the loop comes round.
+A recorded animation also **pauses on its last frame** and then **closes on an empty beat**. A loop restarting the instant it arrives gives a reader no time to read the end. The empty beat says plainly where the loop comes round.
 
 Three knobs state all of it, on `render_svg`, on the `--record` command line and on a documentation block alike:
 
@@ -752,8 +752,8 @@ The frame left visible is the **last** one, because an animation that accumulate
 A capture draws no cursor unless it is asked for one. Pass a `Cursor` and it draws one:
 
 ```python
-from click_extra.screenshot_svg import render_svg
-from click_extra.screenshot_presets import Cursor, CursorShape
+from click_extra.capture.presets import Cursor, CursorShape
+from click_extra.capture.svg import render_svg
 
 render_svg("$ pantry restock --crates 4", columns=44, cursor=Cursor())
 ```
@@ -836,7 +836,7 @@ For a spinner this process hosts, hand it a `ScreenRecorder`. It claims to be a 
 
 ```python
 from click_extra import SPINNERS, Spinner
-from click_extra.recording import ScreenRecorder
+from click_extra.capture.recording import ScreenRecorder
 
 recorder = ScreenRecorder()
 with Spinner("Brewing tea", spinner=SPINNERS["moon"], stream=recorder):
@@ -847,7 +847,7 @@ frames = recorder.frames()
 For a command this process does not host, `record_command` runs it under a pseudo-terminal and reads both its output and its errors, the spinner drawing on the latter:
 
 ```python
-from click_extra.recording import record_command
+from click_extra.capture.recording import record_command
 
 frames = record_command(("kettle", "boil", "--slowly"), columns=60, duration=5.0)
 ```
@@ -865,7 +865,7 @@ render_svg(
 ```
 
 ```{caution}
-A recording is timed by the wall clock, so the same command records slightly different durations every run. That is fine for a one-off image, and a problem for a committed one that is rewritten on every build: see [keeping a recording committable](#keeping-a-recording-committable).
+A recording is timed by the wall clock, so the same command records slightly different durations every run. That is fine for a one-off image, and a problem for a committed one that every build redraws: see [keeping a recording committable](#keeping-a-recording-committable).
 ```
 
 ### Type the command first
@@ -873,8 +873,8 @@ A recording is timed by the wall clock, so the same command records slightly dif
 A recording holds what a command drew and never the invocation that drew it, so an animation opens on output arriving from nowhere. `typing` types the command line out first, one character per frame:
 
 ```python
-from click_extra.recording import record_and_render
-from click_extra.screenshot_presets import Cursor
+from click_extra.capture.presets import Cursor
+from click_extra.capture.recording import record_and_render
 
 svg, returncode = record_and_render(
     ("pantry", "restock", "--crates", "4"),
@@ -892,7 +892,7 @@ The typed screens are ordinary frames. Everything the picture does for a frame t
 For an animation assembled by hand, `type_line` makes those frames from a prompt line and nothing else:
 
 ```python
-from click_extra.recording import type_line
+from click_extra.capture.recording import type_line
 
 opening = type_line("$ pantry restock --crates 4", typing=0.05)
 ```
@@ -931,7 +931,7 @@ A typed opening costs one frame per character. Those frames differ by a single c
 
 ### Keeping a recording committable
 
-A committed capture is rewritten on every build, which keeps it from drifting away from the CLI. A recording cannot live that way, and not because of its timings: **the scheduler decides which spinner glyph pairs with which screen**, so the same command records a different set of frames on every other run. Rounding the durations with `quantize` settles the jitter but cannot touch that.
+Every build redraws a committed capture and writes it when it changes, which keeps it from drifting away from the CLI. A recording cannot live that way, and not because of its timings: **the scheduler decides which spinner glyph pairs with which screen**, so the same command records a different set of frames on every other run. Rounding the durations with `quantize` settles the jitter but cannot touch that.
 
 So a recording is written once and then kept. `:screenshot-record:` writes the asset the first time and leaves it alone afterwards. It does not even evaluate its expression once the file exists. To take a fresh recording, delete the file and build again.
 
@@ -971,7 +971,7 @@ $ click-extra screenshot --record --cursor --closing-prompt --typing 0.05 --colu
 The invocation is drawn above every frame, exactly as a still capture draws its own prompt, and `--prompt` overrides or hides it the same way. `--rows` states the terminal's height, `--timeout` stops a recording that would run on, and the pacing knobs above apply as given. Two of a still capture's arrangements do not carry over: the width must be a number, since the pseudo-terminal exists before the command draws its first line, and `--head`/`--tail` stay out, a recording being made of whole screens.
 
 ```{caution}
-Unix only, for the reasons {func}`~click_extra.recording.record_command` states. The same pipeline is scriptable through {func}`~click_extra.recording.record_and_render`.
+Unix only, for the reasons {func}`~click_extra.capture.recording.record_command` states. The same pipeline is scriptable through {func}`~click_extra.capture.recording.record_and_render`.
 ```
 
 ## Publish and maintain
@@ -1002,7 +1002,7 @@ It covers every block whose `:screenshot:` names no preset of its own, leaving `
 import tomllib
 from pathlib import Path
 
-pyproject = tomllib.loads(Path("../pyproject.toml").read_text(encoding="utf-8"))
+pyproject = tomllib.loads(Path("../pyproject.toml").read_text(encoding="UTF-8"))
 click_extra_screenshot_preset = pyproject["tool"]["click-extra"]["screenshot"]["preset"]
 ```
 
@@ -1072,40 +1072,40 @@ Both URLs are absolute on purpose. A README is read on PyPI and in many forks of
 The switch keys on the *browser's* color scheme, not on the theme toggle of a documentation site, so it belongs to a README rather than to these pages: Furo's own switch would leave it unmoved.
 ```
 
-## `click_extra.screenshot` API
+## `click_extra.capture.screenshot` API
 
 ```{eval-rst}
-.. automodule:: click_extra.screenshot
+.. automodule:: click_extra.capture.screenshot
    :no-index:
    :members:
    :show-inheritance:
    :undoc-members:
 ```
 
-## `click_extra.screenshot_html` API
+## `click_extra.capture.html` API
 
 ```{eval-rst}
-.. automodule:: click_extra.screenshot_html
+.. automodule:: click_extra.capture.html
    :no-index:
    :members:
    :show-inheritance:
    :undoc-members:
 ```
 
-## `click_extra.screenshot_svg` API
+## `click_extra.capture.svg` API
 
 ```{eval-rst}
-.. automodule:: click_extra.screenshot_svg
+.. automodule:: click_extra.capture.svg
    :no-index:
    :members:
    :show-inheritance:
    :undoc-members:
 ```
 
-## `click_extra.screenshot_presets` API
+## `click_extra.capture.presets` API
 
 ```{eval-rst}
-.. automodule:: click_extra.screenshot_presets
+.. automodule:: click_extra.capture.presets
    :no-index:
    :members:
    :show-inheritance:

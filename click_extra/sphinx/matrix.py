@@ -55,6 +55,8 @@ import tomllib
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from http.client import HTTPException
+from itertools import groupby
+from operator import itemgetter
 from pathlib import Path
 from typing import NamedTuple
 from urllib.request import urlopen
@@ -67,24 +69,37 @@ from packaging.version import InvalidVersion, Version
 from sphinx.directives import directives
 from sphinx.util import logging
 
-from ..blocks import (
+from ..markdown.blocks import (
     FenceSpan,
     fence_spans,
     marker_res,
     region_markers,
+    rewrite_fences,
     split_options,
     update_blocks,
+    walk_fences,
 )
 from ..table import TableFormat, corner_header, render_table
+from ..version_facts import find_git_root, run_git
 from ._base import ContentOffsetMixin, parse_into_section
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable, Iterator, Mapping, Sequence
-    from typing import Any, ClassVar
+    from collections.abc import (
+        Callable,
+        Generator,
+        Iterable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
+    from typing import Any, ClassVar, TypeVar
 
     from sphinx.application import Sphinx
     from sphinx.util.typing import OptionSpec
+
+    K = TypeVar("K")
+    T = TypeVar("T")
 
 
 logger = logging.getLogger(__name__)
@@ -107,6 +122,8 @@ PYTHON_RELEASE_DATES: dict[str, str] = {
     "3.12": "2023-10-02",
     "3.13": "2024-10-07",
     "3.14": "2025-10-07",
+    # 3.15.0 final per https://peps.python.org/pep-0790/ and its python.org page.
+    "3.15": "2026-10-09",
 }
 """ISO release date of each `X.Y` Python final release.
 
@@ -158,6 +175,72 @@ OLDEST_FIRST: str = "oldest-first"
 ORDER_CHOICES: tuple[str, ...] = (NEWEST_FIRST, OLDEST_FIRST)
 """Allowed values of the `column-order` and `row-order` matrix options."""
 
+PYPI_JSON_URL: str = "https://pypi.org/pypi/{name}/json"
+"""PyPI's JSON API endpoint for a project, formatted with its normalized name."""
+
+PYPI_TIMEOUT: float = 10
+"""Seconds to wait for PyPI before the release lookup gives up."""
+
+POETRY_VERSION_PATTERN: str = (
+    r"(?P<release>\d+(?:\.\d+){0,2})"
+    r"(?P<suffix>(?:[-_.]?[a-z]+\d*)*)"
+)
+"""The version a Poetry caret or tilde range opens on.
+
+Up to three release components, then an optional PEP 440 pre-, post- or
+dev-release suffix. The suffix stays on the floor and plays no part in the
+ceiling, as poetry-core reads it: `^2.0.0.post1` means `>=2.0.0.post1,<3.0.0`.
+"""
+
+POETRY_CARET_RE = re.compile(rf"^\^\s*{POETRY_VERSION_PATTERN}$", re.IGNORECASE)
+"""Poetry's [caret range](https://python-poetry.org/docs/dependency-specification/#caret-requirements)."""
+
+POETRY_TILDE_RE = re.compile(rf"^~\s*{POETRY_VERSION_PATTERN}$", re.IGNORECASE)
+"""Poetry's [tilde range](https://python-poetry.org/docs/dependency-specification/#tilde-requirements).
+
+Deliberately also matches a bare `~X`. It cannot swallow PEP 440's `~=`,
+whose `=` is not a digit.
+"""
+
+POETRY_WILDCARD_RE = re.compile(r"^(?:\*|(\d+)(?:\.(\d+))?\.\*)$")
+"""Poetry's [wildcard range](https://python-poetry.org/docs/dependency-specification/#wildcard-requirements).
+
+A bare `*` allows any version at all. `X.*` and `X.Y.*` pin their series,
+without PEP 440's leading `==`.
+"""
+
+_RELEASE_FILES: tuple[str, ...] = ("pyproject.toml", "setup.py")
+"""The files of a release tag the two axes read their declarations from."""
+
+_PYTHON_CLASSIFIER_RE = re.compile(r"Programming Language :: Python :: ([23]\.\d+)")
+"""A `Programming Language :: Python :: X.Y` trove classifier, its version captured."""
+
+_REQUIRES_PYTHON_RE = re.compile(r'requires-python\s*=\s*["\']([^"\']+)["\']')
+"""A PEP 621 `requires-python` declaration, its specifier captured."""
+
+_POETRY_PYTHON_RE = re.compile(
+    r'\[tool\.poetry\.dependencies\][^\[]*?python\s*=\s*["\']([^"\']+)["\']',
+    re.DOTALL,
+)
+"""The `python` entry of Poetry's `[tool.poetry.dependencies]` table."""
+
+_PYTHON_REQUIRES_RE = re.compile(r'python_requires\s*=\s*["\']([^"\']+)["\']')
+"""A `setup.py` `python_requires` keyword, its specifier captured."""
+
+_FENCE_OPEN_RE = re.compile(
+    r"^(?P<indent>[ \t]*)(?P<fence>`{3,})\{matrix\}[ \t]+(?P<axis>\S+)[ \t]*$",
+)
+"""Opening fence of a ``{matrix} <axis>`` directive block in a Markdown source."""
+
+# `<!-- matrix <axis> [opts] -->` … `<!-- matrix-end -->` region markers, in the
+# shared grammar from `markdown.blocks.marker_res`. Unlike the directive fence (which
+# GitHub shows as a code block), this marker form renders as a real table on
+# GitHub and natively in Sphinx. Args are the axis followed by
+# whitespace-separated `key=value` pairs and bare flags (like `show-spec`
+# or `show-date`).
+_MARKER_OPEN_RE, _MARKER_CLOSE_RE = marker_res("matrix")
+_MARKER_CLOSE = region_markers("matrix")[1]
+
 
 class PythonMatrixGroup(NamedTuple):
     """A contiguous run of release tags sharing the same Python support set."""
@@ -203,13 +286,31 @@ def _validate_orders(column_order: str, row_order: str) -> None:
     _validate_order(row_order, "row-order")
 
 
-def _version_sort_key(version: str) -> tuple[int, ...]:
-    """Numeric sort key for `X.Y` version strings.
+def _version_parts(version: str) -> list[str]:
+    """The dot-separated components of a version or of a release tag.
 
-    A leading `v` tag namespace is tolerated so the same helper compares both
-    bare versions (`3.10`) and release tags (`v3.10.2`).
+    The leading `v` of the tag namespace is dropped, so a bare version (`3.10`)
+    and a release tag (`v3.10.2`) read the same.
     """
-    return tuple(int(part) for part in version.lstrip("v").split("."))
+    return version.removeprefix("v").split(".")
+
+
+def _version_sort_key(version: str) -> tuple[int, ...]:
+    """Numeric sort key for `X.Y` version strings and release tags."""
+    return tuple(map(int, _version_parts(version)))
+
+
+def _runs(items: Iterable[T], key: Callable[[T], K]) -> Iterator[tuple[K, T, T]]:
+    """Yield `(key, first, last)` for each run of consecutive `items` sharing a key.
+
+    A matrix is built by grouping what agrees: consecutive tags declaring the
+    same support, consecutive ranges rendering the same cells, consecutive
+    releases every range treats alike. Keys are compared with `==` against the
+    first item of their run, and need not be hashable.
+    """
+    for value, run in groupby(items, key):
+        members = list(run)
+        yield value, members[0], members[-1]
 
 
 def python_versions_released_by(
@@ -283,31 +384,6 @@ def parse_python_spec(spec: str) -> tuple[str, str, set[str]]:
     return floor, ceiling, excluded
 
 
-def _git(project_root: Path, *args: str) -> str:
-    """Run a `git` command in `project_root` and return its captured stdout.
-
-    The single place the module shells out to git for text, so every history
-    read uses the same working tree and decoding. A non-zero exit raises.
-    `_read_release_files` is the one read made as bytes, and runs its own call.
-
-    A missing git binary or a non-repository path surfaces as an
-    {class}`OSError` / {class}`subprocess.SubprocessError`, which callers let
-    propagate: {class}`MatrixDirective` turns it into a build warning, and
-    {func}`_regenerate` swallows it to leave a block untouched.
-    """
-    return subprocess.run(
-        ["git", *args],
-        capture_output=True,
-        encoding="utf-8",
-        check=True,
-        cwd=project_root,
-    ).stdout
-
-
-_RELEASE_FILES: tuple[str, ...] = ("pyproject.toml", "setup.py")
-"""The files of a release tag the two axes read their declarations from."""
-
-
 @dataclass
 class _HistoryMemo:
     """The git reads of one refresh, kept for the blocks that repeat them."""
@@ -322,7 +398,7 @@ class _HistoryMemo:
 _history_memo: _HistoryMemo | None = None
 """Memo of the git reads of the refresh under way, `None` outside one.
 
-Installed by `_memoized_history`. Outside a refresh every read goes to git, and
+Installed by `memoized_history`. Outside a refresh every read goes to git, and
 a throwaway memo stands in so the readers below have one shape of code.
 """
 
@@ -333,7 +409,7 @@ def _memo() -> _HistoryMemo:
 
 
 @contextlib.contextmanager
-def _memoized_history() -> Generator[None, None, None]:
+def memoized_history() -> Generator[None, None, None]:
     """Serve every git read made inside from one memo.
 
     A refresh renders a block per axis on every page of a project, and each
@@ -360,16 +436,27 @@ def _tag_history(project_root: Path, tags_sort: str) -> list[tuple[str, str]]:
     One `git for-each-ref` call lists the tags with the author date of the commit
     each points at, read through the tag object of an annotated tag: the date
     `git log -1 --format=%as` prints for the tag.
+
+    A missing git binary or a path outside a repository raises an
+    {class}`OSError` or a {class}`subprocess.SubprocessError`, which callers let
+    propagate: {class}`MatrixDirective` turns it into a build warning, and
+    {func}`_regenerate` swallows it to leave a block untouched.
     """
     memo = _memo()
     history = memo.tags.get((project_root, tags_sort))
     if history is None:
-        listing = _git(
-            project_root,
-            "for-each-ref",
-            f"--sort={tags_sort}",
-            "--format=%(refname:strip=2)%09%(authordate:short)%09%(*authordate:short)",
-            "refs/tags",
+        # No output means no tag.
+        listing = (
+            run_git(
+                "for-each-ref",
+                f"--sort={tags_sort}",
+                "--format=%(refname:strip=2)%09%(authordate:short)"
+                "%09%(*authordate:short)",
+                "refs/tags",
+                cwd=project_root,
+                check=True,
+            )
+            or ""
         )
         history = []
         for line in listing.splitlines():
@@ -393,7 +480,7 @@ def _read_release_files(
     requests = "".join(f"{tag}:{name}\n" for tag in tags for name in _RELEASE_FILES)
     output = subprocess.run(
         ["git", "cat-file", "--batch"],
-        input=requests.encode("utf-8"),
+        input=requests.encode("UTF-8"),
         capture_output=True,
         check=True,
         cwd=project_root,
@@ -408,7 +495,7 @@ def _read_release_files(
             contents.append("")
             continue
         size = int(header.rsplit(b" ", 1)[1])
-        blob = output[position : position + size].decode("utf-8")
+        blob = output[position : position + size].decode("UTF-8")
         contents.append(blob.replace("\r\n", "\n").replace("\r", "\n"))
         position += size + 1
     # The answers come in request order: the two files of a tag, tag after tag.
@@ -463,22 +550,6 @@ def _walk_tags(
     ]
     files = _release_files(project_root, [tag for tag, _ in selected])
     return [(tag, iso_date, *files[tag]) for tag, iso_date in selected]
-
-
-_PYTHON_CLASSIFIER_RE = re.compile(r"Programming Language :: Python :: ([23]\.\d+)")
-"""A `Programming Language :: Python :: X.Y` trove classifier, its version captured."""
-
-_REQUIRES_PYTHON_RE = re.compile(r'requires-python\s*=\s*["\']([^"\']+)["\']')
-"""A PEP 621 `requires-python` declaration, its specifier captured."""
-
-_POETRY_PYTHON_RE = re.compile(
-    r'\[tool\.poetry\.dependencies\][^\[]*?python\s*=\s*["\']([^"\']+)["\']',
-    re.DOTALL,
-)
-"""The `python` entry of Poetry's `[tool.poetry.dependencies]` table."""
-
-_PYTHON_REQUIRES_RE = re.compile(r'python_requires\s*=\s*["\']([^"\']+)["\']')
-"""A `setup.py` `python_requires` keyword, its specifier captured."""
 
 
 def python_matrix_groups(
@@ -544,60 +615,52 @@ def python_matrix_groups(
     # Same-classifier neighbours with different spec strings (a floor bump
     # from `>=3.8` to `>=3.8.6`) get split here and re-merge in Pass 4
     # when their effective versions coincide.
-    raw_groups: list[list] = []
-    for tag, iso_date, cls, spec in tag_data:
-        key = (cls, spec)
-        if raw_groups and raw_groups[-1][3] == key:
-            raw_groups[-1][1] = tag
-        else:
-            raw_groups.append([tag, tag, iso_date, key])
+    raw_groups = [
+        (first[0], last[0], first[1], first[2], first[3])
+        for _, first, last in _runs(tag_data, key=itemgetter(2, 3))
+    ]
 
     # Pass 3: resolve effective versions per group. Classifiers win when
-    # present; otherwise apply the parsed floor / ceiling / excluded with cap.
+    # present; otherwise apply the parsed floor / ceiling / excluded, capped at
+    # the Pythons released before the next group starts.
     today_iso = datetime.now(tz=UTC).date().isoformat()
-    resolved: list[tuple[str, str, str, tuple[str, ...], str]] = []
-    for idx, group in enumerate(raw_groups):
-        first_tag, last_tag, first_date, (cls, spec) = group
+    end_dates = [group[2] for group in raw_groups[1:]] + [today_iso]
+    resolved: list[PythonMatrixGroup] = []
+    for (first_tag, last_tag, first_date, cls, spec), end_date in zip(
+        raw_groups, end_dates, strict=True
+    ):
         if cls:
             versions: tuple[str, ...] = cls
         else:
             floor, ceiling, excluded = parse_python_spec(spec)
             if not floor:
                 continue
-            end_date = (
-                raw_groups[idx + 1][2] if idx + 1 < len(raw_groups) else today_iso
-            )
-            existing = python_versions_released_by(
-                end_date,
-                release_dates=release_dates,
-            )
-            floor_ver_key = _version_sort_key(floor)
+            floor_key = _version_sort_key(floor)
             ceiling_key = _version_sort_key(ceiling) if ceiling else None
             versions = tuple(
                 v
-                for v in existing
-                if _version_sort_key(v) >= floor_ver_key
+                for v in python_versions_released_by(end_date, release_dates)
+                if _version_sort_key(v) >= floor_key
                 and v not in excluded
                 and (ceiling_key is None or _version_sort_key(v) < ceiling_key)
             )
-        if not versions:
-            continue
-        resolved.append((first_tag, last_tag, first_date, versions, spec))
+        if versions:
+            resolved.append(
+                PythonMatrixGroup(first_tag, last_tag, first_date, versions, spec)
+            )
 
     # Pass 4: re-merge consecutive resolved groups whose effective versions
     # collapsed to identical sets. The declared spec has to agree too, since
     # it is what separates a forbidden version from an undeclared one; it is
     # compared parsed, so re-spacing `>= 3.10` into `>=3.10` does not split
     # an otherwise continuous range.
-    merged: list[list] = []
-    for first_tag, last_tag, first_date, versions, spec in resolved:
-        same = merged and merged[-1][3] == versions
-        if same and parse_python_spec(merged[-1][4]) == parse_python_spec(spec):
-            merged[-1][1] = last_tag
-        else:
-            merged.append([first_tag, last_tag, first_date, versions, spec])
-
-    return [PythonMatrixGroup(f, l, d, v, s) for f, l, d, v, s in merged]
+    return [
+        first._replace(last_tag=last.last_tag)
+        for _, first, last in _runs(
+            resolved,
+            key=lambda group: (group.python_versions, parse_python_spec(group.spec)),
+        )
+    ]
 
 
 def _spans_full_major(
@@ -616,14 +679,14 @@ def _spans_full_major(
     `9.0` does. {func}`_column_candidates` builds one from a `>=9` floor
     whenever the release list is empty, which is the documented offline path.
     """
-    first = first_tag.lstrip("v").split(".")
-    last = last_tag.lstrip("v").split(".")
+    first = _version_parts(first_tag)
+    last = _version_parts(last_tag)
     first_minor = first[1] if len(first) > 1 else "0"
     if first[0] != last[0] or first_minor != "0":
         return False
     if next_first_tag is None:
         return True
-    return int(next_first_tag.lstrip("v").split(".")[0]) > int(first[0])
+    return int(_version_parts(next_first_tag)[0]) > int(first[0])
 
 
 def _range_label(
@@ -654,8 +717,8 @@ def _range_label(
     `first_date` follows the lower bound, which is the release it dates:
     `6.0.x` (2025-09-25) → `9.x`.
     """
-    first = first_tag.lstrip("v")
-    last = last_tag.lstrip("v")
+    first = first_tag.removeprefix("v")
+    last = last_tag.removeprefix("v")
     date = f" ({first_date})" if first_date else ""
     if first == last:
         return f"`{first}`{date}"
@@ -680,7 +743,7 @@ def _same_minor(tag: str, other_tag: str | None) -> bool:
     """Whether `other_tag` exists and shares the `X.Y` minor series of `tag`."""
     if other_tag is None:
         return False
-    return tag.lstrip("v").split(".")[:2] == other_tag.lstrip("v").split(".")[:2]
+    return _version_parts(tag)[:2] == _version_parts(other_tag)[:2]
 
 
 def _range_labels(bounds: list[tuple[str, str, str]]) -> list[str]:
@@ -978,35 +1041,6 @@ def _extract_requirement(pyproject: str, setup_py: str, dep_name: str) -> str:
     return ""
 
 
-POETRY_VERSION_PATTERN: str = (
-    r"(?P<release>\d+(?:\.\d+){0,2})"
-    r"(?P<suffix>(?:[-_.]?[a-z]+\d*)*)"
-)
-"""The version a Poetry caret or tilde range opens on.
-
-Up to three release components, then an optional PEP 440 pre-, post- or
-dev-release suffix. The suffix stays on the floor and plays no part in the
-ceiling, as poetry-core reads it: `^2.0.0.post1` means `>=2.0.0.post1,<3.0.0`.
-"""
-
-POETRY_CARET_RE = re.compile(rf"^\^\s*{POETRY_VERSION_PATTERN}$", re.IGNORECASE)
-"""Poetry's [caret range](https://python-poetry.org/docs/dependency-specification/#caret-requirements)."""
-
-POETRY_TILDE_RE = re.compile(rf"^~\s*{POETRY_VERSION_PATTERN}$", re.IGNORECASE)
-"""Poetry's [tilde range](https://python-poetry.org/docs/dependency-specification/#tilde-requirements).
-
-Deliberately also matches a bare `~X`. It cannot swallow PEP 440's `~=`,
-whose `=` is not a digit.
-"""
-
-POETRY_WILDCARD_RE = re.compile(r"^(?:\*|(\d+)(?:\.(\d+))?\.\*)$")
-"""Poetry's [wildcard range](https://python-poetry.org/docs/dependency-specification/#wildcard-requirements).
-
-A bare `*` allows any version at all. `X.*` and `X.Y.*` pin their series,
-without PEP 440's leading `==`.
-"""
-
-
 def _caret_ceiling(parts: tuple[int, ...]) -> str:
     """Return the exclusive ceiling of a Poetry caret range.
 
@@ -1079,17 +1113,19 @@ def _to_specifier_set(spec: str) -> SpecifierSet | None:
         return None
 
 
-def _same_spec(spec: str, other: str) -> bool:
-    """Whether two specifiers accept the same versions, whatever their spelling.
+def _spec_identity(spec: str) -> tuple[str, SpecifierSet | str]:
+    """What two specifiers accepting the same versions share, whatever their spelling.
 
-    Both are compared parsed (see {func}`_to_specifier_set`), so Poetry's `^2.0`
-    matches PEP 440's `>=2.0,<3.0.0`. An unparsable specifier only matches the
-    same text, spaces aside.
+    A specifier is compared parsed (see {func}`_to_specifier_set`), so Poetry's
+    `^2.0` matches PEP 440's `>=2.0,<3.0.0`. An unparsable specifier only matches
+    the same text, spaces aside. The tag opening the tuple keeps a parsed set
+    from being compared with a text, which {class}`~packaging.specifiers.SpecifierSet`
+    would try to parse.
     """
     spec_set = _to_specifier_set(spec)
     if spec_set is None:
-        return spec.replace(" ", "") == other.replace(" ", "")
-    return spec_set == _to_specifier_set(other)
+        return ("text", spec.replace(" ", ""))
+    return ("set", spec_set)
 
 
 def _spec_floor(spec: str) -> Version | None:
@@ -1116,13 +1152,6 @@ def _spec_floor(spec: str) -> Version | None:
         return _safe_version(m.group(1))
     m = re.search(r">=?\s*(\d+(?:\.\d+){0,2})", spec)
     return _safe_version(m.group(1)) if m else None
-
-
-PYPI_JSON_URL: str = "https://pypi.org/pypi/{name}/json"
-"""PyPI's JSON API endpoint for a project, formatted with its normalized name."""
-
-PYPI_TIMEOUT: float = 10
-"""Seconds to wait for PyPI before the release lookup gives up."""
 
 
 class ReleasesUnreadable(Exception):
@@ -1184,13 +1213,16 @@ def _pypi_releases(dep_name: str, *, required: bool = False) -> tuple[Version, .
 def _latest_locked_version(project_root: Path, dep_name: str) -> str:
     """Return `dep_name`'s resolved version from `uv.lock`, or `""`.
 
-    Reads the lockfile in the working tree, not per tag.
+    Reads the lockfile in the working tree, not per tag. The lockfile spells
+    every package by its normalized name, so `dep_name` is looked up that way:
+    `Widget_Lib` finds the `widget-lib` entry.
     """
     try:
-        text = (project_root / "uv.lock").read_text(encoding="utf-8")
-    except OSError:
+        text = (project_root / "uv.lock").read_text(encoding="UTF-8")
+    except (OSError, ValueError):
         return ""
-    m = re.search(rf'name = "{re.escape(dep_name)}"\nversion = "([^"]+)"', text)
+    name = re.escape(canonicalize_name(dep_name))
+    m = re.search(rf'name = "{name}"\nversion = "([^"]+)"', text)
     return m.group(1) if m else ""
 
 
@@ -1225,17 +1257,17 @@ def _dependency_columns(
 
     :return: `(first, last, accepted)` bins, oldest first.
     """
-    bins: list[tuple[Version, Version, tuple[bool, ...]]] = []
-    for version in sorted(set(candidates)):
-        accepted = tuple(
+
+    def accepting(version: Version) -> tuple[bool, ...]:
+        return tuple(
             spec_set is not None and spec_set.contains(version, prereleases=True)
             for spec_set in spec_sets
         )
-        if bins and bins[-1][2] == accepted:
-            bins[-1] = (bins[-1][0], version, accepted)
-        else:
-            bins.append((version, version, accepted))
-    return bins
+
+    return [
+        (first, last, accepted)
+        for accepted, first, last in _runs(sorted(set(candidates)), key=accepting)
+    ]
 
 
 def dependency_matrix_groups(
@@ -1253,21 +1285,20 @@ def dependency_matrix_groups(
     :return: {class}`DependencyMatrixGroup` list in chronological order; tags
         with no declared requirement for `dep_name` are skipped.
     """
-    groups: list[DependencyMatrixGroup] = []
-    for tag, iso_date, pyproject, setup_py in _walk_tags(
-        project_root,
-        tag_pattern=tag_pattern,
-        tags_sort=tags_sort,
-        version_floor=version_floor,
-    ):
-        spec = _extract_requirement(pyproject, setup_py, dep_name)
-        if not spec:
-            continue
-        if groups and groups[-1].spec == spec:
-            groups[-1] = groups[-1]._replace(last_tag=tag)
-        else:
-            groups.append(DependencyMatrixGroup(tag, tag, iso_date, spec))
-    return groups
+    declared = [
+        (tag, iso_date, spec)
+        for tag, iso_date, pyproject, setup_py in _walk_tags(
+            project_root,
+            tag_pattern=tag_pattern,
+            tags_sort=tags_sort,
+            version_floor=version_floor,
+        )
+        if (spec := _extract_requirement(pyproject, setup_py, dep_name))
+    ]
+    return [
+        DependencyMatrixGroup(first[0], last[0], first[1], spec)
+        for spec, first, last in _runs(declared, key=itemgetter(2))
+    ]
 
 
 def dependency_matrix_table(
@@ -1299,7 +1330,7 @@ def dependency_matrix_table(
     :param show_spec: add a `Spec` column with each range's raw specifier. A
         merged row shows the specifier of its oldest range, so ranges then
         merge only when they also accept the same versions (see
-        {func}`_same_spec`).
+        {func}`_spec_identity`).
     :param show_date: follow each row label with the release date of its
         first tag, like `6.0.x (2025-09-25) → 9.x`.
     :param column_order: left-to-right ordering of the version columns:
@@ -1357,32 +1388,37 @@ def dependency_matrix_table(
     # ranges whose vectors coincide: they accept the same releases. A merged
     # row shows the Spec cell of its oldest range, so with that column the
     # ranges must also accept the same versions beyond the newest release.
-    merged: list[list] = []
-    for index, group in enumerate(groups):
-        cells = tuple(
-            SUPPORTED_CELL if accepted[index] else FORBIDDEN_CELL
-            for _, accepted in columns
+    ranges = [
+        (
+            group,
+            tuple(
+                SUPPORTED_CELL if accepted[index] else FORBIDDEN_CELL
+                for _, accepted in columns
+            ),
         )
-        same = merged and merged[-1][4] == cells
-        if same and (not show_spec or _same_spec(merged[-1][3], group.spec)):
-            merged[-1][1] = group.last_tag
-        else:
-            merged.append(
-                [group.first_tag, group.last_tag, group.first_date, group.spec, cells],
-            )
+        for index, group in enumerate(groups)
+    ]
+
+    def merge_key(
+        item: tuple[DependencyMatrixGroup, tuple[str, ...]],
+    ) -> tuple[tuple[str, ...], tuple[str, SpecifierSet | str] | None]:
+        group, cells = item
+        return cells, _spec_identity(group.spec) if show_spec else None
+
+    rows = []
+    for _, (oldest, cells), (newest, _cells) in _runs(ranges, key=merge_key):
+        spec_cells = [f"`{oldest.spec.replace(' ', '')}`"] if show_spec else []
+        rows.append((
+            oldest.first_tag,
+            newest.last_tag,
+            oldest.first_date if show_date else "",
+            [*spec_cells, *cells],
+        ))
 
     return _render_matrix(
         label,
         f"`{dep_name}`",
-        [
-            (
-                first_tag,
-                last_tag,
-                first_date if show_date else "",
-                [*([f"`{spec.replace(' ', '')}`"] if show_spec else []), *cells],
-            )
-            for first_tag, last_tag, first_date, spec, cells in merged
-        ],
+        rows,
         [column_label for column_label, _ in columns],
         row_order=row_order,
         leading_headers=["Spec"] if show_spec else [],
@@ -1393,12 +1429,10 @@ def _find_git_root(start: Path) -> Path:
     """Walk up from `start` to the first directory holding a `.git` entry.
 
     Falls back to `start` when none is found; the caller then gets an empty
-    matrix (no tags) rather than an exception.
+    matrix (no tags) rather than an exception. See
+    {func}`~click_extra.version_facts.find_git_root`.
     """
-    for candidate in (start, *start.parents):
-        if (candidate / ".git").exists():
-            return candidate
-    return start
+    return find_git_root(start) or start
 
 
 def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
@@ -1433,10 +1467,10 @@ def _project_name(project_root: Path) -> str:
     `refresh-directives --check` then reports the checked-in one as stale.
     """
     try:
-        text = (project_root / "pyproject.toml").read_text(encoding="utf-8")
-        data = tomllib.loads(text)
-    except (OSError, tomllib.TOMLDecodeError, ValueError):
+        text = (project_root / "pyproject.toml").read_text(encoding="UTF-8")
+    except (OSError, ValueError):
         return ""
+    data = _pyproject_data(text)
     tool = data.get("tool")
     poetry = tool.get("poetry") if isinstance(tool, dict) else None
     for table in (data.get("project"), poetry):
@@ -1522,20 +1556,20 @@ class MatrixDirective(ContentOffsetMixin):
 
     Options:
 
-    - `:package:` — header column label. Defaults to the name declared in the
-      project's `pyproject.toml`, then to the name of its folder.
-    - `:path:` — git working tree to walk, absolute or relative to the
+    - `:package:` sets the header column label. Defaults to the name declared
+      in the project's `pyproject.toml`, then to the name of its folder.
+    - `:path:` names the git working tree to walk, absolute or relative to the
       documented project's git root. Defaults to that git root.
-    - `:version-floor:` — drop release rows below this package version.
-    - `:tag-pattern:` — regex selecting release tags. Defaults to
+    - `:version-floor:` drops the release rows below this package version.
+    - `:tag-pattern:` is the regex selecting release tags. Defaults to
       {data}`DEFAULT_TAG_PATTERN`.
-    - `:column-order:` — left-to-right ordering of the version columns:
+    - `:column-order:` orders the version columns from left to right:
       `newest-first` (default) or `oldest-first`.
-    - `:row-order:` — top-to-bottom ordering of the release rows:
+    - `:row-order:` orders the release rows from top to bottom:
       `newest-first` (default) or `oldest-first`.
-    - `:python-floor:` — (python axis) drop Python columns below `X.Y`.
-    - `:show-spec:` — (dependency axis) add a raw-specifier `Spec` column.
-    - `:show-date:` — follow each row label with its first release date.
+    - `:python-floor:` drops the Python columns below `X.Y` (python axis).
+    - `:show-spec:` adds a raw-specifier `Spec` column (dependency axis).
+    - `:show-date:` follows each row label with its first release date.
 
     The git fallback is resilient: a missing git binary, a non-repository path,
     or a tag-less repository logs a build warning and renders nothing rather
@@ -1601,21 +1635,6 @@ def setup(app: Sphinx) -> None:
     a canned matrix generator, not user-supplied Python, so it needs no opt-in.
     """
     app.add_directive("matrix", MatrixDirective)
-
-
-_FENCE_OPEN_RE = re.compile(
-    r"^(?P<indent>[ \t]*)(?P<fence>`{3,})\{matrix\}[ \t]+(?P<axis>\S+)[ \t]*$",
-)
-"""Opening fence of a ``{matrix} <axis>`` directive block in a Markdown source."""
-
-# `<!-- matrix <axis> [opts] -->` … `<!-- matrix-end -->` region markers, in the
-# shared grammar from `blocks.marker_res`. Unlike the directive fence (which
-# GitHub shows as a code block), this marker form renders as a real table on
-# GitHub and natively in Sphinx. Args are the axis followed by
-# whitespace-separated `key=value` pairs and bare flags (like `show-spec`
-# or `show-date`).
-_MARKER_OPEN_RE, _MARKER_CLOSE_RE = marker_res("matrix")
-_MARKER_CLOSE = region_markers("matrix")[1]
 
 
 def _parse_marker_options(tokens: Iterable[str]) -> dict[str, str]:
@@ -1694,19 +1713,13 @@ def _refresh_marker_region(
     options = _parse_marker_options(tokens[1:])
 
     close = None
-    probe = index + 1
-    while probe < len(lines):
-        span = spans.get(probe)
+    for probe, span in walk_fences(lines, spans, index + 1):
         if span is not None:
-            if span.close is None:
-                break
-            probe = span.close + 1
             continue
         close_match = _MARKER_CLOSE_RE.match(lines[probe])
         if close_match and close_match.group("indent") == indent:
             close = probe
             break
-        probe += 1
     if close is None:
         return [lines[index]], index + 1
 
@@ -1720,7 +1733,7 @@ def _refresh_marker_region(
     return out, close + 1
 
 
-def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
+def rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
     """Return `text` with every `matrix` block's table regenerated.
 
     Handles both forms: the ``{matrix} <axis>`` directive fence (rendered by
@@ -1731,61 +1744,43 @@ def _rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
     never refreshed. A block whose generation fails (non-repository path,
     missing git, unreadable PyPI, no data) is left byte-for-byte untouched.
     """
-    lines = text.splitlines()
+    lines = text.split("\n")
     spans = fence_spans(lines)
-    out: list[str] = []
-    index = 0
-    total = len(lines)
-    while index < total:
-        span = spans.get(index)
+
+    def refresh(index: int, span: FenceSpan | None) -> tuple[list[str], int] | None:
         if span is not None:
-            if span.close is None:
-                # Unterminated fence: leave the tail untouched.
-                out.extend(lines[index:])
-                break
+            # An unterminated fence keeps the tail untouched.
             fence_match = _FENCE_OPEN_RE.match(lines[index])
-            if fence_match:
-                out.extend(
-                    _refresh_fence_block(
-                        fence_match, lines, index, span.close, base_dir
-                    )
-                )
-            else:
-                out.extend(lines[index : span.close + 1])
-            index = span.close + 1
-            continue
+            if span.close is None or not fence_match:
+                return None
+            block = _refresh_fence_block(
+                fence_match, lines, index, span.close, base_dir
+            )
+            return block, span.end
         marker_match = _MARKER_OPEN_RE.match(lines[index])
         if marker_match:
-            chunk, index = _refresh_marker_region(
-                marker_match, lines, index, spans, base_dir
-            )
-            out.extend(chunk)
-            continue
-        out.append(lines[index])
-        index += 1
+            return _refresh_marker_region(marker_match, lines, index, spans, base_dir)
+        return None
 
-    result = "\n".join(out)
-    if text.endswith("\n"):
-        result += "\n"
-    return result
+    return "\n".join(rewrite_fences(lines, refresh, spans))
 
 
 def update_matrix_blocks(paths: Iterable[Path], *, check: bool = False) -> list[Path]:
     """Refresh every ``{matrix}`` block in the given Markdown sources.
 
-    See {func}`click_extra.blocks.update_blocks` for the walk, write, and
+    See {func}`click_extra.markdown.blocks.update_blocks` for the walk, write, and
     `check`-mode contract.
 
     Every block of the refresh reads the git history through one memo, see
-    `_memoized_history`: a project's tags are listed once, and each tag's
+    `memoized_history`: a project's tags are listed once, and each tag's
     release files read once, however many pages and axes render them.
 
     :return: the files whose ``{matrix}`` blocks were (or, under `check`,
         would be) updated.
     """
-    with _memoized_history():
+    with memoized_history():
         return update_blocks(
             paths,
-            lambda text, path: _rewrite_matrix_blocks(text, base_dir=path.parent),
+            lambda text, path: rewrite_matrix_blocks(text, base_dir=path.parent),
             check=check,
         )

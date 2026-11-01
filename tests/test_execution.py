@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Tests for the execution-control options (--jobs, --time, -0/--zero-exit) and the
+"""Tests for the execution-control options (--time, -0/--zero-exit) and the
 subprocess-execution primitives (run_cli and the interrupt machinery)."""
 
 from __future__ import annotations
@@ -28,11 +28,9 @@ import signal
 import subprocess
 import sys
 import threading
-from concurrent.futures import Future
 from pathlib import Path
 from textwrap import dedent
 from time import monotonic, sleep
-from unittest.mock import patch
 
 import click
 import cloup
@@ -42,9 +40,6 @@ from extra_platforms.pytest import skip_windows
 
 from click_extra import (
     BUILTIN_THEMES,
-    Command,
-    Context,
-    JobsOption,
     command,
     context,
     echo,
@@ -52,12 +47,8 @@ from click_extra import (
     get_current_theme,
     group,
     highlight_bin_name,
-    jobs_option,
     pass_context,
-    resolve_jobs,
     run_cli,
-    run_jobs,
-    run_lanes,
     strip_ansi,
     timer_option,
     zero_exit_option,
@@ -67,591 +58,16 @@ from click_extra.execution import (
     _KILL_SIGNAL,
     _LIVE_PROCESSES,
     _LIVE_PROCESSES_LOCK,
-    _WORKER_WINDOW_FACTOR,
-    CPU_COUNT,
-    DEFAULT_JOBS,
     PROMPT,
     _descendant_pids,
     _die_by_sigint,
     _escaped_process_groups,
-    _logical_cpu_count,
     _parse_proc_stat,
     _posix_process_table,
-    _wait_result,
     install_interrupt_handler,
     terminate_live_processes,
 )
-from click_extra.logging import LogLevel
 from click_extra.pytest import command_decorators
-
-# --- Jobs -------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "cmd_decorator",
-    (click.command, click.command(), cloup.command(), command),
-)
-@pytest.mark.parametrize("option_decorator", (jobs_option, jobs_option()))
-def test_standalone_jobs_option(invoke, cmd_decorator, option_decorator):
-    @cmd_decorator
-    @option_decorator
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    result = invoke(cli, "--help", color=False)
-    assert "--jobs" in result.stdout
-    assert result.exit_code == 0
-
-    result = invoke(cli, "--jobs", "4")
-    assert result.stdout == "Jobs: 4\n"
-    assert result.exit_code == 0
-
-
-def test_default_value(invoke):
-    """Default reserves one core, except on hosts with fewer than three CPUs."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    result = invoke(cli)
-    assert result.stdout == f"Jobs: {DEFAULT_JOBS}\n"
-    assert result.exit_code == 0
-
-
-@pytest.mark.parametrize(
-    ("keyword", "expected"),
-    (
-        ("auto", DEFAULT_JOBS),
-        ("max", CPU_COUNT or 1),
-    ),
-)
-def test_keyword_resolution(invoke, keyword, expected):
-    """'auto' resolves to the reserved-core default, 'max' to all logical CPUs.
-
-    On a host with at least two logical CPUs the resolution is silent; on a
-    single-CPU host the keyword collapses to a single (sequential) job with a
-    warning, so the assertion adapts to the host running the suite.
-    """
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    result = invoke(cli, "--jobs", keyword)
-    assert result.stdout == f"Jobs: {expected}\n"
-    if expected > 1:
-        assert not result.stderr
-    else:
-        assert "sequential" in result.stderr
-    assert result.exit_code == 0
-
-
-@pytest.mark.parametrize(
-    ("keyword", "cpu_count", "default_jobs", "cpu_phrase"),
-    (
-        # A single logical CPU: both keywords are the whole machine, 1 job.
-        ("max", 1, 1, "only 1 logical CPU is available"),
-        ("auto", 1, 1, "only 1 logical CPU is available"),
-    ),
-)
-def test_parallel_keyword_collapses_to_sequential_warns(
-    invoke, keyword, cpu_count, default_jobs, cpu_phrase
-):
-    """'auto'/'max' warn when too few logical CPUs force a single (sequential) job."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    with patch.multiple(
-        "click_extra.execution",
-        CPU_COUNT=cpu_count,
-        DEFAULT_JOBS=default_jobs,
-    ):
-        result = invoke(cli, "--jobs", keyword)
-
-    assert result.stdout == "Jobs: 1\n"
-    assert result.exit_code == 0
-    assert f"'--jobs {keyword}' resolved to a single job" in result.stderr
-    assert cpu_phrase in result.stderr
-    assert "sequential, not parallel" in result.stderr
-
-
-def test_explicit_single_job_is_silent(invoke):
-    """An explicit '--jobs 1' is a deliberate sequential choice: no warning."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    with patch("click_extra.execution.CPU_COUNT", 4):
-        result = invoke(cli, "--jobs", "1")
-
-    assert result.stdout == "Jobs: 1\n"
-    assert result.exit_code == 0
-    assert not result.stderr
-
-
-def test_default_collapse_to_sequential_is_quiet(invoke):
-    """The bare default ('auto') collapsing to a single job does not warn.
-
-    The user never asked for parallelism: warning on the option's own default
-    would fire on every bare invocation on a 1-CPU host, polluting captured
-    runner streams and the CLI output rendered in Sphinx docs.
-    """
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    with patch.multiple("click_extra.execution", CPU_COUNT=1, DEFAULT_JOBS=1):
-        result = invoke(cli)  # No --jobs: exercise the default value.
-
-    assert result.stdout == "Jobs: 1\n"
-    assert result.exit_code == 0
-    assert not result.stderr
-
-
-def test_default_collapse_to_sequential_logged_at_info(invoke):
-    """The default's collapse to a single job stays discoverable at info level.
-
-    This is the silent trap on a single-CPU host: no flag is passed, yet
-    execution runs sequentially. The trace lives at info level, next to the
-    resolved-jobs line, instead of a default-verbosity warning.
-    """
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    with patch.multiple("click_extra.execution", CPU_COUNT=1, DEFAULT_JOBS=1):
-        result = invoke(cli, "--verbosity", "INFO", color=False)
-
-    assert result.stdout == "Jobs: 1\n"
-    assert result.exit_code == 0
-    assert "'--jobs auto' resolved to a single job" in result.stderr
-    assert "only 1 logical CPU is available" in result.stderr
-
-
-def test_resolved_job_count_logged_at_info(invoke):
-    """The resolved job count and os.cpu_count() are logged at info level."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    with patch.multiple("click_extra.execution", CPU_COUNT=8, DEFAULT_JOBS=7):
-        result = invoke(cli, "--verbosity", "INFO", "--jobs", "4", color=False)
-
-    assert result.stdout == "Jobs: 4\n"
-    assert result.exit_code == 0
-    assert "Resolved --jobs to 4" in result.stderr
-    assert "8 logical CPUs" in result.stderr
-
-
-@pytest.mark.parametrize("jobs", (1, 2, 5))
-def test_run_jobs_preserves_order(jobs):
-    """Results come back in submission order, sequential or parallel."""
-    assert list(run_jobs(lambda n: n * n, range(5), jobs=jobs)) == [0, 1, 4, 9, 16]
-
-
-def test_run_jobs_sequential_is_lazy():
-    """With one worker, items run lazily so a caller can stop early."""
-    seen = []
-
-    def record(n):
-        seen.append(n)
-        return n
-
-    for result in run_jobs(record, [1, 2, 3], jobs=1):
-        if result == 1:
-            break
-    assert seen == [1]
-
-
-@pytest.mark.parametrize("jobs", (1, 2, 5))
-def test_run_jobs_preserves_order_past_its_window(jobs):
-    """Order holds when the stream is longer than the in-flight window."""
-    size = 200
-    assert list(run_jobs(lambda n: n * n, iter(range(size)), jobs=jobs)) == [
-        n * n for n in range(size)
-    ]
-
-
-@pytest.mark.parametrize("jobs", (1, 2, 5))
-def test_run_jobs_handles_empty_and_single_streams(jobs):
-    """The peek that sizes the run does not lose the items it looked at."""
-    assert list(run_jobs(str, iter(()), jobs=jobs)) == []
-    assert list(run_jobs(str, iter((1,)), jobs=jobs)) == ["1"]
-
-
-def test_run_jobs_parallel_reads_no_further_than_its_window():
-    """The parallel path pulls a bounded window instead of draining the stream."""
-    produced = []
-
-    def stream():
-        # Far more than the window: a regression to materializing shows up as a
-        # produced count in the thousands.
-        for n in range(10_000):
-            produced.append(n)
-            yield n
-
-    jobs = 2
-    results = run_jobs(str, stream(), jobs=jobs)
-    assert next(results) == "0"
-    # The window is primed up front, then one slot refills before the first
-    # result is handed over.
-    assert len(produced) == jobs * _WORKER_WINDOW_FACTOR + 1
-    results.close()
-
-
-def test_run_jobs_parallel_stops_scheduling_on_early_exit():
-    """Breaking out of a parallel run leaves the rest of the stream unread."""
-    produced = []
-
-    def stream():
-        for n in range(10_000):
-            produced.append(n)
-            yield n
-
-    for result in run_jobs(str, stream(), jobs=2):
-        if result == "0":
-            break
-    assert len(produced) < 10_000
-
-
-def test_run_jobs_reads_jobs_from_context(invoke):
-    """Without an explicit count, run_jobs reads the resolved --jobs value."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(",".join(str(n) for n in run_jobs(lambda n: n + 1, range(4))))
-
-    result = invoke(cli, "--jobs", "3")
-    assert result.stdout == "1,2,3,4\n"
-    assert result.exit_code == 0
-
-
-def test_run_jobs_without_context_runs_sequential():
-    """Outside any Click context and with no count, run_jobs falls back to 1."""
-    assert list(run_jobs(str, [1, 2, 3])) == ["1", "2", "3"]
-
-
-def test_run_jobs_interrupt_aborts_without_blocking():
-    """A KeyboardInterrupt returns at once, without waiting on in-flight tasks.
-
-    Results yield in submission order, so the interrupting item (index 0) is
-    pulled first: the abort fires while a second, still-running item is parked on
-    an event that stays unset for the run. The old ``with``-block teardown would
-    ``shutdown(wait=True)`` and hang on that parked task; the hardened path drops
-    queued work and returns immediately.
-    """
-    blocker_started = threading.Event()
-    release = threading.Event()
-
-    def work(n):
-        if n == 0:
-            # Only interrupt once the blocker is actually running.
-            blocker_started.wait(timeout=5)
-            raise KeyboardInterrupt
-        blocker_started.set()
-        release.wait(timeout=10)
-        return n
-
-    start = monotonic()
-    try:
-        with pytest.raises(KeyboardInterrupt):
-            # jobs=2 so the interrupter and the blocker run at once.
-            list(run_jobs(work, [0, 1], jobs=2))
-        # Far below the blocker's 10s park: proves we did not wait on it.
-        assert monotonic() - start < 4
-    finally:
-        release.set()
-
-
-def test_resolve_jobs_without_context_is_sequential():
-    """No context means nothing to read a job count from: stay sequential."""
-    assert resolve_jobs(None, 5) == 1
-
-
-def test_resolve_jobs_single_item_is_sequential():
-    """A single item has nothing to parallelize."""
-    ctx = click.Context(click.Command("cli"))
-    context.set(ctx, context.JOBS, 4)
-    assert resolve_jobs(ctx, 1) == 1
-
-
-@pytest.mark.parametrize(
-    ("jobs", "count", "expected"),
-    (
-        (4, 5, 4),  # The job count wins when below the item count.
-        (8, 3, 3),  # Capped at the item count.
-        (1, 5, 1),  # An explicit single job is sequential.
-    ),
-)
-def test_resolve_jobs_reads_context(jobs, count, expected):
-    """The resolved --jobs value drives the count, capped at the item count."""
-    ctx = click.Context(click.Command("cli"))
-    context.set(ctx, context.JOBS, jobs)
-    assert resolve_jobs(ctx, count) == expected
-
-
-def test_resolve_jobs_serial_at_debug():
-    """serial_at_debug collapses to sequential only at DEBUG verbosity."""
-    ctx = click.Context(click.Command("cli"))
-    context.set(ctx, context.JOBS, 4)
-    context.set(ctx, context.VERBOSITY_LEVEL, LogLevel.DEBUG)
-    # The flag is opt-in: DEBUG is ignored without it.
-    assert resolve_jobs(ctx, 5) == 4
-    assert resolve_jobs(ctx, 5, serial_at_debug=True) == 1
-
-
-@pytest.mark.parametrize("jobs", (1, 2, 5))
-def test_run_lanes_preserves_order(jobs):
-    """Results come back in lane-submission order, items within a lane in order."""
-    lanes = ([0, 1], [2], [3, 4])
-    assert list(run_lanes(lambda n: n * n, lanes, jobs=jobs)) == [0, 1, 4, 9, 16]
-
-
-@pytest.mark.parametrize("jobs", (1, 2, 5))
-def test_run_lanes_preserves_order_past_its_window(jobs):
-    """Lane order holds when there are more lanes than the in-flight window."""
-    expected = [n for pair in range(0, 200, 2) for n in (pair, pair + 1)]
-    lanes = ([pair, pair + 1] for pair in range(0, 200, 2))
-    assert list(run_lanes(lambda n: n, lanes, jobs=jobs)) == expected
-
-
-def test_run_lanes_materializes_lanes_lazily():
-    """A lane becomes a list only when it is about to be scheduled."""
-    built = []
-
-    def lanes():
-        for n in range(10_000):
-            built.append(n)
-            yield [n]
-
-    jobs = 2
-    results = run_lanes(str, lanes(), jobs=jobs)
-    assert next(results) == "0"
-    assert len(built) == jobs * _WORKER_WINDOW_FACTOR + 1
-    results.close()
-
-
-def test_run_lanes_is_run_jobs_with_singleton_lanes():
-    """run_jobs is the degenerate case of run_lanes: one item per lane."""
-    items = range(5)
-    singleton_lanes = ([n] for n in items)
-    assert list(run_lanes(str, singleton_lanes, jobs=3)) == list(
-        run_jobs(str, items, jobs=3)
-    )
-
-
-def test_run_lanes_serializes_within_a_lane():
-    """Within a lane, items run one at a time even when lanes run in parallel."""
-    lock = threading.Lock()
-    active: dict[str, int] = {}
-    overlap = []
-
-    def work(item):
-        lane_id, n = item
-        with lock:
-            if lane_id in active:
-                overlap.append((lane_id, active[lane_id], n))
-            active[lane_id] = n
-        sleep(0.01)
-        with lock:
-            del active[lane_id]
-        return n
-
-    lanes = (
-        [("a", 1), ("a", 2), ("a", 3)],
-        [("b", 1), ("b", 2), ("b", 3)],
-    )
-    list(run_lanes(work, lanes, jobs=2))
-    assert overlap == []
-
-
-def test_run_lanes_runs_lanes_concurrently():
-    """Distinct lanes overlap: a barrier only releases if all lanes run at once."""
-    barrier = threading.Barrier(3, timeout=5)
-
-    def work(n):
-        barrier.wait()
-        return n
-
-    assert sorted(run_lanes(work, ([0], [1], [2]), jobs=3)) == [0, 1, 2]
-
-
-def test_run_lanes_sequential_is_lazy():
-    """With one worker, items run lazily so a caller can stop early."""
-    seen = []
-
-    def record(n):
-        seen.append(n)
-        return n
-
-    for result in run_lanes(record, [[1, 2], [3]], jobs=1):
-        if result == 1:
-            break
-    assert seen == [1]
-
-
-def test_run_lanes_reads_jobs_from_context(invoke):
-    """Without an explicit count, run_lanes reads the resolved --jobs value."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        lanes = ([1, 2], [3, 4])
-        echo(",".join(str(n) for n in run_lanes(lambda n: n + 1, lanes)))
-
-    result = invoke(cli, "--jobs", "2")
-    assert result.stdout == "2,3,4,5\n"
-    assert result.exit_code == 0
-
-
-def test_run_lanes_without_context_runs_sequential():
-    """Outside any Click context and with no count, run_lanes falls back to 1."""
-    assert list(run_lanes(str, [[1, 2], [3]])) == ["1", "2", "3"]
-
-
-def test_run_lanes_empty_yields_nothing():
-    """No lanes, or only empty lanes, yields nothing and raises nothing."""
-    assert list(run_lanes(str, [])) == []
-    assert list(run_lanes(str, [[], []], jobs=2)) == []
-
-
-def test_run_lanes_interrupt_aborts_without_blocking():
-    """A KeyboardInterrupt returns at once, without waiting on in-flight lanes.
-
-    Mirror of :func:`test_run_jobs_interrupt_aborts_without_blocking`: see it for
-    the rationale.
-    """
-    blocker_started = threading.Event()
-    release = threading.Event()
-
-    def work(n):
-        if n == 0:
-            blocker_started.wait(timeout=5)
-            raise KeyboardInterrupt
-        blocker_started.set()
-        release.wait(timeout=10)
-        return n
-
-    start = monotonic()
-    try:
-        with pytest.raises(KeyboardInterrupt):
-            list(run_lanes(work, ([0], [1]), jobs=2))
-        assert monotonic() - start < 4
-    finally:
-        release.set()
-
-
-def test_run_lanes_interrupt_stops_each_lane_after_its_current_item():
-    """An interrupt lets each running lane finish its current item, then stop."""
-    started = threading.Event()
-    release = threading.Event()
-    ran: list[int] = []
-    lock = threading.Lock()
-
-    def work(n):
-        with lock:
-            ran.append(n)
-        if n == 0:
-            started.wait(timeout=5)
-            raise KeyboardInterrupt
-        if n == 1:
-            started.set()
-            release.wait(timeout=5)
-        return n
-
-    with pytest.raises(KeyboardInterrupt):
-        list(run_lanes(work, ([0], [1, 2, 3]), jobs=2))
-    release.set()
-    # Leaves the lane worker time to run on, which it must not.
-    sleep(0.3)
-    assert sorted(ran) == [0, 1]
-
-
-@pytest.mark.parametrize(
-    "run",
-    (
-        pytest.param(lambda work: run_jobs(work, [0, 1], jobs=2), id="run_jobs"),
-        pytest.param(lambda work: run_lanes(work, ([0], [1]), jobs=2), id="run_lanes"),
-    ),
-)
-def test_interrupt_tripped_as_the_wait_began_is_handled_promptly(run):
-    """A Ctrl+C the interpreter noted as the main thread blocked on a task is
-    handled within the poll period, not when the task ends.
-
-    `interrupt_main()` leaves the interrupt pending without waking the main
-    thread: the state a `SIGINT` leaves when it lands after the interpreter last
-    checked for one and before the thread blocked in the C library. An unbounded
-    wait on the task would run the handler only when the task returns.
-    """
-    release = threading.Event()
-
-    def work(n):
-        if n == 0:
-            # Leaves the main thread time to block on this task's result.
-            sleep(0.3)
-            _thread.interrupt_main()
-        release.wait(timeout=5)
-        return n
-
-    start = monotonic()
-    try:
-        with pytest.raises(KeyboardInterrupt):
-            list(run(work))
-        assert monotonic() - start < 2
-    finally:
-        release.set()
-
-
-@pytest.mark.parametrize(
-    ("context", "expected"),
-    (
-        pytest.param(KeyboardInterrupt(), KeyboardInterrupt, id="interrupted"),
-        pytest.param(None, RuntimeError, id="unrelated"),
-    ),
-)
-def test_wait_result_raises_the_interrupt_a_lock_error_replaced(
-    monkeypatch, context, expected
-):
-    """A `RuntimeError` the wait raises in place of a Ctrl+C becomes the Ctrl+C again.
-
-    A free-threaded CPython can raise the interrupt between the wait and the lock it
-    takes back, then fail to release it, as python/cpython#118433 reports. Any other
-    `RuntimeError` of the wait stays as it is.
-    """
-
-    def failing_wait(*args, **kwargs):
-        error = RuntimeError("release unlocked lock")
-        error.__context__ = context
-        raise error
-
-    monkeypatch.setattr("concurrent.futures.wait", failing_wait)
-    with pytest.raises(expected):
-        _wait_result(Future())
 
 
 def test_die_by_sigint_skips_a_stream_refusing_a_reentrant_flush(monkeypatch):
@@ -681,25 +97,6 @@ def test_die_by_sigint_skips_a_stream_refusing_a_reentrant_flush(monkeypatch):
     with pytest.raises(Exited):
         _die_by_sigint()
     assert signals == ([] if is_windows() else [signal.SIGINT])
-
-
-def test_run_jobs_reports_a_task_timeout_error():
-    """A task raising `TimeoutError` ends the run on it, within the poll period.
-
-    `concurrent.futures.TimeoutError` is the builtin `TimeoutError` from Python
-    3.11 on, which a task raises itself when a socket times out: a wait reading
-    the result with a timeout of its own could not tell the two apart.
-    """
-
-    def work(n):
-        if n == 0:
-            raise TimeoutError("oven door left open")
-        return n
-
-    start = monotonic()
-    with pytest.raises(TimeoutError, match="oven door left open"):
-        list(run_jobs(work, [0, 1], jobs=2))
-    assert monotonic() - start < 2
 
 
 NAP_CLI = """
@@ -844,7 +241,7 @@ import threading
 import time
 
 import click_extra
-from click_extra.execution import run_jobs
+from click_extra.jobs import run_jobs
 
 BOTH_IN = threading.Barrier(2)
 
@@ -942,7 +339,8 @@ def test_ctrl_c_while_the_registry_lock_is_held(tmp_path, setup):
 
     Both handlers stop the running subprocesses, which takes that lock. The main
     thread takes it too, as when the grace period of an interrupted run ends,
-    and a press landing in that moment used to block its handler for good.
+    and a plain lock would block the handler of a press landing in that moment
+    for good.
     """
     script = tmp_path / "press.py"
     script.write_text(LOCKED_PRESS.format(setup=setup), encoding="UTF-8")
@@ -968,7 +366,8 @@ import time
 
 import click_extra
 from click_extra import execution
-from click_extra.execution import run_cli, run_jobs
+from click_extra.execution import run_cli
+from click_extra.jobs import run_jobs
 
 execution._TERMINATE_GRACE = 0.5
 
@@ -976,7 +375,7 @@ CHILD = (
     "import os, signal, sys, time;"
     "signal.signal(signal.SIGINT, signal.SIG_IGN);"
     "signal.signal(signal.SIGTERM, signal.SIG_IGN);"
-    "open(sys.argv[1], 'w', encoding='utf-8').write(str(os.getpid()));"
+    "open(sys.argv[1], 'w', encoding='UTF-8').write(str(os.getpid()));"
     "time.sleep(30)"
 )
 PID_FILES = [os.path.join(FOLDER, f"child-{n}.pid") for n in range(2)]
@@ -1014,7 +413,7 @@ def test_interrupted_run_kills_children_ignoring_sigterm(tmp_path):
         assert returncode == -signal.SIGINT, stderr
         assert monotonic() - start < 10
         pids = [
-            int(path.read_text(encoding="utf-8"))
+            int(path.read_text(encoding="UTF-8"))
             for path in tmp_path.glob("child-*.pid")
         ]
         assert len(pids) == 2
@@ -1031,7 +430,7 @@ def test_interrupted_run_kills_children_ignoring_sigterm(tmp_path):
     finally:
         for path in tmp_path.glob("child-*.pid"):
             try:
-                os.kill(int(path.read_text(encoding="utf-8")), signal.SIGKILL)
+                os.kill(int(path.read_text(encoding="UTF-8")), signal.SIGKILL)
             except (ProcessLookupError, ValueError):
                 pass
 
@@ -1044,7 +443,8 @@ import time
 
 import click_extra
 from click_extra import execution
-from click_extra.execution import run_cli, run_jobs
+from click_extra.execution import run_cli
+from click_extra.jobs import run_jobs
 
 execution._TERMINATE_GRACE = 0.5
 
@@ -1052,7 +452,7 @@ GRANDCHILD = (
     "import os, signal, sys, time;"
     "signal.signal(signal.SIGINT, signal.SIG_IGN);"
     "signal.signal(signal.SIGTERM, signal.SIG_IGN);"
-    "open(sys.argv[1] + '.tmp', 'w', encoding='utf-8').write(str(os.getpid()));"
+    "open(sys.argv[1] + '.tmp', 'w', encoding='UTF-8').write(str(os.getpid()));"
     "os.replace(sys.argv[1] + '.tmp', sys.argv[1]);"
     "time.sleep(30)"
 )
@@ -1118,11 +518,11 @@ def test_interrupted_run_kills_grandchildren_ignoring_sigterm(
         assert returncode == -signal.SIGINT, stderr
         assert monotonic() - start < 10
         for pid_file in pid_files:
-            _assert_process_dies(int(pid_file.read_text(encoding="utf-8")))
+            _assert_process_dies(int(pid_file.read_text(encoding="UTF-8")))
     finally:
         for pid_file in pid_files:
             try:
-                os.kill(int(pid_file.read_text(encoding="utf-8")), signal.SIGKILL)
+                os.kill(int(pid_file.read_text(encoding="UTF-8")), signal.SIGKILL)
             except (OSError, ValueError):
                 pass
 
@@ -1192,7 +592,7 @@ def test_interrupted_run_exits_like_an_unhandled_ctrl_c(tmp_path, script, notice
         (sys.executable, "-c", script),
         capture_output=True,
         text=True,
-        encoding="utf-8",
+        encoding="UTF-8",
         cwd=tmp_path,
         timeout=20,
         check=False,
@@ -1260,7 +660,7 @@ def test_posix_only_signals_are_read_under_a_platform_check():
     violations = [
         f"{path.relative_to(PACKAGE_ROOT.parent).as_posix()}:{line}"
         for path in sorted(PACKAGE_ROOT.rglob("*.py"))
-        for line in unguarded_posix_signals(path.read_text(encoding="utf-8"))
+        for line in unguarded_posix_signals(path.read_text(encoding="UTF-8"))
     ]
     assert not violations, f"POSIX-only signal read with no guard: {violations}"
 
@@ -1371,149 +771,6 @@ def test_abort_without_standalone_mode_prints_no_notice(invoke):
     assert result.stderr == "Closed.\n\n"
 
 
-def test_invalid_value(invoke):
-    """Values that are neither an integer nor a known keyword are rejected."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    result = invoke(cli, "--jobs", "fast")
-    assert result.exit_code == 2
-    assert "fast" in result.stderr
-    assert "not a valid job count" in result.stderr
-
-
-@pytest.mark.parametrize(
-    ("incomplete", "expected"),
-    (
-        ("", ["auto", "max"]),
-        ("a", ["auto"]),
-        ("m", ["max"]),
-        ("ma", ["max"]),
-        ("MA", ["max"]),  # Case-insensitive, mirroring convert().
-        ("auto", ["auto"]),
-        ("3", []),  # An integer count is free-form: no keyword to suggest.
-        ("x", []),
-    ),
-)
-def test_jobs_shell_complete(incomplete, expected):
-    """--jobs completion suggests the auto/max keywords and never an integer."""
-    cmd = Command("tool", params=[JobsOption()])
-    ctx = Context(cmd)
-    completions = cmd.params[0].shell_complete(ctx, incomplete)
-    assert [item.value for item in completions] == expected
-
-
-@pytest.mark.parametrize(
-    ("value", "warning"),
-    (
-        ("0", "running sequentially"),
-        ("-1", "clamping to minimum of 1"),
-        ("-5", "clamping to minimum of 1"),
-    ),
-)
-def test_clamp_to_one(invoke, value, warning):
-    """0 disables parallelism and negatives clamp: both run 1 job with a warning."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    result = invoke(cli, "--jobs", value)
-    assert result.stdout == "Jobs: 1\n"
-    assert result.exit_code == 0
-    assert warning in result.stderr
-
-
-def test_exceeds_cpu_count(invoke):
-    """A count above the core count is honored, with an I/O-bound caveat."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    with patch("click_extra.execution.CPU_COUNT", 4):
-        result = invoke(cli, "--jobs", "8")
-
-    assert result.stdout == "Jobs: 8\n"
-    assert result.exit_code == 0
-    assert "exceeds the 4 logical CPUs" in result.stderr
-    assert "honored, but pays only for I/O-bound work" in result.stderr
-
-
-def test_no_warning_within_bounds(invoke):
-    """No warning when the value is within the valid range."""
-
-    @command
-    @jobs_option
-    @pass_context
-    def cli(ctx):
-        echo(f"Jobs: {ctx.meta['click_extra.jobs']}")
-
-    with patch("click_extra.execution.CPU_COUNT", 8):
-        result = invoke(cli, "--jobs", "4")
-
-    assert result.stdout == "Jobs: 4\n"
-    assert result.exit_code == 0
-    assert not result.stderr
-
-
-def test_single_core_default():
-    """DEFAULT_JOBS is 1 when the logical CPU count is 1."""
-    cpu_count = 1
-    assert (cpu_count - 1 if cpu_count and cpu_count >= 3 else (cpu_count or 1)) == 1
-
-
-def test_two_core_default_uses_both_cpus():
-    """DEFAULT_JOBS drops the core reservation on a two-CPU host.
-
-    Reserving one of two logical CPUs would collapse the pool to a single
-    (sequential) worker, and threads waiting on subprocesses and I/O cost
-    nothing there, so the whole machine is used instead.
-    """
-    cpu_count = 2
-    assert (cpu_count - 1 if cpu_count and cpu_count >= 3 else (cpu_count or 1)) == 2
-
-
-def test_none_cpu_count_default():
-    """DEFAULT_JOBS is 1 when cpu_count returns None."""
-    cpu_count: int | None = None
-    assert (cpu_count - 1 if cpu_count and cpu_count >= 3 else (cpu_count or 1)) == 1
-
-
-@pytest.mark.parametrize(
-    ("process_count", "fallback", "expected"),
-    (
-        # The process-aware count wins when it answers.
-        (4, 8, 4),
-        # A None answer (unsupported platform) falls back to os.cpu_count().
-        (None, 8, 8),
-    ),
-)
-def test_logical_cpu_count_prefers_process_count(process_count, fallback, expected):
-    """os.process_cpu_count() is preferred, os.cpu_count() is the fallback."""
-    with (
-        patch("os.process_cpu_count", create=True, return_value=process_count),
-        patch("os.cpu_count", return_value=fallback),
-    ):
-        assert _logical_cpu_count() == expected
-
-
-def test_logical_cpu_count_fallback_without_process_count():
-    """On runtimes lacking os.process_cpu_count(), os.cpu_count() answers."""
-    with patch("click_extra.execution.os") as mock_os:
-        del mock_os.process_cpu_count  # Simulate a Python older than 3.13.
-        mock_os.cpu_count.return_value = 8
-        assert _logical_cpu_count() == 8
-
-
 # --- Timer ------------------------------------------------------------------
 
 
@@ -1602,6 +859,27 @@ def test_standalone_timer_option(
     assert result.stdout == "It works!\n"
     assert not result.stderr
     assert result.exit_code == 0
+
+
+def test_nested_run_of_a_timed_command_keeps_the_outer_start(invoke):
+    """A run started from within another run of the same command times itself,
+    and the outer run reports the time since its own start."""
+
+    @command
+    @click.option("--nested", is_flag=True)
+    def oven(nested):
+        if nested:
+            sleep(0.5)
+            oven.main(["--time"], standalone_mode=False)
+
+    result = invoke(oven, "--time", "--nested")
+    assert result.exit_code == 0
+    inner, outer = (
+        float(seconds)
+        for seconds in re.findall(r"Execution time: ([0-9.]+) seconds\.", result.stdout)
+    )
+    # The outer run started half a second before the inner one did.
+    assert outer - inner >= 0.45
 
 
 def test_time_with_short_circuit_sibling_still_prints(invoke):
@@ -1862,9 +1140,9 @@ def test_format_cli_prompt_honors_an_explicit_theme():
     """A caller drawing the line onto a surface of its own picks the palette.
 
     Every slot follows, the binary name included: that one is styled a level
-    down, in {func}`~click_extra.execution.highlight_bin_name`, which used to
-    read the active theme on its own and leave a light capture's prompt in the
-    dark theme's near-white.
+    down, in {func}`~click_extra.execution.highlight_bin_name`, which would
+    otherwise read the active theme on its own and leave a light capture's
+    prompt in the dark theme's near-white.
     """
     light = BUILTIN_THEMES["light"]
     prompt = format_cli_prompt(("mas", "list", "--quiet"), theme=light)
@@ -1901,6 +1179,37 @@ def test_run_cli_timeout_kills_child_and_attaches_partial_output():
     # The child was killed at the deadline, not waited out.
     assert monotonic() - start < 15
     assert "partial" in (excinfo.value.output or "")
+    assert not _LIVE_PROCESSES
+
+
+def test_run_cli_handles_an_interrupt_tripped_as_the_wait_began():
+    """A Ctrl+C the interpreter noted as the main thread blocked on the child is
+    handled within the poll period, not when the child exits.
+
+    `interrupt_main()` leaves the interrupt pending without waking the main
+    thread: the state a `SIGINT` leaves when it lands after the interpreter last
+    checked for one and before the thread blocked in the C library. The child
+    never receives it, like a child in a session of its own, or one with no
+    console on Windows.
+    """
+
+    def trip():
+        deadline = monotonic() + 10
+        while not _LIVE_PROCESSES and monotonic() < deadline:
+            sleep(0.01)
+        # Leaves the main thread time to block on the child.
+        sleep(0.3)
+        _thread.interrupt_main()
+
+    tripper = threading.Thread(target=trip)
+    tripper.start()
+    start = monotonic()
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            run_cli((sys.executable, "-c", "import time; time.sleep(30)"))
+        assert monotonic() - start < 10
+    finally:
+        tripper.join()
     assert not _LIVE_PROCESSES
 
 
@@ -1962,7 +1271,7 @@ def test_run_cli_new_session_makes_child_group_leader():
 def _is_unreaped_zombie(pid: int) -> bool:
     """Return whether ``pid`` is a zombie: killed but not yet reaped.
 
-    A build sandbox with no init to reap orphans (e.g. an Alpine ``abuild``
+    A build sandbox with no init to reap orphans (like an Alpine ``abuild``
     container) leaves a SIGKILL'd process lingering as a zombie, which
     ``os.kill(pid, 0)`` still reports as alive. Only Linux exposes the state
     through ``/proc``; elsewhere a real reaper collects the process, so the
@@ -2107,7 +1416,7 @@ def test_terminate_live_processes_signals_whole_group(tmp_path, grandchild_sessi
             start_new_session={grandchild_session},
         )
         pid_file = {str(pid_file)!r}
-        with open(pid_file + ".tmp", "w", encoding="utf-8") as f:
+        with open(pid_file + ".tmp", "w", encoding="UTF-8") as f:
             f.write(str(grandchild.pid))
         os.replace(pid_file + ".tmp", pid_file)
         time.sleep(30)
@@ -2132,7 +1441,7 @@ def test_terminate_live_processes_signals_whole_group(tmp_path, grandchild_sessi
         worker.join(timeout=5)
     assert not _LIVE_PROCESSES
     assert not _GROUP_LEADERS
-    _assert_process_dies(int(pid_file.read_text(encoding="utf-8")))
+    _assert_process_dies(int(pid_file.read_text(encoding="UTF-8")))
 
 
 def test_kill_signal_reaches_a_grandchild_holding_the_output(tmp_path):
@@ -2148,7 +1457,7 @@ def test_kill_signal_reaches_a_grandchild_holding_the_output(tmp_path):
             (sys.executable, "-c", "import time; time.sleep(30)"),
             stdout=sys.stdout,
         )
-        open({str(ready)!r}, "w", encoding="utf-8").close()
+        open({str(ready)!r}, "w", encoding="UTF-8").close()
         time.sleep(30)
         """)
 
@@ -2261,7 +1570,7 @@ def test_terminate_live_processes_ignores_already_reaped():
         (sys.executable, "-c", "pass"),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     proc.wait(timeout=5)  # Already exited before we signal it.
     with _LIVE_PROCESSES_LOCK:
@@ -2286,7 +1595,7 @@ def test_install_interrupt_handler_terminates_children_and_reraises():
         (sys.executable, "-c", "import time; time.sleep(30)"),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        encoding="utf-8",
+        encoding="UTF-8",
     )
     with _LIVE_PROCESSES_LOCK:
         _LIVE_PROCESSES.add(proc)

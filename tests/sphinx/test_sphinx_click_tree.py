@@ -147,6 +147,82 @@ def test_click_tree_label_and_anchor_prefix_override(sphinx_app_myst):
     assert 'href="#kitchen-boil"' not in html
 
 
+def test_click_tree_summary_keeps_a_piped_description_in_its_cell(sphinx_app_myst):
+    """A pipe in a command's summary stays text, rather than splitting its row."""
+    content = dedent("""
+        ```{click:source}
+        :hide-source:
+        from click import command, group
+
+        @group
+        def kitchen():
+            \"\"\"Manage kitchen tools and recipes.\"\"\"
+
+        @kitchen.command
+        def serve():
+            \"\"\"Plate the dish on porcelain|slate.\"\"\"
+        ```
+
+        ```{click:tree} kitchen
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    table = html[html.index("<table") : html.index("</table>")]
+    assert 'href="#kitchen-serve"' in table
+    assert "Plate the dish on porcelain|slate" in table
+
+
+def test_click_tree_walks_subcommands_like_the_tree_option(sphinx_app_myst):
+    """The walk lists what ``Group.list_commands`` returns, as ``--tree`` does.
+
+    A lazy subcommand is documented although the group never registers it, in
+    the order the group lists it, and a hidden one is left out.
+    """
+    content = dedent("""
+        ```{click:source}
+        :hide-source:
+        from click import Group, command, group
+
+        @command
+        def pour():
+            \"\"\"Pour the water into the cup.\"\"\"
+
+        class Kettle(Group):
+            def list_commands(self, ctx):
+                return ["pour", *super().list_commands(ctx)]
+
+            def get_command(self, ctx, cmd_name):
+                if cmd_name == "pour":
+                    return pour
+                return super().get_command(ctx, cmd_name)
+
+        @group(cls=Kettle)
+        def kettle():
+            \"\"\"Heat water for tea.\"\"\"
+
+        @kettle.command
+        def boil():
+            \"\"\"Boil the water.\"\"\"
+
+        @kettle.command(hidden=True)
+        def descale():
+            \"\"\"Scrub the limescale off.\"\"\"
+        ```
+
+        ```{click:tree} kettle
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    table = html[html.index("<table") : html.index("</table>")]
+    assert 'href="#kettle-pour"' in table
+    assert table.index('href="#kettle-pour"') < table.index('href="#kettle-boil"')
+    assert 'id="kettle-pour"' in html
+    assert "Usage: kettle pour [OPTIONS]" in html
+    assert "kettle-descale" not in html
+
+
 def test_click_tree_errors_on_non_command(sphinx_app_myst):
     """Resolving the argument to a non-Command raises a clear directive error."""
     content = dedent("""
@@ -184,8 +260,8 @@ def test_click_tree_errors_in_rst(sphinx_app_rst):
 def test_click_tree_heading_offset_defaults_to_top_level(sphinx_app_myst):
     """Below a single ``# Doc title`` the root renders at ``h2``.
 
-    Preserves the historical default behavior: a directive at the document
-    body (inside the title's h1 section) emits its root one level below.
+    A directive in the document body, inside the title's h1 section, emits its
+    root one level below.
     """
     content = (
         "# Doc title\n\n"

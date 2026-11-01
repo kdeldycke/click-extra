@@ -21,8 +21,8 @@ from __future__ import annotations
 import pytest
 
 from click_extra import Style, unstyle
+from click_extra.ansi import RESET
 from click_extra.layout import (
-    RESET,
     RULE_COLOR,
     RULE_GLYPH,
     cell_width,
@@ -56,11 +56,7 @@ def test_center_in_rule_paints_the_rule_and_leaves_the_label_alone():
 
 
 def test_fit_columns_floors_at_nothing_by_default():
-    """The floor belongs to whoever lays the text out, not to the measure.
-
-    It was `MIN_COLUMNS` while the function lived in the capture module, which
-    is a property of a picture rather than of the text measured for one.
-    """
+    """The floor belongs to whoever lays the text out, not to the measure."""
     assert fit_columns("") == 0
     assert fit_columns("kiwi") == 4
     assert fit_columns("kiwi", floor=20) == 20
@@ -83,9 +79,9 @@ def test_fit_columns_floors_at_nothing_by_default():
 def test_cell_width_discounts_what_a_terminal_draws_nowhere(text, cells):
     """Escapes and hyperlinks measure nothing, and a tab measures to its stop.
 
-    `wcwidth.wcswidth`, which this used to call, refuses any string carrying a
-    control character and answers `-1`, so every styled string fell back to its
-    character count: 16 for a red `apricot` the terminal draws in 7.
+    `wcwidth.wcswidth` refuses any string carrying a control character and
+    answers `-1`: a measure built on it falls back to the character count of a
+    styled string, 16 for a red `apricot` the terminal draws in 7.
     """
     assert cell_width(text) == cells
 

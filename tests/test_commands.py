@@ -18,6 +18,7 @@ options, and how they interact with each others."""
 
 from __future__ import annotations
 
+import ast
 import importlib.metadata
 import inspect
 import json
@@ -32,6 +33,7 @@ from textwrap import dedent
 import click
 import cloup
 import pytest
+from click.utils import _make_default_short_help
 
 import click_extra
 from click_extra import (
@@ -47,17 +49,21 @@ from click_extra import (
     option,
     option_group,
     pass_context,
+    render_command_tree,
+    render_help,
+    render_manpages,
     version_option,
 )
-from click_extra.cli import demo
+from click_extra.cli import LAZY_SUBCOMMANDS, demo
 from click_extra.commands import (
     DEFAULT_OPTION_GROUPS,
     DEFAULT_PRIORITY,
     default_params,
 )
-from click_extra.parameters import (
+from click_extra.param_tools import (
     full_short_help,
     iter_params_for_display,
+    iter_subcommand_contexts,
     iter_subcommands,
     make_resilient_context,
 )
@@ -80,28 +86,23 @@ def test_module_root_declarations():
     """
     click_extra_members = set(click_extra.__all__)
 
-    # Namespace artifacts that are not real API: ``annotations`` is the
-    # ``from __future__ import annotations`` binding upstream modules leave
-    # behind, and cloup's ``__all__`` leaks the stdlib ``warnings`` module.
-    artifacts = {"annotations", "warnings"}
-
+    # ``annotations`` is the ``from __future__ import annotations`` binding
+    # click's ``__init__`` leaves behind: a namespace artifact, not real API.
     click_members = {
         name
         for name, member in inspect.getmembers(click)
         if not name.startswith("_")
         and not inspect.ismodule(member)
-        and name not in artifacts
+        and name != "annotations"
     }
     assert click_members <= click_extra_members
 
-    # Cloup 4.0.0 also lists Click's deprecated names, which click-extra forwards
-    # on access instead of declaring.
+    # Cloup also lists Click's deprecated names, which click-extra forwards on
+    # access instead of declaring.
     cloup_members = {
         m
         for m in cloup.__all__
-        if not m.startswith("_")
-        and m not in artifacts
-        and m not in click_extra._DEPRECATED_CLICK_EXPORTS
+        if not m.startswith("_") and m not in click_extra._DEPRECATED_CLICK_EXPORTS
     }
     assert cloup_members <= click_extra_members
 
@@ -126,7 +127,7 @@ def test_deprecated_click_exports_are_forwarded(name):
 def test_import_raises_no_deprecation_warning(statement):
     """Importing the package sets off no deprecation warning.
 
-    Cloup 4.0.0 lists Click's deprecated names in its ``__all__``, so a plain star
+    Cloup lists Click's deprecated names in its ``__all__``, so a plain star
     import of cloup fetches each of them, and Click warns once per name. A star
     import of click-extra would do the same for any such name its own
     ``__all__`` declared.
@@ -185,10 +186,9 @@ def test_no_debugger_ballast_on_import():
 
     ``click_extra.testing`` imports ``click.testing``, whose module-level
     ``import pdb`` cascades into asyncio and the ``_pyrepl`` machinery on
-    Python 3.13+. That chain used to load eagerly with ``import click_extra``,
-    and ended up bundled into every Nuitka-compiled CLI binary. The test
-    tooling is exported lazily now: check from a pristine interpreter that
-    none of it leaks at import time.
+    Python 3.13+. Loaded eagerly, that chain ends up bundled into every
+    Nuitka-compiled CLI binary, so the test tooling is exported lazily: check
+    from a pristine interpreter that none of it leaks at import time.
     """
     ballast = (
         "click.testing",
@@ -244,8 +244,12 @@ def test_no_heavy_dependency_ballast_on_startup():
         "plistlib",
         "requests",
         "sqlite3",
+        "subprocess",
         "sysconfig",
         "tabulate",
+        "termios",
+        "tomllib",
+        "tty",
         "wcmatch",
         "wcwidth",
         "xml",
@@ -306,6 +310,89 @@ def test_lazy_test_tooling_exports():
     # PEP 562 hook for later lookups.
     assert "CliRunner" in vars(click_extra)
     assert click_extra.run_test_suite is click_extra.test_suite.run_test_suite
+
+
+@pytest.mark.once
+def test_lazy_converter_exports():
+    """The converter names resolve on first access, off the startup path.
+
+    Checked in a pristine interpreter, since another test may have imported the
+    converters already.
+    """
+    probe = (
+        "import sys; import click_extra\n"
+        "modules = ('click_extra.markdown', 'click_extra.prebake', "
+        "'click_extra.project')\n"
+        "leaked = [m for m in modules if m in sys.modules]\n"
+        "assert not leaked, f'loaded at import time: {leaked}'\n"
+        "assert 'convert_source' in dir(click_extra)\n"
+        "from click_extra import convert_source, detect_source_package\n"
+        "from click_extra.markdown import myst\n"
+        "from click_extra import project\n"
+        "assert convert_source is myst.convert_source\n"
+        "assert detect_source_package is project.detect_source_package\n"
+        "assert 'convert_source' in vars(click_extra)\n"
+    )
+    process = run(
+        (sys.executable, "-c", probe), capture_output=True, text=True, check=False
+    )
+    assert process.returncode == 0, process.stderr
+
+
+LAZY_REGISTRIES = (
+    "_LAZY_CAPTURES",
+    "_LAZY_CONVERTERS",
+    "_LAZY_DISPLAYS",
+    "_LAZY_TEST_TOOLING",
+)
+"""The registries of names the package root serves through its `__getattr__`."""
+
+
+@pytest.mark.once
+@pytest.mark.parametrize("registry", LAZY_REGISTRIES)
+def test_lazy_exports_are_declared_and_typed(registry):
+    """Each lazy name is in ``__all__``, typed, and resolves to its source object.
+
+    A lazy name has no binding until its first access, so the ``TYPE_CHECKING``
+    import in ``click_extra/__init__.py`` is what shows it to type checkers.
+    """
+    typed = {
+        alias.asname or alias.name
+        for node in ast.parse(inspect.getsource(click_extra)).body
+        if isinstance(node, ast.If)
+        and isinstance(node.test, ast.Name)
+        and node.test.id == "TYPE_CHECKING"
+        for child in ast.walk(node)
+        if isinstance(child, ast.ImportFrom)
+        for alias in child.names
+    }
+    for name, module in getattr(click_extra, registry).items():
+        assert name in click_extra.__all__, name
+        assert name in typed, f"{name} has no TYPE_CHECKING import"
+        source = importlib.import_module(f"click_extra.{module}")
+        assert getattr(click_extra, name) is getattr(source, name), name
+
+
+@pytest.mark.once
+def test_lazy_export_modules_stay_off_startup():
+    """``import click_extra`` loads none of the modules the lazy names live in.
+
+    Checked in a pristine interpreter, since other tests have imported them.
+    """
+    modules = sorted({
+        f"click_extra.{module}"
+        for registry in LAZY_REGISTRIES
+        for module in getattr(click_extra, registry).values()
+    })
+    probe = (
+        "import sys; import click_extra\n"
+        f"leaked = [m for m in {modules!r} if m in sys.modules]\n"
+        "assert not leaked, f'loaded at import time: {leaked}'\n"
+    )
+    process = run(
+        (sys.executable, "-c", probe), capture_output=True, text=True, check=False
+    )
+    assert process.returncode == 0, process.stderr
 
 
 @pytest.fixture
@@ -961,7 +1048,8 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator, lazy_group_decorator):
             def foo_cli(foo_param):
                 echo(f"foo_param = {{foo_param}}")
             """
-        )
+        ),
+        encoding="UTF-8",
     )
 
     (tmp_path / "fur_cmd.py").write_text(
@@ -981,7 +1069,8 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator, lazy_group_decorator):
             def fur_cli(fur_param):
                 echo(f"fur_param = {{fur_param}}")
             """
-        )
+        ),
+        encoding="UTF-8",
     )
 
     (tmp_path / "bar_cmd.py").write_text(
@@ -1005,7 +1094,8 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator, lazy_group_decorator):
             def bar_cli(bar_param):
                 echo(f"bar_param = {{bar_param}}")
             """
-        )
+        ),
+        encoding="UTF-8",
     )
 
     (tmp_path / "baz_cmd.py").write_text(
@@ -1025,7 +1115,8 @@ def test_lazy_group(invoke, tmp_path, lazy_cmd_decorator, lazy_group_decorator):
             def baz_cli(baz_param):
                 echo(f"baz_param = {{baz_param}}")
             """
-        )
+        ),
+        encoding="UTF-8",
     )
 
     def reset_main_cli():
@@ -1174,7 +1265,8 @@ def write_produce_modules(tmp_path):
                 "Count the apples."
                 echo("apples = 3")
             """
-        )
+        ),
+        encoding="UTF-8",
     )
 
     (tmp_path / "banana_cmd.py").write_text(
@@ -1188,7 +1280,8 @@ def write_produce_modules(tmp_path):
                 "Count the bananas."
                 echo("bananas = 5")
             """
-        )
+        ),
+        encoding="UTF-8",
     )
 
     (tmp_path / "carrot_cmd.py").write_text(
@@ -1202,7 +1295,8 @@ def write_produce_modules(tmp_path):
                 "Count the carrots."
                 echo("carrots = 7")
             """
-        )
+        ),
+        encoding="UTF-8",
     )
 
 
@@ -1261,6 +1355,123 @@ def test_lazy_group_sections(invoke, tmp_path):
 
     finally:
         sys.path.remove(str(tmp_path))
+
+
+def test_lazy_group_lists_declared_help_without_importing(invoke, tmp_path):
+    """A lazy subcommand declaring its help is listed without being imported."""
+    (tmp_path / "quince_cmd.py").write_text(
+        dedent(
+            """
+            from click_extra import command, echo
+
+
+            @command
+            def quince_cli():
+                \"\"\"Count the quinces.
+
+                They ripen late in the season.
+                \"\"\"
+                echo("quinces = 2")
+            """
+        ),
+        encoding="UTF-8",
+    )
+
+    @click.group(
+        cls=LazyGroup,
+        lazy_subcommands={
+            "quince": LazySubcommand(
+                "quince_cmd.quince_cli", short_help="Count the quinces."
+            ),
+        },
+    )
+    def orchard():
+        pass
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        listing = invoke(orchard, "--help", color=False)
+        assert listing.exit_code == 0
+        assert "  quince  Count the quinces.\n" in listing.stdout
+        assert "quince_cmd" not in sys.modules
+
+        result = invoke(orchard, "quince", color=False)
+        assert result.stdout == "quinces = 2\n"
+        assert "quince_cmd" in sys.modules
+
+        # Imported, the subcommand takes the place of its stand-in, in the same
+        # words.
+        assert invoke(orchard, "--help", color=False).stdout == listing.stdout
+    finally:
+        sys.path.remove(str(tmp_path))
+        sys.modules.pop("quince_cmd", None)
+
+
+def test_lazy_group_keeps_a_listed_subcommand_in_place(invoke, tmp_path):
+    """Importing a subcommand listed by its declared help keeps its place."""
+    write_produce_modules(tmp_path)
+    fruits = cloup.Section("Fruits")
+
+    @click.group(
+        cls=LazyGroup,
+        lazy_subcommands={
+            "banana": LazySubcommand(
+                "banana_cmd.banana_cli", section=fruits, short_help="Count the bananas."
+            ),
+            "apple": LazySubcommand(
+                "apple_cmd.apple_cli", section=fruits, short_help="Count the apples."
+            ),
+        },
+    )
+    def basket():
+        pass
+
+    sys.path.insert(0, str(tmp_path))
+    try:
+        listing = invoke(basket, "--help", color=False).stdout
+        assert listing.index("banana") < listing.index("apple")
+        assert invoke(basket, "banana", color=False).stdout == "bananas = 5\n"
+        assert invoke(basket, "--help", color=False).stdout == listing
+    finally:
+        sys.path.remove(str(tmp_path))
+
+
+def test_cli_help_imports_no_lazy_subcommand():
+    """The root help of the click-extra CLI lists its lazy subcommands unimported."""
+    probe = (
+        "import sys\n"
+        "from click_extra.cli import LAZY_SUBCOMMANDS, demo\n"
+        "demo.main(['--help'], standalone_mode=False)\n"
+        "modules = {spec.import_path.rpartition('.')[0]\n"
+        "           for spec in LAZY_SUBCOMMANDS.values()}\n"
+        "loaded = sorted(modules & set(sys.modules))\n"
+        "assert not loaded, f'imported by --help: {loaded}'\n"
+    )
+    process = run(
+        (sys.executable, "-c", probe), capture_output=True, text=True, check=False
+    )
+    assert process.returncode == 0, process.stderr
+    for name in LAZY_SUBCOMMANDS:
+        assert f"  {name} " in process.stdout
+
+
+@pytest.mark.parametrize("name", sorted(LAZY_SUBCOMMANDS))
+def test_cli_lazy_subcommand_lists_as_its_command(name):
+    """The help a lazy subcommand declares lists it the way the command does.
+
+    The declared text and the command's own help are two copies of one sentence:
+    this fails the moment they drift apart.
+    """
+    spec = LAZY_SUBCOMMANDS[name]
+    fresh = LazyGroup(lazy_subcommands={name: spec})
+    ctx = click.Context(fresh)
+    stand_in = fresh.listed_command(ctx, name)
+    command = fresh.get_command(ctx, name)
+    assert stand_in is not None
+    assert command is not None
+    assert stand_in is not command
+    for limit in (20, 45, 80, 120):
+        assert stand_in.get_short_help_str(limit) == command.get_short_help_str(limit)
 
 
 def test_lazy_group_section_shared_with_eager_subcommand(invoke, tmp_path):
@@ -1586,6 +1797,27 @@ def test_help_search(invoke):
     assert "render" not in result.stdout
 
 
+def test_help_search_skips_hidden_subcommands(invoke):
+    """A hidden subcommand stays out of the search, as it stays out of `help`."""
+
+    @group
+    def cli():
+        pass
+
+    @cli.command()
+    def ripen():
+        """Ripen the fruit."""
+
+    @cli.command(hidden=True)
+    def rot():
+        """Rot the fruit."""
+
+    result = invoke(cli, "help", "--search", "fruit", color=False)
+    assert result.exit_code == 0
+    assert "ripen: Ripen the fruit." in result.stdout
+    assert "rot" not in result.stdout
+
+
 def test_help_search_no_match(invoke):
     """``mycli help --search term`` with no matches."""
 
@@ -1711,10 +1943,10 @@ def test_subcommand_order_in_list_commands(group_kwargs, expected):
 def test_subcommand_order_agrees_across_renderers(invoke):
     """Every rendering of a command tree lists subcommands in the same order.
 
-    Each renderer used to reach for its own accessor, so a group that ordered its
-    subcommands could have its help screen disagree with its man page or its
-    completion spec. They all go through ``list_commands()`` now, and this pins
-    that down for the whole population rather than one renderer at a time.
+    A renderer reaching for its own accessor would let a group's help screen
+    disagree with its man page or its completion spec. They all go through
+    ``list_commands()``, and this pins that down for the whole population rather
+    than one renderer at a time.
     """
     yaml = pytest.importorskip("yaml")
 
@@ -1749,13 +1981,73 @@ def test_subcommand_order_agrees_across_renderers(invoke):
     assert not diverging, f"renderers out of order: {diverging}"
 
 
+def test_iter_subcommand_contexts_builds_a_context_per_subcommand():
+    """Each subcommand comes with a context named after it, under its parent's."""
+    cli = kitchen_group(sort_subcommands=False)
+    ctx = make_resilient_context(cli, cli.name)
+    triples = list(iter_subcommand_contexts(cli, ctx))
+    assert [name for name, _, _ in triples] == ["prep", "cook", "plate", "help"]
+    for name, sub, sub_ctx in triples:
+        assert sub_ctx.command is sub
+        assert sub_ctx.parent is ctx
+        assert sub_ctx.command_path == f"kitchen {name}"
+
+
+def ghost_pantry():
+    """A lazy group also listing a name it cannot resolve, like a broken plugin."""
+
+    class Pantry(LazyGroup):
+        def list_commands(self, ctx):
+            return [*super().list_commands(ctx), "ghost"]
+
+    @click.group(cls=Pantry, lazy_subcommands={"apple": "apple_cmd.apple_cli"})
+    def pantry():
+        """Sort the pantry."""
+
+    return pantry
+
+
+def test_tree_walks_agree_on_lazy_and_unresolvable_subcommands(invoke, tmp_path):
+    """Every walk of a command tree imports a lazy subcommand and skips a dead name.
+
+    A group can list a name it cannot resolve, like a plugin whose module broke.
+    The walks all go through `iter_subcommands`, so none of them crashes on that
+    name, and none drops a lazy subcommand it has not imported yet. Each walk
+    gets a fresh group, so no walk finds the subcommand imported by another.
+    """
+    pytest.importorskip("yaml")
+    write_produce_modules(tmp_path)
+    sys.path.insert(0, str(tmp_path))
+    try:
+        renderings = {
+            "--help": invoke(ghost_pantry(), "--help", color=False).stdout,
+            "--tree": render_command_tree(ghost_pantry()),
+            "man pages": "\n".join(render_manpages(ghost_pantry())),
+            "markdown-full": render_help(ghost_pantry(), "markdown-full"),
+            "carapace": render_help(ghost_pantry(), "carapace"),
+            "help --search": invoke(
+                ghost_pantry(), "help", "--search", "apples", color=False
+            ).stdout,
+            "help suggestion": invoke(
+                ghost_pantry(), "help", "appel", color=False
+            ).stderr,
+        }
+    finally:
+        sys.path.remove(str(tmp_path))
+
+    dropping = [name for name, text in renderings.items() if "apple" not in text]
+    haunted = [name for name, text in renderings.items() if "ghost" in text]
+    assert not dropping, f"lazy subcommand dropped by: {dropping}"
+    assert not haunted, f"unresolvable name listed by: {haunted}"
+
+
 def test_option_order_agrees_across_renderers(invoke):
     """Every rendering of a command lists options in the same order.
 
     Cloup draws the ungrouped section last, and Click Extra sends its own groups
     past it, so a renderer reaching for its own accessor would let a help screen
     disagree with its man page or its completion spec. They all resolve the
-    section order through ``split_option_groups()`` now.
+    section order through ``split_option_groups()``.
 
     Pins the taxonomy too: each rendering is filtered down to the flags
     ``DEFAULT_OPTION_GROUPS`` declares, so the order they are declared in is the
@@ -1783,10 +2075,7 @@ def test_option_order_agrees_across_renderers(invoke):
             invoke(forecast, "--help", color=False).stdout,
             re.MULTILINE,
         ),
-        # Read as the long spelling, like the renderings above: Click 8.4
-        # collects `--help`'s names through a set, so which of `-h` and
-        # `--help` lands first there varies with the interpreter's hash seed.
-        # Click 8.5.0 keeps their declaration order.
+        # Read as the long spelling, like the renderings above.
         "json": [
             next(name for name in opt["names"] if name.startswith("--"))
             for group in json.loads(
@@ -1815,30 +2104,10 @@ def test_option_order_agrees_across_renderers(invoke):
     assert not diverging, f"renderers out of order: {diverging}"
 
 
-ARGUMENT_HELP_CLICK_VERSION = (8, 5)
-"""Click release that gave `click.Argument` a `help` parameter of its own.
-
-Below it a plain `click.argument` rejects the keyword outright, so the matrix
-cells pinning an older Click inside the supported range have nothing to render.
-Cloup and Click Extra carry their own `Argument`, which accepted a description
-all along and is checked on every cell.
-"""
-
-
 @pytest.mark.parametrize(
     "argument_decorator",
     (
-        pytest.param(
-            click.argument,
-            id="click",
-            marks=pytest.mark.skipif(
-                tuple(
-                    int(p) for p in importlib.metadata.version("click").split(".")[:2]
-                )
-                < ARGUMENT_HELP_CLICK_VERSION,
-                reason="`click.Argument` takes a `help` since Click 8.5.",
-            ),
-        ),
+        pytest.param(click.argument, id="click"),
         pytest.param(cloup.argument, id="cloup"),
         pytest.param(argument, id="click_extra"),
     ),
@@ -1846,10 +2115,9 @@ all along and is checked on every cell.
 def test_argument_help_agrees_across_renderers(invoke, argument_decorator):
     """An argument's help reaches every rendering, whatever its `Argument` class.
 
-    Click 8.5.0 gave `click.Argument` a `help` parameter of its own. Cloup reads a
-    description off a `cloup.Argument` alone, so a plain `click.argument` drew a
-    blank `Positional arguments` entry while the man page and the JSON export
-    carried its text. See https://github.com/janluke/cloup/issues/210.
+    The help screen, the man page and the JSON export all resolve an operand's
+    description through the same helper, so a plain `click.argument` carries the
+    same text everywhere.
     """
 
     @command
@@ -1878,12 +2146,8 @@ def test_argument_help_agrees_across_renderers(invoke, argument_decorator):
 def test_deprecated_command_label_matches_click(invoke, deprecated, label):
     """A deprecated command carries Click's own marker, reason string included.
 
-    Cloup prefixes `(Deprecated) ` to the description, a form Click left behind in
-    8.2.0 and which has nowhere to put the reason a `deprecated` string carries.
-    See https://github.com/janluke/cloup/issues/211.
-
     The marker is checked on the help screen and on
-    {func}`~click_extra.parameters.full_short_help`, which feeds `--tree`, the man
+    {func}`~click_extra.param_tools.full_short_help`, which feeds `--tree`, the man
     page, the JSON export and the completion specs.
     """
 
@@ -1971,6 +2235,40 @@ def test_option_swapped_by_a_params_hook_keeps_its_section():
         assert refiled.title == filed.title
 
 
+def test_params_hook_runs_once_per_decorated_command():
+    """A `params` hook builds one set of options per command, and never shares it.
+
+    A decorator built once and applied twice still gives each command its own
+    option instances, the second application calling the hook again.
+    """
+    calls: list[None] = []
+
+    def hook():
+        calls.append(None)
+        return default_params()
+
+    @command(params=hook)
+    def forecast():
+        pass
+
+    assert len(calls) == 1
+
+    calls.clear()
+    decorator = command(params=hook)
+
+    @decorator
+    def kettle():
+        pass
+
+    @decorator
+    def teapot():
+        pass
+
+    assert len(calls) == 2
+    assert [p.opts for p in kettle.params] == [p.opts for p in teapot.params]
+    assert not {id(p) for p in kettle.params} & {id(p) for p in teapot.params}
+
+
 def test_lazy_group_subcommand_order_is_stable_across_loading(tmp_path, monkeypatch):
     """A lazy subcommand holds its slot before and after it is imported.
 
@@ -1988,7 +2286,7 @@ def test_lazy_group_subcommand_order_is_stable_across_loading(tmp_path, monkeypa
                     pass
                 """
             ),
-            encoding="utf-8",
+            encoding="UTF-8",
         )
     monkeypatch.syspath_prepend(str(tmp_path))
 
@@ -2133,12 +2431,6 @@ def test_command_listing_is_not_cut_by_an_abbreviation():
     landing before the first sentence ends, which is the one failure a docstring
     can cause without anyone noticing.
     """
-    # Local on purpose, against the usual module-scope rule: this private helper
-    # is absent from Click 8.4.x, and the marker above keeps the test off every
-    # matrix cell pinned to it. Collection imports the module regardless, so at
-    # module scope this import errors the whole file on those cells.
-    from click.utils import _make_default_short_help
-
     root_ctx = click.Context(demo, info_name="click-extra")
     offenders = []
     for path, subcommand in walk_commands(demo, root_ctx):

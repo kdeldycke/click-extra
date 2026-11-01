@@ -33,12 +33,12 @@ The table below lists every entry Click Extra publishes for your code, the optio
 
 | Constant                  | String key                    | Set by                                                       | Value                                                                   |
 | ------------------------- | ----------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| `context.RAW_ARGS`        | `click_extra.raw_args`        | `Command.make_context` (always, on `@command` group)         | `list[str]`: pre-parsed `argv` slice fed to the current command         |
+| `context.RAW_ARGS`        | `click_extra.raw_args`        | `Command.make_context` (always, on `@command` and `@group`)  | `list[str]`: pre-parsed `argv` slice fed to the current command         |
 | `context.INVOCATION_NAME` | `click_extra.invocation_name` | `Command.make_context` (root context only)                   | `str`: the name the CLI was invoked under *(write-only)*                |
 | `context.CONF_SOURCE`     | `click_extra.conf_source`     | `ConfigOption.load_conf` (`@config_option`)                  | `pathlib.Path \| URL \| None`: file the configuration was loaded from   |
 | `context.CONF_FULL`       | `click_extra.conf_full`       | `ConfigOption.load_conf` (`@config_option`)                  | `dict \| None`: full parsed configuration document                      |
 | `context.CONF_SOURCES`    | `click_extra.conf_sources`    | `ConfigOption.load_conf` (`@config_option`)                  | `tuple[(path, dict), ...]`: every loaded file, highest precedence first |
-| `context.TOOL_CONFIG`     | `click_extra.tool_config`     | `ConfigOption._apply_config_schema` (with `config_schema`)   | The deserialised app section (also reachable via `get_tool_config()`)   |
+| `context.TOOL_CONFIG`     | `click_extra.tool_config`     | `ConfigOption.load_conf` (with `config_schema`)              | The deserialised app section (also reachable via `get_tool_config()`)   |
 | `context.VERBOSITY_LEVEL` | `click_extra.verbosity_level` | `--verbosity`, `-v`, `-q`, `--debug` callbacks (reconciled)  | `LogLevel`: the level every verbosity option settled on                 |
 | `context.VERBOSITY`       | `click_extra.verbosity`       | `--verbosity` callback                                       | `LogLevel`: raw value of `--verbosity LEVEL`                            |
 | `context.DEBUG`           | `click_extra.debug`           | `--debug` callback                                           | `bool`: `True` when `--debug` was passed, absent otherwise              |
@@ -134,7 +134,7 @@ Outside an active CLI invocation (for example at import time, in unit tests that
 
 Click's default parser lets options and positional arguments interleave freely (GNU style): `mytool alice --greeting Hi bob` is parsed the same as `mytool --greeting Hi alice bob`. The POSIX convention is stricter: option parsing stops at the first positional argument, and everything after it is treated as a positional, even tokens that look like options.
 
-`Context` honors the standard [`POSIXLY_CORRECT`](https://sourceware.org/glibc/manual/latest/html_node/Using-Getopt.html) environment variable that GNU getopt-based tools obey. When it is present in the environment (regardless of its value), Click Extra forces `allow_interspersed_args` to `False`, so any `@command` or `@group` built with Click Extra automatically switches to POSIX parsing.
+{py:class}`~click_extra.commands.Context` honors the standard [`POSIXLY_CORRECT`](https://sourceware.org/glibc/manual/latest/html_node/Using-Getopt.html) environment variable that GNU getopt-based tools obey. When it is present in the environment (regardless of its value), Click Extra forces `allow_interspersed_args` to `False`, so any `@command` or `@group` built with Click Extra automatically switches to POSIX parsing.
 
 ```{click:source}
 from click_extra import argument, command, echo, option

@@ -41,7 +41,6 @@ jsonschema = pytest.importorskip("jsonschema")
 import click_extra
 from click_extra.carapace import (
     CARAPACE_DOCS_URL,
-    CARAPACE_SPECS_DIR,
     CarapaceComplete,
     _flag_key,
     _flag_name,
@@ -61,7 +60,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 CARAPACE_SCHEMA = json.loads(
-    (Path(__file__).parent / "carapace-spec.schema.json").read_text(encoding="utf-8")
+    (Path(__file__).parent / "carapace-spec.schema.json").read_text(encoding="UTF-8")
 )
 
 
@@ -348,8 +347,7 @@ def test_option_computing_its_help_still_describes_itself():
     """An option leaving `help` at `None` still reaches the spec described.
 
     Click Extra's own `-v` and `-q` build their text from the resolved base
-    verbosity, so reading the attribute hands back nothing and the spec used to
-    ship them blank.
+    verbosity, so reading the attribute hands back nothing.
     """
 
     @click_extra.command
@@ -562,6 +560,23 @@ def test_dump_requires_pyyaml(monkeypatch):
         dump_carapace_spec(weather, prog_name="weather")
 
 
+def test_help_format_carapace_without_pyyaml(monkeypatch):
+    """`--help-format carapace` names the extra to install, with no traceback."""
+    monkeypatch.setitem(sys.modules, "yaml", None)
+
+    @click_extra.command
+    def orchard():
+        """Pick apples."""
+
+    result = CliRunner().invoke(orchard, ["--help-format", "carapace"], color=False)
+    assert result.exit_code == 1
+    assert not result.stdout
+    assert result.stderr == (
+        "Error: Carapace spec serialization requires an optional dependency. "
+        "Install it with: uv pip install 'click-extra[carapace]'\n"
+    )
+
+
 # -- Dynamic completion backend (CarapaceComplete) ----------------------------
 
 
@@ -607,9 +622,9 @@ def test_subcommand_dynamic_completion_resolves_end_to_end(monkeypatch):
     being completed in its own state rather than passing it through. So the macro
     bakes both the command path and the flag spelling, and ``$*`` expands to
     nothing. This reconstructs the resulting COMP_WORDS from the generated macro
-    and confirms the backend resolves the forecast callback. The original
-    root-only, flag-less macro would have reconstructed bare ``weather`` and
-    completed the subcommand list instead.
+    and confirms the backend resolves the forecast callback. A root-only,
+    flag-less macro would reconstruct bare ``weather`` and complete the
+    subcommand list instead.
     """
     macro = FORECAST["completion"]["flag"]["city"][0]
     # The macro's COMP_WORDS template, with $* expanded to the empty word list
@@ -649,7 +664,7 @@ def runner():
 @pytest.fixture
 def greet_script(tmp_path):
     script = tmp_path / "greet.py"
-    script.write_text(GREET_SCRIPT)
+    script.write_text(GREET_SCRIPT, encoding="UTF-8")
     return str(script)
 
 
@@ -772,17 +787,6 @@ def test_get_cache_dir(monkeypatch, platform_id, environ, expected):
     assert get_cache_dir("plum") == Path(expected)
 
 
-def test_carapace_specs_dir_is_expanded():
-    """The public default is an absolute path, as `9.4.1` shipped it.
-
-    A consumer joining a file name onto it gets a usable path, where a `~` left
-    for a later expansion would give a relative one.
-    """
-    assert CARAPACE_SPECS_DIR.is_absolute()
-    assert "~" not in CARAPACE_SPECS_DIR.parts
-    assert CARAPACE_SPECS_DIR.parts[-3:] == (".config", "carapace", "specs")
-
-
 def test_install_resolves_home_at_call_time(tmp_path, monkeypatch):
     """The spec lands under the ``HOME`` in force at the call, not at import.
 
@@ -899,10 +903,11 @@ def test_spec_drives_real_carapace_engine(tmp_path):
     parent command names from the words it forwards, and withholds the flag being
     completed entirely, so the macros must bake both back in.
 
-    .. attention::
-        Downloads the carapace-spec binary from GitHub and executes it, hence the
-        ``network`` mark (and ``once``, to run on a single CI runner). The dynamic
-        macro shells out, so the test only runs on POSIX platforms.
+    ```{attention}
+    Downloads the carapace-spec binary from GitHub and executes it, hence the
+    `network` mark (and `once`, to run on a single CI runner). The dynamic macro
+    shells out, so the test only runs on POSIX platforms.
+    ```
     """
     system = platform.system().lower()
     arch = CARAPACE_ARCH.get(platform.machine().lower())
@@ -944,22 +949,25 @@ def test_spec_drives_real_carapace_engine(tmp_path):
 
     # Write the CLI and generate its spec through the script's own dump mode.
     script = tmp_path / "weather_cli.py"
-    script.write_text(CARAPACE_RUNNER)
+    script.write_text(CARAPACE_RUNNER, encoding="UTF-8")
     spec = subprocess.run(
         [sys.executable, str(script), "--dump-carapace-spec"],
         capture_output=True,
         text=True,
+        encoding="UTF-8",
         check=True,
     ).stdout
     spec_file = tmp_path / "weather.yaml"
-    spec_file.write_text(spec)
+    spec_file.write_text(spec, encoding="UTF-8")
 
     # The dynamic macro execs the program by bare name, so a `weather` shim that
     # runs the script under this interpreter must be discoverable on PATH.
     bindir = tmp_path / "bin"
     bindir.mkdir()
     shim = bindir / "weather"
-    shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n')
+    shim.write_text(
+        f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n', encoding="UTF-8"
+    )
     shim.chmod(0o755)
     env = {**os.environ, "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}"}
 
@@ -969,6 +977,7 @@ def test_spec_drives_real_carapace_engine(tmp_path):
             [str(binary), str(spec_file), "export", "weather", *words],
             capture_output=True,
             text=True,
+            encoding="UTF-8",
             check=False,
             env=env,
         )

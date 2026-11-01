@@ -48,7 +48,7 @@ A parameter deliberately kept out of configuration files (see [Excluding paramet
 Configuration validation error: Configuration key 'version' is not allowed in configuration files.
 ```
 
-The strict check only polices the app's own section: other tools' sections in a shared file (like the `[tool.*]` tables of a `pyproject.toml`, or a multi-app configuration file) are ignored.
+The strict check only polices the app's own section: other tools' sections in a shared file (like the `[tool.*]` tables of a `pyproject.toml`, or a multi-app configuration file) are ignored. A [schema-only section](config.md#schema-only-configuration) reads no CLI parameter, so the check leaves it to the schema. A section mixing CLI parameters with the fields of a [dataclass schema](config-schema.md#dataclass-schema) passes too: the check leaves every key the dataclass reads to the schema.
 
 On the default `@command` and `@group` decorators, activate strict mode with the `config_strict` keyword instead of replacing the whole default parameter list:
 
@@ -166,7 +166,7 @@ Three terms describe the same mechanism from three angles, and you'll see all of
 
 - **Extension** is what the *app* does: declare a sub-tree that lives outside click-extra's schema and validate it through your own logic. This is the public-facing name (`ConfigValidator`, `EXTENSION_METADATA_KEY`).
 - **Passthrough** is what *click-extra* does: let the extension sub-tree flow through the strict-check, normalize, and flatten stages without inspection. Use this term when describing how data moves through the pipeline.
-- **Opaque** is what the *pipeline* sees: a path it must not descend into. The internal helpers (`_collect_opaque_paths_from_schema`, the `opaque_keys` parameter on `normalize_config_keys`/`flatten_config_keys`, the `_opaque_paths` cache on `ConfigOption`) all use this term. Same set of paths, viewed from the inside.
+- **Opaque** is what the *pipeline* sees: a path it must not descend into. The internal helpers (`_collect_opaque_paths_from_schema`, the `opaque_keys` parameter on `normalize_config_keys`/`flatten_config_keys`, the cached `ConfigOption._opaque_paths`) all use this term. Same set of paths, viewed from the inside.
 
 All three vocabularies refer to the same dotted-path set. *Extension* is what you write in your app code, *passthrough* is what you'd say to explain the behavior, *opaque* is what you'll search for when reading click-extra's source.
 ```
@@ -311,11 +311,7 @@ $ echo $?
 1
 ```
 
-Normal `--config` loading is fail-fast: the first `ValidationError` becomes a critical-level log message and the run exits 1, before any subcommand callback fires. Both modes go through the same pipeline, so an unknown CLI-flag key, an unknown schema field (under `schema_strict`), and an extension-validator failure all surface as the same `ValidationError`, whichever sub-tree the offending key sits in.
-
-```{note}
-The internal name for an extension path is `opaque_path`. You'll see it in click-extra's source under `_collect_opaque_paths_from_schema`, in the `opaque_keys` parameter of `normalize_config_keys` and `flatten_config_keys`, and in the cached `ConfigOption._opaque_paths` attribute. From the pipeline's point of view those paths are stop markers: places it must not descend into. From your app's point of view they're extension points. The vocabulary divergence is intentional: developers reading their own code see *extension* (intent); developers reading click-extra's source see *opaque* (implementation).
-```
+Normal `--config` loading is fail-fast: the first `ValidationError` becomes a critical-level log message and the run exits 1, before any subcommand callback fires. Both modes go through the same pipeline, so an unknown CLI-flag key, a conflicting dotted key (under `strict`), an unknown schema field (under `schema_strict`), and an extension-validator failure all surface as the same `ValidationError`, whichever sub-tree the offending key sits in. Its `code` tells them apart: `unknown_parameter`, `invalid_key`, `schema_error`, `invalid_theme` and `invalid_theme_shape` for click-extra's own checks, and whatever code your validator raises.
 
 ### Validating programmatically
 

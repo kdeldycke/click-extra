@@ -45,9 +45,10 @@ from gettext import gettext as _
 from typing import cast
 
 import click
+from click.core import ParameterSource
 
 from . import context
-from .envvar import parse_envvar_flag
+from .envvar import machine_envvars_apply, parse_envvar_flag
 from .parameters import ExtraOption
 from .table import TableFormat
 
@@ -62,9 +63,11 @@ ACCESSIBLE_ENVVAR: Final[str] = "ACCESSIBLE"
 
 Global and CLI-agnostic, unlike the `<CLI>_ACCESSIBLE` variable Click derives
 from the option itself. Its bare presence activates the mode, unless its value
-reads as false (see {func}`~click_extra.envvar.parse_envvar_flag`); see
-{meth}`~click_extra.accessibility.AccessibleOption.set_accessible` for why it
-is read directly instead of being wired through the option's `envvar`.
+reads as false (see {func}`~click_extra.envvar.parse_envvar_flag`). The flag and
+the `<CLI>_ACCESSIBLE` variable outrank it: see
+{meth}`~click_extra.accessibility.AccessibleOption.set_accessible`, which also
+says why a configuration file does not, and why it is read directly instead of
+being wired through the option's `envvar`.
 """
 
 
@@ -118,6 +121,22 @@ class AccessibleOption(ExtraOption):
         CLI that never sees `--accessible` (nor `ACCESSIBLE`) keeps every
         default untouched.
 
+        `ACCESSIBLE` is a machine-wide variable, so the command line and the
+        variable of the option outrank it, as they do for every machine-wide
+        variable (see {func}`~click_extra.envvar.machine_envvars_apply`). The
+        precedence is: `--accessible` > `<CLI>_ACCESSIBLE` > `ACCESSIBLE` >
+        configuration file > built-in default.
+
+        ```{important}
+        `ACCESSIBLE` outranks a configuration file, where the other machine-wide
+        variables rank below one. The mode works by lowering the defaults of other
+        options, and {meth}`~click_extra.commands.Command.parse_args` settles it
+        from the command line and the environment before the configuration file
+        loads, so that `--help` and `--version` render in accessible mode too. A
+        file read later could not take those lowered defaults back: it would leave
+        the colors off while the mode reads as off.
+        ```
+
         ```{note}
         The global `ACCESSIBLE` environment variable is read here rather than
         wired through the option's `envvar`. Click would otherwise list it
@@ -128,7 +147,13 @@ class AccessibleOption(ExtraOption):
         `NO_COLOR` and friends.
         ```
         """
-        if not value:
+        assert param.name is not None  # Always set for Option subclasses.
+        # The rule of the machine-wide variables, with the configuration file
+        # ranked below ACCESSIBLE: see the important note above.
+        if (
+            machine_envvars_apply(ctx, param)
+            or ctx.get_parameter_source(param.name) is ParameterSource.DEFAULT_MAP
+        ):
             raw = os.environ.get(ACCESSIBLE_ENVVAR)
             if raw is not None:
                 # Bare presence (or an unparsable value) counts as activation: see

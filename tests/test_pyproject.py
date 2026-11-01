@@ -33,6 +33,8 @@ from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
+from click_extra.cli import LAZY_SUBCOMMANDS
+
 from .conftest import fetch_or_skip
 
 PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
@@ -176,3 +178,17 @@ def test_click_matrix_matches_authorized_releases():
         )
         if message
     )
+
+
+def test_nuitka_includes_every_lazy_subcommand_module():
+    """A Nuitka build bundles the module of each lazily mounted subcommand.
+
+    Nuitka follows `import` statements only, while a lazy subcommand is imported
+    from a string: a module missing here ships a binary whose subcommand fails.
+    """
+    config = tomllib.loads(PYPROJECT.read_text(encoding="UTF-8"))
+    included = set(config["tool"]["nuitka"]["include-module"])
+    modules = {
+        spec.import_path.rpartition(".")[0] for spec in LAZY_SUBCOMMANDS.values()
+    }
+    assert modules <= included, f"missing from include-module: {modules - included}"

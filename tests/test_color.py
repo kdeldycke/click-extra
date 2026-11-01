@@ -43,15 +43,18 @@ from click_extra import (
 from click_extra.color import (
     COLOR_DISABLING_TERMS,
     COLOR_ENVVARS,
+    TerminalBackground,
     _is_dark_rgb,
     _parse_osc_rgb,
     forced_color,
     invocation_color,
     is_a_tty,
+    is_dumb_terminal,
     query_osc_background,
     resolve_background,
     resolve_color_env,
 )
+from click_extra.param_tools import make_resilient_context
 from click_extra.pytest import (
     default_debug_colored_log_end,
     default_debug_colored_log_start,
@@ -62,9 +65,9 @@ from click_extra.pytest import (
 )
 from click_extra.theme import get_default_theme
 
-theme = get_default_theme()
-
 from .conftest import skip_windows_colors
+
+theme = get_default_theme()
 
 
 @skip_windows_colors
@@ -251,6 +254,40 @@ def test_resolve_color_env_term(monkeypatch, term, expected):
     else:
         monkeypatch.setenv("TERM", term)
     assert resolve_color_env() is expected
+
+
+@pytest.mark.parametrize(
+    ("term", "expected"),
+    (
+        ("dumb", True),
+        ("DUMB", True),
+        ("unknown", True),
+        ("xterm-256color", False),
+        ("", False),
+        (None, False),
+    ),
+)
+def test_is_dumb_terminal(monkeypatch, term, expected):
+    """Case does not matter, and an unset `TERM` is no dumb terminal."""
+    if term is None:
+        monkeypatch.delenv("TERM", raising=False)
+    else:
+        monkeypatch.setenv("TERM", term)
+    assert is_dumb_terminal() is expected
+
+
+def test_renamed_color_option_reads_the_color_envvars(invoke):
+    """The color variables reach a color option under another name."""
+
+    @click.command
+    @color_option("--colour", "colour")
+    @pass_context
+    def paint(ctx):
+        echo(f"color={ctx.color}")
+
+    result = invoke(paint, env={"NO_COLOR": "1"})
+    assert result.exit_code == 0
+    assert result.stdout == "color=False\n"
 
 
 @pytest.mark.parametrize("term", sorted(COLOR_DISABLING_TERMS))
@@ -569,12 +606,11 @@ def test_integrated_color_option(
 @pytest.mark.parametrize(
     ("args", "expecting_colors"),
     (
-        # A --color placed before the eager screen has always worked.
+        # A --color placed before the eager screen.
         pytest.param(("--color=always", "--help"), True, id="color-before-help"),
         pytest.param(("--color=always", "--version"), True, id="color-before-version"),
-        # ...and now also when placed after it. Click processes eager options in
-        # command-line order, so a late --color used to pin ctx.color only after the
-        # screen had already rendered and exited.
+        # A --color placed after it, which Click processes once the screen has
+        # rendered and exited: eager options run in command-line order.
         pytest.param(("--help", "--color=always"), True, id="color-after-help"),
         pytest.param(("--version", "--color=always"), True, id="color-after-version"),
         # A bare --color (GNU optional value) trailing an eager screen still means
@@ -712,7 +748,18 @@ def test_resolve_background(monkeypatch, env, expected):
         monkeypatch.delenv(var, raising=False)
     for var, value in env.items():
         monkeypatch.setenv(var, value)
-    assert resolve_background() == expected
+    background = resolve_background()
+    assert background == expected
+    if expected is not None:
+        assert isinstance(background, TerminalBackground)
+
+
+def test_terminal_background_names_the_theme_of_its_shade():
+    """A shade selects the built-in theme of the same name, as a plain string does."""
+    registry = {"dark": "night", "light": "day"}
+    assert registry[TerminalBackground.DARK] == "night"
+    assert registry[TerminalBackground.LIGHT] == "day"
+    assert TerminalBackground("light") is TerminalBackground.LIGHT
 
 
 def test_resolve_background_query_is_opt_in(monkeypatch):
@@ -885,18 +932,12 @@ def test_invocation_color_reaches_background_threads(invoke, args, expected):
 def test_resilient_context_does_not_publish_invocation_color(monkeypatch):
     """Building an introspection context must leave the color mirror untouched.
 
-    Module-level completion-spec building (like the Carapace samples of
-    tests/test_carapace.py) runs at pytest collection, ahead of every test.
-    A resilient context is never closed, so publishing from one pinned the
-    process-wide mirror to the build environment's NO_COLOR, randomly stripping
-    ANSI from the log output of any CLI carrying no color option of its own,
-    depending on the test order the random seed drew.
+    A resilient context is never closed, so publishing from one would pin the
+    process-wide mirror to the build environment's NO_COLOR, stripping ANSI
+    from the output of any later CLI carrying no color option of its own.
     """
-    from click_extra import color as color_module
-    from click_extra.parameters import make_resilient_context
-
     monkeypatch.setenv("NO_COLOR", "1")
-    monkeypatch.setattr(color_module, "_invocation_color", None)
+    monkeypatch.setattr(color, "_invocation_color", None)
 
     @command
     def probe():
@@ -904,7 +945,7 @@ def test_resilient_context_does_not_publish_invocation_color(monkeypatch):
 
     make_resilient_context(probe, "probe")
 
-    assert color_module._invocation_color is None
+    assert color._invocation_color is None
     assert invocation_color() is None
 
 
@@ -927,7 +968,6 @@ def test_invocation_color_never_outlives_its_invocation(invoke, args):
     that run's `--no-color` for the rest of the process, stripping ANSI from any
     later CLI carrying no color option of its own.
     """
-    from click_extra import color as color_module
 
     @command
     @columns_option
@@ -936,7 +976,7 @@ def test_invocation_color_never_outlives_its_invocation(invoke, args):
 
     invoke(fruit_basket, args)
 
-    assert color_module._invocation_color is None
+    assert color._invocation_color is None
     assert invocation_color() is None
 
 
@@ -948,7 +988,6 @@ def test_invocation_color_expires_with_a_plain_click_command(invoke):
     inside a reference cycle, so the collection is forced here rather than waited
     on: in a running program ordinary allocation churn reaches it on its own.
     """
-    from click_extra import color as color_module
 
     def reject(ctx, param, value):
         if value:
@@ -965,7 +1004,7 @@ def test_invocation_color_expires_with_a_plain_click_command(invoke):
     invoke(plain_basket, ("--no-color", "--fruit", "pear"))
     gc.collect()
 
-    assert color_module._invocation_color is None
+    assert color._invocation_color is None
     assert invocation_color() is None
 
 
@@ -976,13 +1015,11 @@ def test_a_stale_finalizer_does_not_clobber_a_live_invocation():
     collected *after* the next invocation published would otherwise wipe a value
     that is still in use. The token comparison is what prevents it.
     """
-    from click_extra import color as color_module
+    color._invocation_color = False
+    color._invocation_token = current = object()
 
-    color_module._invocation_color = False
-    color_module._invocation_token = current = object()
+    color._expire_invocation_color(object())
+    assert color._invocation_color is False
 
-    color_module._expire_invocation_color(object())
-    assert color_module._invocation_color is False
-
-    color_module._expire_invocation_color(current)
-    assert color_module._invocation_color is None
+    color._expire_invocation_color(current)
+    assert color._invocation_color is None
