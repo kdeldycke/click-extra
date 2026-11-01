@@ -27,6 +27,7 @@
 - Switch a standard stream that does not speak UTF-8 to UTF-8 as a command starts, so redirected tables stop crashing on legacy Windows code pages.
 - The `toml` extra installs `tomlrt` in place of `tomlkit` to write TOML configuration exports and tables.
 - Add a `--wrap-marker` option to the `screenshot` and `snippet` commands, which closes each row a fold cut short on `↵` or a chosen character.
+- Add a `click_extra.config_docstring_heading` Sphinx warning for each Markdown heading in an option docstring that `click:config` renders.
 - Draw a `progressbar()` bar on stderr by default, like a spinner and an operation trail, instead of stdout.
 - Redraw a `progressbar()` bar at most once every 0.1 seconds, instead of once per item.
 - Fix a log record emitted while a `progressbar()` bar is open, which printed on the bar's row instead of a line of its own.

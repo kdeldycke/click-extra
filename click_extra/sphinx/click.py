@@ -73,6 +73,7 @@ from docutils import nodes
 from sphinx.directives import SphinxDirective, directives
 from sphinx.directives.code import CodeBlock
 from sphinx.util import parselinenos
+from sphinx.util.logging import getLogger
 
 from .._utils import patch_attr
 from ..blocks import (
@@ -139,9 +140,12 @@ if TYPE_CHECKING:
     from sphinx.application import Sphinx
     from sphinx.util.typing import OptionSpec
 
+    from ..config.schema import SchemaFieldInfo
     from ..screenshot import TColumns
     from ..screenshot_presets import TerminalPalette
     from ..screenshot_svg import THold
+
+logger = getLogger(__name__)
 
 
 RST_INDENT = " " * 3
@@ -160,6 +164,15 @@ as another terminal swaps it for that terminal's own, see
 Passed as the `prompt` argument of
 {func}`~click_extra.execution.format_cli_prompt`, which is what builds the line
 for both the results code block and the SVG capture drawn from it.
+"""
+
+
+CONFIG_DOCSTRING_HEADING_WARNING = "click_extra.config_docstring_heading"
+"""Type and subtype of the warning about a heading in a `click:config` docstring.
+
+List it in `suppress_warnings` to silence the warning, or in
+{data}`click_extra.sphinx.fail_on_warnings.FAIL_ON_WARNINGS_CONFIG` to fail the
+build on it.
 """
 
 
@@ -2056,6 +2069,7 @@ class ConfigDirective(ReferenceDirective):
             )
 
         infos = schema_field_infos(schema)
+        self._report_docstring_headings(infos)
 
         include_table = "no-table" not in self.options
         include_examples = "no-examples" not in self.options
@@ -2119,6 +2133,46 @@ class ConfigDirective(ReferenceDirective):
 
         # Hand the generated MyST source back to the parser, like click:tree.
         return parse_into_section(self, lines)
+
+    def _report_docstring_headings(self, infos: Sequence[SchemaFieldInfo]) -> None:
+        """Warn about each Markdown heading in the docstring of an option.
+
+        The directive inserts each docstring into the MyST it generates, so a
+        heading there becomes a section of the page, and a level-1 heading a
+        top-level section of the document. A line wrap that leaves a lone `=` or
+        `-` under a paragraph is enough to make one.
+
+        Each docstring is parsed with the MyST configuration of the host
+        document. Each heading is reported as a
+        {data}`CONFIG_DOCSTRING_HEADING_WARNING` at the directive, with the
+        option and the docstring line that makes the heading: the underline of a
+        setext heading, the line of an ATX one.
+        """
+        # Deferred import: keeps myst-parser, which only the `sphinx` extra
+        # installs, optional for a project that writes its pages in reST.
+        from myst_parser.config.main import MdParserConfig
+        from myst_parser.mdit_to_docutils.base import DocutilsRenderer
+        from myst_parser.parsers.mdit import create_md_parser
+
+        parser = create_md_parser(
+            getattr(self.env, "myst_config", None) or MdParserConfig(),
+            DocutilsRenderer,
+        )
+        warning_type, _, subtype = CONFIG_DOCSTRING_HEADING_WARNING.partition(".")
+        for info in infos:
+            for token in parser.parse(info.description):
+                # The map ends after the last line of the heading, so it is that
+                # line's number counted from 1.
+                if token.type == "heading_open" and token.map:
+                    logger.warning(
+                        "click:config: line %d of the docstring of option %r makes "
+                        "a Markdown heading.",
+                        token.map[1],
+                        info.key,
+                        type=warning_type,
+                        subtype=subtype,
+                        location=self.get_location(),
+                    )
 
 
 class ClickDomain(StatelessDomain):

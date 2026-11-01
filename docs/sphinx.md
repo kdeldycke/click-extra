@@ -903,6 +903,13 @@ Option metadata comes from the `schema_field_infos()` introspection helper, whic
 Attribute docstrings are recovered from the schema's source file. A schema defined inline in a `click:source` block was born in an `exec` call, has no source file, and therefore documents its options without descriptions. Import the schema from a real module instead, as in the example above.
 ```
 
+A heading in a docstring becomes a section of the page, and a level-1 heading becomes a top-level section of the document. A line wrap that leaves a lone `=` or `-` under a paragraph is enough to make one. So `click:config` reports each heading as a warning of type `click_extra.config_docstring_heading`, at the line of the directive, with the option and the line of its docstring. To fail the build on it, list it in [`click_extra_fail_on_warnings`](#failing-on-chosen-warnings):
+
+```{code-block} python
+:caption: `conf.py`
+click_extra_fail_on_warnings = ["click_extra.config_docstring_heading"]
+```
+
 ```{note}
 `click:config` is currently MyST-only: place it in a `.md` document with `myst_parser` enabled. Like `click:tree`, an rST equivalent has not been implemented yet.
 ```
