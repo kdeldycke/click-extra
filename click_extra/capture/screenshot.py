@@ -912,6 +912,9 @@ def capture(
     :param preset: see {func}`render`.
     :param chrome: see {func}`render`.
     :return: the rendered document, and the command's exit code.
+    :raises OSError: when the command cannot start. {class}`subprocess.Popen`
+        raises a `FileNotFoundError` for a program it cannot find, and a
+        `PermissionError` for a file it cannot run.
     """
     process = capture_output(
         args,

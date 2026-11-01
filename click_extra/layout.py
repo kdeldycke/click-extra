@@ -37,6 +37,10 @@ from click import style
 from .ansi import RESET
 from .styling import Style, split_ansi
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 PADDING = " \N{NO-BREAK SPACE}"
 """Characters that separate one column of terminal text from the next.
 
@@ -182,7 +186,7 @@ Right-to-left letters, Arabic letters and Arabic-Indic numbers, as
 """
 
 
-def number_lines(text: str, start: int = 1) -> str:
+def number_lines(text: str, start: int = 1, digits: int = 0) -> str:
     """Prefix each line of `text` with its number, in a dim gutter.
 
     The numbers are drawn into the terminal text rather than into a column
@@ -195,17 +199,38 @@ def number_lines(text: str, start: int = 1) -> str:
 
     :param text: the text to number, ANSI escape sequences included.
     :param start: number given to the first line.
+    :param digits: fewest digits the numbers are aligned on, for a text whose
+        gutter has to match the gutter of a longer one, see
+        {func}`number_frames`. The widest number of `text` still fits when it
+        has more.
     :return: the numbered text.
     """
     lines = text.splitlines()
     if not lines:
         return text
-    width = len(str(start + len(lines) - 1))
+    width = max(digits, len(str(start + len(lines) - 1)))
     separator = style(LINE_NUMBER_SEPARATOR, dim=True)
     return "\n".join(
         f"{style(str(number).rjust(width), dim=True)}{separator}{line}"
         for number, line in enumerate(lines, start)
     )
+
+
+def number_frames(frames: Sequence[str], start: int = 1) -> tuple[str, ...]:
+    """Number the lines of each frame of an animation, in one gutter for all.
+
+    A frame is a screen, so each one counts its own rows from `start`. The
+    gutter is as wide on every frame as on the tallest: numbered on its own, a
+    frame reaching ten rows takes one digit more than the frame before it, and
+    every one of its rows moves a cell to the right.
+
+    :param frames: the frames to number, ANSI escape sequences included.
+    :param start: number given to the first line of each frame.
+    :return: the numbered frames, in the same order.
+    """
+    tallest = max((len(frame.splitlines()) for frame in frames), default=0)
+    digits = len(str(start + tallest - 1))
+    return tuple(number_lines(frame, start, digits) for frame in frames)
 
 
 def is_bidirectional(text: str) -> bool:

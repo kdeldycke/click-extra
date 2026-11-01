@@ -55,7 +55,7 @@ from ..ansi import CSI_PATTERN, CSI_PREFIX_PATTERN, RESET
 from ..color import TerminalBackground, forced_color
 from ..envvar import env_copy
 from ..execution import _stop_process, _track, _untrack, args_cleanup
-from ..layout import cell_width, number_lines
+from ..layout import cell_width, number_frames
 from .presets import Chrome
 from .screenshot import (
     DEFAULT_COLUMNS,
@@ -458,6 +458,9 @@ def record_command(
     :param clock: what the recorder reads the time off.
     :return: the frames the terminal held, in order.
     :raises NotImplementedError: on a platform with no pseudo-terminal.
+    :raises OSError: when the command cannot start. {class}`subprocess.Popen`
+        raises a `FileNotFoundError` for a program it cannot find, and a
+        `PermissionError` for a file it cannot run.
     """
     return _record_process(
         args,
@@ -510,19 +513,27 @@ def _record_process(
     # the partial byte sequence until its tail arrives.
     decoder = codecs.getincrementaldecoder("UTF-8")(errors="replace")
     parent, child = pty.openpty()
-    _pin_window_size(child, rows, columns)
-    started = clock()
-    process = subprocess.Popen(
-        args_cleanup(args),
-        stdin=child,
-        stdout=child,
-        stderr=child,
-        env=cast("subprocess._ENV", environment),
-        close_fds=True,
-    )
-    # The parent holds the only reading end from here on: leaving the child's
-    # open would keep the read blocking forever after the command exits.
-    os.close(child)
+    try:
+        _pin_window_size(child, rows, columns)
+        started = clock()
+        process = subprocess.Popen(
+            args_cleanup(args),
+            stdin=child,
+            stdout=child,
+            stderr=child,
+            env=cast("subprocess._ENV", environment),
+            close_fds=True,
+        )
+    except BaseException:
+        # A command that never started leaves nothing to read, so the reading
+        # end closes with the other one.
+        os.close(parent)
+        raise
+    finally:
+        # The parent holds the only reading end from here on: leaving the
+        # child's open would keep the read blocking forever after the command
+        # exits.
+        os.close(child)
     # Registered like a child of run_cli, so the Ctrl+C handlers stop it even
     # while another thread records it: see terminate_live_processes.
     _track(process)
@@ -732,7 +743,8 @@ def record_and_render(
     :param submit: seconds the finished command line waits before its output
         starts. Unused when nothing is typed.
     :param line_numbers: draw each line's number in a gutter, the prompt
-        counting as the first of them.
+        counting as the first of them. Every frame takes the gutter of the
+        tallest, see {func}`~click_extra.layout.number_frames`.
     :param emphasize: lines to draw a band behind, see
         {func}`~click_extra.capture.svg.render_svg`.
     :param cursor: the terminal cursor to draw, see
@@ -749,6 +761,7 @@ def record_and_render(
     :param chrome: see {func}`~click_extra.capture.screenshot.render`.
     :return: the rendered SVG document, and the command's exit code.
     :raises NotImplementedError: on a platform with no pseudo-terminal.
+    :raises OSError: when the command cannot start, see {func}`record_command`.
     :raises ValueError: when the command drew nothing to record, or when a
         stated `typing` or `submit` is not positive.
     """
@@ -782,7 +795,7 @@ def record_and_render(
         texts = tuple(frame.text for frame in opening) + texts
         intervals = tuple(frame.duration for frame in opening) + intervals
     if line_numbers:
-        texts = tuple(number_lines(text) for text in texts)
+        texts = number_frames(texts)
 
     return (
         render(

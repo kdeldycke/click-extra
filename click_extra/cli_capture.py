@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 import shlex
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -151,6 +152,22 @@ def _parse_emphasis(
             raise BadParameter(f"{piece!r} is not a range of lines, counted from 1.")
         lines.update(range(first, last + 1))
     return tuple(sorted(lines))
+
+
+def _cannot_run(command: str, error: OSError) -> ClickException:
+    """The error reporting a command the capture could not start.
+
+    The system refuses to start a program with an `OSError`: a
+    `FileNotFoundError` for a program it cannot find, a `PermissionError` for a
+    file it cannot run. A recording also needs a pseudo-terminal, and fails the
+    same way when none is left to open. Each is reported as one `Error:` line,
+    closed by the system's own reason, as a shell prints it.
+
+    :param command: the program the command line names.
+    :param error: what the system refused it with.
+    :return: the error to raise in its place.
+    """
+    return ClickException(f"Cannot run {command!r}: {error.strerror or error}.")
 
 
 def deliver_capture(document: str, output: Path) -> None:
@@ -727,6 +744,8 @@ def screenshot_cmd(
             )
         except (NotImplementedError, ValueError) as error:
             raise ClickException(str(error)) from error
+        except OSError as error:
+            raise _cannot_run(command_line[0], error) from error
     else:
         try:
             document, returncode = capture(
@@ -753,6 +772,13 @@ def screenshot_cmd(
             )
         except ValueError as error:
             raise ClickException(str(error)) from error
+        except OSError as error:
+            raise _cannot_run(command_line[0], error) from error
+        except subprocess.TimeoutExpired as error:
+            raise ClickException(
+                f"--timeout {error.timeout:g} stopped {command_line[0]!r} before it "
+                "exited."
+            ) from error
 
     if returncode:
         logger.warning("%s exited with code %s.", command_line[0], returncode)
@@ -864,10 +890,22 @@ def snippet_cmd(
     capture_format = resolve_capture_format(output, fragment)
 
     reading_stdin = str(source) == "-"
-    if reading_stdin:
-        code = sys.stdin.read()
-    else:
-        code = source.read_text(encoding="UTF-8")
+    try:
+        if reading_stdin:
+            # Read as bytes, and decoded as strictly as a file is. `sys.stdin`
+            # may not be: in UTF-8 mode, the default from Python 3.15 and what a
+            # C locale turns on, it reads undecodable bytes as surrogates, which
+            # only fail once the capture is written, over what the output file
+            # held. Line endings need no translation: Pygments normalizes them.
+            code = sys.stdin.buffer.read().decode("UTF-8")
+        else:
+            code = source.read_text(encoding="UTF-8")
+    except UnicodeDecodeError as error:
+        shown = "Standard input" if reading_stdin else f"File {str(source)!r}"
+        raise BadParameter(
+            f"{shown} is not UTF-8 text: {error.reason} at offset {error.start}.",
+            param_hint="'SOURCE'",
+        ) from None
 
     try:
         document = render_snippet(

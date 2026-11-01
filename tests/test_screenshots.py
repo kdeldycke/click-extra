@@ -2671,6 +2671,72 @@ def test_screenshot_record_writes_an_animation(invoke, tmp_path):
     assert "ripe" in svg
 
 
+@pytest.mark.parametrize(
+    "mode",
+    (
+        pytest.param((), id="still"),
+        pytest.param(
+            ("--record",),
+            id="record",
+            marks=skip_windows(
+                reason="A pseudo-terminal needs termios, which Windows lacks"
+            ),
+        ),
+    ),
+)
+@pytest.mark.parametrize(
+    "program",
+    (
+        pytest.param("juicer", id="not-on-path"),
+        pytest.param("{folder}/recipe.txt", id="not-executable"),
+    ),
+)
+def test_screenshot_reports_a_command_that_cannot_start(
+    invoke, monkeypatch, tmp_path, mode, program
+):
+    """A command the system refuses to start is an error line, not a traceback.
+
+    Only the start of the line is pinned: the reason closing it is the system's
+    own, and it differs between platforms.
+    """
+    monkeypatch.setenv("PATH", str(tmp_path))
+    (tmp_path / "recipe.txt").write_text("Peel the mango.\n", encoding="UTF-8")
+    program = program.format(folder=tmp_path)
+    target = tmp_path / "shot.svg"
+    result = invoke(screenshot_cmd, [*mode, "--output", str(target), "--", program])
+    assert result.exit_code == 1, result.output
+    assert f"Error: Cannot run {program!r}: " in result.output
+    # The command line is not at fault, so no usage is printed.
+    assert "Usage:" not in result.output
+    assert not target.exists()
+
+
+def test_screenshot_reports_a_command_outliving_its_timeout(invoke, tmp_path):
+    """A command still running when `--timeout` ends is an error line.
+
+    The command is killed, and nothing is written.
+    """
+    target = tmp_path / "shot.svg"
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--timeout",
+            "0.2",
+            "--output",
+            str(target),
+            "--",
+            sys.executable,
+            "-c",
+            "import time; time.sleep(30)",
+        ],
+    )
+    assert result.exit_code == 1, result.output
+    assert f"Error: --timeout 0.2 stopped {sys.executable!r} before it exited." in (
+        result.output
+    )
+    assert not target.exists()
+
+
 def test_screenshot_wrap_needs_the_console_script(invoke, monkeypatch, tmp_path):
     """`--wrap` refuses to re-enter through anything but the installed command.
 

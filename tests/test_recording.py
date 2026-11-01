@@ -25,6 +25,7 @@ import signal
 import sys
 import threading
 import time
+from html import unescape
 from itertools import pairwise
 from pathlib import Path
 from typing import cast
@@ -493,6 +494,20 @@ def test_record_command_reassembles_a_glyph_split_across_reads():
 
 
 @skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_record_command_closes_its_terminal_when_the_command_cannot_start(tmp_path):
+    """A command that never started leaves no end of its terminal open.
+
+    The pseudo-terminal is opened before the command is spawned, so a spawn
+    refused by the system is the one exit that has both ends to close.
+    """
+    opened = set(os.listdir("/dev/fd"))
+    with pytest.raises(FileNotFoundError):
+        record_command((str(tmp_path / "juicer"),))
+    leaked = set(os.listdir("/dev/fd")) - opened
+    assert not leaked, f"descriptors left open: {sorted(leaked)}"
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
 def test_record_and_render_draws_the_prompt_on_every_frame():
     """The stated invocation leads each frame, styled as a shell prompt."""
     svg, returncode = record_and_render(
@@ -537,6 +552,40 @@ def test_record_and_render_refuses_an_empty_recording():
     """A command that drew nothing leaves nothing to animate."""
     with pytest.raises(ValueError, match="drew no screen"):
         record_and_render((sys.executable, "-c", "pass"), columns=40)
+
+
+def text_columns(svg: str, text: str) -> set[int]:
+    """Every column a capture starts a run reading `text` on, in any frame."""
+    return {
+        round(float(offset) / CELL_WIDTH)
+        for offset, content in re.findall(
+            r'<text [^>]*\bx="([\d.]+)"[^>]*>([^<]*)</text>', svg
+        )
+        if unescape(content).replace("\N{NO-BREAK SPACE}", " ") == text
+    }
+
+
+def test_record_and_render_numbers_every_frame_in_one_gutter(monkeypatch):
+    """A screen reaching ten rows does not push its text a cell to the right.
+
+    Each frame counts its own rows, from one. Numbered on its own, a nine-row
+    screen aligns its numbers on one digit and the ten-row screen after it on
+    two, so every row moves between the two frames. The recording is stated
+    rather than timed, so both screens are sure to be in it.
+    """
+    screens = tuple(
+        Frame("\n".join(f"crate {crate}" for crate in range(rows)), 0.1)
+        for rows in (9, 10)
+    )
+    monkeypatch.setattr(
+        "click_extra.capture.recording._record_process",
+        lambda *args, **kwargs: (screens, 0),
+    )
+    svg, _returncode = record_and_render(
+        ("stack",), columns=40, prompt="", unique_id="pantry", line_numbers=True
+    )
+    # Two digits and the rule, ` 1 │ `, in front of the first row of both.
+    assert text_columns(svg, "crate 0") == {5}
 
 
 @pytest.mark.parametrize(

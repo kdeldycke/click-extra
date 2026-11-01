@@ -24,8 +24,11 @@ them on. What the renderer then does with that text is covered by
 
 from __future__ import annotations
 
+import os
 import re
 import shlex
+import subprocess
+import sys
 from functools import partial
 
 import pytest
@@ -376,6 +379,71 @@ def test_snippet_command_reports_an_unknown_language(invoke, tmp_path):
     )
     assert result.exit_code != 0
     assert "not a language Pygments knows" in result.output
+
+
+LATIN1_SOURCE = "pâte = 'brisée'\n".encode("latin-1")
+"""A line of Python saved in Latin-1, which UTF-8 cannot decode."""
+
+
+@pytest.mark.parametrize("from_stdin", (False, True), ids=("file", "stdin"))
+def test_snippet_command_refuses_a_source_that_is_not_utf8(
+    invoke, tmp_path, from_stdin
+):
+    """A source in another encoding is a usage error on SOURCE, not a traceback."""
+    source = tmp_path / "pastry.py"
+    source.write_bytes(LATIN1_SOURCE)
+    output = tmp_path / "pastry.svg"
+    result = invoke(
+        snippet_cmd,
+        [
+            "--output",
+            str(output),
+            "--language",
+            "python",
+            "-" if from_stdin else str(source),
+        ],
+        input=LATIN1_SOURCE if from_stdin else None,
+    )
+    assert result.exit_code == 2, result.output
+    assert "Error: Invalid value for 'SOURCE': " in result.output
+    assert "is not UTF-8 text: invalid continuation byte at offset 1." in (
+        result.output
+    )
+    assert not output.exists()
+
+
+def test_snippet_command_leaves_the_output_alone_on_undecodable_stdin(tmp_path):
+    """Undecodable stdin is refused before the output file is opened.
+
+    In UTF-8 mode, `sys.stdin` reads undecodable bytes as surrogates, and those
+    only fail once the capture is written, over the previous capture. The test
+    runner's stdin decodes strictly and never takes that path, so the command
+    runs as its own process, its stdin set to `surrogateescape` on every Python
+    version.
+    """
+    output = tmp_path / "pastry.svg"
+    output.write_text("<svg/>", encoding="UTF-8")
+    completed = subprocess.run(
+        (
+            sys.executable,
+            "-m",
+            "click_extra",
+            "snippet",
+            "--output",
+            str(output),
+            "--language",
+            "python",
+            "-",
+        ),
+        input=LATIN1_SOURCE,
+        capture_output=True,
+        cwd=tmp_path,
+        env={**os.environ, "PYTHONIOENCODING": "UTF-8:surrogateescape"},
+        check=False,
+    )
+    assert completed.returncode == 2, completed.stderr
+    assert b"is not UTF-8 text" in completed.stderr
+    assert output.read_text(encoding="UTF-8") == "<svg/>"
 
 
 def test_snippet_prints_ansi_to_stdout(invoke, tmp_path):

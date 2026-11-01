@@ -499,7 +499,7 @@ assert callable(restock)
 
 ![A spinner restocking a pantry, numbered and see-through on a gradient backdrop, its third line picked out](assets/styled-window-animated-screen.svg)
 
-The gutter counts each frame's own rows, so it grows as the trail does, and the band on the third line arrives on the same frame its number does.
+The gutter counts each frame's own rows, so it grows as the trail does, and the band on the third line arrives on the same frame its number does. It keeps the width of the tallest frame throughout, so no row moves when the count reaches 10.
 
 ### Terminal presets
 

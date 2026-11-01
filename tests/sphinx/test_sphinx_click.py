@@ -21,6 +21,7 @@ import logging
 import os
 import re
 import sys
+from html import unescape
 from logging.handlers import BufferingHandler
 from pathlib import Path
 from textwrap import dedent
@@ -33,6 +34,7 @@ from pygments.styles import get_style_by_name
 from click_extra import strip_ansi, verbosity_option
 from click_extra.capture.presets import CAPTURE_PALETTES
 from click_extra.capture.snippet import DEFAULT_SYNTAX_STYLES
+from click_extra.capture.svg import CELL_WIDTH
 from click_extra.color import TerminalBackground
 from click_extra.sphinx.click import (
     SCREENSHOT_MARKER_END,
@@ -1658,6 +1660,49 @@ def test_click_run_screenshot_animate_accepts_bare_frames(sphinx_app_myst):
     assert len(re.findall(r'class="pears-screen-f\d+"', svg)) == 3
     # Three frames of a quarter second each cycle in three quarters of one.
     assert "0.75s" in svg
+
+
+def test_click_run_screenshot_line_numbers_give_every_frame_one_gutter(
+    sphinx_app_myst,
+):
+    """A frame reaching ten rows does not push its text a cell to the right.
+
+    Each frame counts its own rows, from one. Numbered on its own, the nine-row
+    frame aligns its numbers on one digit and the ten-row frame on two, so
+    every row moves between the two frames.
+    """
+    sphinx_app_myst.build_document(
+        dedent("""
+            ```{click:source}
+            :hide-source:
+            crates = [
+                "\\n".join(f"crate {crate}" for crate in range(rows))
+                for rows in (9, 10)
+            ]
+            ```
+
+            ```{click:run}
+            :screenshot: crates-screen
+            :screenshot-animate: crates
+            :screenshot-interval: 0.25
+            :screenshot-line-numbers:
+            :hide-results:
+            assert len(crates) == 2
+            ```
+        """)
+    )
+
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "crates-screen.svg"
+    columns = {
+        round(float(offset) / CELL_WIDTH)
+        for offset, content in re.findall(
+            r'<text [^>]*\bx="([\d.]+)"[^>]*>([^<]*)</text>',
+            asset.read_text(encoding="UTF-8"),
+        )
+        if unescape(content).replace("\N{NO-BREAK SPACE}", " ") == "crate 0"
+    }
+    # Two digits and the rule, ` 1 │ `, in front of the first row of both.
+    assert columns == {5}
 
 
 def test_click_run_screenshot_animate_bare_frames_need_an_interval(sphinx_app_myst):

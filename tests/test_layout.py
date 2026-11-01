@@ -28,6 +28,8 @@ from click_extra.layout import (
     cell_width,
     center_in_rule,
     fit_columns,
+    number_frames,
+    number_lines,
     pad_to,
 )
 
@@ -111,3 +113,24 @@ def test_pad_to_leaves_text_already_wide_enough_alone():
     """Nothing to pad, nothing added, reset included."""
     assert pad_to("apricot", 4) == "apricot"
     assert pad_to("杏杏", 4) == "杏杏"
+
+
+def test_number_lines_aligns_on_the_digits_it_is_given():
+    """`digits` widens the gutter, and never cuts the widest number short."""
+    assert unstyle(number_lines("kiwi", digits=3)) == "  1 │ kiwi"
+    tally = unstyle(number_lines("\n".join(["kiwi"] * 10), digits=1))
+    assert tally.splitlines()[-1] == "10 │ kiwi"
+
+
+def test_number_frames_gives_every_frame_the_gutter_of_the_tallest():
+    """Each frame counts its own rows, at the width its tallest sibling needs."""
+    short, tall, blank = number_frames([
+        "\n".join(["kiwi"] * 9),
+        "\n".join(["kiwi"] * 10),
+        "",
+    ])
+    assert unstyle(short).splitlines()[0] == " 1 │ kiwi"
+    assert unstyle(short).splitlines()[-1] == " 9 │ kiwi"
+    assert unstyle(tall).splitlines()[-1] == "10 │ kiwi"
+    # A frame with no row has nothing to number.
+    assert blank == ""

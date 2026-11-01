@@ -98,7 +98,7 @@ from ..capture.screenshot import (
 from ..capture.snippet import highlight_code, resolve_style, style_palette
 from ..capture.svg import animation_metadata, parse_hold, parse_pause
 from ..color import TerminalBackground
-from ..layout import number_lines
+from ..layout import number_frames, number_lines
 from ..markdown.blocks import (
     region_markers,
     rewrite_fenced_regions,
@@ -809,15 +809,17 @@ class ClickDirective(ContentOffsetMixin):
 
         Counted within each frame rather than once across the animation: a frame
         is a screen, and a screen's gutter numbers the rows it is showing. An
-        animation whose rows accumulate therefore grows its gutter alongside
-        them, which is what a terminal does.
+        animation whose rows accumulate therefore numbers more of them as it
+        goes. The gutter is as wide on every frame as on the tallest, so no row
+        moves when the count gains a digit, see
+        {func}`~click_extra.layout.number_frames`.
 
         :param frames: the animation's frames.
         :return: the same frames, each with a gutter, or unchanged.
         """
         if "screenshot-line-numbers" not in self.options:
             return frames
-        return tuple(number_lines(frame) for frame in frames)
+        return number_frames(frames)
 
     def screenshot_hold(self, fallback: THold) -> THold:
         """Seconds the last frame stays up, set by `:screenshot-hold:`.

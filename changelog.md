@@ -6,13 +6,20 @@
 > This version is **not released yet** and is under active development.
 
 - Export `MissingExtraError`, `env_copy()` and `machine_envvars_apply()` from the package root, so they import as `from click_extra import ...`.
+- Add `click_extra.layout.number_frames()`, which numbers each frame of an animation at the gutter width of the tallest one.
 - A subcommand section of a configuration file leaves the keys it does not set to `context_settings["default_map"]`, as root keys do.
+- `click-extra snippet` reads a source from standard input as UTF-8, like a source file.
 - Fix `cascade=True` losing the keys a less local file sets in a subcommand section that a more local file also defines.
 - Fix the `Config file` column of `--params` naming the wrong file for a key in a cascade of three or more files.
 - Fix the `Config file` column of `--params` printing a remote configuration URL with a slash missing, like `https:/example.com/basket.toml`.
 - Fix `--help` and man pages printing a `--config` URL default with a single slash after its scheme.
 - Fix `unpatch_click()` to restore the default theme that `patch_click()` replaced, and keep the default when `patch_click()` set no theme.
 - Fix the `xml` table format writing invalid XML for a table without headers, and dropping columns under numeric headers like years.
+- Fix `click-extra screenshot` ending in a traceback when the command it captures cannot start: it now exits with an error message.
+- Fix `click-extra screenshot --timeout` ending in a traceback when the command outlives it: it now exits with an error message.
+- Fix `click-extra snippet` ending in a traceback on a non-UTF-8 source, and emptying the output file when that source is stdin.
+- Fix `record_command()` leaving both ends of its pseudo-terminal open when the command it records cannot start.
+- Fix animated captures with line numbers moving every row one cell right on the frames that reach 10 lines.
 
 ## [`10.0.0` (2026-11-01)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...v10.0.0)
 
