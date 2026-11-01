@@ -29,6 +29,9 @@
 
 ## [`10.0.0` (2026-11-01)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...v10.0.0)
 
+> [!NOTE]
+> `10.0.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/10.0.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v10.0.0).
+
 - **Breaking:** Drop Python 3.10, past its end of life: click-extra now requires Python 3.11 or newer.
 - **Breaking:** Raise the floors of Click to `8.5.0`, Cloup to `4.0.0`, tabulate to `0.10` and extra-platforms to `14.0.0`, dropping the shims older releases needed.
 - **Breaking:** Regroup the modules into the `capture` and `markdown` packages and split the largest ones. Every name the package root exported in `9.x` still imports from it, so prefer it to module paths.
