@@ -27,7 +27,7 @@ The inventory in § Documented exemptions is repomatic's own. Here it holds two 
 
 ### Heavy dependencies are imported where they are used
 
-§ Imports forbids local imports. This repository makes one exception, for startup time: importing the package is the fixed cost of every CLI built on it, so a dependency that only one code path needs is imported inside that function, under a `# Deferred import:` comment naming the package it keeps off the startup path. `tests/test_commands.py::test_no_heavy_dependency_ballast_on_startup` lists the modules concerned and fails when a hello-world `--help` loads one of them, and `test_import_module_budget` caps the module count. Add a new dependency to the list in the same change that defers it.
+§ Imports forbids local imports. This repository makes one exception, for startup time: importing the package is the fixed cost of every CLI built on it, so a dependency that only one code path needs is imported inside that function, under a `# Deferred import:` comment naming the package it keeps off the startup path. `tests/test_commands.py::test_no_heavy_dependency_ballast_on_startup` lists the modules concerned and fails when a hello-world `--help` loads one of them, `test_import_module_budget` caps the module count, and `test_startup_time_stays_within_a_ratio_of_click` bounds that `--help` at three times Click's. Add a new dependency to the list in the same change that defers it.
 
 The same budget rules out data files: the built-in themes are a Python literal in `click_extra/theme.py`, each built on its first lookup. A data file read at import costs every CLI a parse, and standalone-binary and setuptools builds drop package data unless configured to ship it.
 

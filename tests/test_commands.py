@@ -25,6 +25,7 @@ import json
 import os
 import re
 import sys
+import time
 import warnings
 from contextlib import nullcontext
 from subprocess import run
@@ -295,6 +296,82 @@ def test_import_module_budget():
     assert process.returncode == 0, process.stderr
     loaded = int(process.stdout)
     assert loaded <= 300, f"import click_extra loaded {loaded} modules"
+
+
+STARTUP_RATIO_TO_CLICK = 3.0
+"""Most a hello-world ``--help`` of click-extra may take, as a multiple of Click's.
+
+Measured at 2.4 on Python 3.14 with Click 8.5.0, for the `10.0.0` release.
+"""
+
+HELLO_CLICK = '''\
+import click
+
+
+@click.command()
+@click.option("--name", default="World", help="The person to greet.")
+def hello(name):
+    """Simple program that greets NAME."""
+    click.echo(f"Hello, {name}!")
+
+
+if __name__ == "__main__":
+    hello()
+'''
+"""The hello-world CLI the startup comparison times, written with Click."""
+
+
+@pytest.mark.once
+def test_startup_time_stays_within_a_ratio_of_click(tmp_path):
+    """A hello-world ``--help`` takes at most a few times as long as Click's own.
+
+    Milliseconds depend on the runner, so the bound is relative: both CLIs run in
+    alternation in fresh interpreters, and the best run of each is compared, as
+    the one a loaded runner disturbs least. The children run without the color
+    and coverage variables, which would add work to one side only.
+    """
+    sources = {
+        "click": HELLO_CLICK,
+        "click-extra": HELLO_CLICK.replace(
+            "import click\n", "import click_extra as click\n"
+        ).replace("@click.command()", "@click.command"),
+    }
+    scripts = {}
+    for name, source in sources.items():
+        script = tmp_path / f"{name.replace('-', '_')}_hello.py"
+        script.write_text(source, encoding="UTF-8")
+        scripts[name] = script
+    ignored = {"COVERAGE_PROCESS_START", "FORCE_COLOR", "LLM", "NO_COLOR"}
+    env = {key: value for key, value in os.environ.items() if key not in ignored}
+
+    def timed(script):
+        start = time.perf_counter()
+        process = run(
+            (sys.executable, str(script), "--help"),
+            capture_output=True,
+            env=env,
+            check=False,
+        )
+        elapsed = time.perf_counter() - start
+        assert process.returncode == 0, process.stderr
+        return elapsed
+
+    # Warm up the bytecode cache of both before timing.
+    for script in scripts.values():
+        timed(script)
+    best = dict.fromkeys(scripts, float("inf"))
+    for index in range(15):
+        names = list(scripts)
+        if index % 2:
+            names.reverse()
+        for name in names:
+            best[name] = min(best[name], timed(scripts[name]))
+
+    ratio = best["click-extra"] / best["click"]
+    assert ratio <= STARTUP_RATIO_TO_CLICK, (
+        f"click-extra --help took {best['click-extra'] * 1000:.1f} ms,"
+        f" {ratio:.2f} times Click's {best['click'] * 1000:.1f} ms"
+    )
 
 
 @pytest.mark.once
