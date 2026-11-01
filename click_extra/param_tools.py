@@ -215,10 +215,11 @@ def full_short_help(command: click.Command) -> str:
         text = command.short_help.strip()
     elif command.help:
         # Click already stores `help` after `inspect.cleandoc`: split on the
-        # first blank line to grab the leading paragraph, then squash internal
+        # first blank line to grab the leading paragraph, drop Click's `\b`
+        # no-rewrap marker as `get_short_help_str()` does, then squash internal
         # newlines so the result is one line.
         paragraph = command.help.split("\n\n", 1)[0]
-        text = paragraph.strip().replace("\n", " ")
+        text = clean_help(paragraph).replace("\n", " ")
     else:
         text = ""
     if command.deprecated:

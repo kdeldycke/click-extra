@@ -2190,6 +2190,24 @@ def test_deprecated_command_label_matches_click(invoke, deprecated, label):
     assert full_short_help(legacy) == expected
 
 
+def test_full_short_help_drops_the_no_rewrap_marker():
+    r"""A first paragraph opening on Click's `\b` loses the marker, as in Click.
+
+    `full_short_help()` feeds `--tree`, the man page, the completion specs and
+    the `click:tree` summary table: a stray `\x08` there moves the terminal
+    cursor back one column, and turns the man page entry into a no-fill block.
+    """
+
+    @click.command()
+    def stock():
+        """\b
+        Apples  3
+        Pears   5
+        """
+
+    assert full_short_help(stock) == "Apples  3 Pears   5"
+
+
 def test_every_default_option_lands_in_a_section():
     """No option `default_params()` returns escapes `DEFAULT_OPTION_GROUPS`.
 

@@ -28,6 +28,7 @@ import sys
 from pathlib import Path
 from textwrap import dedent
 
+import pytest
 from click.testing import CliRunner
 
 from click_extra.cli import refresh_directives_cmd
@@ -37,6 +38,7 @@ from click_extra.sphinx.python import (
     MIRROR_SRC_MARKER_END,
     _rewrite_mirror_regions,
     _rewrite_mirror_src_regions,
+    rewrite_mirrors,
     update_mirror_blocks,
 )
 
@@ -453,6 +455,17 @@ def test_mirror_src_rewrite_skips_example_nested_in_code_block():
     # No region is generated: the commented block was copied verbatim, not run.
     assert MIRROR_SRC_MARKER_END not in out
     assert out == documented
+
+
+@pytest.mark.parametrize(
+    "opening",
+    ("<!-- mirror-src", "<!--mirror-src", "<!--\tmirror-src "),
+)
+def test_rewrite_mirrors_refreshes_every_mirror_src_spelling(opening):
+    """A comment the region walk accepts is refreshed, whatever space follows `<!--`."""
+    text = f'{opening}\nprint("| kiwi |")\n-->\n'
+    expected = f"{text}\n| kiwi |\n\n{MIRROR_SRC_MARKER_END}\n"
+    assert rewrite_mirrors(text, "<test>") == expected
 
 
 def test_mirror_rewrite_inserts_region():

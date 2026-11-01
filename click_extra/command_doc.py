@@ -287,20 +287,51 @@ def normalize_examples(
 # --- Markdown helpers -------------------------------------------------------
 
 
+_HTML_ENTITIES = {"&": "&amp;", "<": "&lt;", ">": "&gt;"}
+"""The entity {func}`_markdown_escape` writes for each character Markdown reads as
+HTML."""
+
+
+_MARKDOWN_ESCAPE = r"(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)|[&<>]"
+"""Match a code span, or one character of {data}`_HTML_ENTITIES` outside it.
+
+The span opens on a run of backticks and closes on the next run of the same
+length, the way CommonMark reads it. Kept as a pattern string, like
+{data}`_PARAGRAPH_BREAK`.
+"""
+
+
+def _markdown_escape(text: str) -> str:
+    """Write the `&`, `<` and `>` of help prose as entities, outside code spans.
+
+    Click help is plain text, and Markdown reads these characters as HTML: a
+    browser shows nothing for `<stdout>`, which it takes for a tag, and shows
+    `&copy;` as the sign it names. A code span shows its content as written, so
+    an entity there would show as the entity itself: each span matches whole and
+    comes back unchanged.
+    """
+    return re.sub(
+        _MARKDOWN_ESCAPE,
+        lambda match: _HTML_ENTITIES.get(match.group(), match.group()),
+        text,
+    )
+
+
 def _markdown_help(text: str) -> list[str]:
     r"""Render Click help prose as Markdown block lines.
 
-    Paragraphs are emitted as prose, with one exception: the region Click marks
-    with `\b` keeps its shape inside a fenced code block. That marker exists
-    precisely because the author aligned something by hand (a table, a tree, a
-    sample session), and Markdown would reflow it into a single line otherwise.
+    Paragraphs are emitted as prose, escaped by {func}`_markdown_escape`, with one
+    exception: the region Click marks with `\b` keeps its shape inside a fenced
+    code block. That marker exists precisely because the author aligned something
+    by hand (a table, a tree, a sample session), and Markdown would reflow it into
+    a single line otherwise.
     """
     out: list[str] = []
     for filled, verbatim in _iter_help_paragraphs(text):
         if out:
             out.append("")
         if filled:
-            out.append(filled)
+            out.append(_markdown_escape(filled))
         if verbatim:
             if filled:
                 out.append("")
@@ -319,11 +350,12 @@ def _markdown_inline(text: str) -> str:
     """Collapse help prose to a single Markdown line, for list items and tables.
 
     Inline reST literals become Markdown code spans, mirroring what
-    {func}`_render_inline` does for roff.
+    {func}`_render_inline` does for roff, and the prose between them goes through
+    {func}`_markdown_escape`.
     """
     cleaned = " ".join(clean_help(text).split())
     return "".join(
-        _code_span(segment) if is_literal else segment
+        _code_span(segment) if is_literal else _markdown_escape(segment)
         for segment, is_literal in iter_inline_literals(cleaned)
     )
 
@@ -535,7 +567,7 @@ class DocOptionGroup:
         """Render an optional heading, group help, then the options."""
         lines: list[str] = []
         if self.title:
-            lines.extend(("#" * level + " " + self.title, ""))
+            lines.extend(("#" * level + " " + _markdown_escape(self.title), ""))
         if self.help:
             lines.extend(_markdown_help(self.help))
             lines.append("")

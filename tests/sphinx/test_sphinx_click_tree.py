@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import re
 from textwrap import dedent
 
 import pytest
@@ -171,6 +172,89 @@ def test_click_tree_summary_keeps_a_piped_description_in_its_cell(sphinx_app_mys
     table = html[html.index("<table") : html.index("</table>")]
     assert 'href="#kitchen-serve"' in table
     assert "Plate the dish on porcelain|slate" in table
+
+
+def test_click_tree_summary_shows_the_whole_description(sphinx_app_myst):
+    """A summary past Click's 45-character cut shows whole in its cell.
+
+    `get_short_help_str()` cuts there and appends an ellipsis, and the strip of
+    the final period removed that ellipsis, which hid the cut. An ellipsis the
+    author wrote stays.
+    """
+    content = dedent("""
+        ```{click:source}
+        :hide-source:
+        from click import group
+
+        @group
+        def kitchen():
+            \"\"\"Manage kitchen tools and recipes.\"\"\"
+
+        @kitchen.command
+        def steep():
+            \"\"\"Steep the leaves in water just off the boil for four
+            minutes, then strain.\"\"\"
+
+        @kitchen.command
+        def wait():
+            \"\"\"Wait for the kettle...\"\"\"
+        ```
+
+        ```{click:tree} kitchen
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    table = html[html.index("<table") : html.index("</table>")]
+    cells = re.findall(r"<td[^>]*><p>(.*?)</p></td>", table)
+    assert (
+        "Steep the leaves in water just off the boil for four minutes, then strain"
+        in cells
+    )
+    # Sphinx's smart quotes write the three periods as one ellipsis character.
+    assert "Wait for the kettle\N{HORIZONTAL ELLIPSIS}" in cells
+
+
+def test_click_tree_links_every_command_to_its_own_section(sphinx_app_myst):
+    """Each row links to the id of its section, and no two rows share one.
+
+    The anchor is the id docutils' `make_id` derives, which writes the accented
+    letter of `crème` as its ASCII base. Slugged one name at a time, `make_id`
+    would also drop the leading digit of `5-spice` and `7-spice`, and give both
+    the anchor of a `spice` command.
+    """
+    content = dedent("""
+        ```{click:source}
+        :hide-source:
+        from click import group
+
+        @group
+        def kitchen():
+            \"\"\"Manage kitchen tools and recipes.\"\"\"
+
+        @kitchen.command(name="crème")
+        def creme():
+            \"\"\"Whip the cream.\"\"\"
+
+        @kitchen.command(name="5-spice")
+        def five_spice():
+            \"\"\"Grind the Chinese blend.\"\"\"
+
+        @kitchen.command(name="7-spice")
+        def seven_spice():
+            \"\"\"Grind the Lebanese blend.\"\"\"
+        ```
+
+        ```{click:tree} kitchen
+        ```
+    """)
+    html = sphinx_app_myst.build_document(content)
+    assert html is not None
+    table = html[html.index("<table") : html.index("</table>")]
+    anchors = re.findall(r'href="#([^"]+)"', table)
+    assert anchors == ["kitchen", "kitchen-5-spice", "kitchen-7-spice", "kitchen-creme"]
+    for anchor in anchors:
+        assert f'id="{anchor}"' in html
 
 
 def test_click_tree_walks_subcommands_like_the_tree_option(sphinx_app_myst):

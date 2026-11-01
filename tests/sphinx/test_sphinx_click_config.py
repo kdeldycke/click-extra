@@ -76,6 +76,28 @@ MARKET_SEED = dedent("""\
 """Seed block importing the module-level CLI into the runner namespace."""
 
 
+@dataclass
+class PastryConfig:
+    """Schema whose keys need slugging and whose default needs escaping."""
+
+    creme_brulee: str = field(
+        default="vanilla|caramel",
+        metadata={CONFIG_PATH_METADATA_KEY: "crème-brûlée"},
+    )
+    """Flavors of the custard, separated by pipes."""
+
+    five_spice: int = field(default=5, metadata={CONFIG_PATH_METADATA_KEY: "5-spice"})
+    """How many spices go into the powder."""
+
+
+PASTRY_CONFIG = dedent("""
+    ```{click:config} PastryConfig
+    from tests.sphinx.test_sphinx_click_config import PastryConfig
+    ```
+""")
+"""Directive documenting `PastryConfig`."""
+
+
 def _plain_text(html: str) -> str:
     """Strip tags and decode entities, so assertions survive Pygments tokenizing.
 
@@ -141,6 +163,29 @@ def test_click_config_renders_table_and_sections(sphinx_app_myst):
 
     # The parent table's own docstring is not rendered: leaves only.
     assert "Parent table docstring" not in html
+
+
+def test_click_config_links_every_option_to_its_section(sphinx_app_myst):
+    """Each table link lands on the id docutils gives the option's heading.
+
+    `make_id` writes the accented letters of `crème-brûlée` as their ASCII base,
+    and drops the leading digit of `5-spice`.
+    """
+    html = sphinx_app_myst.build_document(PASTRY_CONFIG)
+    assert html is not None
+    table = html[html.index("<table") : html.index("</table>")]
+    anchors = re.findall(r'href="#([^"]+)"', table)
+    assert anchors == ["spice", "creme-brulee"]
+    for anchor in anchors:
+        assert f'id="{anchor}"' in html
+
+
+def test_click_config_keeps_a_piped_default_in_its_cell(sphinx_app_myst):
+    """A pipe in a default value stays text, rather than splitting its row."""
+    html = sphinx_app_myst.build_document(PASTRY_CONFIG)
+    assert html is not None
+    table = _plain_text(html[html.index("<table") : html.index("</table>")])
+    assert '"vanilla|caramel"' in table
 
 
 def test_click_config_toml_examples(sphinx_app_myst):

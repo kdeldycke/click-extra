@@ -20,6 +20,12 @@
 - Fix `click-extra snippet` ending in a traceback on a non-UTF-8 source, and emptying the output file when that source is stdin.
 - Fix `record_command()` leaving both ends of its pseudo-terminal open when the command it records cannot start.
 - Fix animated captures with line numbers moving every row one cell right on the frames that reach 10 lines.
+- Fix `--help-format markdown` writing `&`, `<` and `>` as raw HTML, which hid text like `<stdout>` in a browser.
+- Fix `--tree` and man pages keeping Click's `\b` marker when a command's first paragraph opens with it.
+- Fix the `click:tree` summary table cutting each command description at 45 characters and hiding the cut.
+- Fix a `|` in a `click:config` default value splitting its row of the summary table.
+- Fix `click:config` table links missing the section of a key with accented letters or leading digits.
+- Fix `refresh-directives` and Sphinx builds skipping a `<!--mirror-src` comment that has no space after `<!--`.
 
 ## [`10.0.0` (2026-11-01)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...v10.0.0)
 

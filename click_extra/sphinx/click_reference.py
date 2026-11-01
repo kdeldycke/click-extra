@@ -27,7 +27,6 @@ cannot import this module back.
 
 from __future__ import annotations
 
-import re
 from dataclasses import is_dataclass
 from functools import cached_property
 
@@ -38,7 +37,7 @@ from sphinx.util.logging import getLogger
 
 from ..config.option import ConfigOption
 from ..config.schema import schema_field_infos
-from ..param_tools import iter_subcommands, make_resilient_context
+from ..param_tools import full_short_help, iter_subcommands, make_resilient_context
 from ..table import TableFormat, render_table
 from ._base import StatelessDomain, parse_into_section
 from .click import ClickDirective, RunDirective, SourceDirective, _code_fence
@@ -65,12 +64,14 @@ build on it.
 
 
 def _slug(value: str) -> str:
-    """Lower-case `value`, each run of other characters a hyphen, like `make_id`.
+    """The id docutils' `make_id` derives from `value`.
 
-    The anchor a reference table links a section by, mirroring the id docutils'
-    `make_id` derives from that section's heading.
+    A reference table links each section by this anchor. `click:config` links an
+    option to the id docutils gives its heading, and only `make_id` spells that
+    id right: it turns `crème-brûlée` into `creme-brulee`, and `5-spice` into
+    `spice`.
     """
-    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return nodes.make_id(value)
 
 
 def _table_cell(text: str) -> str:
@@ -79,8 +80,17 @@ def _table_cell(text: str) -> str:
 
 
 def _short_description(command: click.Command) -> str:
-    """The one-line summary of `command` for a table cell, without its final period."""
-    return _table_cell((command.get_short_help_str() or "").rstrip("."))
+    """The one-line summary of `command` for a table cell, without its final period.
+
+    Read whole by {func}`~click_extra.param_tools.full_short_help`, as the
+    `--tree` option reads it: Click's own {meth}`click.Command.get_short_help_str`
+    cuts it at 45 characters, a width a table cell does not have. An ellipsis
+    ending the summary is the author's, so it stays.
+    """
+    text = full_short_help(command)
+    if text.endswith(".") and not text.endswith(".."):
+        text = text[:-1]
+    return _table_cell(text)
 
 
 class ReferenceDirective(ClickDirective):
@@ -235,13 +245,15 @@ class TreeDirective(ReferenceDirective):
         include_root = "no-root" not in self.options
 
         # Each command's heading label and anchor, shared by the row linking to
-        # its section and the section itself.
+        # its section and the section itself. The anchor is slugged in one
+        # piece: `make_id` drops leading digits, so a `5-spice` subcommand
+        # slugged on its own would lose them.
         entries = [
             (
                 path,
                 cmd,
                 f"{label_prefix} {' '.join(path)}".strip(),
-                "-".join([anchor_prefix, *map(_slug, path)]),
+                _slug(" ".join([anchor_prefix, *path])),
             )
             for path, cmd in self._walk(cli, max_depth)
         ]
@@ -462,7 +474,7 @@ class ConfigDirective(ReferenceDirective):
                 [
                     f"[`{info.key}`](#{_slug(info.key)})",
                     _table_cell(info.summary),
-                    _format_default(info.default),
+                    _table_cell(_format_default(info.default)),
                 ]
                 for info in infos
             ]

@@ -784,6 +784,30 @@ def test_no_rewrap_marker_keeps_its_shape_in_markdown():
     assert "  ```text\n  line one\n  line two\n  ```" in md
 
 
+def test_markdown_escapes_html_characters_outside_code_spans():
+    """Help prose shows as written, where Markdown would read it as HTML.
+
+    A browser shows nothing for `<guests>`, which Markdown takes for a tag. A
+    code span keeps its content as written, whether a reST literal made it or
+    the author wrote it.
+    """
+
+    @command
+    @option_group(
+        "Crust & crumb",
+        option("--out", help="Write the loaf to <stdout>, or to ``<basket>``."),
+        help="Pick a shape: <round> or `<long>`.",
+    )
+    def bake(out):
+        """Bake bread for <guests> & friends."""
+
+    md = render_help(bake, "markdown", prog_name="bake")
+    assert md.count("\nBake bread for &lt;guests&gt; &amp; friends.\n") == 2
+    assert "\n### Crust &amp; crumb\n" in md
+    assert "\nPick a shape: &lt;round&gt; or `<long>`.\n" in md
+    assert "- `--out TEXT`: Write the loaf to &lt;stdout&gt;, or to `<basket>`." in md
+
+
 def test_examples_render_in_every_backend():
     """One `examples=` declaration feeds the help screen, roff, Markdown and JSON."""
     example = "weather Oslo --units fahrenheit"

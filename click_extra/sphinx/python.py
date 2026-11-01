@@ -524,7 +524,9 @@ def rewrite_mirrors(text: str, location: str) -> str:
     """
     if "python:render" in text and ":mirror:" in text:
         text = _rewrite_mirror_regions(text, location)
-    if "<!-- mirror-src" in text:
+    # Test for the bare name: `_MIRROR_SRC_OPEN_RE` accepts any spaces or tabs
+    # after `<!--`, or none.
+    if "mirror-src" in text:
         text = _rewrite_mirror_src_regions(text, location)
     return text
 
