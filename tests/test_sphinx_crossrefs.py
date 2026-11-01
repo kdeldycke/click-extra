@@ -162,9 +162,9 @@ def test_cli_reference_anchors(built_docs, anchor):
     (
         (
             "install.html",
-            "config-formats.html#toml",
+            "config-formats.html#yaml",
             "config-formats.html",
-            "toml",
+            "yaml",
         ),
         (
             "install.html",
