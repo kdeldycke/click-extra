@@ -58,9 +58,9 @@ click-extra first, Click second, Cloup third, then remaining frameworks sorted b
 
 ### Synced rules this repository has not caught up with
 
-One managed section above describes a state that does not hold here yet. Read it with this in mind, rather than as a description of the tree:
+One generic rule points at a file this repository does not hold. Read it with this in mind, rather than as a description of the tree:
 
-- **There is no `.claude/agents/` directory.** § Agent conventions opens on the three subagents repomatic ships. click-extra has never adopted the `subagents` component, so no agent definition lives in this repository.
+- **There is no `.claude/agents/` directory.** § Comments and docstrings sends Sphinx operational detail to `.claude/agents/sphinx-docs.md`. click-extra has never adopted the `subagents` component, so read the copy in `~/.claude/agents/` instead.
 
 The `UTF-8` spelling § Testing guidelines asks for holds across the package and the suite: `tests/test_hygiene.py::test_utf8_spelled_uppercase` pins it.
 
