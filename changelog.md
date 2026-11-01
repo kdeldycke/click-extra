@@ -1,6 +1,6 @@
 # Changelog
 
-## [`10.0.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.0.0...main)
+## [`10.1.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.0.0...main)
 
 > [!WARNING]
 > This version is **not released yet** and is under active development.
