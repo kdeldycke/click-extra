@@ -31,6 +31,7 @@ from wcwidth import list_term_programs, wcswidth, width as cell_width
 from click_extra import (
     BadParameter,
     Color,
+    MissingExtraError,
     Style,
     columns_option,
     command,
@@ -46,7 +47,6 @@ from click_extra import (
 )
 from click_extra.columns import ColumnSpec, select_columns
 from click_extra.config.formats import parse_xml
-from click_extra.output import MissingExtraError
 from click_extra.pytest import command_decorators
 from click_extra.table import (
     CSV_FORMATS,
@@ -1238,6 +1238,35 @@ def test_render_table_header_edge_cases(headers, data, expected):
     """Edge cases for header handling in structured format rendering."""
     result = render_table(data, headers=headers, table_format=TableFormat.JSON)
     assert json.loads(result) == expected
+
+
+@pytest.mark.parametrize(
+    ("headers", "expected"),
+    (
+        pytest.param(
+            ("Fruit", "Origin", "Color"),
+            {"Fruit": "apple", "Color": "red"},
+            id="headers",
+        ),
+        pytest.param(None, {"_0": "apple", "_2": "red"}, id="no-headers"),
+        pytest.param(
+            ("2023", "2024", "2025"),
+            {"_2023": "apple", "_2025": "red"},
+            id="numeric-headers",
+        ),
+    ),
+)
+def test_render_table_xml_element_names(headers, expected):
+    """An XML table parses back with one element per cell, whatever its headers.
+
+    An element name cannot start with a digit, so a cell position or a numeric
+    header gets a leading underscore and keeps its digits. A `None` cell is left
+    out without shifting the position of the cells after it.
+    """
+    result = render_table(
+        [["apple", None, "red"]], headers=headers, table_format=TableFormat.XML
+    )
+    assert parse_xml(result) == {"records": {"record": expected}}
 
 
 WRAP_HEADERS = ("City", "Notes")

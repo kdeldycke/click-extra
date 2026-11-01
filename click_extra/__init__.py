@@ -223,6 +223,7 @@ from .decorators import (  # type: ignore[no-redef]
     version_option,
     zero_exit_option,
 )
+from .envvar import env_copy, machine_envvars_apply
 from .execution import (
     INDENT,
     TimerOption,
@@ -260,7 +261,13 @@ from .logging import (
     new_logger,
 )
 from .multicall import MulticallGroup
-from .output import STDOUT_SENTINEL, force_unicode_output, is_stdout, prep_path
+from .output import (
+    STDOUT_SENTINEL,
+    MissingExtraError,
+    force_unicode_output,
+    is_stdout,
+    prep_path,
+)
 from .param_tools import (
     ParamStructure,
     get_param_spec,
@@ -420,6 +427,7 @@ __all__ = [
     "LazySubcommand",
     "LogLevel",
     "ManOption",
+    "MissingExtraError",
     "MissingParameter",
     "MultiChoice",
     "MulticallGroup",
@@ -504,6 +512,7 @@ __all__ = [
     "echo",
     "echo_via_pager",
     "edit",
+    "env_copy",
     "env_summary",
     "export_config_option",
     "field_docstrings",
@@ -542,6 +551,7 @@ __all__ = [
     "launch",
     "lazy_group",
     "load_test_suite",
+    "machine_envvars_apply",
     "make_pass_decorator",
     "make_schema_callable",
     "man_option",

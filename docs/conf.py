@@ -272,6 +272,9 @@ nitpick_ignore = [
     # click_extra.decorators. A TYPE_CHECKING-only name that autodoc renders in
     # decorator_factory's return annotation, with no documentable target.
     ("py:obj", "click_extra.decorators.CommandT_co"),
+    # The TYPE_CHECKING-only alias of click_extra.envvar that autodoc renders in
+    # env_copy()'s signature, under the defining module and the package root.
+    ("py:data", "TEnvVars"),
     # Cross-page links to the explicit `(matrix-directives)=` label. myst-parser
     # resolves a `page.md#target` link against that page's heading slugs only, so
     # it warns although the label renders the id the link lands on.

@@ -110,7 +110,7 @@ Returns a shallow copy of `os.environ` with optional extra keys layered on top, 
 
 ```{python:run}
 import os
-from click_extra.envvar import env_copy
+from click_extra import env_copy
 
 # No extension → returns None (subprocess inherits unchanged).
 print(env_copy())

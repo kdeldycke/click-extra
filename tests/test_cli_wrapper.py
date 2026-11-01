@@ -41,7 +41,12 @@ from click_extra.cli_wrapper import (
 from click_extra.commands import ColorizedCommand, ColorizedGroup, Context
 from click_extra.highlight import _HelpColorsMixin
 from click_extra.testing import CliRunner
-from click_extra.theme import BUILTIN_THEMES, THEME_ENVVAR, get_default_theme
+from click_extra.theme import (
+    BUILTIN_THEMES,
+    THEME_ENVVAR,
+    get_default_theme,
+    set_default_theme,
+)
 
 GREET_SCRIPT = (
     "import click\n"
@@ -132,9 +137,15 @@ ORCHARD_SCRIPT = (
 
 @pytest.fixture(autouse=True)
 def _restore_click():
-    """Undo any monkey-patching after each test to prevent cross-contamination."""
+    """Undo any monkey-patching after each test to prevent cross-contamination.
+
+    The process-wide default theme is set back too: ``unpatch_click()`` restores
+    only a theme that ``patch_click()`` replaced, not one a test set directly.
+    """
+    default_theme = get_default_theme()
     yield
     unpatch_click()
+    set_default_theme(default_theme)
 
 
 @pytest.fixture
@@ -954,14 +965,37 @@ def test_cli_startup_leaves_the_test_tooling_alone():
     assert process.stdout == "[]\n"
 
 
-def test_unpatch_click_restores_the_default_theme():
-    """Unpatching hands back the process-wide theme patching replaced."""
+@pytest.mark.parametrize(
+    "patch_themes",
+    (
+        pytest.param(("nord",), id="one-patch"),
+        pytest.param(("nord", "dracula"), id="two-patches"),
+    ),
+)
+def test_unpatch_click_restores_the_default_theme(patch_themes):
+    """Unpatching hands back the process-wide theme patching replaced.
+
+    The default in place before the patch is not the built-in ``dark`` one, so a
+    restore to the built-in default fails here. A second patch must not save the
+    theme of the first as the one to restore.
+    """
+    set_default_theme(BUILTIN_THEMES["solarized-dark"])
+    for theme_id in patch_themes:
+        patch_click(theme=BUILTIN_THEMES[theme_id])
+        assert get_default_theme() is BUILTIN_THEMES[theme_id]
     unpatch_click()
-    original = get_default_theme()
-    patch_click(theme=BUILTIN_THEMES["nord"])
-    assert get_default_theme() is BUILTIN_THEMES["nord"]
+    assert get_default_theme() is BUILTIN_THEMES["solarized-dark"]
+
+
+def test_unpatch_click_keeps_a_default_theme_it_did_not_replace():
+    """A patch that sets no theme leaves the default theme alone on unpatching.
+
+    A default set while patched therefore outlives the patch.
+    """
+    patch_click(theme=None)
+    set_default_theme(BUILTIN_THEMES["solarized-dark"])
     unpatch_click()
-    assert get_default_theme() is original
+    assert get_default_theme() is BUILTIN_THEMES["solarized-dark"]
 
 
 # -- Config integration --------------------------------------------------------

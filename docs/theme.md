@@ -281,7 +281,7 @@ for name, theme in BUILTIN_THEMES.items():
 `click_extra.theme` exposes two themes and a pair of accessor helpers:
 
 - `NOCOLOR_THEME`: an all-`identity` theme used when ANSI rendering is suppressed.
-- `get_default_theme()` / `set_default_theme(theme)`: read or override the process-wide fallback. The default is the built-in `dark` palette. `ThemeOption` does *not* call `set_default_theme`: per-invocation choices live on `ctx.meta` instead. `click_extra.cli_wrapper.patch_click()` calls `set_default_theme()` to override the fallback for the entire patched session.
+- `get_default_theme()` / `set_default_theme(theme)`: read or override the process-wide fallback. The default is the built-in `dark` palette. `ThemeOption` does *not* call `set_default_theme`: per-invocation choices live on `ctx.meta` instead. `click_extra.cli_wrapper.patch_click()` calls `set_default_theme()` to override the fallback for the entire patched session, and `click_extra.cli_wrapper.unpatch_click()` then gives back the default it replaced.
 
 Use `click_extra.theme.get_current_theme()` to read the theme that applies to the current invocation: it consults the active Click context first and falls back to `get_default_theme()`.
 

@@ -212,9 +212,9 @@ def env_copy(extend: TEnvVars | None = None) -> dict[str, str] | None:
     A `None` value removes its variable from the copy instead of setting it,
     which is the only way to hide an inherited variable from a child process:
     assigning the empty string leaves it set, and a flag read by bare presence
-    (see {func}`parse_envvar_flag`) counts that as activation. Same convention
-    as {meth}`click.testing.CliRunner.invoke`'s own `env` argument, and the
-    reason {data}`TEnvVars` values are typed optional.
+    (see {func}`~click_extra.envvar.parse_envvar_flag`) counts that as
+    activation. Same convention as {meth}`click.testing.CliRunner.invoke`'s own
+    `env` argument, and the reason {data}`TEnvVars` values are typed optional.
     """
     if not extend:
         return None

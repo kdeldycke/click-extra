@@ -23,11 +23,9 @@ import cloup
 import pytest
 from extra_platforms import is_windows
 
-from click_extra import command, echo, option
+from click_extra import command, echo, env_copy, machine_envvars_apply, option
 from click_extra.envvar import (
     clean_envvar_id,
-    env_copy,
-    machine_envvars_apply,
     merge_envvar_ids,
     parse_envvar_flag,
     temporary_env,

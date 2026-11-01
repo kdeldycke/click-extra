@@ -473,15 +473,16 @@ def _records_without_none(
     """One mapping per row, keyed by header or by position, `None` cells left out.
 
     The shape of the formats with no null type, TOML and XML. `key` reshapes a
-    header into the name the format accepts.
+    header, or the position of a cell in a table without headers, into the name
+    the format accepts.
     """
     records: list[dict[str, str]] = []
     for row in table_data:
         if headers:
-            pairs = ((key(k), v) for k, v in zip(headers, row) if k is not None)
+            pairs = ((k, v) for k, v in zip(headers, row) if k is not None)
         else:
             pairs = ((str(i), v) for i, v in enumerate(row))
-        records.append({k: v for k, v in pairs if v is not None})
+        records.append({key(k): v for k, v in pairs if v is not None})
     return records
 
 
@@ -501,9 +502,15 @@ def _render_toml(
 
 
 def _xml_safe_name(name: str) -> str:
-    """Replace characters invalid in XML element names."""
+    """Spell `name` as an XML element name.
+
+    A character invalid in a name becomes an underscore. A name that cannot start
+    an element, like one starting with a digit, gets a leading underscore: `0`
+    becomes `_0`. So the positions of a table without headers, and headers like
+    `2024` and `2025`, stay distinct elements.
+    """
     safe = "".join(c if c.isalnum() or c in "_.-" else "_" for c in name)
-    return safe.lstrip("0123456789.-") or "_"
+    return safe if safe[:1].isalpha() or safe[:1] == "_" else f"_{safe}"
 
 
 def _render_xml(

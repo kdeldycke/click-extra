@@ -5,11 +5,14 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Export `MissingExtraError`, `env_copy()` and `machine_envvars_apply()` from the package root, so they import as `from click_extra import ...`.
 - A subcommand section of a configuration file leaves the keys it does not set to `context_settings["default_map"]`, as root keys do.
 - Fix `cascade=True` losing the keys a less local file sets in a subcommand section that a more local file also defines.
 - Fix the `Config file` column of `--params` naming the wrong file for a key in a cascade of three or more files.
 - Fix the `Config file` column of `--params` printing a remote configuration URL with a slash missing, like `https:/example.com/basket.toml`.
 - Fix `--help` and man pages printing a `--config` URL default with a single slash after its scheme.
+- Fix `unpatch_click()` to restore the default theme that `patch_click()` replaced, and keep the default when `patch_click()` set no theme.
+- Fix the `xml` table format writing invalid XML for a table without headers, and dropping columns under numeric headers like years.
 
 ## [`10.0.0` (2026-11-01)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...v10.0.0)
 

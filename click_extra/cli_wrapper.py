@@ -86,7 +86,13 @@ _original_click_command = click.decorators.command
 _original_click_group = click.decorators.group
 _original_get_help = click.Command.get_help
 _original_format_help = click.Command.format_help
-_original_default_theme = get_default_theme()
+
+_theme_before_patch: HelpTheme | None = None
+"""The process-wide default theme a {func}`patch_click` call replaced.
+
+`None` while no call replaced it: {func}`unpatch_click` then keeps the default
+as it is.
+"""
 
 
 class WrapperGroup(LazyGroup):
@@ -170,11 +176,15 @@ def patch_click(
     half the CLIs in the wild.
     ```
 
-    :param theme: Color theme to use. `None` keeps the current default.
+    :param theme: Color theme to use, as the process-wide default. `None` keeps
+        the current default. {func}`unpatch_click` gives back the default this
+        replaced.
     :param color: Tri-state ANSI control mirroring `ctx.color`: `True` forces
         colors on, `False` strips them, and `None` (the GNU `auto` default)
         defers to the output stream's TTY status.
     """
+    global _theme_before_patch
+
     if color is None:
         ColorizedCommand.context_class = Context
         ColorizedGroup.context_class = Context
@@ -238,8 +248,11 @@ def patch_click(
     click.Command.format_help = _patched_format_help  # type: ignore[method-assign]
     logger.debug("Patched click.Command.get_help and format_help methods.")
 
-    # Override the default theme if requested.
+    # Override the default theme if requested. Only the first override saves the
+    # default it replaces: unpatch_click() goes back to the state before any patch.
     if theme is not None:
+        if _theme_before_patch is None:
+            _theme_before_patch = get_default_theme()
         set_default_theme(theme)
 
     logger.info(
@@ -254,7 +267,14 @@ def unpatch_click() -> None:
 
     Reverses the changes made by {func}`patch_click`. Useful in tests to
     avoid leaking global state between test cases.
+
+    The process-wide default theme goes back to the one in place before the
+    first {func}`patch_click` call that set a theme. If no call set one, the
+    default stays as it is, so a {func}`~click_extra.theme.set_default_theme`
+    call made while patched is kept.
     """
+    global _theme_before_patch
+
     click.command = _original_click_command
     click.group = _original_click_group
     click.decorators.command = _original_click_command
@@ -263,7 +283,9 @@ def unpatch_click() -> None:
     click.Command.format_help = _original_format_help  # type: ignore[method-assign]
     ColorizedCommand.context_class = Context
     ColorizedGroup.context_class = Context
-    set_default_theme(_original_default_theme)
+    if _theme_before_patch is not None:
+        set_default_theme(_theme_before_patch)
+        _theme_before_patch = None
 
 
 def _resolve_project_dir(directory: Path) -> tuple[str, str, Path]:
