@@ -360,27 +360,33 @@ def test_record_command_kills_a_command_ignoring_sigterm(monkeypatch):
 
 
 SLEEPER_SCRIPT = """
-import sys, time
+import pathlib, sys, time
 sys.stdout.write("ripe")
 sys.stdout.flush()
+pathlib.Path(sys.argv[1]).touch()
 time.sleep(30)
 """
-"""A command that draws once, then waits for a signal to end it."""
+"""A command that draws once, touches the file it is given, then waits for a
+signal to end it."""
 
 
 @skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
-def test_record_command_registers_its_command_for_ctrl_c():
+def test_record_command_registers_its_command_for_ctrl_c(tmp_path):
     """A recording registers its command where the Ctrl+C handlers find it.
 
     A worker thread records while the main thread calls
     `terminate_live_processes`, which is what a Ctrl+C runs: the command ends,
-    and so does the recording, long before its `duration`.
+    and so does the recording, long before its `duration`. The interrupt waits
+    for the command to draw, which a slow runner can delay past registration.
     """
     recorded: list[tuple[Frame, ...]] = []
+    drawn = tmp_path / "drawn"
 
     def record():
         recorded.append(
-            record_command((sys.executable, "-c", SLEEPER_SCRIPT), duration=8)
+            record_command(
+                (sys.executable, "-c", SLEEPER_SCRIPT, str(drawn)), duration=8
+            )
         )
 
     worker = threading.Thread(target=record, daemon=True)
@@ -388,9 +394,10 @@ def test_record_command_registers_its_command_for_ctrl_c():
     worker.start()
     try:
         deadline = time.monotonic() + 5
-        while not _LIVE_PROCESSES and time.monotonic() < deadline:
+        while not drawn.exists() and time.monotonic() < deadline:
             time.sleep(0.01)
         assert _LIVE_PROCESSES, "the recording did not register its command"
+        assert drawn.exists(), "the command did not draw"
         terminate_live_processes()
         worker.join(timeout=5)
         assert not worker.is_alive()
