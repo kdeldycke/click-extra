@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import csv
 import gc
 import importlib.metadata
 import inspect
@@ -1227,6 +1228,96 @@ def test_show_params_config_file_cascade(invoke, tmp_path, monkeypatch):
     assert int_row["Config file"] == str(local_conf.resolve())
 
 
+def test_show_params_config_file_cascade_shared_sections(invoke, tmp_path, monkeypatch):
+    """The config_file column names the file of each key of a shared section.
+
+    Both files define the `[sub]` section and its `[sub.leaf]` sub-section: at
+    each depth, the local file is named for the key both set, and the parent file
+    for the key only it sets.
+    """
+    app_dir = tmp_path / "appdir"
+    app_dir.mkdir()
+    monkeypatch.setattr(
+        "click_extra.config.option.get_app_dir", lambda *a, **k: str(app_dir)
+    )
+
+    local_conf = app_dir / "config.toml"
+    local_conf.write_text(
+        dedent(
+            """
+            [provenance-cli.sub]
+            sub_param = "from_local"
+
+            [provenance-cli.sub.leaf]
+            leaf_param = "from_local"
+            """
+        ),
+        encoding="UTF-8",
+    )
+    parent_conf = tmp_path / "config.toml"
+    parent_conf.write_text(
+        dedent(
+            """
+            [provenance-cli.sub]
+            sub_param = "from_parent"
+            other_param = "from_parent"
+
+            [provenance-cli.sub.leaf]
+            leaf_param = "from_parent"
+            deep_param = "from_parent"
+            """
+        ),
+        encoding="UTF-8",
+    )
+
+    @group
+    @columns_option(columns=ShowParamsOption.TABLE_HEADERS)
+    def provenance_cli():
+        pass
+
+    @provenance_cli.group()
+    @option("--sub-param")
+    @option("--other-param")
+    def sub(sub_param, other_param):
+        pass
+
+    @sub.command()
+    @option("--leaf-param")
+    @option("--deep-param")
+    def leaf(leaf_param, deep_param):
+        pass
+
+    config_opt = search_params(provenance_cli.params, ConfigOption)
+    assert isinstance(config_opt, ConfigOption)
+    config_opt.search_parents = True
+    config_opt.stop_at = tmp_path
+    config_opt.cascade = True
+
+    result = invoke(
+        provenance_cli,
+        "--params",
+        "--table-format",
+        "json",
+        "--columns",
+        "id,value,source,config_file",
+        color=False,
+    )
+    assert result.exit_code == 0
+    rows = {row["ID"]: row for row in json.loads(result.stdout)}
+
+    expected = {
+        "provenance-cli.sub.sub_param": ("from_local", local_conf),
+        "provenance-cli.sub.other_param": ("from_parent", parent_conf),
+        "provenance-cli.sub.leaf.leaf_param": ("from_local", local_conf),
+        "provenance-cli.sub.leaf.deep_param": ("from_parent", parent_conf),
+    }
+    for param_id, (value, conf_path) in expected.items():
+        row = rows[param_id]
+        assert row["Value"] == value
+        assert row["Source"] == "DEFAULT_MAP"
+        assert row["Config file"] == str(conf_path.resolve())
+
+
 def test_show_params_config_file_single_file(invoke, create_config):
     """A single loaded file is attributed to every config-sourced parameter."""
 
@@ -1266,6 +1357,51 @@ def test_show_params_config_file_single_file(invoke, create_config):
 
     # Params untouched by the file keep an empty column.
     assert rows["provenance-cli.params"]["Config file"] is None
+
+
+@pytest.mark.parametrize(
+    ("table_format", "load_rows"),
+    (
+        pytest.param(
+            "csv", lambda text: list(csv.DictReader(text.splitlines())), id="csv"
+        ),
+        pytest.param("json", json.loads, id="json"),
+    ),
+)
+def test_show_params_config_file_url(invoke, httpserver, table_format, load_rows):
+    """A remote configuration is named by its exact URL, in text and JSON tables.
+
+    A text table shrinks a local path to `~`, but a URL is not a path: normalized
+    as one, it loses a slash after its scheme. The JSON table, which never
+    shrinks, is the control.
+    """
+
+    @command
+    @columns_option(columns=ShowParamsOption.TABLE_HEADERS)
+    @option("--basket-size", type=int, default=10)
+    def orchard(basket_size):
+        echo(f"basket_size = {basket_size!r}")
+
+    httpserver.expect_request("/basket.toml").respond_with_data(
+        "[orchard]\nbasket_size = 12\n"
+    )
+    conf_url = httpserver.url_for("/basket.toml")
+
+    result = invoke(
+        orchard,
+        "--config",
+        conf_url,
+        "--params",
+        "--table-format",
+        table_format,
+        "--columns",
+        "id,source,config_file",
+        color=False,
+    )
+    assert result.exit_code == 0
+    rows = {row["ID"]: row for row in load_rows(result.stdout)}
+    assert rows["orchard.basket_size"]["Source"] == "DEFAULT_MAP"
+    assert rows["orchard.basket_size"]["Config file"] == conf_url
 
 
 def test_show_params_config_file_column_is_opt_in(invoke):

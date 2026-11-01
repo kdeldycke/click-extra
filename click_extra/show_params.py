@@ -209,21 +209,17 @@ def param_config_source(
     `keys` is the parameter's fully-qualified path, root command name first
     and parameter name last, as yielded by
     {func}`~click_extra.param_tools.walk_command_params`.
+    A local file is returned as a `Path`, a remote one as its URL, a `str`.
     Returns `None` when no configuration file was loaded, when the parameter
     is absent from every loaded layer, or when the context carries no layered
     `default_map` at all.
 
     The walk mirrors how Click resolves `default_map`, so the attribution
-    matches the value Click actually picks:
-
-    - Root-level parameters are looked up in the root context's
-      `~collections.ChainMap`, whose first layers are the loaded files in
-      precedence order (see
-      {data}`~click_extra.context.CONF_SOURCES`): the first layer naming the
-      parameter wins.
-    - A subcommand section resolves against that same `ChainMap`, but Click
-      keeps descending *inside the single layer* that named the first
-      segment: the file owning a subcommand section owns its whole sub-tree.
+    matches the value Click actually picks. The root context's `default_map`
+    is a `~collections.ChainMap` whose first layers are the loaded files, in
+    the order of {data}`~click_extra.context.CONF_SOURCES`. A key resolves to
+    the first layer holding it, in a subcommand section as at the root: the
+    first layer holding the whole path of the parameter names the file.
 
     ```{note}
     Lazy subcommands receive their section from the merged configuration
@@ -241,27 +237,12 @@ def param_config_source(
     default_map = root_ctx.default_map
     if not isinstance(default_map, ChainMap):
         return None
-    layers = default_map.maps[: len(sources)]
 
-    segments = keys[1:-1]
-    param_name = keys[-1]
-
-    if segments:
-        for index, layer in enumerate(layers):
-            if segments[0] not in layer:
-                continue
-            subtree = layer[segments[0]]
-            for segment in segments[1:]:
-                if not isinstance(subtree, dict):
-                    return None
-                subtree = subtree.get(segment)
-            if isinstance(subtree, dict) and param_name in subtree:
-                return sources[index][0]
-            return None
-        return None
-
-    for index, layer in enumerate(layers):
-        if param_name in layer:
+    for index, layer in enumerate(default_map.maps[: len(sources)]):
+        subtree: Any = layer
+        for segment in keys[1:-1]:
+            subtree = subtree.get(segment) if isinstance(subtree, dict) else None
+        if isinstance(subtree, dict) and keys[-1] in subtree:
             return sources[index][0]
     return None
 
@@ -446,7 +427,12 @@ def render_params_table(
         if source is ParameterSource.DEFAULT_MAP:
             location = param_config_source(subject_ctx.find_root(), keys)
             if location is not None:
-                config_file = location if is_structured else shrinkuser(str(location))
+                config_file = location
+                # A remote configuration is located by its URL, a string: only a
+                # local path has a home directory to shrink. Normalized as a
+                # path, a URL would lose a slash after its scheme.
+                if not is_structured and not isinstance(location, str):
+                    config_file = shrinkuser(location)
 
         if is_structured:
             param_value = _structured_value(param_value)

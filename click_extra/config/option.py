@@ -296,6 +296,43 @@ def _builtin_config_validators() -> tuple[ConfigValidator, ...]:
     )
 
 
+class _DeepChainMap(ChainMap):
+    """A `ChainMap` that also resolves the sections of its layers key by key.
+
+    A plain `ChainMap` gives the value of the first layer holding a key. For a
+    parameter of the root command, that is the most local value. For a subcommand
+    section, Click then reads the whole section from that one layer, and the keys
+    that a layer behind it sets in the same section are lost.
+
+    Here, a key that several layers hold as a dictionary resolves to another
+    `_DeepChainMap` over these dictionaries, front layer first, so the lookup
+    goes on key by key at every depth. A value of another type, like a list,
+    comes whole from one layer and hides the layers behind it: it is the result
+    when it comes first, and ends the chain of sections otherwise. The values
+    match what {func}`~click_extra._utils.deep_merge` builds from the same
+    layers, merged back to front.
+    """
+
+    def __getitem__(self, key: str) -> Any:
+        sections: list[dict[str, Any]] = []
+        for mapping in self.maps:
+            if key not in mapping:
+                continue
+            value = mapping[key]
+            if not isinstance(value, dict):
+                if sections:
+                    break
+                return value
+            sections.append(value)
+        if not sections:
+            return self.__missing__(key)
+        # A section held by one layer is that layer's own dictionary, as with a
+        # plain ChainMap.
+        if len(sections) == 1:
+            return sections[0]
+        return self.__class__(*sections)
+
+
 class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
     """A pre-configured option adding `--config LOCATION`.
 
@@ -488,10 +525,10 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
         When `True`, all files found by auto-discovery (the app-dir search,
         including the parent walk when `search_parents=True`, plus the
         `pyproject.toml` CWD search when enabled) are loaded and layered into
-        the context's `default_map` via a `~collections.ChainMap`. The most
-        local file wins on key lookup: a `pyproject.toml` found near the CWD
+        the context's `default_map`. The most local file wins each key, in the
+        sections of subcommands too: a `pyproject.toml` found near the CWD
         overrides the app-dir config, which overrides files found higher up
-        the parent walk.
+        the parent walk. A list comes whole from the most local file setting it.
 
         An explicit `--config` value never cascades: it pins a single source,
         whatever the pattern matches.
@@ -994,20 +1031,24 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
         Keeps the whole pattern, file patterns included. The help screen collapses
         an inherited set on top of this with `collapse_default()`, but a consumer
         with room for the files (the `FILES` section of a man page) calls this
-        method instead.
+        method instead. A URL is returned as given.
         """
         default = self.get_default(ctx)
         if default is NO_CONFIG:
             return "disabled"
+        default_str = str(default)
+        # A URL is not a path to shorten: `Path()` would collapse the double
+        # slash after its scheme.
+        if "://" in default_str:
+            return default_str
         if self._tilde_in_search_flags():
             # When the default already starts with `~` (user-supplied tilde
             # pattern), use it as-is. Passing through `Path()` would
             # normalize forward slashes to backslashes on Windows.
-            default_str = str(default)
             if default_str.startswith("~"):
                 return default_str
             return str(shrinkuser(Path(default)))
-        return str(default)
+        return default_str
 
     def collapse_default(self, default: str) -> str:
         """Reduce an inherited default pattern to the folder it searches.
@@ -1688,9 +1729,10 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
 
         *layers* holds `(location, parsed_conf)` pairs in precedence order,
         highest first. Each file is strict-checked individually so any error
-        names the file it comes from, then installed as its own
-        `~collections.ChainMap` layer, lowest precedence first so the
-        highest-precedence file ends up in front.
+        names the file it comes from, then installed as its own `default_map`
+        layer, lowest precedence first so the highest-precedence file ends up in
+        front. The layers resolve each key of a subcommand section the same way
+        as a key of the root command, so the values match the merged view below.
 
         The dataclass schema and extension validators run once on the
         deep-merged view of all layers, where they see one coherent document.
@@ -1731,21 +1773,30 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
     ) -> None:
         """Layer a template-filtered config onto the context's `default_map`.
 
-        Cleans up the blank values left over by the template structure, then layers
-        the app's section on top of any existing `default_map` via a
-        `~collections.ChainMap` so each config source keeps its own layer. The first
-        layer wins on key lookup, which makes parameter-source precedence explicit
-        and future-proofs for multi-file config loading.
+        Cleans up the blank values left over by the template structure, then puts
+        the app's section in front of any existing `default_map`, in a
+        `_DeepChainMap` where each config source keeps its own layer. The front
+        layer wins each key, in the sections of subcommands too.
+
+        The layers stay flat in one chain, front layer first: the layers of a
+        cascade then hold the same positions as their files in
+        `ctx.meta[click_extra.context.CONF_SOURCES]`, which is how
+        {func}`~click_extra.show_params.param_config_source` names the file a
+        value comes from.
         """
         # Clean-up the conf by removing all blank values left-over by the template
         # structure.
         clean_conf = remove_blanks(filtered_conf, remove_str=False)
 
-        # Layer the config values on top of any existing default_map via ChainMap.
-        # Click only calls .get() on default_map, which ChainMap supports with
-        # first-match-wins semantics.
         local_conf = clean_conf.get(ctx.find_root().command.name, {})
-        ctx.default_map = ChainMap(local_conf, ctx.default_map or {})
+        existing = ctx.default_map
+        if isinstance(existing, _DeepChainMap):
+            behind = existing.maps
+        elif existing is None:
+            behind = []
+        else:
+            behind = [existing]
+        ctx.default_map = _DeepChainMap(local_conf, *behind)
 
     def load_conf(
         self,

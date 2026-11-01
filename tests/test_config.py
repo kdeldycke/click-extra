@@ -50,6 +50,8 @@ from click_extra import (
     ConfigOption,
     Group,
     LazyGroup,
+    ShowParamsOption,
+    columns_option,
     command,
     config_option,
     echo,
@@ -686,6 +688,30 @@ def test_conf_default_pathlib_type(invoke, create_config):
 
     result = invoke(config_cli1)
     assert result.stdout == "dummy_flag = True\n"
+    assert not result.stderr
+    assert result.exit_code == 0
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        pytest.param("https://example.com/basket.toml", id="https"),
+        pytest.param("http://example.com/orchard/basket.toml", id="http"),
+    ],
+)
+def test_conf_default_url_displayed_as_given(invoke, url):
+    """A URL default keeps the double slash after its scheme in the help screen."""
+
+    @click.command
+    @config_option(default=url)
+    def config_cli1():
+        pass
+
+    result = invoke(config_cli1, "--help", color=False)
+
+    help_screen = re.sub(r"\s+", "", result.stdout.split("--config LOCATION")[1])
+    assert f"[default:{url}]" in help_screen
+
     assert not result.stderr
     assert result.exit_code == 0
 
@@ -1522,8 +1548,8 @@ def test_conf_metadata(
             f"conf_source={conf_path}\n"
             f"conf_full={conf_data}\n"
             # No configuration values match the CLI's parameter structure, so the
-            # ChainMap layered onto the existing default_map holds two empty maps.
-            "default_map=ChainMap({}, {})\n"
+            # one layer of the chain, the file's, is empty.
+            "default_map=_DeepChainMap({})\n"
         )
         assert result.stderr == f"Load configuration matching {conf_path}\n"
         assert result.exit_code == 0
@@ -2235,8 +2261,8 @@ def test_sqlite_conf_metadata(invoke, tmp_path):
         f"conf_source={conf_path}\n"
         f"conf_full={SQLITE_DATA}\n"
         # No configuration values match the CLI's parameter structure, so the
-        # ChainMap layered onto the existing default_map holds two empty maps.
-        "default_map=ChainMap({}, {})\n"
+        # one layer of the chain, the file's, is empty.
+        "default_map=_DeepChainMap({})\n"
     )
     assert result.stderr == f"Load configuration matching {conf_path}\n"
     assert result.exit_code == 0
@@ -2529,7 +2555,7 @@ def test_default_map_populated(invoke, create_config):
     assert "int_param=7" in result.stdout
     # Group's default_map retains the subcommand section after param resolution.
     assert (
-        "default_map=ChainMap({'flag_a': True, 'sub': {'int_param': 7}}, {})"
+        "default_map=_DeepChainMap({'flag_a': True, 'sub': {'int_param': 7}})"
         in result.stdout
     )
     # Click passes default_map["sub"] to the subcommand's context.
@@ -2559,7 +2585,7 @@ def test_merge_default_map_standalone(invoke):
     result = invoke(merge_map_cli, "--no-config", color=False)
     assert result.exit_code == 0
     # Recognized flag is merged in; the unknown key is filtered out.
-    assert "default_map=ChainMap({'flag_a': True}, {})" in result.stdout
+    assert "default_map=_DeepChainMap({'flag_a': True})" in result.stdout
 
 
 def test_merge_default_map_keeps_dotted_keys_in_opaque_subtree(invoke, caplog):
@@ -2584,7 +2610,7 @@ def test_merge_default_map_keeps_dotted_keys_in_opaque_subtree(invoke, caplog):
     with caplog.at_level(logging.WARNING, logger="click_extra"):
         result = invoke(opaque_merge_cli, "--no-config", color=False)
     assert result.exit_code == 0
-    assert "default_map=ChainMap({'flag_a': True}, {})" in result.stdout
+    assert "default_map=_DeepChainMap({'flag_a': True})" in result.stdout
     assert "contains empty segments" not in caplog.text
 
 
@@ -3318,6 +3344,75 @@ def test_cascade_list_local_wins(invoke, cascade_tree):
     assert result.exit_code == 0
 
 
+def test_cascade_merges_subcommand_sections(invoke, cascade_tree):
+    """A section two files both define resolves key by key, at every depth.
+
+    The local file wins each key it sets, and the keys only the parent file sets
+    in the same section still apply. A list comes whole from the local file.
+    """
+    tmp_path, app_dir = cascade_tree
+    (app_dir / "config.toml").write_text(
+        dedent("""\
+            [orchard.pick]
+            variety = "apple"
+            tags = ["red"]
+
+            [orchard.pick.press]
+            juice = "cloudy"
+            """),
+        encoding="UTF-8",
+    )
+    (tmp_path / "config.toml").write_text(
+        dedent("""\
+            [orchard]
+            season = "autumn"
+
+            [orchard.pick]
+            variety = "pear"
+            basket = "wicker"
+            tags = ["green", "yellow"]
+
+            [orchard.pick.press]
+            juice = "clear"
+            bottles = 6
+            """),
+        encoding="UTF-8",
+    )
+
+    @click.group
+    @config_option(search_parents=True, stop_at=tmp_path, cascade=True)
+    @click.option("--season")
+    def orchard(season):
+        echo(f"season = {season!r}")
+
+    @orchard.group
+    @click.option("--variety")
+    @click.option("--basket")
+    @click.option("--tags", multiple=True)
+    def pick(variety, basket, tags):
+        echo(f"variety = {variety!r}")
+        echo(f"basket = {basket!r}")
+        echo(f"tags = {tags!r}")
+
+    @pick.command
+    @click.option("--juice")
+    @click.option("--bottles", type=int)
+    def press(juice, bottles):
+        echo(f"juice = {juice!r}")
+        echo(f"bottles = {bottles!r}")
+
+    result = invoke(orchard, "pick", "press", color=False)
+    assert result.stdout == (
+        "season = 'autumn'\n"
+        "variety = 'apple'\n"
+        "basket = 'wicker'\n"
+        "tags = ('red',)\n"
+        "juice = 'cloudy'\n"
+        "bottles = 6\n"
+    )
+    assert result.exit_code == 0
+
+
 def test_no_cascade_first_file_wins(invoke, cascade_tree):
     """Without cascade, the first parseable file wins entirely."""
     tmp_path, app_dir = cascade_tree
@@ -3387,6 +3482,55 @@ def test_cascade_conf_sources_metadata(invoke, cascade_tree):
         f"conf_source = {local_conf.resolve()}\n"
     )
     assert result.exit_code == 0
+
+
+def test_cascade_params_names_the_file_of_each_key(invoke, tmp_path, monkeypatch):
+    """The `config_file` column of `--params` names the file each value comes from.
+
+    With three files, the file furthest up the walk is named for the key only it
+    sets: each `default_map` layer keeps the position of its file in
+    `CONF_SOURCES`.
+    """
+    app_dir = tmp_path / "orchard" / "tree"
+    app_dir.mkdir(parents=True)
+    monkeypatch.setattr(
+        "click_extra.config.option.get_app_dir", lambda *a, **k: str(app_dir)
+    )
+    local_conf = app_dir / "config.toml"
+    local_conf.write_text('[harvest]\nfruit = "apple"\n', encoding="UTF-8")
+    middle_conf = app_dir.parent / "config.toml"
+    middle_conf.write_text('[harvest]\nbasket = "wicker"\n', encoding="UTF-8")
+    outer_conf = tmp_path / "config.toml"
+    outer_conf.write_text('[harvest]\nseason = "autumn"\n', encoding="UTF-8")
+
+    @command
+    @columns_option(columns=ShowParamsOption.TABLE_HEADERS)
+    @option("--fruit")
+    @option("--basket")
+    @option("--season")
+    def harvest(fruit, basket, season):
+        pass
+
+    config_opt = search_params(harvest.params, ConfigOption)
+    assert isinstance(config_opt, ConfigOption)
+    config_opt.search_parents = True
+    config_opt.stop_at = tmp_path
+    config_opt.cascade = True
+
+    result = invoke(
+        harvest,
+        "--params",
+        "--table-format",
+        "json",
+        "--columns",
+        "id,config_file",
+        color=False,
+    )
+    assert result.exit_code == 0
+    files = {row["ID"]: row["Config file"] for row in json.loads(result.stdout)}
+    assert files["harvest.fruit"] == str(local_conf.resolve())
+    assert files["harvest.basket"] == str(middle_conf.resolve())
+    assert files["harvest.season"] == str(outer_conf.resolve())
 
 
 def test_cascade_conf_full_is_merged_view(invoke, cascade_tree):

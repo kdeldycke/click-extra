@@ -36,9 +36,19 @@ This package gathers the layers behind `--config`, `--no-config`,
 - {mod}`~click_extra.config.subcommands`: resolution of the reserved
   `_default_subcommands` and `_prepend_subcommands` keys.
 
-Every public symbol is re-exported here so consumers can keep importing from
-`click_extra.config`, except the schema of {mod}`~click_extra.config.builtin`
-and the {class}`~click_extra.config.discovery.ConfigDiscovery` mixin.
+The package re-exports the symbols below, so consumers can import them from
+`click_extra.config`:
+
+- every public symbol of {mod}`~click_extra.config.export`,
+  {mod}`~click_extra.config.flags` and {mod}`~click_extra.config.schema`;
+- from {mod}`~click_extra.config.option`, the three option classes, the
+  `NO_CONFIG` and `VCS` sentinels, and `THEMES_CONFIG_KEY`;
+- from {mod}`~click_extra.config.formats`, the `ConfigFormat` enumeration, the
+  `SERIALIZABLE_FORMATS` and `SQLITE_CONFIG_TABLE` constants, and the helpers
+  that identify, parse or serialize a document in any format.
+
+Import any other symbol from its own module, like the
+{class}`~click_extra.config.discovery.ConfigDiscovery` mixin.
 """
 
 from __future__ import annotations
