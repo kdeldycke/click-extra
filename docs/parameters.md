@@ -139,22 +139,21 @@ Because both options are eager, the order in which they are passed matters. `--n
 
 If you need to dive deeper into parameters and their values, there is a lot of metadata available in the context. Here are some pointers:
 
-```{code-block} python
-:emphasize-lines: 13-15
+```{click:source}
+:emphasize-lines: 12-14
 from click import option, echo, pass_context
 
-from click_extra import config_option, group
+from click_extra import group
 
 @group
 @option("--dummy-flag/--no-flag")
 @option("--my-list", multiple=True)
-@config_option
 @pass_context
 def my_cli(ctx, dummy_flag, my_list):
     echo(f"dummy_flag    is {dummy_flag!r}")
     echo(f"my_list       is {my_list!r}")
     echo(f"Raw parameters:            {ctx.meta.get('click_extra.raw_args', [])}")
-    echo(f"Loaded, default values:    {ctx.default_map}")
+    echo(f"Loaded, default values:    {dict(ctx.default_map)}")
     echo(f"Values passed to function: {ctx.params}")
 
 @my_cli.command()
@@ -172,7 +171,7 @@ Now if we feed the following `~/configuration.toml` configuration file:
 ```{code-block} toml
 :caption: `~/configuration.toml`
 [my-cli]
-verbosity = "DEBUG"
+verbosity = "WARNING"
 dummy_flag = true
 my_list = ["item 1", "item #2", "Very Last Item!"]
 
@@ -182,13 +181,34 @@ int_param = 3
 
 Here is what we get:
 
-```{code-block} shell-session
-$ cli --config ~/configuration.toml default-command
-dummy_flag    is True
-my_list       is ('item 1', 'item #2', 'Very Last Item!')
-Raw parameters:            ['--config', '~/configuration.toml', 'default-command']
-Loaded, default values:    {'dummy_flag': True, 'my_list': ['pip', 'npm', 'gem'], 'verbosity': 'DEBUG', 'default-command': {'int_param': 3}}
-Values passed to function: {'dummy_flag': True, 'my_list': ('pip', 'npm', 'gem')}
+```{click:run}
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "configuration.toml"
+config.write_text(textwrap.dedent("""
+    [my-cli]
+    verbosity = "WARNING"
+    dummy_flag = true
+    my_list = ["item 1", "item #2", "Very Last Item!"]
+
+    [my-cli.subcommand]
+    int_param = 3
+"""), encoding="UTF-8")
+result = invoke(my_cli, args=["--config", str(config), "subcommand"])
+assert result.exit_code == 0
+items = "'item 1', 'item #2', 'Very Last Item!'"
+assert "dummy_flag    is True" in result.stdout
+assert f"my_list       is ({items})" in result.stdout
+assert f"['--config', '{config}', 'subcommand']" in result.stdout
+assert (
+    f"Loaded, default values:    {{'dummy_flag': True, 'my_list': [{items}],"
+    " 'verbosity': 'WARNING', 'subcommand': {'int_param': 3}}"
+) in result.stdout
+assert (
+    f"Values passed to function: {{'dummy_flag': True, 'my_list': ({items})}}"
+) in result.stdout
+assert "int_parameter is 3" in result.stdout
 ```
 
 ## Introspecting external CLIs

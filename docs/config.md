@@ -311,19 +311,18 @@ The resolved values are merged into the context's `default_map`. Only values mat
 
 The full configuration stays accessible in the context's `meta` attribute:
 
-```{code-block} python
-:emphasize-lines: 9-12
-from click_extra import option, echo, pass_context, command, config_option
+```{click:source}
+:emphasize-lines: 8-11
+from click_extra import option, echo, pass_context, command
 
 
 @command
 @option("--int-param", type=int, default=10)
-@config_option
 @pass_context
 def my_cli(ctx, int_param):
     echo(f"Configuration location: {ctx.meta['click_extra.conf_source']}")
     echo(f"Full configuration: {ctx.meta['click_extra.conf_full']}")
-    echo(f"Default values: {ctx.default_map}")
+    echo(f"Default values: {dict(ctx.default_map)}")
     echo(f"int_param is {int_param!r}")
 ```
 
@@ -337,14 +336,29 @@ random_stuff = "will be ignored"
 dummy_flag = true
 ```
 
-```{code-block} shell-session
-:emphasize-lines: 3-6
-$ my-cli --config ./conf.toml --int-param 999
-Load configuration matching ./conf.toml
-Configuration location: /home/me/conf.toml
-Full configuration: {'my-cli': {'int_param': 3, 'random_stuff': 'will be ignored'}, 'garbage': {'dummy_flag': True}}
-Default values: {'int_param': 3}
-int_parameter is 999
+```{click:run}
+:emphasize-result-lines: 3-6
+import tempfile, textwrap
+from pathlib import Path
+
+config = Path(tempfile.mkdtemp()) / "conf.toml"
+config.write_text(textwrap.dedent("""
+    [my-cli]
+    int_param = 3
+    random_stuff = "will be ignored"
+
+    [garbage]
+    dummy_flag = true
+"""), encoding="UTF-8")
+result = invoke(my_cli, args=["--config", str(config), "--int-param", "999"])
+assert result.exit_code == 0
+assert f"Configuration location: {config.resolve()}" in result.stdout
+assert (
+    "Full configuration: {'my-cli': {'int_param': 3, 'random_stuff': 'will be"
+    " ignored'}, 'garbage': {'dummy_flag': True}}"
+) in result.stdout
+assert "Default values: {'int_param': 3}" in result.stdout
+assert "int_param is 999" in result.stdout
 ```
 
 The `Load configuration matching` line goes to `stderr`. `-q`, or a `--verbosity` above `WARNING`, silences it, like the `--no-config` line.
