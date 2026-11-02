@@ -245,7 +245,7 @@ Reported from click-extra, and closed upstream:
 
 ## Addressed by click-extra
 
-Issues that remain open or unfixed upstream. click-extra provides the solution.
+Issues click-extra solves for its users, whatever their state upstream. Each entry names that state.
 
 ### Color and terminal support
 
@@ -372,14 +372,14 @@ click-extra's [logging module](logging.md) replaces the unmaintained `click-log`
 
 ### Progress spinner
 
-click-extra's [`Spinner`](spinner.md) is a thread-animated, indeterminate progress spinner for blocking work of unknown duration. It supersedes the `click-spinner` package, last released in 2020 and [openly looking for a maintainer](https://github.com/click-contrib/click-spinner/issues/38) since 2022. By design it resolves the issues and pull requests still open or rejected against that package:
+click-extra's [`Spinner`](spinner.md) is a thread-animated, indeterminate progress spinner for blocking work of unknown duration. It covers what the `click-spinner` package lacked for years: that package [found a new maintainer](https://github.com/click-contrib/click-spinner/issues/38) in 2026 and released `0.2.0`, which closed some of the items below. By design click-extra resolves each of them:
 
 - [`click-spinner#27` - Support for more spinner types and custom spinners](https://github.com/click-contrib/click-spinner/pull/27): closed unmerged over maintenance concerns; click-extra accepts any `frames` sequence and ships an 89-entry `SPINNERS` catalog ported from [cli-spinners](https://github.com/sindresorhus/cli-spinners) (a superset of the molovo/revolver set this PR proposed), including the multi-character animations the PR had to drop because click-spinner's backspace renderer could not erase them.
 - [`click-spinner#33` - PEP 561 compatible (inline types)](https://github.com/click-contrib/click-spinner/pull/33): closed unmerged and redirected to typeshed; click-extra is fully annotated and ships `py.typed`.
-- [`click-spinner#34` - Feature request: spin clockwise](https://github.com/click-contrib/click-spinner/issues/34) / [`click-spinner#35`](https://github.com/click-contrib/click-spinner/pull/35): open issue, abandoned PR; click-extra exposes a `reverse` flag.
-- [`click-spinner#36` - Spinner left last symbol on cmd](https://github.com/click-contrib/click-spinner/issues/36) / [`click-spinner#37`](https://github.com/click-contrib/click-spinner/pull/37): open; click-extra erases the line with `\r\x1b[K` rather than a non-destructive `\b` that lingers in terminals like VS Code.
+- [`click-spinner#34` - Feature request: spin clockwise](https://github.com/click-contrib/click-spinner/issues/34) / [`click-spinner#35`](https://github.com/click-contrib/click-spinner/pull/35): closed as not planned, PR abandoned; click-extra exposes a `reverse` flag.
+- [`click-spinner#36` - Spinner left last symbol on cmd](https://github.com/click-contrib/click-spinner/issues/36) / [`click-spinner#37`](https://github.com/click-contrib/click-spinner/pull/37): merged upstream in 2026; click-extra erases the line with `\r\x1b[K` rather than a non-destructive `\b` that lingers in terminals like VS Code.
 - [`click-spinner#41` - Fix output in corner cases](https://github.com/click-contrib/click-spinner/pull/41): open; click-extra always erases on exit and never rings the bell on a disabled or redirected stream.
-- [`click-spinner#42` - Printing to stdout breaks the spinner](https://github.com/click-contrib/click-spinner/issues/42): open; click-extra defaults to `stderr` so `stdout` data stays clean, and its `echo()` method prints above the animation without corrupting it.
+- [`click-spinner#42` - Printing to stdout breaks the spinner](https://github.com/click-contrib/click-spinner/issues/42): closed upstream in 2026; click-extra defaults to `stderr` so `stdout` data stays clean, and its `echo()` method prints above the animation without corrupting it.
 
 ### Progress bar
 
@@ -458,11 +458,11 @@ click-extra maintains and extends the [`click:source`/`click:run` directives](sp
 
 The [`python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` directives](python-directives.md#python-directives) extend the `click:*` family to arbitrary Python (no Click CLI required). The `render*` variants parse the captured `stdout` as live document content: generated tables, headings, admonitions, and cross-references become first-class document nodes rather than a code block. This replaces the `docs_update.py` regenerator + marker-region pattern that many downstream click-extra-consuming projects use (Meta Package Manager, Mail Deduplicate, …), so the rendered HTML is always current at build time without a separate generation step. And when the generated Markdown should also live in the committed source (rendering on GitHub, reviewable in diffs), the [`:mirror:` flag](python-directives.md#self-updating-source-with-mirror) keeps a marker-delimited copy below the fence, refreshed by `click-extra refresh-directives` alongside the `{matrix}` blocks.
 
-The `click:*` half of this story remains stuck upstream: the directives still live in `pallets-sphinx-themes` despite open requests to move them where Click users actually look for them, and MyST integration is unfinished:
+Upstream declined to host the `click:*` half of this story: the directives still live in `pallets-sphinx-themes`, and MyST integration is unfinished:
 
-- [`sphinx-click#158` - Move custom directives into Sphinx-click](https://github.com/click-contrib/sphinx-click/issues/158): open, acknowledged by maintainers.
+- [`sphinx-click#158` - Move custom directives into Sphinx-click](https://github.com/click-contrib/sphinx-click/issues/158): closed in 2026, the maintainer pointing to click-extra's directives instead.
 - [`sphinx-click#127` - Support myst-parser](https://github.com/click-contrib/sphinx-click/issues/127): open, click directives still RST-only upstream.
-- [`pallets-sphinx-themes#61`](https://github.com/pallets/pallets-sphinx-themes/issues/61): open since 2022, also flagged in the [previous section](#sphinx-click-source-and-click-run-directives).
+- [`pallets-sphinx-themes#61`](https://github.com/pallets/pallets-sphinx-themes/issues/61): closed as not planned in 2022, also flagged in the [previous section](#sphinx-click-source-and-click-run-directives).
 
 The `python:*` half (rendering executed Python output as live document content) is click-extra's own design rather than an answer to a single upstream ticket.
 
