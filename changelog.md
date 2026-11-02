@@ -26,6 +26,7 @@
 - Fix a `|` in a `click:config` default value splitting its row of the summary table.
 - Fix `click:config` table links missing the section of a key with accented letters or leading digits.
 - Fix `refresh-directives` and Sphinx builds skipping a `<!--mirror-src` comment that has no space after `<!--`.
+- Fix `linkcheck` reporting every link of the `click-extra-manpages` directive as broken: only an HTML build writes the pages they point at.
 
 ## [`10.0.0` (2026-11-01)](https://github.com/kdeldycke/click-extra/compare/v9.5.1...v10.0.0)
 

@@ -86,6 +86,7 @@ file regardless of how deep the subcommand tree goes.
 from __future__ import annotations
 
 import posixpath
+import re
 import subprocess
 from pathlib import Path
 
@@ -113,6 +114,7 @@ if TYPE_CHECKING:
 
     from click import Command
     from sphinx.application import Sphinx
+    from sphinx.config import Config
 
 
 logger = logging.getLogger(__name__)
@@ -428,6 +430,24 @@ def _rebase_manpage_links(app: Sphinx, doctree: nodes.document, docname: str) ->
             node["refuri"] = relative_uri(page_uri, target)
 
 
+def _ignore_manpage_links(app: Sphinx, config: Config) -> None:
+    """Keep `linkcheck` off the links of the index directive.
+
+    Only an HTML build writes the pages these links point at, into its own output.
+    `linkcheck` looks for a relative link in the source tree instead, and would
+    report every one of them as broken. So the output directory of each entry joins
+    `linkcheck_ignore`, before the `linkcheck` builder reads that list.
+    """
+    entries = getattr(config, MANPAGES_CONFIG_KEY, None) or ()
+    patterns = [
+        f"^{re.escape((entry.get('output_dir') or DEFAULT_OUTPUT_DIR).strip('/'))}/"
+        for entry in entries
+    ]
+    config.linkcheck_ignore = list(
+        dict.fromkeys([*config.linkcheck_ignore, *patterns]),
+    )
+
+
 def setup(app: Sphinx) -> None:
     """Register the man-page hooks and the index directive on `app`.
 
@@ -437,6 +457,7 @@ def setup(app: Sphinx) -> None:
     directive renders nothing in that case.
     """
     app.add_config_value(MANPAGES_CONFIG_KEY, default=[], rebuild="env", types=[list])
+    app.connect("config-inited", _ignore_manpage_links)
     app.connect("builder-inited", _emit_manpages)
     app.connect("doctree-resolved", _rebase_manpage_links)
     app.add_directive(MANPAGE_LIST_DIRECTIVE, ManpageListDirective)

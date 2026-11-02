@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import json
 from inspect import cleandoc
 from pathlib import Path
 from typing import Any
@@ -266,6 +267,27 @@ def test_manpages_directive_renders_one_link_per_command(tmp_path):
     # reads naturally next to the short-help suffix.
     assert "click-extra(1)" in body
     assert "click-extra-wrap(1)" in body
+
+
+def test_manpages_directive_links_are_ignored_by_linkcheck(tmp_path):
+    """``linkcheck`` ignores the links of the index instead of reporting them broken.
+
+    Only an HTML build writes the pages they point at, while ``linkcheck`` looks
+    for a relative link in the source tree, where those pages never are.
+    """
+    outdir = _build_with_manpages(
+        tmp_path,
+        [{"script": "click_extra.cli:demo", "render_html": False}],
+        builder="linkcheck",
+        index_body=_INDEX_WITH_DIRECTIVE,
+    )
+    results = [
+        json.loads(line)
+        for line in (outdir / "output.json").read_text(encoding="UTF-8").splitlines()
+    ]
+    manpage_links = [result for result in results if result["uri"].startswith("man/")]
+    assert manpage_links
+    assert {result["status"] for result in manpage_links} == {"ignored"}
 
 
 _NESTED_INDEX = "Hi\n==\n\n.. toctree::\n\n   guide/manuals\n"
