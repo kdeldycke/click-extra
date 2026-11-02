@@ -275,6 +275,18 @@ def parse_xml(content: str) -> dict[str, Any]:
     return root
 
 
+def _xml_name(name: str) -> str:
+    """Spell `name` as an XML element or attribute name.
+
+    A character invalid in a name becomes an underscore. A name that cannot start
+    an element, like one starting with a digit, gets a leading underscore: `0`
+    becomes `_0`. A colon stays, so a namespace prefix {func}`parse_xml` kept
+    writes back as it was read.
+    """
+    safe = "".join(c if c.isalnum() or c in "_.-:" else "_" for c in name)
+    return safe if safe[:1].isalpha() or safe[:1] == "_" else f"_{safe}"
+
+
 def _xml_text(value: Any) -> str:
     """Spell a value as XML text: `true` or `false` for a boolean, `str()` otherwise."""
     if isinstance(value, bool):
@@ -289,7 +301,9 @@ def serialize_xml(data: Mapping[str, Any], *, indent: str = "\t") -> str:
     attribute, `#text` the text of an element that also carries attributes or
     children, a list a run of elements sharing a tag, and `None` or an empty
     string an empty element. Each top-level key is a root element. Child
-    elements sit on their own lines, each level pushed by one `indent`.
+    elements sit on their own lines, each level pushed by one `indent`. A key
+    XML does not accept as a name is respelled, like `0` into `_0` and
+    `my key` into `my_key`, so the document stays well-formed.
     """
     # Deferred import: keeps xml off the startup path of every CLI.
     from xml.sax.saxutils import escape, quoteattr
@@ -307,7 +321,7 @@ def serialize_xml(data: Mapping[str, Any], *, indent: str = "\t") -> str:
         if isinstance(value, dict):
             for key, item in value.items():
                 if key.startswith("@"):
-                    attributes += f" {key[1:]}={quoteattr(_xml_text(item))}"
+                    attributes += f" {_xml_name(key[1:])}={quoteattr(_xml_text(item))}"
                 elif key == "#text":
                     text = _xml_text(item)
                 else:
@@ -315,17 +329,18 @@ def serialize_xml(data: Mapping[str, Any], *, indent: str = "\t") -> str:
         elif value is not None:
             text = _xml_text(value)
         pad = indent * depth
+        tag = _xml_name(name)
         opening = len(lines)
-        lines.append(f"{pad}<{name}{attributes}>")
+        lines.append(f"{pad}<{tag}{attributes}>")
         for key, item in children:
             emit(key, item, depth + 1)
         if len(lines) == opening + 1:
             # Nothing was written under the element: close it on its own line.
-            lines[opening] += f"{escape(text) if text else ''}</{name}>"
+            lines[opening] += f"{escape(text) if text else ''}</{tag}>"
             return
         if text:
             lines.append(f"{pad}{indent}{escape(text)}")
-        lines.append(f"{pad}</{name}>")
+        lines.append(f"{pad}</{tag}>")
 
     for name, value in data.items():
         emit(name, value, 0)

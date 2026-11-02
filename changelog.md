@@ -14,7 +14,7 @@
 - Fix the `Config file` column of `--params` printing a remote configuration URL with a slash missing, like `https:/example.com/basket.toml`.
 - Fix `--help` and man pages printing a `--config` URL default with a single slash after its scheme.
 - Fix `unpatch_click()` to restore the default theme that `patch_click()` replaced, and keep the default when `patch_click()` set no theme.
-- Fix the `xml` table format writing invalid XML for a table without headers, and dropping columns under numeric headers like years.
+- Fix the `xml` format writing invalid XML for a name like `0` or `apple pie` in tables and `serialize_data()`, and dropping columns under numeric headers.
 - Fix `click-extra screenshot` ending in a traceback when the command it captures cannot start: it now exits with an error message.
 - Fix `click-extra screenshot --timeout` ending in a traceback when the command outlives it: it now exits with an error message.
 - Fix `click-extra snippet` ending in a traceback on a non-UTF-8 source, and emptying the output file when that source is stdin.

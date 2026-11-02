@@ -1081,6 +1081,13 @@ def test_serialize_xml_custom_root_element():
     assert "<mpm>" in result
 
 
+def test_serialize_xml_respells_invalid_names():
+    """Keys XML does not accept as element names still give a well-formed document."""
+    data = {"apple pie": "1", "0": "pear"}
+    result = serialize_data(data, TableFormat.XML)
+    assert parse_xml(result) == {"records": {"apple_pie": "1", "_0": "pear"}}
+
+
 def test_serialize_default_callback():
     """Custom types are converted via the ``default`` callback."""
     data = {"path": PurePosixPath("/usr/bin"), "name": "test"}

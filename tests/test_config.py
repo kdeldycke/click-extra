@@ -6034,3 +6034,27 @@ def test_serialize_xml_conventions():
 def test_xml_round_trip():
     data = {"cli": {"verbosity": "DEBUG", "items": ["pip", "npm"], "sub": {"n": "3"}}}
     assert parse_xml(serialize_xml(data)) == data
+
+
+def test_serialize_xml_respells_invalid_names():
+    """A key XML does not accept as a name is respelled, and reads back so.
+
+    A name starting with a digit gets a leading underscore, and a space becomes an
+    underscore, in an element as in an attribute. A namespace prefix stays.
+    """
+    data = {
+        "5-fruit-salad": {
+            "@ripe level": "high",
+            "apple pie": "1",
+            "0": "pear",
+            "orchard:tree": "oak",
+        }
+    }
+    assert parse_xml(serialize_xml(data)) == {
+        "_5-fruit-salad": {
+            "@ripe_level": "high",
+            "apple_pie": "1",
+            "_0": "pear",
+            "orchard:tree": "oak",
+        }
+    }
