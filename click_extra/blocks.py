@@ -15,11 +15,11 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """Deprecated alias of {mod}`click_extra.markdown.blocks`.
 
-Serves the names the `9.x` module of this path exported, through a
-[PEP 562](https://peps.python.org/pep-0562/) module `__getattr__` hook that
-warns on every access. Released `repomatic` versions up to `8.0.0` import
-`region_markers` and `replace_region` from here, and downstream workflows pin
-them.
+Serves each `9.x` name of this path that the new module still defines. A
+[PEP 562](https://peps.python.org/pep-0562/) module `__getattr__` hook resolves
+each one and warns on every access. Released `repomatic` versions up to `8.0.0`
+import `region_markers` and `replace_region` from here, and downstream workflows
+pin them.
 """
 
 from __future__ import annotations
@@ -47,6 +47,13 @@ _ALIASED_NAMES = frozenset({
 """Public names of the `9.x` module that {mod}`click_extra.markdown.blocks` keeps.
 
 `OPTION_LINE_RE` is not among them: `10.0.0` removed it with no replacement.
+"""
+
+__all__ = tuple(sorted(_ALIASED_NAMES))
+"""The names a star import binds, each through `__getattr__` and its warning.
+
+Derived rather than spelled out: ruff's F822 reports each name of a literal
+`__all__` that only `__getattr__` defines.
 """
 
 _REMOVAL_VERSION = "11.0.0"

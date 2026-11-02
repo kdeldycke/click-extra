@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import importlib
 import re
 import subprocess
 import sys
@@ -25,6 +24,7 @@ import warnings
 
 import pytest
 
+from click_extra import blocks as deprecated_blocks
 from click_extra.markdown import blocks as markdown_blocks
 from click_extra.markdown.blocks import (
     fence_spans,
@@ -86,12 +86,7 @@ def test_blocks_module_needs_no_sphinx_extra():
 
 @pytest.mark.parametrize("name", DEPRECATED_BLOCKS_NAMES)
 def test_deprecated_blocks_alias_serves_9x_name(name):
-    """`click_extra.blocks` serves each name it held in `9.x`, with a warning.
-
-    Released `repomatic` versions up to `8.0.0` import `region_markers` and
-    `replace_region` from that path, and downstream workflows pin them.
-    """
-    alias = importlib.import_module("click_extra.blocks")
+    """`click_extra.blocks` serves each name it kept from `9.x`, with a warning."""
     with pytest.warns(
         DeprecationWarning,
         match=(
@@ -100,10 +95,24 @@ def test_deprecated_blocks_alias_serves_9x_name(name):
             r"instead\.$"
         ),
     ) as record:
-        value = getattr(alias, name)
+        value = getattr(deprecated_blocks, name)
     assert value is getattr(markdown_blocks, name)
     # The warning blames the code reading the name, not the alias module.
     assert record[0].filename == __file__
+
+
+def test_deprecated_blocks_alias_star_import():
+    """A star import binds each name the alias serves, with one warning per name."""
+    namespace: dict[str, object] = {}
+    with pytest.warns(DeprecationWarning) as record:
+        exec("from click_extra.blocks import *", namespace)
+    for name in DEPRECATED_BLOCKS_NAMES:
+        assert namespace[name] is getattr(markdown_blocks, name)
+    assert sorted(str(warning.message).split()[0] for warning in record) == sorted(
+        f"click_extra.blocks.{name}" for name in DEPRECATED_BLOCKS_NAMES
+    )
+    # The alias module's own imports stay out of the importing namespace.
+    assert not {"TYPE_CHECKING", "annotations", "warnings"} & namespace.keys()
 
 
 @pytest.mark.parametrize(
@@ -118,11 +127,10 @@ def test_deprecated_blocks_alias_serves_9x_name(name):
     ),
 )
 def test_deprecated_blocks_alias_serves_no_other_name(name):
-    """A name outside the `9.x` surface stays missing, and sets off no warning."""
-    alias = importlib.import_module("click_extra.blocks")
+    """A name the alias does not serve stays missing, and sets off no warning."""
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        assert not hasattr(alias, name)
+        assert not hasattr(deprecated_blocks, name)
 
 
 def test_marker_res_grammar():

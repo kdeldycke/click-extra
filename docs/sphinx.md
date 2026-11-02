@@ -703,8 +703,8 @@ Loaded Extensions
 =================
 
 (...)
-* myst_parser (4.0.1)
-* click_extra.sphinx (5.1.0)
+* myst_parser (5.1.0)
+* click_extra.sphinx (10.1.0)
 
 Traceback
 =========

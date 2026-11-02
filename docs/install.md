@@ -58,7 +58,7 @@ Arch Linux users install [`python-click-extra`](https://aur.archlinux.org/packag
 $ paru -S python-click-extra
 ```
 
-The package needs `python-click` `8.5.0` or newer. Enable `[extra-testing]` while `[extra]` still ships an older Click.
+The package needs `python-click` `8.5.0` or newer. The `[extra]` repository ships that version.
 ````
 `````
 
@@ -125,12 +125,12 @@ Now that you have tried the demo application, you can also try the library itsel
 
 ```{code-block} shell-session
 $ uvx --with click-extra python
-Installed 3 packages in 5ms
+Installed 8 packages in 5ms
 Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ] on darwin
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import click_extra
 >>> click_extra.__version__
-'9.5.1'
+'10.1.0'
 >>>
 ```
 
