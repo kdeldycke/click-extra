@@ -34,6 +34,12 @@ Delete `_DEPRECATED_CLICK_EXPORTS`, the loop dropping its bindings and its
 branch in `__getattr__` once the Click floor reaches `9.0`, which removes the
 five names it forwards.
 ```
+
+```{todo}
+Delete `click_extra/blocks.py`, the deprecated alias of
+`click_extra.markdown.blocks`, and its tests in `tests/test_blocks.py` in
+`11.0.0`: its warnings announce that release.
+```
 """
 
 from __future__ import annotations

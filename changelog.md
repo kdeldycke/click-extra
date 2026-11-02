@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Deprecated:** `click_extra.blocks` imports again, as an alias of `click_extra.markdown.blocks` that warns on each name it serves, until its removal in `11.0.0`.
+
 ## [`10.1.0` (2026-11-02)](https://github.com/kdeldycke/click-extra/compare/v10.0.0...v10.1.0)
 
 - Export `MissingExtraError`, `env_copy()` and `machine_envvars_apply()` from the package root, so they import as `from click_extra import ...`.

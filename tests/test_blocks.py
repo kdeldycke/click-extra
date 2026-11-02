@@ -17,12 +17,15 @@
 
 from __future__ import annotations
 
+import importlib
 import re
 import subprocess
 import sys
+import warnings
 
 import pytest
 
+from click_extra.markdown import blocks as markdown_blocks
 from click_extra.markdown.blocks import (
     fence_spans,
     iter_markdown_files,
@@ -35,6 +38,20 @@ from click_extra.markdown.blocks import (
     update_blocks,
     walk_fences,
 )
+
+DEPRECATED_BLOCKS_NAMES = (
+    "FenceSpan",
+    "fence_spans",
+    "iter_markdown_files",
+    "marker_res",
+    "region_markers",
+    "replace_region",
+    "rewrite_fenced_regions",
+    "skip_region",
+    "split_options",
+    "update_blocks",
+)
+"""Public names of the `9.x` `click_extra.blocks` module that `10.x` still defines."""
 
 REGION = "intro\n\n<!-- t -->\nOLD\n<!-- t-end -->\n\nend\n"
 """A minimal document carrying a single `<!-- t --> / <!-- t-end -->` region."""
@@ -65,6 +82,47 @@ def test_blocks_module_needs_no_sphinx_extra():
         check=False,
     )
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("name", DEPRECATED_BLOCKS_NAMES)
+def test_deprecated_blocks_alias_serves_9x_name(name):
+    """`click_extra.blocks` serves each name it held in `9.x`, with a warning.
+
+    Released `repomatic` versions up to `8.0.0` import `region_markers` and
+    `replace_region` from that path, and downstream workflows pin them.
+    """
+    alias = importlib.import_module("click_extra.blocks")
+    with pytest.warns(
+        DeprecationWarning,
+        match=(
+            rf"^click_extra\.blocks\.{name} is deprecated and will be removed in "
+            rf"click-extra 11\.0\.0, use click_extra\.markdown\.blocks\.{name} "
+            r"instead\.$"
+        ),
+    ) as record:
+        value = getattr(alias, name)
+    assert value is getattr(markdown_blocks, name)
+    # The warning blames the code reading the name, not the alias module.
+    assert record[0].filename == __file__
+
+
+@pytest.mark.parametrize(
+    "name",
+    (
+        # The import system probes it on every `from click_extra.blocks import`.
+        "__path__",
+        # Removed in `10.0.0`, with no replacement to point at.
+        "OPTION_LINE_RE",
+        # Added in `10.0.0`, so never served under the old path.
+        "walk_fences",
+    ),
+)
+def test_deprecated_blocks_alias_serves_no_other_name(name):
+    """A name outside the `9.x` surface stays missing, and sets off no warning."""
+    alias = importlib.import_module("click_extra.blocks")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert not hasattr(alias, name)
 
 
 def test_marker_res_grammar():
