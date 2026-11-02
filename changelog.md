@@ -9,6 +9,9 @@
 
 ## [`10.1.0` (2026-11-02)](https://github.com/kdeldycke/click-extra/compare/v10.0.0...v10.1.0)
 
+> [!NOTE]
+> `10.1.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/10.1.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v10.1.0).
+
 - Export `MissingExtraError`, `env_copy()` and `machine_envvars_apply()` from the package root, so they import as `from click_extra import ...`.
 - Add `click_extra.layout.number_frames()`, which numbers each frame of an animation at the gutter width of the tallest one.
 - A subcommand section of a configuration file leaves the keys it does not set to `context_settings["default_map"]`, as root keys do.
