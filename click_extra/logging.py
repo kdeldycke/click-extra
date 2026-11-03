@@ -1227,9 +1227,9 @@ def requested_level(
 
     Read from the parsed `opts`, the environment and the defaults, without running
     any of the options' callbacks, so an eager option processed before them can
-    honor it. {class}`~click_extra.config.ConfigOption` relies on it: it loads the
-    configuration before any verbosity option applies a level, yet `-q` and a
-    quieter `--verbosity` still silence its status lines.
+    honor it. {class}`~click_extra.config.option.ConfigOption` relies on it: it
+    loads the configuration before any verbosity option applies a level, yet `-q`
+    and a quieter `--verbosity` still silence its status lines.
 
     Returns `None` when the command carries no verbosity option, or when a value
     does not convert: the regular parse reports that error in its turn.

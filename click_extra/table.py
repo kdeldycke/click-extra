@@ -348,8 +348,7 @@ AUTO_WIDTH: Final = AUTO
 """Sentinel asking for a column width derived from the space left on the terminal.
 
 Annotated `Final` so it narrows to `Literal["auto"]` instead of `str`, which is
-what lets it stand in for the raw string anywhere a
-{data}`~click_extra.columns.ColumnWidth` is expected.
+what lets it stand in for the raw string anywhere a `ColumnWidth` is expected.
 """
 
 MIN_COLUMN_WIDTH = 8

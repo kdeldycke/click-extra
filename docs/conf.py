@@ -217,6 +217,9 @@ suppress_warnings = [
     # index.md opens at H2 (octicon card layout) and a couple of pages skip a
     # heading level; cosmetic, the rendered table of contents is unaffected.
     "myst.header",
+    # upstream.md repeats a project's heading under each section that names it,
+    # so autosectionlabel labels it twice. Nothing references those labels.
+    "autosectionlabel.upstream",
 ]
 
 # A fragment link that resolves nowhere fails the build: myst-parser only warns,
@@ -246,6 +249,9 @@ nitpick_ignore_regex = [
     # Click annotates its signatures with `typing` and `collections.abc` under the
     # `t` and `cabc` aliases, which autodoc copies verbatim from re-exports.
     (r"py:.*", r"(t|cabc)\.\w+"),
+    # Test-only dependencies, whose types only the annotations of the documented
+    # test helpers name: not worth an inventory download on every build.
+    (r"py:.*", r"(packaging|requests)\..*"),
 ]
 
 # Bare names inherited from re-exported click/cloup docstrings: they resolve in
@@ -262,6 +268,9 @@ nitpick_ignore = [
     ("py:meth", "fail"),
     ("py:class", "Constraint"),
     ("py:class", "click.MultiCommand"),
+    # The Constraints page that cloup's option_group docstring links to exists
+    # only in cloup's own documentation.
+    ("doc", "/pages/constraints"),
     # pygments' inherited ``aliases`` attribute docstring.
     ("py:func", "get_formatter_by_name"),
     # click ParameterSource enum members are absent from click's inventory.
@@ -274,9 +283,11 @@ nitpick_ignore = [
     ("py:class", "ColumnSpec"),
     ("py:class", "ConfigValidator"),
     ("py:class", "LogLevel"),
-    # The covariant TypeVar parameterizing the command-decorator protocol in
-    # click_extra.decorators. A TYPE_CHECKING-only name that autodoc renders in
-    # decorator_factory's return annotation, with no documentable target.
+    # The two decorator protocols of click_extra.decorators and the covariant
+    # TypeVar parameterizing one of them. TYPE_CHECKING-only names that autodoc
+    # renders in decorator_factory's annotations, with no documentable target.
+    ("py:class", "click_extra.decorators.CommandDecorator"),
+    ("py:class", "click_extra.decorators.ParameterDecorator"),
     ("py:obj", "click_extra.decorators.CommandT_co"),
     # The TYPE_CHECKING-only alias of click_extra.envvar that autodoc renders in
     # env_copy()'s signature, under the defining module and the package root.

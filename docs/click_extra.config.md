@@ -5,7 +5,7 @@
    :members:
    :show-inheritance:
    :undoc-members:
-   :exclude-members: ConfigFormat, ConfigValidator
+   :exclude-members: ConfigFormat, ConfigOption, ConfigValidator, ExportConfigOption, NoConfigOption, SchemaFieldInfo, ValidateConfigOption, ValidationError, ValidationReport
 ```
 
 ## Submodules

@@ -508,7 +508,7 @@ def cli():
 
 Precedence, highest first:
 
-1. The nearest `pyproject.toml` with a `[tool.<cli>]`{l=toml} section, found by the [CWD-first discovery](config-formats.md#cwd-first-discovery) walk, then its parents.
+1. The nearest `pyproject.toml` with a `[tool.<cli>]` section, found by the [CWD-first discovery](config-formats.md#cwd-first-discovery) walk, then its parents.
 2. The files found by the app-dir search, walking up: a config in `~/.config/cli/` beats one found in a parent of that folder.
 
 A key defined in several files resolves to the most local one; a key defined in a single file applies wherever it sits in the hierarchy. Each file is validated individually, so an error message names the file it comes from, and the `config_schema` is built from the merged result.

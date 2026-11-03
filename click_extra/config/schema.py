@@ -1401,13 +1401,15 @@ def run_config_validation(
     1. **Partition.** Split opaque sub-trees (schema extension fields plus every
        registered validator's `extension_path`) from the CLI-flag-bound
        content. Extracted sub-trees land in
-       {attr}`ValidationReport.opaque_subtrees`.
+       the report's {attr}`~click_extra.config.schema.ValidationReport.opaque_subtrees`.
     2. **Strict-check** the CLI-flag-bound part against `params_template`, once
-       its dotted keys are expanded, keeping the merged result as
-       {attr}`ValidationReport.merged_conf` (skipped when `params_template` is
-       `None`). A key the dataclass schema reads is left to stage 3.
+       its dotted keys are expanded, keeping the merged result as the report's
+       {attr}`~click_extra.config.schema.ValidationReport.merged_conf` (skipped
+       when `params_template` is `None`). A key the dataclass schema reads is
+       left to stage 3.
     3. **Schema-build** the app section through the configured callable,
-       producing {attr}`ValidationReport.schema_instance`.
+       producing the report's
+       {attr}`~click_extra.config.schema.ValidationReport.schema_instance`.
     4. **Validate** every opaque sub-tree through its registered validator.
 
     :param user_conf: The full parsed configuration document.
@@ -1435,9 +1437,10 @@ def run_config_validation(
         blocked parameter is reported as such, not as unknown).
     :param collect_all: When `True` (default), run every stage and collect all
         errors. When `False`, the first error short-circuits the rest.
-    :return: A {class}`ValidationReport`. `ValidationError` is the single error
-        type recorded by every stage; a `ValueError` or `TypeError` raised by
-        the schema callable is wrapped into it.
+    :return: A {class}`~click_extra.config.schema.ValidationReport`.
+        `ValidationError` is the single error type recorded by every stage; a
+        `ValueError` or `TypeError` raised by the schema callable is wrapped
+        into it.
     """
     errors: list[ValidationError] = []
     merged_conf: dict[str, Any] | None = None

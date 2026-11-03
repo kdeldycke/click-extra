@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - Replace the benchmark's 🟡 mark with 🪫 and its N/A with a blank cell, and grade 🪫 two cobra cells that rely on Viper.
+- Document the `:force:` option of `click:run`: it highlights output its lexer cannot parse, and logs no Sphinx warning.
 
 ## [`10.1.1` (2026-11-02)](https://github.com/kdeldycke/click-extra/compare/v10.1.0...v10.1.1)
 

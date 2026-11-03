@@ -772,17 +772,30 @@ invoke(sql_output, args=["--name", "Joe"])
 And renders to:
 
 ```{click:run} sql
+:force:
 :emphasize-result-lines: 2
-invoke(sql_output, args=["--name", "Joe"])
+result = invoke(sql_output, args=["--name", "Joe"])
+assert result.exit_code == 0
+assert result.output == "SELECT * FROM users WHERE name = 'Joe';\n"
 ```
 
 See how the output (the second line above) is now rendered with the `sql` Pygments lexer, which is more appropriate for SQL queries. But of course it also parse and renders the whole block as if it is SQL code, which mess up the rendering of the first line, as it is a shell command.
 
-In fact, if you look at Sphinx logs, you will see that a warning has been raised because of that:
+The SQL lexer cannot parse that first line, so without the `:force:` option below, Sphinx logs a warning about it:
 
 ```{code-block} text
 .../docs/sphinx.md:257: WARNING: Lexing literal_block "$ sql-output --name Joe\nSELECT * FROM users WHERE name = 'Joe';" as "sql" resulted in an error at token: '$'. Retrying in relaxed mode. [misc.highlighting_failure]
 ```
+
+To highlight the block without that warning, add `:force:`. This option of Sphinx's `code-block` directive, which `click:run` passes on, lexes the block in relaxed mode from the start. A build under `--fail-on-warning` needs it, so the block above carries it:
+
+````{code-block} markdown
+:emphasize-lines: 2
+```{click:run} sql
+:force:
+invoke(sql_output, args=["--name", "Joe"])
+```
+````
 
 ```{hint}
 Alternatively, you can force syntax highlight with the `:language:` option, which takes precedence over the default language of the directive.

@@ -15,7 +15,7 @@ Click Extra reads a configuration file in any of the dialects below. Each one li
 | [`plist`](#plist)                   | `*.plist`               | Apple's property list, in its XML or binary variant                                       | ✅                 |
 | [`SQLITE`](#sqlite)                 | `*.sqlite`, `*.sqlite3` | Reads a `config` table of dotted keys and JSON-encoded values                             | ✅                 |
 | [`ARGFILE`](#argfile)               | `*.conf`                | Plain-text list of command-line options, in the style of `mpv` and `yt-dlp`               | ✅                 |
-| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`        | Reads `[tool.*]`{l=toml} sections from `pyproject.toml`                                   | ✅                 |
+| [`PYPROJECT_TOML`](#pyproject-toml) | `pyproject.toml`        | Reads `[tool.*]` sections from `pyproject.toml`                                           | ✅                 |
 
 Formats depending on third-party packages are not enabled by default. You need to [install Click Extra with the corresponding extra dependency group](install.md#extra-dependencies) to enable them.
 
@@ -293,10 +293,10 @@ An argfile can only address the options of the CLI's top-level command: the form
 
 ## `pyproject.toml`
 
-The `PYPROJECT_TOML` format reads `[tool.<cli-name>]`{l=toml} sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This stores the CLI's configuration alongside project metadata. Non-Python tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md) use the same convention.
+The `PYPROJECT_TOML` format reads `[tool.<cli-name>]` sections from a `pyproject.toml` file, following [PEP 518](https://peps.python.org/pep-0518/). This stores the CLI's configuration alongside project metadata. Non-Python tools like [ruff](https://docs.astral.sh/ruff/configuration/#configuring-ruff) and [typos](https://github.com/crate-ci/typos/blob/master/docs/reference.md) use the same convention.
 
 ```{tip}
-`pyproject.toml` is becoming the standard place to centralize tool configuration for Python projects. Instead of scattering dedicated config files at the root of your repository (`ruff.toml`, `typos.toml`, `mypy.ini`, …), you can consolidate them all under `[tool.*]`{l=toml} sections in a single `pyproject.toml`. This keeps the repository root clean, makes it easy to review and coordinate tool configurations in one place, and reduces the number of files contributors need to discover.
+`pyproject.toml` is becoming the standard place to centralize tool configuration for Python projects. Instead of scattering dedicated config files at the root of your repository (`ruff.toml`, `typos.toml`, `mypy.ini`, …), you can consolidate them all under `[tool.*]` sections in a single `pyproject.toml`. This keeps the repository root clean, makes it easy to review and coordinate tool configurations in one place, and reduces the number of files contributors need to discover.
 ```
 
 `PYPROJECT_TOML` is included in the default format patterns, so it is automatically discovered alongside other formats. The `[tool]` wrapper is automatically unwrapped: the loader sees `{"cli": {"int_param": 3}}`, exactly the [same structure as a regular TOML config file](#toml).
@@ -355,11 +355,11 @@ This is the de facto standard across the ecosystem. Every major tool that suppor
 The rationale:
 
 - **No merging surprises.** Merging two config sources creates ambiguity: which key wins when both files define it? Are arrays concatenated or replaced? Every tool above chose "first match wins, full stop" to avoid this class of problems entirely.
-- **Explicit intent.** A dedicated file at the repository root, named after the tool, is the most visible and explicit signal. If someone creates one alongside a `[tool.*]`{l=toml} section, the dedicated file represents a deliberate override.
+- **Explicit intent.** A dedicated file at the repository root, named after the tool, is the most visible and explicit signal. If someone creates one alongside a `[tool.*]` section, the dedicated file represents a deliberate override.
 - **Clean migration path.** Users moving from a dedicated file to `pyproject.toml` simply delete the dedicated file. Users who need the dedicated file (for example, sharing it across non-Python repos) keep it and `pyproject.toml` is silently ignored.
 
 ```{seealso}
-Other non-Python tools that support `[tool.*]`{l=toml} in `pyproject.toml`:
+Other non-Python tools that support `[tool.*]` in `pyproject.toml`:
 [basedpyright](https://docs.basedpyright.com/latest/configuration/config-files/),
 [lychee](https://lychee.cli.rs/guides/config/),
 [maturin](https://www.maturin.rs/config),
@@ -373,7 +373,7 @@ Other non-Python tools that support `[tool.*]`{l=toml} in `pyproject.toml`:
 [uv](https://docs.astral.sh/uv/concepts/configuration-files/),
 and [Zuban](https://docs.zubanls.com/en/latest/usage.html).
 
-Click Extra's own `[tool.*]`{l=toml} bridge in [repomatic's tool runner](https://kdeldycke.github.io/repomatic/tool-runner.html#level-2-tool-x-in-pyproject-toml) translates `[tool.yamllint]`{l=toml}, `[tool.actionlint]`{l=toml}, `[tool.biome]`{l=toml}, and others into native config files at invocation time, giving tools that lack native `pyproject.toml` support the same single-file experience.
+Click Extra's own `[tool.*]` bridge in [repomatic's tool runner](https://kdeldycke.github.io/repomatic/tool-runner.html#level-2-tool-x-in-pyproject-toml) translates `[tool.yamllint]`{l=toml}, `[tool.actionlint]`{l=toml}, `[tool.biome]`{l=toml}, and others into native config files at invocation time, giving tools that lack native `pyproject.toml` support the same single-file experience.
 
 Other tools are following suit:
 [actionlint#623](https://github.com/rhysd/actionlint/issues/623),

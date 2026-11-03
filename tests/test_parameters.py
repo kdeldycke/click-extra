@@ -1803,7 +1803,7 @@ def test_subcommand_conflicts_with_parent_param(invoke):
 
         [root.alpha]
         # "foo" is ambiguous: is it the --foo param or the [root.alpha.foo] subcommand?
-        foo = ???
+        foo = "apple"
 
     See: https://github.com/kdeldycke/click-extra/pull/1286
     """
