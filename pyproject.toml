@@ -249,8 +249,14 @@ docs = [
   "hjson>=3.1",
   # Mirrors the json5 extra floor.
   "json5>=0.12.1",
+  # jsonschema is needed for automodule of tests.test_carapace. Mirrors the test
+  # group floor.
+  "jsonschema>=4.18",
   # MkDocs is needed for automodule/autoclasstree of click_extra.mkdocs.
   "mkdocs>=1.4",
+  # mkdocs-click is needed for automodule of tests.mkdocs.test_mkdocs. Mirrors
+  # the test group floor.
+  "mkdocs-click>=0.8.1",
   # myst-parser 5.1 ships the native "alert" syntax extension for GitHub-style
   # callouts, used by docs/conf.py's myst_enable_extensions.
   "myst-parser>=5.1",
