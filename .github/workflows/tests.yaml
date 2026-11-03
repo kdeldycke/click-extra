@@ -104,7 +104,7 @@ jobs:
         # failure while running no test at all. `uvx` reads no project config, so
         # the bypass has to ride on the command line. See AGENTS.md.
         run: >
-          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==8.0.0' show-metadata
+          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==8.1.0' show-metadata
           --output-format github-json --output "$GITHUB_OUTPUT"
           test_matrix test_matrix_pr latest_stable_python
 
@@ -339,5 +339,5 @@ jobs:
         # step before `coverage json` writes the report.
         shell: bash
         run: >
-          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==8.0.0' lint-coverage
+          uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==8.1.0' lint-coverage
           --report "${RUNNER_TEMP}/coverage.json" --no-fatal
