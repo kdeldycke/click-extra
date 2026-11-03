@@ -252,7 +252,9 @@ jobs:
       ${{ matrix.os }} /
       py${{ matrix.python-label || matrix.python-version }} /
       Click ${{ matrix.click-version }} /
-      Cloup ${{ matrix.cloup-version }}${{ matrix.resolution && format(' / {0}', matrix.resolution) || '' }}
+      Cloup ${{ matrix.cloup-version }}${{
+      matrix.resolution && format(' / {0}', matrix.resolution) || '' }}${{
+      matrix.source && format(' / {0}', matrix.source) || '' }}
     runs-on: ${{ matrix.os }}
     # One cap for every cell, so it has to clear the slowest, which is
     # windows-2025 at ~3.7 min. No cell now exceeds 4 min: macOS on Python
@@ -288,10 +290,12 @@ jobs:
         run: uv --no-progress venv --python "${PYTHON_VERSION}"
       - name: Install project
         # Install all extras, so we can check any incompatibility.
+        if: matrix.source != 'sdist'
         run: >
           uv --no-progress sync --frozen --all-extras --group test
 
       - name: Run local CLI
+        if: matrix.source != 'sdist'
         shell: bash
         run: |
           uv run -- click-extra         --version
@@ -311,6 +315,24 @@ jobs:
         env:
           RESOLUTION: ${{ matrix.resolution }}
         run: uv --no-progress sync --resolution "${RESOLUTION}" --all-extras --group test
+      - name: Unpack the source distribution
+        # A cell carrying `source = "sdist"` tests the project the way a distribution builds it: from the sdist,
+        # outside any git checkout, against the newest dependency releases the cooldown admits instead of the lockfile.
+        # See https://repomatic.net/test-matrix#test-the-source-distribution-like-a-distribution
+        if: matrix.source == 'sdist'
+        shell: bash
+        run: |
+          uv --no-progress build --sdist --out-dir "${RUNNER_TEMP}/dist"
+          mkdir "${RUNNER_TEMP}/sdist"
+          tar --extract --file "${RUNNER_TEMP}"/dist/*.tar.gz --directory "${RUNNER_TEMP}/sdist" --strip-components 1
+      - name: Install the source distribution
+        # `--upgrade` resolves past a `uv.lock` the sdist may ship, so every dependency installs at its newest release.
+        if: matrix.source == 'sdist'
+        working-directory: ${{ runner.temp }}/sdist
+        shell: bash
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: uv --no-progress sync --upgrade --python "${PYTHON_VERSION}" --all-extras --group test
 
       - name: Unittests
         # The one job running the whole suite, so the one expected to clear the
@@ -318,6 +340,7 @@ jobs:
         # pytest imports the package as a plugin: see `[tool.coverage]` in
         # pyproject.toml. No `--fail-under` here: the flag outranks the config and
         # would shadow the ratchet. The JSON report feeds the next step.
+        if: matrix.source != 'sdist'
         env:
           CLICK_VERSION: ${{ matrix.click-version }}
           CLOUP_VERSION: ${{ matrix.cloup-version }}
@@ -335,12 +358,18 @@ jobs:
           uv --no-progress run --frozen -- coverage combine --quiet
           uv --no-progress run --frozen -- coverage report --show-missing
           uv --no-progress run --frozen -- coverage json --quiet -o "${RUNNER_TEMP}/coverage.json"
+      - name: Unittests from the source distribution
+        # No coverage here: the cells testing the checkout hold the `[tool.coverage] report.fail_under` floor.
+        if: matrix.source == 'sdist'
+        working-directory: ${{ runner.temp }}/sdist
+        run: uv --no-progress run --frozen -- pytest -m "not once"
 
       - name: Check the coverage floor
         # Warns when the floor sits more than two points under the coverage total,
         # so the ratchet gets raised instead of drifting. It runs only after the
         # step above passed: a failed test or a total under the floor stops that
         # step before `coverage json` writes the report.
+        if: matrix.source != 'sdist'
         shell: bash
         run: >
           uvx --no-progress --exclude-newer-package repomatic=P0D 'repomatic==8.1.0' lint-coverage
