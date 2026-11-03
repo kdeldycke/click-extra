@@ -205,7 +205,7 @@ test = [
   # coverage 7.13.0 is the first version to ship the permanent .pth file behind
   # `[tool.coverage] run.patch = ["subprocess"]`: older versions write it into
   # site-packages at run time, which fails when that directory is read-only.
-  "coverage[toml]>=7.13",
+  "coverage>=7.13",
   # Matches the runtime extra-platforms>=14 floor; the [pytest] extra adds fixtures.
   "extra-platforms[pytest]>=14",
   # jsonschema validates the generated Carapace spec against the vendored

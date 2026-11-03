@@ -417,7 +417,7 @@ docs = [
     { name = "tomlrt", marker = "python_full_version >= '3.14'", specifier = ">=2.2.10" },
 ]
 test = [
-    { name = "coverage", extras = ["toml"], specifier = ">=7.13" },
+    { name = "coverage", specifier = ">=7.13" },
     { name = "extra-platforms", extras = ["pytest"], specifier = ">=14" },
     { name = "jsonschema", specifier = ">=4.18" },
     { name = "mkdocs", specifier = ">=1.4" },
