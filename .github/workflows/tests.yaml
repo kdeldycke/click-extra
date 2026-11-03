@@ -7,8 +7,10 @@ name: 🔬 Tests
       - main
     paths:
       - click_extra/**
+      - docs/**
       - tests/**
       - pyproject.toml
+      - readme.md
       - uv.lock
       - .github/workflows/tests.yaml
   pull_request:
@@ -26,8 +28,10 @@ name: 🔬 Tests
       - prepare-release
     paths:
       - click_extra/**
+      - docs/**
       - tests/**
       - pyproject.toml
+      - readme.md
       - uv.lock
       - .github/workflows/tests.yaml
   schedule:
