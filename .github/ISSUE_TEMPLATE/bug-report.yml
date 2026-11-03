@@ -11,7 +11,7 @@ body:
 
         ```shell-session
 
-        $ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
+        $ uvx --exclude-newer '1 week' --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
 
         ```
 
@@ -36,7 +36,8 @@ body:
     attributes:
       label: Version
       description: >
-        Output of `click-extra --version` (or `uvx -- click-extra --version`).
+        Output of `click-extra --version`
+        (or `uvx --exclude-newer '1 week' --exclude-newer-package click-extra=P0D -- click-extra --version`).
       placeholder: "click-extra, version X.Y.Z"
     validations:
       required: true
