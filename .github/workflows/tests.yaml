@@ -243,10 +243,10 @@ jobs:
         ${{ github.event_name != 'pull_request'
         && fromJSON(needs.metadata.outputs.metadata).test_matrix
         || fromJSON(needs.metadata.outputs.metadata).test_matrix_pr }}
-    name: |
+    name: >-
       ${{ matrix.state == 'stable' && '✅' || '⁉️' }}
       ${{ matrix.os }} /
-      py${{ matrix.python-version }} /
+      py${{ matrix.python-label || matrix.python-version }} /
       Click ${{ matrix.click-version }} /
       Cloup ${{ matrix.cloup-version }}${{ matrix.resolution && format(' / {0}', matrix.resolution) || '' }}
     runs-on: ${{ matrix.os }}
