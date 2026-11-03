@@ -54,8 +54,10 @@ MARKDOWN_FILES = (
     *sorted((PROJECT_ROOT / "docs").glob("*.md")),
 )
 
-# Opening line of a live directive, once its backticks are stripped. A
-# `{click:source}` block only defines a CLI, so it asserts nothing by design.
+# Name of a live directive, the first word of its opening line once the
+# backticks are stripped: an argument may follow it, like the lexer of
+# `{click:run} sql`. A `{click:source}` block only defines a CLI, so it asserts
+# nothing by design.
 RUN_DIRECTIVE = "{click:run}"
 
 
@@ -69,7 +71,7 @@ def run_blocks(path: Path) -> list[tuple[int, str]]:
     lines = path.read_text(encoding="UTF-8").splitlines()
     blocks = []
     for start, span in sorted(fence_spans(lines).items()):
-        if lines[start].strip().lstrip("`") != RUN_DIRECTIVE:
+        if lines[start].strip().lstrip("`").split(maxsplit=1)[:1] != [RUN_DIRECTIVE]:
             continue
         _options, body = split_options(lines[span.body])
         blocks.append((start + 1, "\n".join(body)))
