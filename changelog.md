@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Replace the benchmark's 🟡 mark with 🪫 and its N/A with a blank cell, and grade 🪫 two cobra cells that rely on Viper.
+
 ## [`10.1.1` (2026-11-02)](https://github.com/kdeldycke/click-extra/compare/v10.1.0...v10.1.1)
 
 - **Deprecated:** `click_extra.blocks` imports again, as an alias of `click_extra.markdown.blocks` that warns on each name it serves, until its removal in `11.0.0`.
