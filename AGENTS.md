@@ -84,10 +84,12 @@ Name `--all-extras --group test` every time, even though a bare `uv run pytest` 
 ### Building documentation
 
 ```shell-session
-$ uv run --frozen --all-extras --group test --group docs -- sphinx-build -b html docs docs/_build
+$ uv run --frozen --all-extras --group test --group docs -- sphinx-build -b html --fail-on-warning docs docs/_build
 ```
 
 Name all three of `--all-extras`, `--group test` and `--group docs`: `docs` is not a default group, so a run without it dies in `conf.py` on a missing `sphinxcontrib.mermaid`, and a run naming only `--group docs` drops the test packages from the shared environment, as § Testing warns.
+
+`--fail-on-warning` matches CI, where `[tool.repomatic] sphinx.fail-on-warning` fails the build on any warning. A warning that is unavoidable goes to `suppress_warnings` or `nitpick_ignore` in `docs/conf.py`, with a comment saying why.
 
 A local build rewrites a committed capture in `docs/assets/` only when its bytes change, as they do for output that varies by machine. The `@generated` stamp names no release, so a version bump does not restamp them. Unless refreshing them is the task, restore them with `git checkout -- docs/assets` before staging.
 
