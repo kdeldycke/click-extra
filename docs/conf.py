@@ -450,6 +450,11 @@ if os.environ.get("GITHUB_TOKEN"):
 linkcheck_ignore = [
     # This site returns 403 to bots but is valid.
     r"https://docutils\.sourceforge\.io",
+    # no-color.org and openclipart.org are valid but intermittently fail DNS
+    # resolution or time out from CI runners. Also excluded from the lychee run
+    # (see [tool.lychee] in pyproject.toml).
+    r"https://no-color\.org",
+    r"https://openclipart\.org",
     # shields.io intermittently answers a badge with 408 Request Timeout, or
     # times out, from CI runners. The lychee run in the same job still checks
     # every badge.
@@ -463,6 +468,8 @@ linkcheck_ignore = [
     # binaries catalog links one per released binary. Also excluded from the
     # lychee run (see [tool.lychee] in pyproject.toml).
     r"https://www\.virustotal\.com/gui/.*",
+    # Telemetry opt-out endpoint is slow and times out from CI.
+    r"https://telemetry\.timseverien\.com/.*",
     # Hacker News rate-limits automated checkers with HTTP 429. Already excluded
     # from the lychee run (see [tool.lychee] in pyproject.toml).
     r"https://news\.ycombinator\.com/.*",
