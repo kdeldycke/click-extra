@@ -153,6 +153,18 @@ And every CLI gets these on top:
 - [Fixes 100+ bugs and addresses missing features](https://kdeldycke.github.io/click-extra/upstream.html) across Click, Cloup, Pygments, tabulate, MyST-Parser, Furo, and unmaintained `click-contrib` packages
 - Drop-in replacement for [Click](https://click.palletsprojects.com) and [Cloup](https://github.com/janluke/cloup): every `from click_extra import …` and `@click_extra.command` works as a transparent superset. Cloup provides option groups, constraints, subcommand sections, aliases, and `Did you mean <subcommand>?` suggestions; click-extra adds everything above on top.
 
+## Documentation
+
+The [full documentation](https://kdeldycke.github.io/click-extra/) covers:
+
+- [Installation methods, binaries and compatibility tables](https://kdeldycke.github.io/click-extra/install.html)
+- [Tutorial](https://kdeldycke.github.io/click-extra/tutorial.html) that upgrades a plain Click CLI by changing one line
+- [CLI reference](https://kdeldycke.github.io/click-extra/cli.html) of the `click-extra` demo and toolbox
+- [Comparison with other CLI frameworks](https://kdeldycke.github.io/click-extra/benchmark.html)
+- [API reference](https://kdeldycke.github.io/click-extra/click_extra.html)
+- [Contribution guide](https://kdeldycke.github.io/click-extra/contributing.html)
+- [Changelog](https://kdeldycke.github.io/click-extra/changelog.html)
+
 ## Used in
 
 Check these projects to get real-life examples of `click-extra` usage.

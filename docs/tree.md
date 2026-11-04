@@ -139,6 +139,7 @@ assert "restock" in result.stdout
    :strict:
 
 .. automodule:: click_extra.tree
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

@@ -81,6 +81,7 @@ The patch needs `mkdocs-click` `0.8.1` or newer. An older release writes these b
    :strict:
 
 .. automodule:: click_extra.mkdocs
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

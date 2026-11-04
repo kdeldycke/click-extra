@@ -194,6 +194,7 @@ It powers the wrapping of the [`vertical` table format](table.md#column-widths),
 
 ```{eval-rst}
 .. automodule:: click_extra.layout
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

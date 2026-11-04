@@ -1,4 +1,4 @@
-# {octicon}`file-code` Machine-readable help
+# {octicon}`code` Machine-readable help
 
 CLIs are increasingly read by something other than a person: a script wiring two tools together, a package manager, a language model deciding which flag to pass. All of them start from `--help`, and `--help` is the worst possible source. It is written for a human at a terminal: it wraps to a width, carries ANSI styling, and expresses structure as *layout*, so a reader has to recover the option list from column alignment and guess where a description ends.
 

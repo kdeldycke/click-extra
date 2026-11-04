@@ -227,6 +227,7 @@ $ uv pip install "click-extra[carapace]"
    :strict:
 
 .. automodule:: click_extra.carapace
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

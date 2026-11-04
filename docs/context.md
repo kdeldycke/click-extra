@@ -179,6 +179,7 @@ This applies per command, so a group and each of its subcommands independently s
    :strict:
 
 .. automodule:: click_extra.context
+   :no-index:
    :members:
    :undoc-members:
 ```

@@ -551,6 +551,7 @@ The `--color` callback inspects the standard set of color environment variables 
    :strict:
 
 .. automodule:: click_extra.theme
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:

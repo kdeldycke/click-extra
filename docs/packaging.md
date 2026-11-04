@@ -2,6 +2,14 @@
 
 This page is for distribution packagers building `click-extra` from source, either a PyPI sdist or a Git tag. To install it on your own system, use `uv pip install click-extra` or your distribution's package.
 
+## Dependencies
+
+This is a graph of the Python package's dependencies. Boxes hold the dependencies it declares directly, drawn as hexagons: one box for the primary set, and one for each [extra](install.md#extra-dependencies). Transitive dependencies render outside the boxes, as ovals:
+
+```mermaid assets/dependencies.mmd
+:align: center
+```
+
 ## Building
 
 The wheel is built with [`uv_build`](https://docs.astral.sh/uv/), declared as the `[build-system]` backend. Distributions that do not yet package `uv-build` can fall back to `setuptools`. The `[tool.setuptools]` table is a compatibility shim for that case: it declares `click_extra`'s `py.typed` marker as `package-data` so a `setuptools.build_meta` build ships it, which `setuptools` otherwise drops when it installs only `*.py`. `uv_build` ignores the table entirely.

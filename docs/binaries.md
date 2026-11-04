@@ -2,11 +2,13 @@
 
 All standalone executables of the `click-extra` demo CLI published by this repository, one row per binary, newest release first. The version links to its GitHub release, the platform to the direct binary download, and the VirusTotal cell to the file's public analysis.
 
-Compiled Python binaries are regularly flagged by heuristic antivirus engines, so every release is submitted to [VirusTotal](https://www.virustotal.com/): this seeds vendor databases with the new signatures and keeps false positives in check. The VirusTotal cell tracks those false positives: a green check marks binaries no engine flags, and flagged binaries show the share of engine verdicts flagging them, snapshotted minutes after publication and before false-positive reports get processed. The live analysis behind the link supersedes it.
+Each target's minimum OS requirement (glibc floor on Linux, deployment target on macOS) and the distributions it opens execution to are documented in the [repomatic binaries page](https://repomatic.net/binaries#minimum-os-requirements).
+
+Compiled Python binaries are regularly flagged by heuristic antivirus engines, so every release is submitted to [VirusTotal](https://www.virustotal.com/): this seeds vendor databases with the new signatures and keeps false positives in check. The VirusTotal cell tracks those false positives: a green check marks binaries no engine flags, and flagged binaries show the share of engine verdicts flagging them, snapshotted minutes after publication and before false-positive reports get processed. The live analysis behind the link supersedes it. An empty cell means no scan of the binary was recorded, so there is no analysis to link to. This covers every release before `7.12.0`, which predates the scan pipeline, and three binaries of later releases.
 
 ## Development builds
 
-Fresh binaries are compiled from every push to the default branch by the [release workflow](https://github.com/kdeldycke/click-extra/actions/workflows/release.yaml). To try the latest development build: open the most recent successful run and download the artifact matching your platform (a GitHub account is required, and the binary comes wrapped in a zip). The same builds are also attached to a rolling dev pre-release, a draft only visible to repository maintainers.
+Fresh binaries are compiled by the [release workflow](https://github.com/kdeldycke/click-extra/actions/workflows/release.yaml). A push to the default branch only rebuilds the `linux-arm64` canary; every target is compiled on release commits, on the weekly Monday schedule, and on manual dispatch, so a given platform is at most a week behind. See the [build cadence](https://repomatic.net/nuitka#build-cadence) of the release engine for details. To try the latest development build: open the most recent successful run covering your platform and download its artifact (a GitHub account is required, and the binary comes wrapped in a zip). The same builds are also attached to a rolling dev pre-release, a draft only visible to repository maintainers.
 
 <!-- binaries-chart -->
 

@@ -14,6 +14,70 @@ So you can install the latest stable release with your favorite package manager 
 $ uv pip install click-extra
 ```
 
+## Demo CLI
+
+You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/). This downloads and runs `click-extra`, a demo CLI included in the package:
+
+`````{tab-set}
+````{tab-item} Latest release
+```shell-session
+$ uvx click-extra
+```
+
+```{click:run}
+from click_extra.cli import demo
+result = invoke(demo, args=["--help"])
+assert result.exit_code == 0
+assert "Usage:" in result.output
+```
+````
+
+````{tab-item} Specific version
+```shell-session
+$ uvx click-extra@10.1.1
+```
+````
+
+````{tab-item} Development version
+```shell-session
+$ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra
+```
+````
+
+````{tab-item} Local version
+```shell-session
+$ uvx --from file:///Users/me/code/click-extra -- click-extra
+```
+````
+`````
+
+The demo CLI showcases various features of Click Extra, such as enhanced help formatting, colored output, and more. The help screen in the *Latest release* tab is rendered at build time, so it always matches the current code. The [CLI reference](cli.md) documents every command with its live help screen.
+
+And so you can explore the various possibilities of the demo application, like showing the current version:
+
+```shell-session
+$ uvx click-extra --version
+```
+
+This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
+
+The demo CLI is also compiled into [standalone executables](#binaries) for Linux, macOS, and Windows, so you can try it without Python or `uv`.
+
+## Try the library
+
+Now that you have tried the demo application, you can also try the library itself in an interactive Python shell without installing anything on your system:
+
+```{code-block} shell-session
+$ uvx --with click-extra python
+Installed 8 packages in 5ms
+Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from click_extra import echo, style
+>>> echo(style("Hello, World!", fg="green"))
+Hello, World!
+>>>
+```
+
 ## Installation methods
 
 `````{tab-set}
@@ -60,83 +124,35 @@ $ paru -S python-click-extra
 
 The package needs `python-click` `8.5.0` or newer. The `[extra]` repository ships that version.
 ````
-`````
 
-## Demo CLI
-
-You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/):
-
-`````{tab-set}
-````{tab-item} Latest release
-```shell-session
-$ uvx click-extra
-```
-````
-
-````{tab-item} Specific version
-```shell-session
-$ uvx click-extra@10.1.1
-```
-````
-
-````{tab-item} Development version
-```shell-session
-$ uvx --from git+https://github.com/kdeldycke/click-extra -- click-extra
-```
-````
-
-````{tab-item} Local version
-```shell-session
-$ uvx --from file:///Users/me/code/click-extra -- click-extra
-```
-````
-`````
-
-This will download and run `click-extra`, a demo CLI included in the package.
-
-The demo CLI showcases various features of Click Extra, such as enhanced help formatting, colored output, and more. The [CLI reference](cli.md) documents every command with its live help screen.
-
-Here is the help screen of the demo application, rendered at build time so it always matches the current code:
-
-```{click:source}
-:hide-source:
-from click_extra.cli import demo
-```
-
-```{click:run}
-result = invoke(demo, args=["--help"])
-assert result.exit_code == 0
-assert "Usage:" in result.output
-```
-
-And so you can explore the various possibilities of the demo application, like showing the current version:
-
-```shell-session
-$ uvx click-extra --version
-```
-
-This is a great way to play with Click Extra and check that it runs fine on your system, and renders properly in your terminal.
-
-The demo CLI is also compiled into [standalone executables](#executables) for Linux, macOS, and Windows, so you can try it without Python or `uv`.
-
-## Try the library
-
-Now that you have tried the demo application, you can also try the library itself in an interactive Python shell without installing anything on your system:
+````{tab-item} GNU Guix
+GNU Guix users install [`python-click-extra`](https://packages.guix.gnu.org/packages/python-click-extra/) with [`guix install`](https://guix.gnu.org/manual/en/html_node/Invoking-guix-package.html):
 
 ```{code-block} shell-session
-$ uvx --with click-extra python
-Installed 8 packages in 5ms
-Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ] on darwin
-Type "help", "copyright", "credits" or "license" for more information.
->>> import click_extra
->>> click_extra.__version__
-'10.1.0'
->>>
+$ guix install python-click-extra
 ```
+````
+
+````{tab-item} MacPorts
+MacPorts splits [`py-click-extra`](https://ports.macports.org/port/py-click-extra/) into one port per Python version, like `py313-click-extra` for Python 3.13. Install the one matching your Python with [`port install`](https://guide.macports.org/#using.port.install):
+
+```{code-block} shell-session
+$ sudo port install py313-click-extra
+```
+````
+
+````{tab-item} openSUSE Tumbleweed
+openSUSE Tumbleweed ships one package per Python version, like `python313-click-extra` for Python 3.13. Install it with [`zypper`](https://doc.opensuse.org/documentation/leap/reference/html/book-reference/cha-sw-cl.html):
+
+```{code-block} shell-session
+$ sudo zypper install python313-click-extra
+```
+````
+`````
 
 ## Python compatibility
 
-The table below shows which Python versions each `click-extra` release range supports. For `4.9.0` and later, support comes from the `Programming Language :: Python :: 3.X` classifiers in `pyproject.toml`. For earlier releases, the floor comes from the `requires-python` declaration (Poetry `python = "..."` for older tags), capped at the latest Python released within the range. It is regenerated from the release tags by `click-extra refresh-directives` (the [`matrix`](python-directives.md#matrix-directives) mechanism).
+The table below shows which Python versions each `click-extra` release range supports. For `4.9.0` and later, support comes from the `Programming Language :: Python :: 3.X` classifiers in `pyproject.toml`. For earlier releases, the floor comes from the `requires-python` declaration (Poetry `python = "..."` for older tags), capped at the latest Python released within the range. It is regenerated from the release tags by `click-extra refresh-directives` (the [`matrix`](python-directives.md#the-matrix-directive) mechanism).
 
 Cells are ✅ for a version the release declares support for, ❌ for one its `requires-python` rules out, and `–` for one it neither claimed nor forbade, usually because that Python had not been released yet. See [three states, two sources](python-directives.md#three-states-two-sources).
 
@@ -158,7 +174,7 @@ Cells are ✅ for a version the release declares support for, ❌ for one its `r
 
 ## Click compatibility
 
-Click Extra wraps Click, so the two are tightly coupled and the matrix of supported Click versions matters as much as the Python one. The table below shows which Click versions each `click-extra` release range accepts at install time, derived from the `click` runtime dependency specifier across all release tags. Each column covers a run of consecutive Click releases that every `click-extra` range accepts or rejects alike, so a cell holds for every release in its column. The version resolved in `uv.lock` counts too, and a new Click release shows up before the lockfile adopts it. Like the Python table, it is regenerated by the same [`matrix`](python-directives.md#matrix-directives) mechanism, here on the `click` axis:
+Click Extra wraps Click, so the two are tightly coupled and the matrix of supported Click versions matters as much as the Python one. The table below shows which Click versions each `click-extra` release range accepts at install time, derived from the `click` runtime dependency specifier across all release tags. Each column covers a run of consecutive Click releases that every `click-extra` range accepts or rejects alike, so a cell holds for every release in its column. The version resolved in `uv.lock` counts too, and a new Click release shows up before the lockfile adopts it. Like the Python table, it is regenerated by the same [`matrix`](python-directives.md#the-matrix-directive) mechanism, here on the `click` axis:
 
 <!-- matrix click -->
 
@@ -214,11 +230,11 @@ Click Extra's commands and groups subclass those of [Cloup](https://github.com/j
 
 <!-- matrix-end -->
 
-## Executables
+## Binaries
 
 Standalone executables of the demo CLI's latest release are available as direct downloads for several platforms and architectures:
 
-| Platform ↴ \\ Architecture → | `arm64`                                                                                                                                     | `x86_64`                                                                                                                                |
+| Platform ↴ \\ Architecture → | `arm64`                                                                                                                                     | `x64`                                                                                                                                   |
 | :--------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linux**                    | [Download `click-extra-linux-arm64.bin`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-linux-arm64.bin)     | [Download `click-extra-linux-x64.bin`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-linux-x64.bin)     |
 | **macOS**                    | [Download `click-extra-macos-arm64.bin`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-macos-arm64.bin)     | [Download `click-extra-macos-x64.bin`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-macos-x64.bin)     |
@@ -238,13 +254,32 @@ $ gh attestation verify click-extra-linux-x64.bin --repo kdeldycke/click-extra -
 
 The PyPI distributions carry their own [PEP 740](https://peps.python.org/pep-0740/) attestations, visible and verifiable on the [PyPI project page](https://pypi.org/project/click-extra/).
 
-## Default dependencies
+## Man pages
 
-This is a graph of the default, main dependencies of the Python package:
+The demo CLI has a [`--man`](man-page.md#reading-a-manual) option, which typesets its manual and pages it, the way `man` does:
 
-```mermaid assets/dependencies.mmd
-:align: center
+```{code-block} shell-session
+$ click-extra --man
 ```
+
+To get the roff source instead, ask for the `man` rendering of `--help-format`:
+
+```{code-block} shell-session
+$ click-extra --help-format man
+```
+
+The full command tree is also pre-rendered as static `.1` files:
+
+- Bundled with the latest release as [`click-extra-manpages.tar.gz`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-manpages.tar.gz). Extract it, then copy the `.1` files of its `man/` folder to `${MANPATH%%:*}/man1/` (typically `/usr/local/share/man/man1/`).
+- Rendered as HTML pages on the documentation site, listed in the [man page index](man-page.md#index).
+
+Packagers can regenerate them from source as part of their build phase:
+
+```{code-block} shell-session
+$ click-extra wrap --help-format man --output-dir /usr/share/man/man1/ -- click_extra.cli:demo
+```
+
+The generator honors `SOURCE_DATE_EPOCH` for reproducible builds. See [shipping a manual](man-page.md#shipping-a-manual) for the other invocation forms.
 
 (extra-dependencies)=
 

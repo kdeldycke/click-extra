@@ -173,10 +173,10 @@ def read_html(built_docs: Path, filename: str) -> str:
 
 
 def test_install_page_internal_anchor(built_docs):
-    """The install page's in-page executables link resolves to its section."""
+    """The install page's in-page binaries link resolves to its section."""
     html = read_html(built_docs, "install.html")
-    assert 'id="executables"' in html, "missing executables section anchor"
-    assert 'href="#executables"' in html, "no in-page link to executables"
+    assert 'id="binaries"' in html, "missing binaries section anchor"
+    assert 'href="#binaries"' in html, "no in-page link to binaries"
 
 
 def test_changelog_releases_are_anchored_on_their_version(built_docs):
@@ -278,9 +278,9 @@ def test_cli_reference_anchors(built_docs, anchor):
         ),
         (
             "install.html",
-            "python-directives.html#matrix-directives",
+            "python-directives.html#the-matrix-directive",
             "python-directives.html",
-            "matrix-directives",
+            "the-matrix-directive",
         ),
         (
             "click_extra.config.html",

@@ -1,4 +1,4 @@
-# {octicon}`command-palette` Multicall binaries
+# {octicon}`file-symlink-file` Multicall binaries
 
 Some of the oldest tools on Unix are one file answering to many names: `bzip2`, `bunzip2` and `bzcat` are the same binary, `vim` and `view` differ by default options, and [BusyBox](https://busybox.net/about.html) multiplexes hundreds of applets behind symlinks pointing at a single executable. The behavior is selected by the *invocation name*: the `argv[0]` the process starts under, which a symlink or a hard link is free to change without touching the file itself.
 

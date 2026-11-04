@@ -1,4 +1,4 @@
-# {octicon}`checklist` Configuration schema
+# {octicon}`project-template` Configuration schema
 
 By default, `ConfigOption` only feeds configuration values that match CLI options into the context's `default_map`. All other keys are silently ignored. This works when the configuration file mirrors the CLI, but some applications need *additional* configuration that matches no CLI option.
 

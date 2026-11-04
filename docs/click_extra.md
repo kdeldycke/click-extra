@@ -20,7 +20,16 @@ click_extra.sphinx
 
 ## Submodules
 
-## click_extra.ansi module
+## `click_extra.accessibility` module
+
+```{eval-rst}
+.. automodule:: click_extra.accessibility
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.ansi` module
 
 ```{eval-rst}
 .. automodule:: click_extra.ansi
@@ -29,7 +38,16 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.cli module
+## `click_extra.carapace` module
+
+```{eval-rst}
+.. automodule:: click_extra.carapace
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.cli` module
 
 ```{eval-rst}
 .. automodule:: click_extra.cli
@@ -38,7 +56,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.cli_capture module
+## `click_extra.cli_capture` module
 
 ```{eval-rst}
 .. automodule:: click_extra.cli_capture
@@ -47,7 +65,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.cli_prebake module
+## `click_extra.cli_prebake` module
 
 ```{eval-rst}
 .. automodule:: click_extra.cli_prebake
@@ -56,7 +74,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.cli_wrapper module
+## `click_extra.cli_wrapper` module
 
 ```{eval-rst}
 .. automodule:: click_extra.cli_wrapper
@@ -65,7 +83,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.color module
+## `click_extra.color` module
 
 ```{eval-rst}
 .. automodule:: click_extra.color
@@ -74,7 +92,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.columns module
+## `click_extra.columns` module
 
 ```{eval-rst}
 .. automodule:: click_extra.columns
@@ -83,7 +101,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.command_doc module
+## `click_extra.command_doc` module
 
 ```{eval-rst}
 .. automodule:: click_extra.command_doc
@@ -92,7 +110,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.commands module
+## `click_extra.commands` module
 
 ```{eval-rst}
 .. automodule:: click_extra.commands
@@ -101,7 +119,16 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.decorators module
+## `click_extra.context` module
+
+```{eval-rst}
+.. automodule:: click_extra.context
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.decorators` module
 
 ```{eval-rst}
 .. automodule:: click_extra.decorators
@@ -110,7 +137,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.envvar module
+## `click_extra.envvar` module
 
 ```{eval-rst}
 .. automodule:: click_extra.envvar
@@ -119,7 +146,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.execution module
+## `click_extra.execution` module
 
 ```{eval-rst}
 .. automodule:: click_extra.execution
@@ -128,7 +155,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.highlight module
+## `click_extra.highlight` module
 
 ```{eval-rst}
 .. automodule:: click_extra.highlight
@@ -137,7 +164,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.humanize module
+## `click_extra.humanize` module
 
 ```{eval-rst}
 .. automodule:: click_extra.humanize
@@ -146,7 +173,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.jobs module
+## `click_extra.jobs` module
 
 ```{eval-rst}
 .. automodule:: click_extra.jobs
@@ -155,7 +182,16 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.logging module
+## `click_extra.layout` module
+
+```{eval-rst}
+.. automodule:: click_extra.layout
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.logging` module
 
 ```{eval-rst}
 .. automodule:: click_extra.logging
@@ -164,7 +200,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.logo module
+## `click_extra.logo` module
 
 ```{eval-rst}
 .. automodule:: click_extra.logo
@@ -173,7 +209,16 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.multicall module
+## `click_extra.mkdocs` module
+
+```{eval-rst}
+.. automodule:: click_extra.mkdocs
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.multicall` module
 
 ```{eval-rst}
 .. automodule:: click_extra.multicall
@@ -184,7 +229,7 @@ click_extra.sphinx
 
 <a name="click-extra-output-module"></a>
 
-## click_extra.output module
+## `click_extra.output` module
 
 ```{eval-rst}
 .. automodule:: click_extra.output
@@ -193,7 +238,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.param_tools module
+## `click_extra.param_tools` module
 
 ```{eval-rst}
 .. automodule:: click_extra.param_tools
@@ -202,7 +247,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.parameters module
+## `click_extra.parameters` module
 
 ```{eval-rst}
 .. automodule:: click_extra.parameters
@@ -211,7 +256,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.prebake module
+## `click_extra.prebake` module
 
 ```{eval-rst}
 .. automodule:: click_extra.prebake
@@ -220,7 +265,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.progress module
+## `click_extra.progress` module
 
 ```{eval-rst}
 .. automodule:: click_extra.progress
@@ -229,7 +274,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.project module
+## `click_extra.project` module
 
 ```{eval-rst}
 .. automodule:: click_extra.project
@@ -238,7 +283,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.pygments module
+## `click_extra.pygments` module
 
 ```{eval-rst}
 .. automodule:: click_extra.pygments
@@ -247,7 +292,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.pytest module
+## `click_extra.pytest` module
 
 ```{eval-rst}
 .. automodule:: click_extra.pytest
@@ -256,7 +301,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.show_params module
+## `click_extra.show_params` module
 
 ```{eval-rst}
 .. automodule:: click_extra.show_params
@@ -265,7 +310,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.spinner module
+## `click_extra.spinner` module
 
 ```{eval-rst}
 .. automodule:: click_extra.spinner
@@ -274,7 +319,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.spinner_presets module
+## `click_extra.spinner_presets` module
 
 ```{eval-rst}
 .. automodule:: click_extra.spinner_presets
@@ -283,7 +328,16 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.table module
+## `click_extra.styling` module
+
+```{eval-rst}
+.. automodule:: click_extra.styling
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.table` module
 
 ```{eval-rst}
 .. automodule:: click_extra.table
@@ -292,7 +346,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.table_options module
+## `click_extra.table_options` module
 
 ```{eval-rst}
 .. automodule:: click_extra.table_options
@@ -301,7 +355,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.telemetry module
+## `click_extra.telemetry` module
 
 ```{eval-rst}
 .. automodule:: click_extra.telemetry
@@ -310,7 +364,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.test_suite module
+## `click_extra.test_suite` module
 
 ```{eval-rst}
 .. automodule:: click_extra.test_suite
@@ -319,7 +373,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.testing module
+## `click_extra.testing` module
 
 ```{eval-rst}
 .. automodule:: click_extra.testing
@@ -328,7 +382,16 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.trail module
+## `click_extra.theme` module
+
+```{eval-rst}
+.. automodule:: click_extra.theme
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.trail` module
 
 ```{eval-rst}
 .. automodule:: click_extra.trail
@@ -337,7 +400,16 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.types module
+## `click_extra.tree` module
+
+```{eval-rst}
+.. automodule:: click_extra.tree
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.types` module
 
 ```{eval-rst}
 .. automodule:: click_extra.types
@@ -346,7 +418,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.version module
+## `click_extra.version` module
 
 ```{eval-rst}
 .. automodule:: click_extra.version
@@ -355,7 +427,7 @@ click_extra.sphinx
    :undoc-members:
 ```
 
-## click_extra.version_facts module
+## `click_extra.version_facts` module
 
 ```{eval-rst}
 .. automodule:: click_extra.version_facts

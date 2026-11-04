@@ -1,4 +1,4 @@
-# {octicon}`file-code` Code snippets
+# {octicon}`image` Code snippets
 
 A [screenshot](screenshots.md) pictures what a command printed. A snippet pictures what a file says:
 

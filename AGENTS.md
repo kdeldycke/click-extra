@@ -45,6 +45,10 @@ That root `click_extra/__init__.py` is also the deliberate exception to § `__in
 
 When a trailing `# type: ignore[...]` comment would push a line past 88 characters, reformat the code block (break the expression across multiple lines) so the ignore comment fits, rather than letting the line run long.
 
+### Each module has one indexed home
+
+Every public module of `click_extra` and `tests` has an `automodule` section on the API page of its package (`docs/click_extra*.md`, `docs/tests*.md`), and an `automodule` block on a guide page carries `:no-index:`. `repomatic update-docs` keeps an API page that already exists, so it never adds the section of a new module: add it by hand, in alphabetical order. `tests/test_docs_api.py` fails naming each public module that no API page indexes.
+
 ### Test suite specifics
 
 - **The suite is not `pytest-xdist`-safe.** Some tests depend on process-global state (logging configuration, default theme) and fail when run in isolation or reordered. Do not add `--numprocesses` or otherwise parallelize the suite without fixing that isolation first, which is why the `--numprocesses` entry in § Testing guidelines does not apply here.
@@ -66,38 +70,7 @@ The `UTF-8` spelling § Testing guidelines asks for holds across the package and
 
 ## Commands
 
-### Testing
-
-```shell-session
-# Run all tests, with the dependency set CI uses.
-$ uv run --frozen --all-extras --group test -- pytest
-
-# Run a single test file.
-$ uv run --frozen --all-extras --group test -- pytest tests/test_color.py
-
-# Run a specific test.
-$ uv run --frozen --all-extras --group test -- pytest tests/test_color.py::test_function_name
-```
-
-Name `--all-extras --group test` every time, even though a bare `uv run pytest` usually works. Any other `uv run` variant in the same tree re-resolves the environment and can drop those packages: one `uv run --group docs` is enough to make the next bare `pytest` report `fixture 'httpserver' not found` and error 36 configuration tests, which reads as a regression rather than a missing dependency group.
-
-### Building documentation
-
-```shell-session
-$ uv run --frozen --all-extras --group test --group docs -- sphinx-build -b html --fail-on-warning docs docs/_build
-```
-
-Name all three of `--all-extras`, `--group test` and `--group docs`: `docs` is not a default group, so a run without it dies in `conf.py` on a missing `sphinxcontrib.mermaid`, and a run naming only `--group docs` drops the test packages from the shared environment, as § Testing warns.
-
-`--fail-on-warning` matches CI, where `[tool.repomatic] sphinx.fail-on-warning` fails the build on any warning. A warning that is unavoidable goes to `suppress_warnings` or `nitpick_ignore` in `docs/conf.py`, with a comment saying why.
-
-A local build rewrites a committed capture in `docs/assets/` only when its bytes change, as they do for output that varies by machine. The `@generated` stamp names no release, so a version bump does not restamp them. Unless refreshing them is the task, restore them with `git checkout -- docs/assets` before staging.
-
-### Running the CLI
-
-```shell-session
-$ uv run -- click-extra --help
-```
+The commands to run the tests, build the documentation and run the CLI, with the dependency-group traps each one avoids, open the contribution guide (`docs/contributing.md`), which renders this file below them.
 
 ## Documentation: use `click:source` and `click:run` directives
 

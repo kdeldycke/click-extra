@@ -21,7 +21,6 @@ tutorial
 :hidden:
 cli
 wrap
-binaries
 ```
 
 ```{toctree}
@@ -89,17 +88,23 @@ test-suite
 ```
 
 ```{toctree}
-:caption: Documentation tooling
+:caption: Terminal captures
 :maxdepth: 2
 :hidden:
 screenshots
 snippets
 man-page
+```
+
+```{toctree}
+:caption: Sphinx and MkDocs
+:maxdepth: 2
+:hidden:
 sphinx
 python-directives
-mkdocs
 myst-docstrings
 pygments
+mkdocs
 ```
 
 ```{toctree}
@@ -116,6 +121,7 @@ benchmark
 :hidden:
 contributing
 packaging
+binaries
 upstream
 code-of-conduct
 ```

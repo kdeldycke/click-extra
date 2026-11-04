@@ -548,7 +548,7 @@ assert result.exit_code == 0
 assert "City ↴ \\ Month →" in result.stdout
 ```
 
-The rows read downward from `City`, and the columns rightward from `Month`. The [`matrix` directive](python-directives.md#matrix-directives) labels its compatibility tables the same way.
+The rows read downward from `City`, and the columns rightward from `Month`. The [`matrix` directive](python-directives.md#the-matrix-directive) labels its compatibility tables the same way.
 
 In a Sphinx build, the `click_extra.sphinx` extension keeps the first column of a table with such a label on one line. On a narrow screen, the table scrolls sideways instead of wrapping its row labels. Any table gets it when its top-left cell holds the `↴` arrow. It also highlights the row and the column under the pointer: see [Crosshair on two-axis tables](sphinx.md#crosshair-on-two-axis-tables).
 

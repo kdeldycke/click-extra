@@ -12,6 +12,8 @@
 - Fix Sphinx pickling the whole build environment into the doctree of each page holding an `{eval-rst}`, `python:render-rst` or `python:render-myst` block.
 - Fix MyST docstrings merging two inline code spans when the first ends in a role-shaped word, or in punctuation before an `_` span.
 - Document the `:force:` option of `click:run`: it highlights output its lexer cannot parse, and logs no Sphinx warning.
+- Document the `accessibility`, `carapace`, `context`, `layout`, `mkdocs`, `styling`, `theme` and `tree` modules in the API reference.
+- Add GNU Guix, MacPorts and openSUSE Tumbleweed install instructions, and a man pages section, to the installation page.
 
 ## [`10.1.1` (2026-11-02)](https://github.com/kdeldycke/click-extra/compare/v10.1.0...v10.1.1)
 

@@ -152,6 +152,15 @@ tests.sphinx
    :undoc-members:
 ```
 
+## `tests.test_docs_api` module
+
+```{eval-rst}
+.. automodule:: tests.test_docs_api
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `tests.test_docs_directives` module
 
 ```{eval-rst}

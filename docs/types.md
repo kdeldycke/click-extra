@@ -1,4 +1,4 @@
-# {octicon}`file-binary` Types
+# {octicon}`multi-select` Types
 
 A collection of custom Click parameter types for common use-cases.
 

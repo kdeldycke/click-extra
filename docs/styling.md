@@ -348,6 +348,7 @@ except TypeError as exc:
    :strict:
 
 .. automodule:: click_extra.styling
+   :no-index:
    :members:
    :undoc-members:
    :show-inheritance:
