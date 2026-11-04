@@ -63,7 +63,7 @@ they were asked to find."""
 PARAM_PATH_SEP = "."
 
 INLINE_LITERAL_RE = re.compile(r"``([^`]+?)``")
-"""Match a reST inline literal (`"`...`"`) in a docstring.
+"""Match a reST inline literal, text between two pairs of backticks, in a docstring.
 
 Click stores docstrings verbatim, so any reST markup the author used to
 render code-like tokens in HTML docs leaks into `Command.help` /

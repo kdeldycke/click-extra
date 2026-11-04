@@ -135,43 +135,40 @@ def _convert_link(match: re.Match[str]) -> str:
     return f"`{label} <{url}>`_"
 
 
-# Single-backtick inline code spans are doubled for reST (after protected
-# spans are placeholdered out).
-_INLINE_CODE_RE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
-
 # A reST double-backtick literal on a single line, in the grammar the
 # reST-to-MyST converter reads it with.
 _RST_LITERAL_RE = re.compile(_RST_LITERAL_PATTERN)
 
-# Backtick spans that must NOT be treated as plain inline code, lexed in one
-# left-to-right pass so each alternative consumes its span before a later
-# alternative can restart inside it.  In priority order:
-#   a reST role      — a cross-reference converted by step 2, kept verbatim
-#   `text`_          — reST hyperlink references (idempotent pass-through)
-#   `:role-shaped:`  — a code span holding a literal role or option name
-#                      (like `:tag-pattern:`), doubled for reST on the spot
-# The single pass is what makes adjacency safe: when two converted roles
-# abut with no separator, the first role consumes the backtick that the
-# role-shaped-span alternative would otherwise claim as its opening
-# delimiter.  Without the last alternative, the role pattern would read a
-# role-shaped span's closing backtick as a role's target delimiter and
-# swallow everything up to the next backtick, corrupting the span and any
-# cross-reference after it.
+# Backtick spans, lexed in one left-to-right pass so each alternative consumes
+# its span before a later alternative can restart inside it. In priority order:
+#   a reST role  — a cross-reference converted by step 2, kept verbatim
+#   `text`_      — reST hyperlink references (idempotent pass-through)
+#   `code`       — a single-line code span, doubled into a reST literal
+# The single pass is what keeps a code span whole. Its opening backtick comes
+# before anything it holds, so the span is consumed before the scan reaches a
+# role-shaped word inside it, like the `:keep-stems:` of `` `:keep-stems:` ``
+# or of `` `basket :keep-stems:` ``. Read as a role, that word would take
+# the span's closing backtick as the opening of its target,
+# and swallow everything up to the next backtick, a line below if need be: the
+# span and the one after it would mispair. The role alternative cannot stop at
+# a line end instead, since the target of a real role can wrap.
+# Adjacency stays safe the same way: when two converted roles abut with no
+# separator, the first role consumes the backtick that the code-span
+# alternative would otherwise claim as its opening delimiter.
 # The hyperlink alternative anchors its opening backtick at a non-word,
 # non-backtick boundary AND requires its trailing reference marker (`_` or
-# `__`) not to be glued to an identifier. The boundary alone is not enough:
-# when a preceding code span's content ends in a non-word character (the `>`
-# of `` `<stdout>` ``, the `)` of `` `func()` ``), that span's *closing*
-# backtick also clears the lookbehind, so the alternative would start there,
-# read the gap as link text, swallow the next span's *opening* backtick, and
-# match a following `_word` as a bogus reference marker: the two real spans
-# collapse into one and their backticks mispair. A genuine reST reference
-# marker is never followed by a word character, so the trailing `(?![\w])`
-# rejects that false match while still matching real `` `text`_ `` links.
-_PROTECTED_RE = re.compile(
+# `__`) not to be glued to an identifier. Both guard a span the code-span
+# alternative leaves alone, like one broken over two lines. When its content
+# ends in a non-word character, its *closing* backtick clears the lookbehind,
+# so the alternative would start there, read the gap as link text, swallow the
+# next span's *opening* backtick, and match a following `_word` as a bogus
+# reference marker. A genuine reST reference marker is never followed by a word
+# character, so the trailing `(?![\w])` rejects that false match while still
+# matching real `` `text`_ `` links.
+_BACKTICK_SPAN_RE = re.compile(
     r":[\w-]+:`[^`]*`"
     r"|(?<![\w`])`[^`]+`_{1,2}(?![\w])"
-    r"|(?<!`)`(:[\w-]+:[^`\n]*)`(?!`)"
+    r"|(?<!`)`([^`\n]+)`(?!`)"
 )
 
 
@@ -340,12 +337,12 @@ def myst_to_rst(lines: list[str]) -> None:
     def _save(m: re.Match[str]) -> str:
         return _stash(m.group(0))
 
-    def _save_protected(m: re.Match[str]) -> str:
-        # A role-shaped code span (group 1) is doubled for reST on its way
-        # into the placeholder; other protected spans are kept verbatim.
-        if m.group(1):
-            return _stash(f"``{m.group(1)}``")
-        return _stash(m.group(0))
+    def _convert_span(m: re.Match[str]) -> str:
+        # A code span (group 1) is doubled in place. A role or a hyperlink
+        # reference is kept verbatim behind a placeholder.
+        if m.group(1) is None:
+            return _stash(m.group(0))
+        return _double_inline_code(m)
 
     # 0. Protect the content of code blocks from every following step. It is
     # code, so a backtick, a role or a link in it is kept as written.
@@ -379,12 +376,11 @@ def myst_to_rst(lines: list[str]) -> None:
     text = _FOOTNOTE_DEF_RE.sub(r".. [#\1] \2", text)
 
     # 6. Single-backtick inline code -> double-backtick.
-    # Protect reST backtick spans (cross-references from step 2, reST
-    # hyperlink references in idempotent pass-through, and role-shaped code
-    # spans, which are doubled as they are stashed) with placeholders so
-    # their backticks are not mistaken for inline code boundaries.
-    text = _PROTECTED_RE.sub(_save_protected, text)
-    text = _INLINE_CODE_RE.sub(_double_inline_code, text)
+    # The same pass protects reST backtick spans (cross-references from step 2,
+    # and reST hyperlink references in idempotent pass-through) with
+    # placeholders, so their backticks are not mistaken for inline code
+    # boundaries, and no code span is read as one of them.
+    text = _BACKTICK_SPAN_RE.sub(_convert_span, text)
 
     # 7. Footnote references: [^label] -> [#label]_.
     # Runs after inline code (no backticks involved) and before links so that

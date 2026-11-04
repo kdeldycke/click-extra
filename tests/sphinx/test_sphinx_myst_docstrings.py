@@ -682,11 +682,27 @@ def test_nested_protected_spans_are_restored(text):
         ("the `:manpage:` role", "the ``:manpage:`` role"),
         # A real role right after prose still converts.
         ("see {data}`X` and `:path:`", "see :data:`X` and ``:path:``"),
+        # A span ending in role-shaped text: its closing backtick must not open
+        # a role target that runs on to the next span, a line below.
+        (
+            "`basket :keep-stems:` holds the fruit.\n`pear_count` grows.",
+            "``basket :keep-stems:`` holds the fruit.\n``pear_count`` grows.",
+        ),
+        (
+            "the `basket :keep-stems:` of {func}`ripen`",
+            "the ``basket :keep-stems:`` of :func:`ripen`",
+        ),
     ],
-    ids=["span-then-xref", "span-alone", "xref-then-span"],
+    ids=[
+        "span-then-xref",
+        "span-alone",
+        "xref-then-span",
+        "span-ends-in-role-shape-then-span",
+        "span-ends-in-role-shape-then-xref",
+    ],
 )
 def test_role_shaped_code_span_not_protected_as_role(myst, expected):
-    """A backtick-preceded role pattern sits inside a code span, not a role."""
+    """Role-shaped text inside a code span is code, wherever the span holds it."""
     assert _convert(myst) == expected
 
 

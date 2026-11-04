@@ -434,7 +434,7 @@ class OperationTrail:
       Pick the animation from the
       {data}`~click_extra.spinner_presets.SPINNERS` catalog with `spinner=`.
     - **progress bar** (`progress_bar=True`): drive one aggregate *determinate*
-      bar carrying the `{done}/{total}` tally, with outcomes streaming above
+      bar carrying the ``{done}/{total}`` tally, with outcomes streaming above
       it. Serves sequential and concurrent batches alike, and needs a known
       `total`.
 

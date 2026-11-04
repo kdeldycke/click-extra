@@ -195,9 +195,9 @@ def _color_component(color: object, ground: str, *, true_color: bool) -> str | N
 
     `ground` is `fg` or `bg`, the state key the color sits under. A named ANSI
     color becomes its capitalized component (`red` to `Red`, `bright_red` to
-    `BrightRed`), a palette index `n` becomes `C{n}`, and an RGB triplet becomes
-    a `FG_{rrggbb}` or `BG_{rrggbb}` hex component under `true_color`, or the
-    `C{n}` of its nearest palette entry otherwise. A background component other
+    `BrightRed`), a palette index `n` becomes ``C{n}``, and an RGB triplet becomes
+    a ``FG_{rrggbb}`` or ``BG_{rrggbb}`` hex component under `true_color`, or the
+    ``C{n}`` of its nearest palette entry otherwise. A background component other
     than the hex one takes the `BG` prefix.
 
     A value no terminal would honor, like a palette index or a channel past

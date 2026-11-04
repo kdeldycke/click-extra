@@ -383,7 +383,7 @@ def docstring_todos(source: str, module: str) -> Iterator[tuple[str, int]]:
 
     `source` is the text of the module named `module`. The owner of a docstring
     is the dotted path autodoc labels it with: `module` for the module
-    docstring, and `{module}.{qualname}` for a class or a function, with
+    docstring, and ``{module}.{qualname}`` for a class or a function, with
     `<locals>` for a definition nested in a function. An attribute docstring,
     the string literal right after an assignment, belongs to each name the
     assignment binds, as autodoc reads it. Lines count from 1.
