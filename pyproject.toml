@@ -166,6 +166,7 @@ optional-dependencies.yaml = [
   "pyyaml>=6.0.3",
 ]
 urls.Changelog = "https://github.com/kdeldycke/click-extra/blob/main/changelog.md"
+urls.Documentation = "https://kdeldycke.github.io/click-extra/"
 urls.Download = "https://github.com/kdeldycke/click-extra/releases/tag/v10.1.2.dev0"
 urls.Funding = "https://github.com/sponsors/kdeldycke"
 urls.Homepage = "https://github.com/kdeldycke/click-extra"
@@ -285,6 +286,14 @@ docs = [
   "sphinx-datatables>=1",
   # sphinx-design 0.6 introduced the current directive syntax for cards, grids, and tabs.
   "sphinx-design>=0.6",
+  # sphinx-sitemap 2.6.0 added `sitemap_excludes`, which docs/conf.py uses to
+  # keep the search and index pages out of the sitemap.
+  "sphinx-sitemap>=2.6",
+  # sphinxcontrib-jquery 4.0 stopped enforcing subresource-integrity checks by
+  # default: under 3.0 a build opened from the local filesystem could not load
+  # jQuery. Declared because docs/conf.py loads it itself: sphinx-datatables
+  # activates it too late to register jquery.js on its own.
+  "sphinxcontrib-jquery>=4",
   # sphinxcontrib-mermaid 1.2.3 fixed mermaid_d3_zoom configuration support.
   "sphinxcontrib-mermaid>=1.2.3",
   # sphinxext-opengraph 0.13 stabilized OpenGraph metadata generation for Sphinx 8+.
@@ -670,12 +679,6 @@ exclude = [
   # VirusTotal analysis pages are a JS app that rate-limits bots, and the
   # binaries page links one per released binary.
   "^https://www\\.virustotal\\.com/gui/.*$",
-  # asciinema.org, no-color.org and openclipart.org are valid but
-  # intermittently fail DNS resolution or time out from CI runners. Also
-  # excluded from the Sphinx linkcheck run (see linkcheck_ignore in docs/conf.py).
-  "^https://asciinema.org.*$",
-  "^https://no-color.org.*$",
-  "^https://openclipart.org.*$",
   # gnu.org answers CI runners with 429 Too Many Requests, often from the first
   # request, for longer than lychee keeps retrying. The Sphinx linkcheck run
   # waits out the limit and still checks these links.

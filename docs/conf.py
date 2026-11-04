@@ -1,11 +1,33 @@
+# Copyright Kevin Deldycke <kevin@deldycke.com> and contributors.
+#
+# This program is Free Software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
 from __future__ import annotations
 
+import os
 import tomllib
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import click
 from docutils.nodes import container
 from sphinxcontrib.mermaid import MermaidClassDiagram
+
+import click_extra.config.option
+from click_extra import ShowParamsOption
+from click_extra.sphinx.theme_docs import inject_slot_example_docstring
 
 project_path = Path(__file__).parent.parent.resolve()
 
@@ -16,11 +38,19 @@ toml_config = tomllib.loads(toml_path.read_text(encoding="UTF-8"))
 # Redistribute pyproject.toml config to Sphinx.
 project_id = toml_config["project"]["name"]
 version = release = toml_config["project"]["version"]
-url = toml_config["project"]["urls"]["Homepage"]
 author = ", ".join(author["name"] for author in toml_config["project"]["authors"])
+
+# Canonical origin of the published site, read from the one place that declares
+# it. The trailing slash is mandatory: Sphinx joins page paths onto it verbatim to
+# build each `<link rel="canonical">`, and sphinx-sitemap concatenates it with
+# every page link.
+docs_site_url = toml_config["project"]["urls"]["Documentation"].rstrip("/") + "/"
 
 # Title-case each word of the project ID.
 project = " ".join(word.title() for word in project_id.split("-"))
+
+# GitHub account owning the project. Factored out so a rename touches one line.
+github_user = "kdeldycke"
 
 # Whole years since `0.0.1` (2021-10-18), the oldest entry of the changelog, for
 # the announcement banner below. Floored, so the figure is never ahead of the
@@ -36,6 +66,9 @@ extensions = [
     "sphinx.ext.viewcode",
     # Adds a copy button to code blocks.
     "sphinx_copybutton",
+    # Emits sitemap.xml from html_baseurl, so crawlers find the API reference as
+    # well as the guide pages.
+    "sphinx_sitemap",
     "sphinx_design",
     "sphinxext.opengraph",
     "myst_parser",
@@ -59,7 +92,7 @@ extensions = [
 # ascending sort; the page length accommodates one release's worth of
 # binaries per page with room to spare. The render callback appends a
 # relative hint ("9 days ago") to the Released column (index 2 in
-# repomatic.binaries_page.CSV_HEADERS) at display time only, so sorting and
+# repomatic.release.binaries_page.CSV_HEADERS) at display time only, so sorting and
 # searching keep operating on the raw ISO dates and the generated CSV stays
 # free of hints that would go stale between releases. Passed as a raw JS
 # string because a JSON dict cannot carry the function. Raw string: the JS
@@ -118,7 +151,9 @@ datatables_options = r"""
 click_extra_enable_exec_directives = True
 
 # Emit roff man pages for click-extra's own CLI into <outdir>/man/ on every
-# HTML build. See click_extra/sphinx/manpages.py.
+# HTML build. See click_extra/sphinx/manpages.py. Mirrors the
+# `[tool.repomatic] manpages.script` entry of pyproject.toml, which builds the
+# release asset.
 click_extra_manpages = [
     {
         "script": "click_extra.cli:demo",
@@ -132,45 +167,40 @@ click_extra_manpages = [
 # subcommand.
 manpages_url = "man/{page}.{section}.html"
 
+# Only the syntax the documentation uses: `attrs_inline` for the `{l=toml}` of
+# inline code, `substitution` for the `{{ name }}` below.
 # https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
 myst_enable_extensions = [
     "alert",
-    "attrs_block",
     "attrs_inline",
-    "colon_fence",
-    "deflist",
     "fieldlist",
     "replacements",
     "smartquotes",
-    "strikethrough",
     "substitution",
-    "tasklist",
 ]
 
 # Substitutions exposed to MyST documents as ``{{ name }}``. Built from
 # Python data so single-source-of-truth content (like the --params column
 # registry) stays in sync between code and docs automatically.
-from click_extra import ShowParamsOption
-
 myst_substitutions = {
     "show_params_columns_table": ShowParamsOption.render_doc_table(),
 }
 # Register a cross-reference target for every heading down to <h6>, so Markdown
 # links of the form [text](other.md#heading-slug) resolve. Without this, MyST
 # only resolves explicit (target)= anchors and emits best-effort hrefs that
-# happen to work because docutils generates matching HTML ids — but each one
+# happen to work because docutils generates matching HTML ids: each one still
 # raises a myst.xref_missing warning at build time.
 myst_heading_anchors = 6
 # Slugify headings exactly the way docutils derives HTML ids, so the anchors
 # MyST resolves match the ids actually rendered in the page. The default
 # GitHub-style slugifier keeps leading digits, "--" prefixes, dots and
-# underscores that docutils strips or collapses (e.g. "`--params` option"
-# → "params-option", "solarized-dark" → "solarized-dark"), which otherwise
-# leaves every cross-reference to such a heading unresolved. The dotted-path
-# string form (not the function object) keeps the config value picklable, so
-# Sphinx can cache it between builds.
+# underscores that docutils strips or collapses (like "`--params` option",
+# which docutils turns into "params-option"), which otherwise leaves every
+# cross-reference to such a heading unresolved. The dotted-path string form (not
+# the function object) keeps the config value picklable, so Sphinx can cache it
+# between builds.
 myst_heading_slug_func = "docutils.nodes.make_id"
-# XXX Allow ```mermaid``` directive to be used without curly braces (```{mermaid}```), see:
+# Allow the ```mermaid``` directive without curly braces (```{mermaid}```), see:
 # https://github.com/mgaitan/sphinxcontrib-mermaid/issues/99#issuecomment-2339587001
 myst_fence_as_directive = ["mermaid"]
 
@@ -200,31 +230,28 @@ exclude_patterns = ["_build", "_linkcheck", "html", "Thumbs.db", ".DS_Store"]
 
 nitpicky = True
 
-# Cosmetic or unavoidable warning categories, suppressed wholesale. Mirrors the
-# kdeldycke/extra-platforms Sphinx configuration.
+# Warning categories with no actionable fix. Each entry names a warning it
+# silences and why that warning cannot be fixed at its source.
 suppress_warnings = [
-    # Names used only in (lazily-evaluated, PEP 563) type annotations are not
-    # bound at build time, so sphinx_autodoc_typehints cannot resolve the forward
-    # reference. Cosmetic: the rendered signature is unaffected.
-    "sphinx_autodoc_typehints.forward_reference",
-    # The click-extra Sphinx domain does not implement resolve_any_xref.
-    "myst.domains",
-    # ``~~text~~`` strikethrough (used to mark incorrect spellings in prose) only
-    # renders in HTML, which is the only builder in use.
-    "myst.strikethrough",
-    # A few docstring code examples trip docutils' indentation heuristics.
-    "docutils",
-    # index.md opens at H2 (octicon card layout) and a couple of pages skip a
-    # heading level; cosmetic, the rendered table of contents is unaffected.
+    # Example: docs/index.md:10: WARNING: Document headings start at H2, not H1
+    # [myst.header]
+    # Explanation: index.md is readme.md included whole, and the readme's sections
+    # open at H2 because its title is the banner image. The rendered table of
+    # contents is unaffected.
     "myst.header",
-    # upstream.md repeats a project's heading under each section that names it,
-    # so autosectionlabel labels it twice. Nothing references those labels.
+    # Example: docs/upstream.md:198: WARNING: duplicate label
+    # upstream:[`click`](https://github.com/pallets/click), other instance in
+    # docs/upstream.md [autosectionlabel.upstream]
+    # Explanation: upstream.md repeats a project's heading under each section
+    # that names it, so autosectionlabel labels it twice. Nothing references
+    # those labels.
     "autosectionlabel.upstream",
 ]
 
 # A fragment link that resolves nowhere fails the build: myst-parser only warns,
-# then ships the link dead. See click_extra/sphinx/fail_on_warnings.py.
-click_extra_fail_on_warnings = ["myst.xref_missing"]
+# then ships the link dead. A docstring `{todo}` that no page renders fails it
+# too. See click_extra/sphinx/fail_on_warnings.py.
+click_extra_fail_on_warnings = ["click_extra.todo_unrendered", "myst.xref_missing"]
 
 # Anchor each changelog release on its version, like `#v10-1-1`, in place of a
 # positional `#idN` that every release shifts. See click_extra/sphinx/changelog.py.
@@ -238,29 +265,27 @@ click_extra_release_anchors = True
 # here, which reference upstream-internal names and private types absent from any
 # intersphinx inventory.
 nitpick_ignore_regex = [
-    # External packages without a usable intersphinx inventory, plus click/cloup
-    # internals not exposed in their public docs. Cloup stays blanketed because
-    # cloup.readthedocs.io sits behind a Cloudflare bot challenge (HTTP 429,
-    # `cf-mitigated: challenge`, probed 2026-07-30): Sphinx's intersphinx
-    # fetcher cannot retrieve its objects.inv, so the docs cannot link there.
-    (
-        r"py:.*",
-        r"(cloup|docutils|extra_platforms|mkdocs|pygments|sphinx|_pytest)\..*",
-    ),
+    # Packages whose documented names autodoc cannot link to. The docs fetch no
+    # intersphinx inventory for docutils, mkdocs, pygments and sphinx. Cloup's
+    # inventory sits behind a Cloudflare bot challenge (HTTP 429,
+    # `cf-mitigated: challenge`, probed 2026-07-30), so Sphinx's intersphinx
+    # fetcher cannot retrieve its objects.inv. extra-platforms has an inventory,
+    # but it documents `Group` and `Trait` under other names than the
+    # `extra_platforms.group.Group` and `extra_platforms.trait.Trait` that
+    # autodoc renders.
+    (r"py:.*", r"(cloup|docutils|extra_platforms|mkdocs|pygments|sphinx)\..*"),
+    # Click internals not exposed in its public docs.
     (r"py:.*", r"click\.(testing|types|_\w+)\..*"),
     # Private (underscore-prefixed) symbols, in click-extra or upstream.
     (r"py:.*", r"(.*\.)?_[A-Za-z]\w*(\..*)?"),
-    # Click annotates its signatures with `typing` and `collections.abc` under the
-    # `t` and `cabc` aliases, which autodoc copies verbatim from re-exports.
-    (r"py:.*", r"(t|cabc)\.\w+"),
-    # Test-only dependencies, whose types only the annotations of the documented
-    # test helpers name: not worth an inventory download on every build.
+    # Third-party types that only the annotations of the documented test helpers
+    # name, on the tests page: not worth an inventory download on every build.
     (r"py:.*", r"(packaging|requests)\..*"),
 ]
 
-# Bare names inherited from re-exported click/cloup docstrings: they resolve in
-# their own upstream docs through the module context, which is lost when autodoc
-# re-renders them under click-extra.
+# Names inherited from re-exported click/cloup docstrings. The bare ones resolve
+# in their own upstream docs through the module context, which is lost when
+# autodoc re-renders them under click-extra.
 nitpick_ignore = [
     ("py:func", "object_type"),
     ("py:attr", "Context.obj"),
@@ -271,6 +296,8 @@ nitpick_ignore = [
     ("py:attr", "nargs"),
     ("py:meth", "fail"),
     ("py:class", "Constraint"),
+    # cloup's SectionMixin docstring names `click.MultiCommand`, which current
+    # Click keeps only as a private, undocumented alias.
     ("py:class", "click.MultiCommand"),
     # The Constraints page that cloup's option_group docstring links to exists
     # only in cloup's own documentation.
@@ -287,26 +314,20 @@ nitpick_ignore = [
     ("py:class", "ColumnSpec"),
     ("py:class", "ConfigValidator"),
     ("py:class", "LogLevel"),
-    # The two decorator protocols of click_extra.decorators and the covariant
-    # TypeVar parameterizing one of them. TYPE_CHECKING-only names that autodoc
-    # renders in decorator_factory's annotations, with no documentable target.
+    # The two decorator protocols of click_extra.decorators: TYPE_CHECKING-only
+    # names that autodoc renders in decorator_factory's annotations, with no
+    # documentable target.
     ("py:class", "click_extra.decorators.CommandDecorator"),
     ("py:class", "click_extra.decorators.ParameterDecorator"),
-    ("py:obj", "click_extra.decorators.CommandT_co"),
     # The TYPE_CHECKING-only alias of click_extra.envvar that autodoc renders in
     # env_copy()'s signature, under the defining module and the package root.
     ("py:data", "TEnvVars"),
-    # Cross-page links to the explicit `(matrix-directives)=` label. myst-parser
-    # resolves a `page.md#target` link against that page's heading slugs only, so
-    # it warns although the label renders the id the link lands on.
-    ("myst", "matrix-directives"),
 ]
 
 # Concatenates the docstrings of the class and the __init__ method.
 autoclass_content = "both"
 # Keep the same ordering as in original source code.
 autodoc_member_order = "bysource"
-always_use_bars_union = True
 
 autodoc_default_options = {
     "members": True,
@@ -317,8 +338,6 @@ autodoc_default_options = {
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
-github_user = "kdeldycke"
-
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "click": ("https://click.palletsprojects.com", None),
@@ -328,22 +347,41 @@ intersphinx_mapping = {
 # `path/to/file:heading` instead of just `heading`
 autosectionlabel_prefix_document = True
 
+# Where these pages are published, which is what makes Sphinx emit a
+# `<link rel="canonical">` on each one. Without it there is no canonical tag at
+# all, so a page served from a mirror would compete with its own original.
+html_baseurl = docs_site_url
+# sphinx-sitemap defaults to a `{lang}{version}{link}` layout meant for sites
+# publishing several translations or versions side by side. This one publishes a
+# single tree, so anything but the bare link yields sitemap entries that 404.
+sitemap_url_scheme = "{link}"
+# The generated navigation pages hold no content a crawler should index.
+sitemap_excludes = ["genindex.html", "py-modindex.html", "search.html"]
+
 # Theme config.
 html_theme = "furo"
 html_title = project
-html_logo = "assets/logo-square.svg"
 html_favicon = "assets/favicon.svg"
 # Without this, sphinxext.opengraph falls back to the favicon for social
 # previews, which scales poorly. The dark variant matches the social preview
 # uploaded to the repository's settings, so a link to the docs and a link to the
 # repository unfurl as the same card. Either would carry the mark: flat-shaded,
-# it holds its own on a light background and a dark one alike.
-ogp_image = "assets/banner-gradient-dark.png"
+# it holds its own on a light background and a dark one alike. The path is
+# relative to the site root, where its html_static_path entry below copies the
+# file: Sphinx does not publish docs/assets/.
+ogp_image = "_static/banner-gradient-dark.png"
 # ogp_image is relative to ogp_site_url, not to the page. Without a site URL,
 # sphinxext.opengraph emits the image path as-is, which social crawlers can't
 # resolve since they only ever see the raw HTML.
-ogp_site_url = f"https://{github_user}.github.io/{project_id}/"
+ogp_site_url = docs_site_url
 html_theme_options = {
+    # Sidebar logo. Furo renders this pair as .only-light/.only-dark images that
+    # follow its theme toggle. A single html_logo cannot: the wordmark of
+    # assets/logo-square.svg drops to a 2.62:1 contrast ratio on the dark
+    # sidebar. Furo resolves both names against _static/, hence their
+    # html_static_path entries.
+    "light_logo": "logo-square-light.png",
+    "dark_logo": "logo-square-dark.png",
     "sidebar_hide_name": True,
     # Activates edit links.
     "source_repository": f"https://github.com/{github_user}/{project_id}",
@@ -379,16 +417,39 @@ linkcheck_anchors_ignore_for_url = [
 # them as broken.
 linkcheck_retries = 3
 
+# Authenticate the github.com crawl when CI exposes a token: GitHub throttles
+# anonymous requests to about one a minute, which overruns the link-check job on
+# a link-heavy site. The docs workflow exposes `GITHUB_TOKEN` on the linkcheck
+# step for this consumer, and local builds carry no token, so they stay
+# anonymous.
+#
+# Release-asset downloads stay anonymous: an `Authorization` header makes
+# github.com redirect them to the legacy `objects.githubusercontent.com` host,
+# whose signed URL answers 401. The binaries page links one download per
+# released binary, so authenticating them would report the whole catalog as
+# broken. `linkcheck_auth` carries the exception because its patterns are
+# regular expressions, where `linkcheck_request_headers` matches whole hosts only.
+if os.environ.get("GITHUB_TOKEN"):
+
+    def github_bearer_auth(request):
+        """Sign a request with the CI token.
+
+        Returns the prepared request, as `requests` expects from an `auth`
+        callable.
+        """
+        request.headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
+        return request
+
+    linkcheck_auth = [
+        (
+            r"https://github\.com/(?!.*/releases/(?:latest/)?download/)",
+            github_bearer_auth,
+        ),
+    ]
+
 linkcheck_ignore = [
-    # These sites return 403 to bots but are valid.
+    # This site returns 403 to bots but is valid.
     r"https://docutils\.sourceforge\.io",
-    r"https://guix\.gnu\.org",
-    # asciinema.org, no-color.org and openclipart.org are valid but
-    # intermittently fail DNS resolution or time out from CI runners. Also
-    # excluded from the lychee run (see [tool.lychee] in pyproject.toml).
-    r"https://asciinema\.org",
-    r"https://no-color\.org",
-    r"https://openclipart\.org",
     # shields.io intermittently answers a badge with 408 Request Timeout, or
     # times out, from CI runners. The lychee run in the same job still checks
     # every badge.
@@ -402,8 +463,6 @@ linkcheck_ignore = [
     # binaries catalog links one per released binary. Also excluded from the
     # lychee run (see [tool.lychee] in pyproject.toml).
     r"https://www\.virustotal\.com/gui/.*",
-    # Telemetry opt-out endpoint is slow and times out from CI.
-    r"https://telemetry\.timseverien\.com/.*",
     # Hacker News rate-limits automated checkers with HTTP 429. Already excluded
     # from the lychee run (see [tool.lychee] in pyproject.toml).
     r"https://news\.ycombinator\.com/.*",
@@ -419,8 +478,31 @@ html_last_updated_fmt = "%Y-%m-%d"
 copyright = f"{author} and contributors"
 html_show_sphinx = False
 
-html_static_path = ["_static"]
+# Do not publish a copy of every source document under `_sources/`: no page
+# links to it, and the sources are the repository. `html_copy_source` gates the
+# files and `html_show_sourcelink` the link, so both are set: a theme reading only
+# the second would otherwise offer a link to files that are no longer there.
+html_copy_source = False
+html_show_sourcelink = False
+
+# Individual files are copied to the root of _static/, which is where Furo looks
+# for the light_logo/dark_logo pair, and where ogp_image points social crawlers.
+# Listing docs/assets/ wholesale would drag every other asset along.
+html_static_path = [
+    "_static",
+    "assets/banner-gradient-dark.png",
+    "assets/logo-square-dark.png",
+    "assets/logo-square-light.png",
+]
 html_css_files = ["custom.css"]
+
+# Copy only the commands of a session block, without their prompt: `$ ` for a
+# shell, `>>> ` and `... ` for Python. A block holding no prompt is copied whole.
+# Matching Pygments classes instead (`.gp`, `.go`) misses most output here: an
+# ANSI session draws its colored lines as `-Ansi-*` spans and its plain ones as
+# bare text.
+copybutton_prompt_text = r"\$ |>>> |\.\.\. "
+copybutton_prompt_is_regexp = True
 
 
 def pin_app_dir() -> None:
@@ -441,11 +523,6 @@ def pin_app_dir() -> None:
     Extra's configuration machinery, the way
     {func}`click_extra.pytest.isolated_app_dir` does for a test suite.
     """
-    import os
-
-    import click
-
-    import click_extra.config.option
 
     def posix_app_dir(app_name, roaming=True, force_posix=False):
         """`click.get_app_dir()`'s Unix branch, taken on every platform.
@@ -474,16 +551,14 @@ def setup(app):
     example into every :class:`HelpTheme` slot's autodoc block. The
     example is computed live by replaying the templates in
     ``_PALETTE_EXAMPLES`` through the active dark theme's slot styling, so
-    the rendered output cannot drift from the actual Theme code path —
-    tweak a built-in theme in ``click_extra/theme.py`` and the next build
-    picks up the new colors.
+    the rendered output cannot drift from the actual Theme code path: tweak a
+    built-in theme in ``click_extra/theme.py`` and the next build picks up the
+    new colors.
 
     Also swaps sphinxcontrib-mermaid's ``autoclasstree`` directive for
     :class:`NoZoomClassDiagram`: conf.py is loaded as the last extension,
     so this registration wins.
     """
-    from click_extra.sphinx.theme_docs import inject_slot_example_docstring
-
     app.connect("autodoc-process-docstring", inject_slot_example_docstring)
 
     app.add_directive("autoclasstree", NoZoomClassDiagram, override=True)

@@ -217,9 +217,6 @@ def test_help_screen(invoke, assert_output_regex):
 ## `click_extra.pytest` API
 
 ```{eval-rst}
-.. autoclasstree:: click_extra.pytest
-   :strict:
-
 .. automodule:: click_extra.pytest
    :no-index:
    :members:

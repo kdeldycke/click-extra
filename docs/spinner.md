@@ -715,9 +715,6 @@ Three more defaults set the bar apart from Click's:
 ## `click_extra.trail` API
 
 ```{eval-rst}
-.. autoclasstree:: click_extra.trail
-   :strict:
-
 .. automodule:: click_extra.trail
    :no-index:
    :members:

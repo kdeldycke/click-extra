@@ -7,10 +7,12 @@
 
 - Add the `click_extra_release_anchors` Sphinx setting, which anchors each changelog release on its version, like `#v1-4-2`, in place of a positional `#idN`.
 - Highlight the row and column under the pointer in the two-axis tables of a Sphinx build, and make each one-link cell clickable as a whole.
+- Add the documentation site to the package metadata, so PyPI links to it.
 - Replace the benchmark's 🟡 mark with 🪫 and its N/A with a blank cell, and grade 🪫 two cobra cells that rely on Viper.
 - Fix Sphinx builds publishing `sphinx.ext.viewcode` pages that no documented object links to, one per such module on a parallel read.
 - Fix Sphinx pickling the whole build environment into the doctree of each page holding an `{eval-rst}`, `python:render-rst` or `python:render-myst` block.
 - Fix MyST docstrings merging two inline code spans when the first ends in a role-shaped word, or in punctuation before an `_` span.
+- Fix the social card image of the documentation, and add canonical links, a sitemap and a sidebar logo readable in dark mode.
 - Document the `:force:` option of `click:run`: it highlights output its lexer cannot parse, and logs no Sphinx warning.
 - Document the `accessibility`, `carapace`, `context`, `layout`, `mkdocs`, `styling`, `theme` and `tree` modules in the API reference.
 - Add GNU Guix, MacPorts and openSUSE Tumbleweed install instructions, and a man pages section, to the installation page.

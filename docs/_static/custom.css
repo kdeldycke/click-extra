@@ -94,8 +94,8 @@
 }
 
 /* Hide the readme banner on the Sphinx front page: index.md includes
- * readme.md verbatim, and the banner duplicates the sidebar logo (html_logo
- * in conf.py).
+ * readme.md verbatim, and the banner duplicates the sidebar logo (the
+ * light_logo/dark_logo pair in conf.py).
  */
 article p[align="center"]:has(img[alt="Click Extra"]) {
   display: none;

@@ -833,9 +833,6 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
 ## `click_extra.config` API
 
 ```{eval-rst}
-.. autoclasstree:: click_extra.config.builtin
-   :strict:
-
 .. automodule:: click_extra.config.builtin
    :no-index:
    :members:
@@ -850,9 +847,6 @@ This works identically across all configuration formats (TOML, YAML, JSON, INI, 
    :members:
    :undoc-members:
    :show-inheritance:
-
-.. autoclasstree:: click_extra.config.discovery
-   :strict:
 
 .. automodule:: click_extra.config.discovery
    :no-index:
