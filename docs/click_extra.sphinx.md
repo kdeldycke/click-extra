@@ -1,4 +1,4 @@
-# click\_extra.sphinx package
+# `click_extra.sphinx` package
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx
@@ -9,7 +9,16 @@
 
 ## Submodules
 
-## click_extra.sphinx.click module
+## `click_extra.sphinx.changelog` module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.changelog
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.sphinx.click` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.click
@@ -18,7 +27,7 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.click_reference module
+## `click_extra.sphinx.click_reference` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.click_reference
@@ -27,7 +36,7 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.click_runner module
+## `click_extra.sphinx.click_runner` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.click_runner
@@ -36,7 +45,25 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.fail_on_warnings module
+## `click_extra.sphinx.crosshair` module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.crosshair
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.sphinx.doctrees` module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.doctrees
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.sphinx.fail_on_warnings` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.fail_on_warnings
@@ -45,7 +72,7 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.manpages module
+## `click_extra.sphinx.manpages` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.manpages
@@ -54,7 +81,7 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.matrix module
+## `click_extra.sphinx.matrix` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.matrix
@@ -63,7 +90,7 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.myst_docstrings module
+## `click_extra.sphinx.myst_docstrings` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.myst_docstrings
@@ -72,7 +99,7 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.python module
+## `click_extra.sphinx.python` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.python
@@ -81,7 +108,7 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.tables module
+## `click_extra.sphinx.tables` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.tables
@@ -90,7 +117,7 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.theme_docs module
+## `click_extra.sphinx.theme_docs` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.theme_docs
@@ -99,10 +126,19 @@
    :undoc-members:
 ```
 
-## click_extra.sphinx.todos module
+## `click_extra.sphinx.todos` module
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.todos
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.sphinx.viewcode` module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.viewcode
    :members:
    :show-inheritance:
    :undoc-members:

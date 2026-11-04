@@ -1,4 +1,4 @@
-# {octicon}`book` Sphinx
+# {octicon}`browser` Sphinx
 
 [Sphinx](https://www.sphinx-doc.org) is the best way to document your Python CLI. Click Extra provides several utilities to improve the quality of life of maintainers.
 
@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column for [two-axis tables](table.md#two-axis-tables), the [man-page hook](man-page.md#from-a-sphinx-build), and [failing on chosen warnings](#failing-on-chosen-warnings). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column and a [crosshair](#crosshair-on-two-axis-tables) for [two-axis tables](table.md#two-axis-tables), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -1015,6 +1015,47 @@ The build still runs to its end and reports every warning. Then it exits with st
 - A link to another page resolves against that page's heading slugs only, so it warns on a `(target)=` label there although the browser lands on it. A raw-HTML anchor like `<a name="...">` is invisible to myst-parser on any page. To keep such a link without suppressing the whole type, add its target to `nitpick_ignore` as `("myst", "{target}")`.
 
 Sphinx has an open request for this feature: [sphinx-doc/sphinx#7949](https://github.com/sphinx-doc/sphinx/issues/7949).
+
+## Stable changelog anchors
+
+docutils builds the ID of a section from its title, minus its leading digits and punctuation. Nothing is left of a release title like `1.4.2 (2026-03-15)`, so each release section takes the next value of a counter: `#id1` for the newest release, `#id2` for the one before it. Each new release shifts them all, and a saved link to `#id40` lands on another release.
+
+Set `click_extra_release_anchors` to anchor each release on its version instead, like `#v1-4-2`:
+
+```{code-block} python
+:caption: `conf.py`
+click_extra_release_anchors = True
+```
+
+The extension renames each section titled like a release, on every page. The release in preparation, titled `1.5.0.dev0 (unreleased)`, takes the anchor of the version it ships as, `#v1-5-0`, so a link to it still works once it is released. A Markdown link like `[1.4.2](changelog.md#v1-4-2)` resolves against the new anchor.
+
+The value is `False` by default, because the version anchors replace the `#idN` ones: a published link to one of those stops working once.
+
+## Crosshair on two-axis tables
+
+In a [two-axis table](table.md#two-axis-tables), the extension highlights the row and the column of the cell under the pointer, headers included, and outlines the cell itself. A reader of a wide grid can then trace a cell to its row label and its column header without counting columns. Move the pointer over this table to see it:
+
+| City ↴ \\ Month → | Jan | Apr | Jul | Oct |
+| :---------------- | --: | --: | --: | --: |
+| Paris             |   7 |  16 |  25 |  16 |
+| Oslo              |   0 |  10 |  22 |  10 |
+| Lima              |  26 |  25 |  19 |  20 |
+
+A cell whose whole content is one link becomes clickable over its full area, like a check mark that links to its evidence.
+
+Both apply only to the tables whose top-left cell holds the `↴` arrow. A table with a merged cell keeps its full-cell links but gets no crosshair, since its cells no longer line up with its columns. The extension writes the stylesheet and the script into the build. The colors come from the theme variables of [Furo](https://github.com/pradyunsg/furo), with a fallback for other themes.
+
+## Viewcode pages nothing links to
+
+[`sphinx.ext.viewcode`](https://www.sphinx-doc.org/en/master/usage/extensions/viewcode.html) publishes the highlighted source of each module that a documented object comes from, and gives the object a `[source]` link to it. It also reads modules where it finds none of the objects it looks for: for a documented constant, it looks in the module of the value's class, like `re` for a compiled pattern. Each such module becomes a page that only the `_modules/` index links to.
+
+A serial read publishes such a page only for the last document it reads. A parallel read, started with `--jobs`, publishes all of them: [sphinx-doc/sphinx#14675](https://github.com/sphinx-doc/sphinx/issues/14675). The extension drops these modules once the read is over, so both reads publish the same pages. It is inert on a project that does not enable `sphinx.ext.viewcode`.
+
+## Lean doctrees for `{eval-rst}` pages
+
+Sphinx pickles the doctree of each page it reads, and leaves the build environment out of the pickle. myst-parser parses an [`{eval-rst}` block](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html#how-directives-parse-content) into a separate document, which holds the environment, and the nodes it moves into the page keep a reference to that document. Without a fix, each page with such a block pickles the whole environment with its doctree: on a project with an API reference, these doctrees weigh megabytes each, which costs disk space, memory and build time.
+
+The extension points every node at its own page before Sphinx pickles it, which leaves the environment out. The `python:render-rst` and `python:render-myst` [directives](python-directives.md) move nodes the same way, and get the same fix.
 
 ## ANSI shell sessions
 

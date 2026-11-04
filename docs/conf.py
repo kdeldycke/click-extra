@@ -226,6 +226,10 @@ suppress_warnings = [
 # then ships the link dead. See click_extra/sphinx/fail_on_warnings.py.
 click_extra_fail_on_warnings = ["myst.xref_missing"]
 
+# Anchor each changelog release on its version, like `#v10-1-1`, in place of a
+# positional `#idN` that every release shifts. See click_extra/sphinx/changelog.py.
+click_extra_release_anchors = True
+
 # Cross-reference targets that legitimately have nothing to link to, so nitpicky
 # mode would otherwise flood the build with "reference target not found". These
 # are NOT broken refs in click-extra's own docstrings (those are fully qualified).
@@ -416,9 +420,7 @@ copyright = f"{author} and contributors"
 html_show_sphinx = False
 
 html_static_path = ["_static"]
-# The crosshair pair highlights the row and column under the pointer in every table.
-html_css_files = ["custom.css", "table-crosshair.css"]
-html_js_files = ["table-crosshair.js"]
+html_css_files = ["custom.css"]
 
 
 def pin_app_dir() -> None:

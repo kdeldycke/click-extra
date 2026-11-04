@@ -23,13 +23,19 @@ moment a heading rename shifts a `make_id` slug, a page link goes stale, or
 the `intersphinx_mapping` URL breaks, none of which a mock-based test would
 notice.
 
-The docs are built in a subprocess through `uv run --group docs`, so this
-module needs no Sphinx dependency of its own and runs in the plain test
-environment.
+The same build shows what the `click_extra.sphinx` extension changes in its
+output: each changelog release anchored on its version, no viewcode page that
+nothing links to, and no pickled page holding a node of another document.
+
+The docs are built in a subprocess through `uv run --group docs`, and so are
+the pickled pages read back, so this module needs no Sphinx dependency of its
+own and runs in the plain test environment.
 """
 
 from __future__ import annotations
 
+import json
+import re
 import shutil
 import subprocess
 import sys
@@ -63,6 +69,34 @@ pytestmark = [
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
+UV_RUN_DOCS = ("uv", "run", "--group", "docs")
+"""Prefix of a command run in the docs environment."""
+
+CHANGELOG_RELEASE = re.compile(
+    r"^## \[`(?P<version>\d+\.\d+\.\d+)(?:\.\w+)?` \(", re.MULTILINE
+)
+"""Heading of a release in `changelog.md`, the `.devN` suffix left out."""
+
+FOREIGN_NODES_SCRIPT = """\
+import json
+import pickle
+import sys
+from pathlib import Path
+
+doctrees = Path(sys.argv[1])
+foreign = {}
+for path in sorted(doctrees.rglob("*.doctree")):
+    doctree = pickle.loads(path.read_bytes())
+    count = sum(1 for node in doctree.findall() if node.document is not doctree)
+    if count:
+        foreign[path.relative_to(doctrees).as_posix()] = count
+print(json.dumps(foreign))
+"""
+"""Count, for each pickled page, the nodes that belong to another document.
+
+Runs in the docs environment, which holds every class the pages pickle.
+"""
+
 
 @pytest.fixture(scope="module")
 def built_docs(
@@ -72,7 +106,9 @@ def built_docs(
     """Build the HTML documentation once and return its output directory.
 
     Builds into a throwaway directory (rather than ``docs/_build``) so the run
-    is hermetic and never clobbers a developer's local build.
+    is hermetic and never clobbers a developer's local build. Reads in parallel,
+    as `docs.yaml` does: a serial read hides most of the viewcode pages a
+    parallel one publishes.
 
     Requests {func}`captures_before_build` so the snapshot is taken before the
     build whichever test triggers it: every test of this module shares the one
@@ -81,13 +117,12 @@ def built_docs(
     out_dir = tmp_path_factory.mktemp("sphinx-html")
     subprocess.run(
         [
-            "uv",
-            "run",
-            "--group",
-            "docs",
+            *UV_RUN_DOCS,
             "sphinx-build",
             "--builder",
             "html",
+            "--jobs",
+            "auto",
             str(PROJECT_ROOT / "docs"),
             str(out_dir),
         ],
@@ -142,6 +177,75 @@ def test_install_page_internal_anchor(built_docs):
     html = read_html(built_docs, "install.html")
     assert 'id="executables"' in html, "missing executables section anchor"
     assert 'href="#executables"' in html, "no in-page link to executables"
+
+
+def test_changelog_releases_are_anchored_on_their_version(built_docs):
+    """Each release of the changelog has an anchor made from its version.
+
+    docutils reduces a release heading to nothing and numbers its section from
+    a per-page counter, so `#id40` names another release after each new one.
+    `click_extra_release_anchors` in `docs/conf.py` gives each section an anchor
+    like `#v1-4-2` instead. See {mod}`click_extra.sphinx.changelog`.
+    """
+    changelog = (PROJECT_ROOT / "changelog.md").read_text(encoding="UTF-8")
+    versions = CHANGELOG_RELEASE.findall(changelog)
+    assert versions, "no release heading found in changelog.md"
+    html = read_html(built_docs, "changelog.html")
+    missing = [
+        version
+        for version in versions
+        if f'<section id="v{version.replace(".", "-")}">' not in html
+    ]
+    assert not missing, f"releases with no version anchor: {missing}"
+
+
+def test_viewcode_pages_link_back_to_their_objects(built_docs):
+    """Each published module page links back to an object it documents.
+
+    `sphinx.ext.viewcode` keeps a module it read even when no documented object
+    links to it, and a parallel read publishes a page for each such module,
+    reachable from the `_modules` index alone. See
+    {mod}`click_extra.sphinx.viewcode`.
+    """
+    index = built_docs / "_modules" / "index.html"
+    pages = [
+        page
+        for page in sorted((built_docs / "_modules").rglob("*.html"))
+        if page != index
+    ]
+    assert pages, "no viewcode page was built"
+    orphans = [
+        page.relative_to(built_docs).as_posix()
+        for page in pages
+        if 'class="viewcode-back"' not in page.read_text(encoding="UTF-8")
+    ]
+    assert not orphans, f"viewcode pages no documented object links to: {orphans}"
+
+
+def test_pickled_pages_hold_no_node_of_another_document(built_docs):
+    """Every node of each pickled page belongs to that page.
+
+    A node that keeps a throwaway document pickles that document's settings
+    with the page, build environment included. Counting such nodes catches a
+    leak of any size, where a ceiling on file sizes lets through a leak that
+    only some of the pages carry. See {mod}`click_extra.sphinx.doctrees`.
+    """
+    result = subprocess.run(
+        [
+            *UV_RUN_DOCS,
+            "python",
+            "-c",
+            FOREIGN_NODES_SCRIPT,
+            str(built_docs / ".doctrees"),
+        ],
+        capture_output=True,
+        check=True,
+        cwd=PROJECT_ROOT,
+        encoding="UTF-8",
+        text=True,
+    )
+    foreign = json.loads(result.stdout)
+    assert not foreign, f"pages holding nodes of another document: {foreign}"
 
 
 @pytest.mark.parametrize("anchor", ("click-extra-wrap", "test-suite-file"))

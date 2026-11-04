@@ -45,7 +45,17 @@ from sphinx.util import logging
 
 from .. import __version__
 from ..pygments import AnsiHtmlFormatter
-from . import fail_on_warnings, manpages, matrix, tables, todos
+from . import (
+    changelog,
+    crosshair,
+    doctrees,
+    fail_on_warnings,
+    manpages,
+    matrix,
+    tables,
+    todos,
+    viewcode,
+)
 from .click import cleanup_runner, register_config
 from .click_reference import ClickDomain
 from .python import (
@@ -147,6 +157,19 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     - A one-line first column for every table whose top-left cell names both
       axes, like the `matrix` tables: a narrow screen scrolls the table
       instead of wrapping its labels. See {mod}`click_extra.sphinx.tables`.
+    - A crosshair on the same tables, which highlights the row and the column
+      under the pointer, and makes a cell holding a single link clickable over
+      its whole area. See {mod}`click_extra.sphinx.crosshair`.
+    - No `sphinx.ext.viewcode` page for a module that no documented object
+      links to, so a parallel read publishes the pages of a serial one. Inert
+      without `sphinx.ext.viewcode`. See {mod}`click_extra.sphinx.viewcode`.
+    - Every node of a page pointed at the page's own document before Sphinx
+      pickles it, which keeps the build environment out of the doctree of a
+      page with an ``{eval-rst}`` block. See {mod}`click_extra.sphinx.doctrees`.
+    - Changelog releases anchored on their version, like `#v1-4-2`, in place
+      of a positional `#idN`. Inert until a project sets
+      {data}`click_extra.sphinx.changelog.RELEASE_ANCHORS_CONFIG`. See
+      {mod}`click_extra.sphinx.changelog`.
     - The man-page hook, which writes roff man pages for the CLIs a project
       lists in {data}`click_extra.sphinx.manpages.MANPAGES_CONFIG_KEY` on every
       HTML build. Inert until a project lists one. See
@@ -209,6 +232,22 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # tables.py). Every HTML page links the stylesheet, but only a table with a
     # corner label carries the class it styles.
     tables.setup(app)
+
+    # Highlight the row and the column under the pointer in the same tables
+    # (see crosshair.py). Set up after tables.py, whose static folder it shares.
+    crosshair.setup(app)
+
+    # Drop the viewcode pages that no documented object links to (see
+    # viewcode.py). Inert without `sphinx.ext.viewcode`.
+    viewcode.setup(app)
+
+    # Point the nodes an `{eval-rst}` block moves into a page at that page, so
+    # its pickled doctree leaves out the build environment (see doctrees.py).
+    doctrees.setup(app)
+
+    # Anchor each changelog release on its version (see changelog.py). Inert
+    # until `click_extra_release_anchors` is set.
+    changelog.setup(app)
 
     # Fail the build on the warning types a project lists (see
     # fail_on_warnings.py). Inert until `click_extra_fail_on_warnings` names one.

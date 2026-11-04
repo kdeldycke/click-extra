@@ -27,6 +27,15 @@
    :undoc-members:
 ```
 
+## `tests.sphinx.test_sphinx_changelog` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_changelog
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `tests.sphinx.test_sphinx_click` module
 
 ```{eval-rst}
@@ -49,6 +58,24 @@
 
 ```{eval-rst}
 .. automodule:: tests.sphinx.test_sphinx_click_tree
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.sphinx.test_sphinx_crosshair` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_crosshair
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.sphinx.test_sphinx_doctrees` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_doctrees
    :members:
    :show-inheritance:
    :undoc-members:
@@ -112,6 +139,15 @@
 
 ```{eval-rst}
 .. automodule:: tests.sphinx.test_sphinx_todos
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.sphinx.test_sphinx_viewcode` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_viewcode
    :members:
    :show-inheritance:
    :undoc-members:
