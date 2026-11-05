@@ -278,9 +278,9 @@ def test_cli_reference_anchors(built_docs, anchor):
         ),
         (
             "install.html",
-            "python-directives.html#the-matrix-directive",
+            "python-directives.html#the-support-envelope",
             "python-directives.html",
-            "the-matrix-directive",
+            "the-support-envelope",
         ),
         (
             "click_extra.config.html",
