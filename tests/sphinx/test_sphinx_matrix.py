@@ -50,9 +50,7 @@ from click_extra.sphinx.matrix import (
     _dependency_cell,
     _dependency_columns,
     _envelope,
-    _envelope_note,
     _extract_requirement,
-    _history_links,
     _latest_locked_version,
     _pypi_releases,
     _python_cell,
@@ -65,6 +63,7 @@ from click_extra.sphinx.matrix import (
     _walk_tags,
     dependency_matrix_groups,
     dependency_matrix_table,
+    envelope_list,
     parse_python_spec,
     python_matrix_groups,
     python_matrix_table,
@@ -208,11 +207,8 @@ def tagged_table_rows(table: str) -> dict[str, list[str]]:
     on the day the test runs.
     """
     rows = {}
-    # Skip the header and its alignment separator, and stop at the envelope
-    # note, if any, which follows the table.
+    # Skip the header and its alignment separator.
     for line in table.splitlines()[2:]:
-        if not line.startswith("|"):
-            break
         cells = table_cells(line)
         rows[LABEL_DATE_RE.sub("", cells[0])] = cells[1:]
     return rows
@@ -628,8 +624,7 @@ def split_floor_repo(tmp_path: Path) -> Path:
     """A repo raising its Python floor in the ``1.0.1`` patch release.
 
     The newest release supports 3.11 and later, and ``1.0.0`` only 3.9, so the
-    support envelope starts at ``1.0.1``, inside the ``1.0`` minor series. The
-    working tree declares a name and a GitHub repository, for the note's links.
+    support envelope starts at ``1.0.1``, inside the ``1.0`` minor series.
     """
     repo = tmp_path / "split-floor"
     git_repo(repo)
@@ -641,18 +636,13 @@ def split_floor_repo(tmp_path: Path) -> Path:
     ):
         declare_python(repo, spec, *classifiers)
         dated_tag(repo, tag, "2024-01-10")
-    (repo / "pyproject.toml").write_text(
-        '[project]\nname = "apricot"\n'
-        'urls.Repository = "https://github.com/orchard/apricot"\n',
-        encoding="UTF-8",
-    )
     return repo
 
 
 def test_python_matrix_table_envelope(split_floor_repo: Path) -> None:
     """A range supporting only Pythons below the floor goes, with the columns
-    only it supported, and a note follows the table to say so."""
-    table, note = python_matrix_table(split_floor_repo, "apricot").split("\n\n")
+    only it supported."""
+    table = python_matrix_table(split_floor_repo, "apricot")
     assert table_header(table)[1:] == ["`3.12`", "`3.11`"]
     # The dropped `1.0.0` still splits the `1.0` minor series, so the oldest
     # label shows the exact release the envelope starts at.
@@ -660,21 +650,10 @@ def test_python_matrix_table_envelope(split_floor_repo: Path) -> None:
         "`2.0.0`": ["✅", "✅"],
         "`1.0.1` → `1.1.x`": [UNDECLARED_CELL, "✅"],
     }
-    # The note dates the oldest release kept, from its tag, and the oldest
-    # Python kept, from its final release.
-    assert note == (
-        "> [!NOTE]\n"
-        "> This table shows the support envelope of `apricot`: the releases and"
-        " Python versions still in scope. Releases before `1.0.1` (2024-01-10)"
-        " and Python versions before `3.11` (2022-10-24) are obsolete. For an"
-        " older Python, find the last release that supports it in the [release"
-        " history on PyPI](https://pypi.org/project/apricot/#history) or in the"
-        " [GitHub releases](https://github.com/orchard/apricot/releases)."
-    )
 
 
 def test_python_matrix_table_full_history(split_floor_repo: Path) -> None:
-    """The full history keeps every range and every column, with no note."""
+    """The full history keeps every range and every column."""
     table = python_matrix_table(split_floor_repo, "apricot", full_history=True)
     assert table_header(table)[1:] == ["`3.12`", "`3.11`", "`3.9`"]
     assert list(tagged_table_rows(table)) == [
@@ -682,22 +661,19 @@ def test_python_matrix_table_full_history(split_floor_repo: Path) -> None:
         "`1.0.1` → `1.1.x`",
         "`1.0.0`",
     ]
-    assert "[!NOTE]" not in table
 
 
 @pytest.mark.parametrize("full_history", [True, False])
 def test_matrix_directive_full_history_option(
     sphinx_app_myst, split_floor_repo: Path, full_history: bool
 ) -> None:
-    """``:full-history:`` keeps the releases the envelope leaves out, and the
-    note of a table cut short renders as an admonition."""
+    """``:full-history:`` keeps the releases the envelope leaves out."""
     option = ":full-history:\n" if full_history else ""
     html = sphinx_app_myst.build_document(
         f"```{{matrix}} python\n:path: {split_floor_repo}\n{option}```\n"
     )
     assert html is not None
     assert (">1.0.0<" in html) is full_history
-    assert ("admonition note" in html) is not full_history
 
 
 def test_update_matrix_blocks_full_history_marker(
@@ -714,7 +690,6 @@ def test_update_matrix_blocks_full_history_marker(
         assert update_matrix_blocks([doc]) == [doc]
         text = doc.read_text(encoding="UTF-8")
         assert ("| `1.0.0` " in text) is full_history
-        assert ("> [!NOTE]" in text) is not full_history
         assert update_matrix_blocks([doc], check=True) == []
 
 
@@ -1682,19 +1657,111 @@ def test_dependency_matrix_table_envelope(
     range, so it goes, and the ``widget`` 1.0.0 column it alone accepted too.
     """
     stub_releases(monkeypatch, *WIDGET_DATES, dates=WIDGET_DATES)
-    table, note = dependency_matrix_table(dated_dep_repo, "proj", "widget").split(
-        "\n\n"
-    )
+    table = dependency_matrix_table(dated_dep_repo, "proj", "widget")
     assert table_header(table)[1:] == ["`3.0.0`", "`2.x`"]
     assert tagged_table_rows(table) == {
         "`3.0.0`": ["✅", "❌"],
         "`2.0.0`": ["✅", "✅"],
     }
-    # The oldest `widget` kept is dated from PyPI.
-    assert (
-        "Releases before `2.0.0` (2024-06-10) and `widget` versions before `2.0.0`"
-        " (2024-05-01) are obsolete."
-    ) in note
+
+
+ENVELOPE_WIDGET_DATES = {
+    "1.0.0": "2021-12-01",
+    "2.0.0": "2023-05-01",
+    "3.0.0": "2024-12-01",
+}
+"""Publication dates of the ``widget`` releases the envelope repository sees."""
+
+
+@pytest.fixture
+def envelope_repo(tmp_path: Path) -> Path:
+    """A repo declaring its Python support and a ``widget`` floor at each tag.
+
+    The Python envelope leaves out ``1.0.0``, which supports no Python from 3.11
+    on. The ``widget`` one keeps every release.
+    """
+    repo = tmp_path / "envelope"
+    git_repo(repo)
+    for tag, date, spec, classifiers, widget in (
+        ("v1.0.0", "2022-01-10", ">=3.9", ("3.9", "3.10"), ">=1.0"),
+        ("v2.0.0", "2023-06-10", ">=3.10", ("3.10", "3.11"), ">=2.0"),
+        ("v3.0.0", "2025-01-10", ">=3.11", ("3.11", "3.12", "3.13"), ">=2.0"),
+    ):
+        declared = "".join(
+            f'  "Programming Language :: Python :: {c}",\n' for c in classifiers
+        )
+        (repo / "pyproject.toml").write_text(
+            f'[project]\nrequires-python = "{spec}"\n'
+            f'dependencies = ["widget{widget}"]\n'
+            f"classifiers = [\n{declared}]\n",
+            encoding="UTF-8",
+        )
+        dated_tag(repo, tag, date)
+    return repo
+
+
+def test_envelope_list_across_axes(
+    envelope_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The release bound is the strictest one, and each version bound is read
+    again over the releases left in scope."""
+    stub_releases(monkeypatch, *ENVELOPE_WIDGET_DATES, dates=ENVELOPE_WIDGET_DATES)
+    assert envelope_list(envelope_repo, "apricot", ["python", "widget"]) == (
+        "- `apricot` releases before `2.0.0` (2023-06-10)\n"
+        "- Python versions before `3.10` (2021-10-04)\n"
+        # The `widget` matrix alone keeps `1.0.0`, which accepts widget 1.0.0,
+        # but `1.0.0` is out of scope for Python.
+        "- `widget` versions before `2.0.0` (2023-05-01)"
+    )
+
+
+def test_envelope_list_without_cut(synthetic_dep_repo: Path) -> None:
+    """With no envelope leaving out a release, the list has no release bound. An
+    axis the history never declares is skipped, and a version of unknown date
+    gets no date."""
+    assert envelope_list(synthetic_dep_repo, "proj", ["python", "widget"]) == (
+        "- `widget` versions before `1.0`"
+    )
+
+
+def test_update_matrix_blocks_envelope_region(
+    envelope_repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The refresh fills an envelope region between its markers, and settles."""
+    stub_releases(monkeypatch, *ENVELOPE_WIDGET_DATES, dates=ENVELOPE_WIDGET_DATES)
+    doc = tmp_path / "page.md"
+    marker = f"<!-- envelope python widget path={envelope_repo} package=apricot -->"
+    doc.write_text(f"{marker}\n<!-- envelope-end -->\n", encoding="UTF-8")
+    assert update_matrix_blocks([doc]) == [doc]
+    assert doc.read_text(encoding="UTF-8") == (
+        f"{marker}\n"
+        "\n"
+        "- `apricot` releases before `2.0.0` (2023-06-10)\n"
+        "- Python versions before `3.10` (2021-10-04)\n"
+        "- `widget` versions before `2.0.0` (2023-05-01)\n"
+        "\n"
+        "<!-- envelope-end -->\n"
+    )
+    assert update_matrix_blocks([doc], check=True) == []
+
+
+@pytest.mark.parametrize("args", ["python widget", "package=apricot"])
+def test_update_matrix_blocks_leaves_an_envelope_region_untouched(
+    envelope_repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, args: str
+) -> None:
+    """An unreadable PyPI, or a region naming no axis, rewrites nothing."""
+
+    def unreachable(dep_name, *, required=False):
+        if required:
+            raise ReleasesUnreadable(dep_name)
+        return {}
+
+    monkeypatch.setattr(f"{MATRIX_MODULE}._pypi_releases", unreachable)
+    doc = tmp_path / "page.md"
+    original = f"<!-- envelope {args} path={envelope_repo} -->\n<!-- envelope-end -->\n"
+    doc.write_text(original, encoding="UTF-8")
+    assert update_matrix_blocks([doc]) == []
+    assert doc.read_text(encoding="UTF-8") == original
 
 
 def test_dependency_matrix_groups_respelled_spec_continues_range(
@@ -2163,89 +2230,6 @@ def test_render_block_default_package_label(
     repo = named_repo(tmp_path / "orchard", pyproject)
     table = _render_block("python", options, repo)
     assert table_header(table)[0].startswith(f"`{expected}` ")
-
-
-PYPI_LINK = ("release history on PyPI", "https://pypi.org/project/apricot/#history")
-GITHUB_LINK = ("GitHub releases", "https://github.com/orchard/apricot/releases")
-
-
-@pytest.mark.parametrize(
-    ("pyproject", "expected"),
-    [
-        # The PyPI history of the declared name, then the GitHub releases of
-        # the declared repository.
-        (
-            (
-                '[project]\nname = "apricot"\n'
-                '[project.urls]\nRepository = "https://github.com/orchard/apricot"\n'
-            ),
-            [PYPI_LINK, GITHUB_LINK],
-        ),
-        # The name is normalized, the label too, and a `.git` suffix dropped.
-        (
-            (
-                '[project]\nname = "Apricot"\n[project.urls]\n'
-                '"Source Code" = "https://github.com/orchard/apricot.git"\n'
-            ),
-            [PYPI_LINK, GITHUB_LINK],
-        ),
-        # A page inside a repository names no repository, so the homepage,
-        # read last, stands in.
-        (
-            (
-                '[project]\nname = "apricot"\n[project.urls]\n'
-                'Source = "https://github.com/orchard/apricot/tree/main"\n'
-                'Homepage = "https://github.com/orchard/apricot/"\n'
-            ),
-            [PYPI_LINK, GITHUB_LINK],
-        ),
-        # Poetry's own keys.
-        (
-            (
-                '[tool.poetry]\nname = "apricot"\n'
-                'repository = "https://github.com/orchard/apricot"\n'
-            ),
-            [PYPI_LINK, GITHUB_LINK],
-        ),
-        # A repository off GitHub has no releases page to link.
-        (
-            (
-                '[project]\nname = "apricot"\n'
-                '[project.urls]\nRepository = "https://gitlab.com/orchard/apricot"\n'
-            ),
-            [PYPI_LINK],
-        ),
-        ('[project]\nrequires-python = ">=3.11"\n', []),
-        (None, []),
-    ],
-)
-def test_history_links(
-    tmp_path: Path, pyproject: str | None, expected: list[tuple[str, str]]
-) -> None:
-    if pyproject is not None:
-        (tmp_path / "pyproject.toml").write_text(pyproject, encoding="UTF-8")
-    assert _history_links(tmp_path) == expected
-
-
-def test_envelope_note_without_links(tmp_path: Path) -> None:
-    """A project declaring neither a name nor a repository gets no link, and a
-    version of unknown date gets no date."""
-    note = _envelope_note(
-        "apple",
-        "`banana`",
-        tmp_path,
-        verb="accept",
-        first_release=("v1.2.0", "2024-03-01"),
-        first_version=("2.0.0", ""),
-    )
-    assert note == (
-        "> [!NOTE]\n"
-        "> This table shows the support envelope of `apple`: the releases and"
-        " `banana` versions still in scope. Releases before `1.2.0` (2024-03-01)"
-        " and `banana` versions before `2.0.0` are obsolete. For an older"
-        " `banana`, find the last release that accepts it in the project's"
-        " release history."
-    )
 
 
 def test_update_matrix_blocks_label_ignores_checkout_name(tmp_path: Path) -> None:

@@ -150,6 +150,19 @@ $ sudo zypper install python313-click-extra
 ````
 `````
 
+## Support envelope
+
+The compatibility tables below keep the [support envelope](python-directives.md#the-support-envelope) of `click-extra`. Outside of it, these are obsolete:
+
+<!-- envelope python click cloup -->
+
+- `click-extra` releases before `8.0.0` (2026-06-22)
+- Python versions before `3.10` (2021-10-04)
+- `click` versions before `8.3.1` (2025-11-15)
+- `cloup` versions before `3.0.7` (2025-03-15)
+
+<!-- envelope-end -->
+
 ## Python compatibility
 
 The table below shows which Python versions each `click-extra` release range supports. For `4.9.0` and later, support comes from the `Programming Language :: Python :: 3.X` classifiers in `pyproject.toml`. For earlier releases, the floor comes from the `requires-python` declaration (Poetry `python = "..."` for older tags), capped at the latest Python released within the range. It is regenerated from the release tags by `click-extra refresh-directives` (the [`matrix`](python-directives.md#the-matrix-directive) mechanism).
@@ -158,7 +171,7 @@ Each cell holds one of three states:
 
 - ✅: the release declares support for that Python.
 - ❌: the `requires-python` of the release rules that Python out.
-- `–`: the release neither claimed nor forbade that Python, usually because it had not been released yet.
+- `–`: the release neither claimed nor forbade that Python, usually because that Python was not out yet when the release declared its requirements.
 
 See [three states, two sources](python-directives.md#three-states-two-sources). The table keeps the [support envelope](python-directives.md#the-support-envelope) of `click-extra`, so the oldest releases drop off as the oldest supported Python moves up.
 
@@ -190,9 +203,6 @@ Click Extra wraps Click, so the two are tightly coupled and the matrix of suppor
 | `9.x`                        |   ✅    |        ✅         |        ❌         |
 | `8.x`                        |   ✅    |        ✅         |        ✅         |
 
-> [!NOTE]
-> This table shows the support envelope of `click-extra`: the releases and `click` versions still in scope. Releases before `8.0.0` (2026-06-22) and `click` versions before `8.3.1` (2025-11-15) are obsolete. For an older `click`, find the last release that accepts it in the [release history on PyPI](https://pypi.org/project/click-extra/#history) or in the [GitHub releases](https://github.com/kdeldycke/click-extra/releases).
-
 <!-- matrix-end -->
 
 ## Cloup compatibility
@@ -205,9 +215,6 @@ Click Extra's commands and groups subclass those of [Cloup](https://github.com/j
 | :--------------------------- | :-----: | :---------------: |
 | `10.x`                       |   ✅    |        ❌         |
 | `6.0.x` → `9.5.x`            |   ✅    |        ✅         |
-
-> [!NOTE]
-> This table shows the support envelope of `click-extra`: the releases and `cloup` versions still in scope. Releases before `6.0.0` (2025-09-25) and `cloup` versions before `3.0.7` (2025-03-15) are obsolete. For an older `cloup`, find the last release that accepts it in the [release history on PyPI](https://pypi.org/project/click-extra/#history) or in the [GitHub releases](https://github.com/kdeldycke/click-extra/releases).
 
 <!-- matrix-end -->
 

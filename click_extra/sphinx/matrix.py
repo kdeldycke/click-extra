@@ -39,7 +39,9 @@ Two axes are supported:
   came out after the range was superseded renders as `–`, like a future Python.
 
 Both axes then keep only the support envelope of the project, the part of its
-history still in scope: see {func}`_envelope`.
+history still in scope: see {func}`_envelope`. The `<!-- envelope -->` region
+lists the obsolete bounds of that envelope across several axes: see
+{func}`envelope_bounds`.
 
 The rendered tables back the always-on `matrix` Sphinx directive (see
 {class}`MatrixDirective`), so a project's `install.md` can embed a live matrix
@@ -181,40 +183,6 @@ PYPI_JSON_URL: str = "https://pypi.org/pypi/{name}/json"
 PYPI_TIMEOUT: float = 10
 """Seconds to wait for PyPI before the release lookup gives up."""
 
-PYPI_HISTORY_URL: str = "https://pypi.org/project/{name}/#history"
-"""PyPI's release history of a project, formatted with its normalized name."""
-
-REPOSITORY_URL_LABELS: tuple[str, ...] = (
-    "source",
-    "repository",
-    "sourcecode",
-    "github",
-    "homepage",
-)
-"""The `[project.urls]` labels read for the project's GitHub repository, in order.
-
-Labels are compared normalized, as
-[PEP 753](https://peps.python.org/pep-0753/) spells them: lowercase, with
-punctuation and whitespace removed. The first four are the labels PEP 753 lists
-for a source repository. The homepage comes last, since it often points at the
-repository too.
-"""
-
-ENVELOPE_NOTE: str = (
-    "> [!NOTE]\n"
-    "> This table shows the support envelope of `{package}`: the releases and"
-    " {axis} versions still in scope. Releases before {first_release} and {axis}"
-    " versions before {first_version} are obsolete. For an older {axis}, find"
-    " the last release that {verb}s it {where}."
-)
-"""The note following a table whose envelope leaves out older releases.
-
-`first_release` and `first_version` name the oldest release and the oldest
-version the envelope keeps, each followed by its release date when known. The
-note is a GitHub alert, which GitHub renders as a note and MyST's `alert`
-extension as a `note` admonition, so a marker region reads the same on both.
-"""
-
 POETRY_VERSION_PATTERN: str = (
     r"(?P<release>\d+(?:\.\d+){0,2})"
     r"(?P<suffix>(?:[-_.]?[a-z]+\d*)*)"
@@ -261,12 +229,6 @@ _POETRY_PYTHON_RE = re.compile(
 _PYTHON_REQUIRES_RE = re.compile(r'python_requires\s*=\s*["\']([^"\']+)["\']')
 """A `setup.py` `python_requires` keyword, its specifier captured."""
 
-_GITHUB_REPOSITORY_RE = re.compile(
-    r"^https?://(?:www\.)?github\.com/"
-    r"(?P<owner>[\w.-]+)/(?P<repo>[\w.-]+?)(?:\.git)?/?$"
-)
-"""The root page of a GitHub repository, its owner and name captured."""
-
 _FENCE_OPEN_RE = re.compile(
     r"^(?P<indent>[ \t]*)(?P<fence>`{3,})\{matrix\}[ \t]+(?P<axis>\S+)[ \t]*$",
 )
@@ -280,6 +242,11 @@ _FENCE_OPEN_RE = re.compile(
 # or `show-date`).
 _MARKER_OPEN_RE, _MARKER_CLOSE_RE = marker_res("matrix")
 _MARKER_CLOSE = region_markers("matrix")[1]
+
+# `<!-- envelope <axis>... [key=value ...] -->` … `<!-- envelope-end -->` region
+# markers, in the same grammar. Its bare args name the axes it covers.
+_ENVELOPE_OPEN_RE, _ENVELOPE_CLOSE_RE = marker_res("envelope")
+_ENVELOPE_CLOSE = region_markers("envelope")[1]
 
 
 class PythonMatrixGroup(NamedTuple):
@@ -888,42 +855,6 @@ def _envelope(
     return first_row, first_column
 
 
-def _envelope_note(
-    package: str,
-    axis: str,
-    project_root: Path,
-    *,
-    verb: str,
-    first_release: tuple[str, str],
-    first_version: tuple[str, str],
-) -> str:
-    """Render the note following a table cut short by its support envelope.
-
-    `axis` names the column versions the way the corner cell does, like `Python`
-    or `` `click` ``, and `verb` what a release does to them: `support` or
-    `accept`. `first_release` is the oldest release the envelope keeps, and
-    `first_version` its oldest version, each a `(version, date)` pair whose ISO
-    date is empty when unknown. The note links the pages that list every past
-    release, see {func}`_history_links`.
-    """
-
-    def dated(version: str, date: str) -> str:
-        bare = f"`{version.removeprefix('v')}`"
-        return f"{bare} ({date})" if date else bare
-
-    where = " or ".join(
-        f"in the [{text}]({url})" for text, url in _history_links(project_root)
-    )
-    return ENVELOPE_NOTE.format(
-        package=package,
-        axis=axis,
-        verb=verb,
-        first_release=dated(*first_release),
-        first_version=dated(*first_version),
-        where=where or "in the project's release history",
-    )
-
-
 def _render_matrix(
     label: str,
     axis: str,
@@ -993,6 +924,61 @@ def _python_cell(version: str, group: PythonMatrixGroup) -> str:
     return FORBIDDEN_CELL if forbidden else UNDECLARED_CELL
 
 
+class _Grid(NamedTuple):
+    """The cells of a matrix, before its support envelope trims them."""
+
+    groups: Sequence[PythonMatrixGroup | DependencyMatrixGroup]
+    """The release ranges, oldest first: one row each."""
+
+    versions: list[str]
+    """The version of each column, ascending."""
+
+    dates: list[str]
+    """The ISO release date of each column version, empty when unknown."""
+
+    cells: list[list[str]]
+    """One cell per range and version."""
+
+
+def _python_grid(
+    project_root: Path,
+    *,
+    tag_pattern: str = DEFAULT_TAG_PATTERN,
+    tags_sort: str = DEFAULT_TAGS_SORT,
+    python_floor: str = "",
+    version_floor: str = "",
+    release_dates: dict[str, str] | None = None,
+) -> _Grid | None:
+    """Build the Python matrix of `project_root`, or `None` when it is empty.
+
+    Its columns are the Python versions some range supports, at or above
+    `python_floor`, each dated by `release_dates`. The other parameters go to
+    {func}`python_matrix_groups`.
+    """
+    groups = python_matrix_groups(
+        project_root,
+        tag_pattern=tag_pattern,
+        tags_sort=tags_sort,
+        version_floor=version_floor,
+        release_dates=release_dates,
+    )
+    versions = sorted(
+        {v for g in groups for v in g.python_versions}, key=_version_sort_key
+    )
+    if python_floor:
+        python_floor_key = _version_sort_key(python_floor)
+        versions = [v for v in versions if _version_sort_key(v) >= python_floor_key]
+    if not versions:
+        return None
+    dates = PYTHON_RELEASE_DATES if release_dates is None else release_dates
+    return _Grid(
+        groups,
+        versions,
+        [dates.get(version, "") for version in versions],
+        [[_python_cell(version, group) for version in versions] for group in groups],
+    )
+
+
 def python_matrix_table(
     project_root: Path,
     label: str,
@@ -1037,32 +1023,22 @@ def python_matrix_table(
     :param full_history: keep every release range, not just the support
         envelope.
     :param release_dates: passed to {func}`python_matrix_groups`.
-    :return: rendered markdown table, followed by {data}`ENVELOPE_NOTE` when the
-        envelope leaves out older releases, or the empty string when no group
-        was collected.
+    :return: rendered markdown table, or the empty string when no group was
+        collected.
     :raises ValueError: on an unrecognized `column_order` or `row_order`.
     """
     _validate_orders(column_order, row_order)
-    groups = python_matrix_groups(
+    grid = _python_grid(
         project_root,
         tag_pattern=tag_pattern,
         tags_sort=tags_sort,
+        python_floor=python_floor,
         version_floor=version_floor,
         release_dates=release_dates,
     )
-    if not groups:
+    if grid is None:
         return ""
-
-    versions = sorted(
-        {v for g in groups for v in g.python_versions}, key=_version_sort_key
-    )
-    if python_floor:
-        python_floor_key = _version_sort_key(python_floor)
-        versions = [v for v in versions if _version_sort_key(v) >= python_floor_key]
-    if not versions:
-        return ""
-
-    cells = [[_python_cell(version, group) for version in versions] for group in groups]
+    groups, versions, _, cells = grid
     first_row, first_column = _envelope(cells, full_history=full_history)
     columns = list(range(first_column, len(versions)))
     if column_order == NEWEST_FIRST:
@@ -1081,7 +1057,7 @@ def python_matrix_table(
         for _, oldest, newest in _runs(range(first_row, len(groups)), key=rendered)
     ]
     older = groups[first_row - 1] if first_row else None
-    table = _render_matrix(
+    return _render_matrix(
         label,
         "Python",
         rows,
@@ -1089,19 +1065,6 @@ def python_matrix_table(
         row_order=row_order,
         older=(older.first_tag, older.last_tag, older.first_date) if older else None,
     )
-    if older is None:
-        return table
-    oldest_version = versions[first_column]
-    dates = PYTHON_RELEASE_DATES if release_dates is None else release_dates
-    note = _envelope_note(
-        label,
-        "Python",
-        project_root,
-        verb="support",
-        first_release=(groups[first_row].first_tag, groups[first_row].first_date),
-        first_version=(oldest_version, dates.get(oldest_version, "")),
-    )
-    return f"{table}\n\n{note}"
 
 
 class DependencyMatrixGroup(NamedTuple):
@@ -1505,6 +1468,59 @@ def dependency_matrix_groups(
     ]
 
 
+def _dependency_grid(
+    project_root: Path,
+    dep_name: str,
+    *,
+    tag_pattern: str = DEFAULT_TAG_PATTERN,
+    tags_sort: str = DEFAULT_TAGS_SORT,
+    version_floor: str = "",
+    require_releases: bool = False,
+) -> _Grid | None:
+    """Build the `dep_name` matrix of `project_root`, or `None` when it is empty.
+
+    One column per release (see {func}`_column_candidates`), dated from PyPI,
+    and one cell per range and release (see {func}`_dependency_cell`).
+    `require_releases` goes to {func}`_pypi_releases`, the other parameters to
+    {func}`dependency_matrix_groups`.
+    """
+    groups = dependency_matrix_groups(
+        project_root,
+        dep_name,
+        tag_pattern=tag_pattern,
+        tags_sort=tags_sort,
+        version_floor=version_floor,
+    )
+    if not groups:
+        return None
+    releases = _pypi_releases(dep_name, required=require_releases)
+    candidates = sorted(
+        _column_candidates(
+            [group.spec for group in groups],
+            releases,
+            _latest_locked_version(project_root, dep_name),
+        )
+    )
+    if not candidates:
+        return None
+    # A range is current until the next one starts, and the newest one today.
+    today = datetime.now(tz=UTC).date().isoformat()
+    end_dates = [group.first_date for group in groups[1:]] + [today]
+    spec_sets = [_to_specifier_set(group.spec) for group in groups]
+    return _Grid(
+        groups,
+        [str(version) for version in candidates],
+        [releases.get(version, "") for version in candidates],
+        [
+            [
+                _dependency_cell(spec_set, version, releases.get(version, ""), end)
+                for version in candidates
+            ]
+            for spec_set, end in zip(spec_sets, end_dates, strict=True)
+        ],
+    )
+
+
 def dependency_matrix_table(
     project_root: Path,
     label: str,
@@ -1548,50 +1564,30 @@ def dependency_matrix_table(
         envelope.
     :param require_releases: refuse the offline fallback columns, for a caller
         comparing the result against a checked-in table.
-    :return: rendered markdown table, followed by {data}`ENVELOPE_NOTE` when the
-        envelope leaves out older releases, or `""` when nothing was collected.
+    :return: rendered markdown table, or `""` when nothing was collected.
     :raises ValueError: on an unrecognized `column_order` or `row_order`.
     :raises ReleasesUnreadable: under `require_releases`, when PyPI cannot
         answer for `dep_name`.
     """
     _validate_orders(column_order, row_order)
-    groups = dependency_matrix_groups(
+    grid = _dependency_grid(
         project_root,
         dep_name,
         tag_pattern=tag_pattern,
         tags_sort=tags_sort,
         version_floor=version_floor,
+        require_releases=require_releases,
     )
-    if not groups:
+    if grid is None:
         return ""
-    releases = _pypi_releases(dep_name, required=require_releases)
-    candidates = sorted(
-        _column_candidates(
-            [group.spec for group in groups],
-            releases,
-            _latest_locked_version(project_root, dep_name),
-        )
-    )
-    if not candidates:
-        return ""
-    # A range is current until the next one starts, and the newest one today.
-    today = datetime.now(tz=UTC).date().isoformat()
-    end_dates = [group.first_date for group in groups[1:]] + [today]
-    spec_sets = [_to_specifier_set(group.spec) for group in groups]
-    cells = [
-        [
-            _dependency_cell(spec_set, version, releases.get(version, ""), end_date)
-            for version in candidates
-        ]
-        for spec_set, end_date in zip(spec_sets, end_dates, strict=True)
-    ]
+    groups, versions, _, cells = grid
     first_row, first_column = _envelope(cells, full_history=full_history)
     shown = range(first_row, len(groups))
 
     # Label the columns the way the rows are labeled, newest first.
     bins = list(reversed(_dependency_columns(cells, shown)))
     column_labels = _range_labels(
-        [(str(candidates[first]), str(candidates[last]), "") for first, last in bins],
+        [(versions[first], versions[last], "") for first, last in bins],
         descending=column_order == NEWEST_FIRST,
     )
     # Drop the oldest columns, outside the envelope. Labeled before the drop,
@@ -1623,7 +1619,7 @@ def dependency_matrix_table(
         ))
 
     older = groups[first_row - 1] if first_row else None
-    table = _render_matrix(
+    return _render_matrix(
         label,
         f"`{dep_name}`",
         rows,
@@ -1632,18 +1628,132 @@ def dependency_matrix_table(
         leading_headers=["Spec"] if show_spec else [],
         older=(older.first_tag, older.last_tag, older.first_date) if older else None,
     )
-    if older is None:
-        return table
-    oldest_version = candidates[first_column]
-    note = _envelope_note(
-        label,
-        f"`{dep_name}`",
-        project_root,
-        verb="accept",
-        first_release=(groups[first_row].first_tag, groups[first_row].first_date),
-        first_version=(str(oldest_version), releases.get(oldest_version, "")),
+
+
+class EnvelopeBound(NamedTuple):
+    """An obsolete bound of the support envelope: what is older lies outside it."""
+
+    subject: str
+    """What the bound limits: the package releases, or the versions of an axis."""
+
+    version: str
+    """The oldest release or version inside the envelope."""
+
+    date: str
+    """The ISO release date of that release or version, empty when unknown."""
+
+
+def envelope_bounds(
+    project_root: Path,
+    package: str,
+    axes: Iterable[str],
+    *,
+    tag_pattern: str = DEFAULT_TAG_PATTERN,
+    tags_sort: str = DEFAULT_TAGS_SORT,
+    require_releases: bool = False,
+) -> list[EnvelopeBound]:
+    """Return the obsolete bounds of the support envelope across `axes`.
+
+    Each axis keeps its own envelope, as its matrix does (see {func}`_envelope`).
+    A release is in scope when every envelope that leaves out releases keeps it,
+    so the release bound is the newest of their first releases. Each version
+    bound is then the oldest version a range in scope supports, read over those
+    ranges alone: it can be newer than the oldest version of the axis' matrix,
+    whose older rows support older versions.
+
+    A release is dated by its tag, a Python by its final release (see
+    {data}`PYTHON_RELEASE_DATES`), and a dependency release by PyPI.
+
+    :param package: the documented package, named by the release bound.
+    :param axes: `python`, or the names of tracked distributions. An axis the
+        history never declares is skipped.
+    :param require_releases: passed to {func}`_pypi_releases`.
+    :return: the release bound first, when an envelope leaves out releases, then
+        one version bound per axis, in the order of `axes`.
+    """
+    envelopes = []
+    for axis in axes:
+        if axis == "python":
+            grid = _python_grid(
+                project_root, tag_pattern=tag_pattern, tags_sort=tags_sort
+            )
+            subject = "Python versions"
+        else:
+            grid = _dependency_grid(
+                project_root,
+                axis,
+                tag_pattern=tag_pattern,
+                tags_sort=tags_sort,
+                require_releases=require_releases,
+            )
+            subject = f"`{axis}` versions"
+        if grid is not None:
+            envelopes.append((subject, grid, *_envelope(grid.cells)))
+
+    release = max(
+        (grid.groups[first_row] for _, grid, first_row, _ in envelopes if first_row),
+        key=lambda group: _version_sort_key(group.first_tag),
+        default=None,
     )
-    return f"{table}\n\n{note}"
+    bounds = []
+    if release is not None:
+        bounds.append(
+            EnvelopeBound(
+                f"`{package}` releases",
+                release.first_tag.removeprefix("v"),
+                release.first_date,
+            )
+        )
+    for subject, grid, first_row, first_column in envelopes:
+        in_scope = [
+            row
+            for row in range(first_row, len(grid.groups))
+            if release is None
+            or _version_sort_key(grid.groups[row].last_tag)
+            >= _version_sort_key(release.first_tag)
+        ]
+        column = min(
+            (
+                index
+                for row in in_scope
+                for index, cell in enumerate(grid.cells[row])
+                if cell == SUPPORTED_CELL
+            ),
+            default=first_column,
+        )
+        bounds.append(EnvelopeBound(subject, grid.versions[column], grid.dates[column]))
+    return bounds
+
+
+def envelope_list(
+    project_root: Path,
+    package: str,
+    axes: Iterable[str],
+    *,
+    tag_pattern: str = DEFAULT_TAG_PATTERN,
+    tags_sort: str = DEFAULT_TAGS_SORT,
+    require_releases: bool = False,
+) -> str:
+    """Render the obsolete bounds of the support envelope as a Markdown list.
+
+    One item per bound of {func}`envelope_bounds`, which takes every parameter.
+    An item names what the bound limits and the oldest version in scope, then
+    the release date of that version when known.
+
+    :return: the list, or the empty string when no axis has any data.
+    """
+    items = []
+    for bound in envelope_bounds(
+        project_root,
+        package,
+        axes,
+        tag_pattern=tag_pattern,
+        tags_sort=tags_sort,
+        require_releases=require_releases,
+    ):
+        date = f" ({bound.date})" if bound.date else ""
+        items.append(f"- {bound.subject} before `{bound.version}`{date}")
+    return "\n".join(items)
 
 
 def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
@@ -1680,83 +1790,18 @@ def _project_name(project_root: Path) -> str:
     worktree under another name each renders a different table, and
     `refresh-directives --check` then reports the checked-in one as stale.
     """
-    return _declared_name(_working_tree_pyproject(project_root))
-
-
-def _working_tree_pyproject(project_root: Path) -> dict[str, Any]:
-    """Parse the working-tree `pyproject.toml` of `project_root`.
-
-    A missing or unreadable file reads as empty, like an unparsable one.
-    """
     try:
         text = (project_root / "pyproject.toml").read_text(encoding="UTF-8")
     except (OSError, ValueError):
-        return {}
-    return _pyproject_data(text)
-
-
-def _poetry_table(data: Mapping[str, Any]) -> Mapping[str, Any]:
-    """The `[tool.poetry]` table of a parsed `pyproject.toml`, empty when absent."""
+        return ""
+    data = _pyproject_data(text)
     tool = data.get("tool")
     poetry = tool.get("poetry") if isinstance(tool, dict) else None
-    return poetry if isinstance(poetry, dict) else {}
-
-
-def _declared_name(data: Mapping[str, Any]) -> str:
-    """The name a parsed `pyproject.toml` declares, PEP 621 first, or `""`."""
-    for table in (data.get("project"), _poetry_table(data)):
+    for table in (data.get("project"), poetry):
         name = table.get("name") if isinstance(table, dict) else None
         if name and isinstance(name, str):
             return name
     return ""
-
-
-def _github_repository(data: Mapping[str, Any]) -> str:
-    """Return the GitHub repository a parsed `pyproject.toml` declares, or `""`.
-
-    Reads the `[project.urls]` labels of {data}`REPOSITORY_URL_LABELS` in order,
-    then Poetry's `repository` and `homepage` keys. Only the root page of a
-    repository counts: a link to a file inside one, like a changelog, does not
-    say where its releases are.
-    """
-    project = data.get("project")
-    urls = project.get("urls") if isinstance(project, dict) else None
-    labeled = {}
-    if isinstance(urls, dict):
-        labeled = {
-            "".join(char for char in str(label).lower() if char.isalnum()): url
-            for label, url in urls.items()
-        }
-    poetry = _poetry_table(data)
-    for url in (
-        *(labeled.get(label) for label in REPOSITORY_URL_LABELS),
-        poetry.get("repository"),
-        poetry.get("homepage"),
-    ):
-        m = _GITHUB_REPOSITORY_RE.match(url) if isinstance(url, str) else None
-        if m:
-            return f"https://github.com/{m['owner']}/{m['repo']}"
-    return ""
-
-
-def _history_links(project_root: Path) -> list[tuple[str, str]]:
-    """Return the pages listing every past release of the project at `project_root`.
-
-    Its release history on PyPI, from the name its working-tree `pyproject.toml`
-    declares, then its GitHub releases, from the repository it declares (see
-    {func}`_github_repository`). Each link is a `(text, url)` pair. A project
-    declaring neither gets none.
-    """
-    data = _working_tree_pyproject(project_root)
-    links = []
-    name = _declared_name(data)
-    if name:
-        url = PYPI_HISTORY_URL.format(name=canonicalize_name(name))
-        links.append(("release history on PyPI", url))
-    repository = _github_repository(data)
-    if repository:
-        links.append(("GitHub releases", f"{repository}/releases"))
-    return links
 
 
 def _render_block(
@@ -1806,6 +1851,28 @@ def _render_block(
         column_order=column_order,
         row_order=row_order,
         full_history="full-history" in options,
+        require_releases=require_releases,
+    )
+
+
+def _render_envelope(
+    axes: Sequence[str],
+    options: Mapping[str, str],
+    base_dir: Path,
+    *,
+    require_releases: bool = False,
+) -> str:
+    """Render the list of an `<!-- envelope <axis>... -->` region.
+
+    Resolves the package and the path like {func}`_render_block`, so a region
+    and the matrices beside it name the same project.
+    """
+    root = _resolve_root(options.get("path"), base_dir)
+    return envelope_list(
+        root,
+        options.get("package") or _project_name(root) or root.name,
+        axes,
+        tag_pattern=options.get("tag-pattern") or DEFAULT_TAG_PATTERN,
         require_releases=require_releases,
     )
 
@@ -1944,6 +2011,17 @@ def _regenerate(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
         return ""
 
 
+def _regenerate_envelope(
+    axes: Sequence[str], options: Mapping[str, str], base_dir: Path
+) -> str:
+    """Render an envelope region, returning `""` on any failure, like
+    {func}`_regenerate` does for a matrix."""
+    try:
+        return _render_envelope(axes, options, base_dir, require_releases=True)
+    except (OSError, ReleasesUnreadable, subprocess.SubprocessError):
+        return ""
+
+
 def _refresh_fence_block(
     match: re.Match[str],
     lines: list[str],
@@ -1980,41 +2058,63 @@ def _refresh_marker_region(
     index: int,
     spans: Mapping[int, FenceSpan],
     base_dir: Path,
+    close_re: re.Pattern[str],
+    close_marker: str,
+    render: Callable[[list[str], Path], str],
 ) -> tuple[list[str], int]:
-    """Regenerate one `<!-- matrix <axis> -->` region starting at `index`.
+    """Regenerate one marker region starting at `index`.
 
-    The start marker is kept verbatim; the raw table between the markers is
+    `render` receives the whitespace-separated arguments of the start marker and
+    `base_dir`, and returns the new body, or `""` to keep the region as it is.
+    The start marker is kept verbatim; the body between the markers is
     replaced, blank-line padded so `mdformat` does not ping-pong on the
-    surrounding HTML comments. The closing-marker search skips fence spans, so
-    a `<!-- matrix-end -->` shown inside a code example cannot close a live
-    region. Kept verbatim when unterminated, axis-less, or on failure.
+    surrounding HTML comments.
+    The search for the closing marker, `close_re`, skips fence spans, so a
+    closing marker shown inside a code example cannot close a live region. Kept
+    verbatim when unterminated, argument-less, or on failure.
     """
     indent = match.group("indent")
     tokens = (match.group("args") or "").split()
     if not tokens:
         return [lines[index]], index + 1
-    axis = tokens[0]
-    options = _parse_marker_options(tokens[1:])
 
     close = None
     for probe, span in walk_fences(lines, spans, index + 1):
         if span is not None:
             continue
-        close_match = _MARKER_CLOSE_RE.match(lines[probe])
+        close_match = close_re.match(lines[probe])
         if close_match and close_match.group("indent") == indent:
             close = probe
             break
     if close is None:
         return [lines[index]], index + 1
 
-    table = _regenerate(axis, options, base_dir)
-    if not table:
+    body = render(tokens, base_dir)
+    if not body:
         return lines[index : close + 1], close + 1
 
     out = [lines[index], ""]
-    out.extend(f"{indent}{row}" if row else row for row in table.splitlines())
-    out.extend(["", f"{indent}{_MARKER_CLOSE}"])
+    out.extend(f"{indent}{row}" if row else row for row in body.splitlines())
+    out.extend(["", f"{indent}{close_marker}"])
     return out, close + 1
+
+
+def _refresh_matrix(tokens: list[str], base_dir: Path) -> str:
+    """Render a `<!-- matrix <axis> [opts] -->` region from its arguments."""
+    return _regenerate(tokens[0], _parse_marker_options(tokens[1:]), base_dir)
+
+
+def _refresh_envelope(tokens: list[str], base_dir: Path) -> str:
+    """Render a `<!-- envelope <axis>... [key=value ...] -->` region.
+
+    Its bare arguments name the axes, in order, and its `key=value` pairs are
+    the options of {func}`_render_envelope`.
+    """
+    axes = [token for token in tokens if "=" not in token]
+    if not axes:
+        return ""
+    options = _parse_marker_options(token for token in tokens if "=" in token)
+    return _regenerate_envelope(axes, options, base_dir)
 
 
 def rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
@@ -2023,10 +2123,12 @@ def rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
     Handles both forms: the ``{matrix} <axis>`` directive fence (rendered by
     Sphinx) and the `<!-- matrix <axis> -->` comment region (which renders as a
     real table on GitHub too). Each keeps its axis and options; only the embedded
-    table is replaced. The walk is fence-aware: a ``{matrix}`` example nested
-    inside a longer code fence is a documented illustration, copied verbatim and
-    never refreshed. A block whose generation fails (non-repository path,
-    missing git, unreadable PyPI, no data) is left byte-for-byte untouched.
+    table is replaced. Every `<!-- envelope <axis>... -->` region gets its list
+    of obsolete bounds regenerated too (see {func}`envelope_list`). The walk is
+    fence-aware: a ``{matrix}`` example nested inside a longer code fence is a
+    documented illustration, copied verbatim and never refreshed. A block whose
+    generation fails (non-repository path, missing git, unreadable PyPI, no
+    data) is left byte-for-byte untouched.
     """
     lines = text.split("\n")
     spans = fence_spans(lines)
@@ -2041,16 +2143,29 @@ def rewrite_matrix_blocks(text: str, base_dir: Path) -> str:
                 fence_match, lines, index, span.close, base_dir
             )
             return block, span.end
-        marker_match = _MARKER_OPEN_RE.match(lines[index])
-        if marker_match:
-            return _refresh_marker_region(marker_match, lines, index, spans, base_dir)
+        for open_re, close_re, close_marker, render in (
+            (_MARKER_OPEN_RE, _MARKER_CLOSE_RE, _MARKER_CLOSE, _refresh_matrix),
+            (_ENVELOPE_OPEN_RE, _ENVELOPE_CLOSE_RE, _ENVELOPE_CLOSE, _refresh_envelope),
+        ):
+            marker_match = open_re.match(lines[index])
+            if marker_match:
+                return _refresh_marker_region(
+                    marker_match,
+                    lines,
+                    index,
+                    spans,
+                    base_dir,
+                    close_re,
+                    close_marker,
+                    render,
+                )
         return None
 
     return "\n".join(rewrite_fences(lines, refresh, spans))
 
 
 def update_matrix_blocks(paths: Iterable[Path], *, check: bool = False) -> list[Path]:
-    """Refresh every ``{matrix}`` block in the given Markdown sources.
+    """Refresh every ``{matrix}`` block and envelope region of Markdown sources.
 
     See {func}`click_extra.markdown.blocks.update_blocks` for the walk, write, and
     `check`-mode contract.

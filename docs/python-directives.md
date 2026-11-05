@@ -316,9 +316,6 @@ This project uses it for the [Click](install.md#click-compatibility) and [Cloup]
 | `10.x`                       |   ✅    |        ❌         |        ❌         |
 | `9.x`                        |   ✅    |        ✅         |        ❌         |
 | `8.x`                        |   ✅    |        ✅         |        ✅         |
-
-> [!NOTE]
-> This table shows the support envelope of `click-extra`: the releases and `click` versions still in scope. Releases before `8.0.0` (2026-06-22) and `click` versions before `8.3.1` (2025-11-15) are obsolete. For an older `click`, find the last release that accepts it in the [release history on PyPI](https://pypi.org/project/click-extra/#history) or in the [GitHub releases](https://github.com/kdeldycke/click-extra/releases).
 ```
 ````
 
@@ -332,11 +329,35 @@ Both axes keep only the support envelope of the project: the releases and versio
 
 The oldest rows and columns drop off as the floor moves up. A latest range that supports nothing, like one pinning a yanked release, sets no floor, and the table keeps every row.
 
-When the envelope leaves out older releases, a note follows the table, like the one under the Click table above. It names the oldest release and the oldest version the envelope keeps, each with its release date, and links the release history of the project on PyPI and its releases on GitHub. Both come from the `pyproject.toml` of the working tree: the declared name, then the first GitHub repository among the `Source`, `Repository`, `Source Code`, `GitHub` and `Homepage` URLs. The note is a GitHub alert, so it renders on GitHub, and as an admonition in Sphinx when MyST's `alert` extension is on.
-
 Add `:full-history:` to keep every release range instead.
 
 In an HTML build, the extension tints each cell of a two-axis table that holds a state alone: green for ✅, red for ❌ and grey for `–`. The tints are translucent, so they work on light and dark themes alike.
+
+### The `envelope` region
+
+The `<!-- envelope -->` region lists the obsolete bounds of the support envelope, like for a support policy. Its start marker names the axes it covers, and takes the `package`, `path` and `tag-pattern` options of a matrix marker:
+
+```{code-block} markdown
+<!-- envelope python click cloup -->
+<!-- envelope-end -->
+```
+
+The refresh fills it with one item per bound. For `click-extra`, it reads:
+
+```{code-block} markdown
+<!-- envelope python click cloup -->
+
+- `click-extra` releases before `8.0.0` (2026-06-22)
+- Python versions before `3.10` (2021-10-04)
+- `click` versions before `8.3.1` (2025-11-15)
+- `cloup` versions before `3.0.7` (2025-03-15)
+
+<!-- envelope-end -->
+```
+
+Each axis keeps its own envelope, as its matrix does. A release is in scope only when every envelope that leaves out releases keeps it, so the release bound is the newest of their first releases. Each version bound is then the oldest version that a release in scope supports. It can be newer than the oldest column of the axis' matrix: `click-extra` releases from `8.0.0` onward support no Python before `3.10`, while its Python table goes down to `3.7`. Each bound carries its release date: the date of the tag for a release, the date of its final release for a Python, and the PyPI date for a dependency release.
+
+The region has no directive form: its list renders as is, on GitHub and in Sphinx alike.
 
 ### Options
 
@@ -365,7 +386,7 @@ The embedded tables are refreshed offline, formatter-style, by the `refresh-dire
 $ click-extra refresh-directives docs/
 ```
 
-It walks the given Markdown files or directories, regenerates each matrix block's table (both the `{matrix}` directive fences and the `<!-- matrix … -->` marker regions) from that block's axis, options, and the project's git tags, and rewrites the block in place. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data, or a PyPI lookup that cannot answer for a dependency axis) is left untouched, so a transient failure never wipes a good table, and `--check` reports no drift for it. Examples nested inside longer code fences (like the ones on this page) are documented illustrations and are never refreshed.
+It walks the given Markdown files or directories, regenerates each matrix block's table (both the `{matrix}` directive fences and the `<!-- matrix … -->` marker regions) from that block's axis, options, and the project's git tags, and rewrites the block in place. Each `<!-- envelope … -->` region gets its list of bounds regenerated the same way. Pass `--check` to write nothing and exit non-zero when a block is stale, so a CI job or pre-commit hook can fail on an out-of-date matrix. The same logic is importable as `click_extra.sphinx.matrix.update_matrix_blocks(paths, check=...)`. A block whose generation fails (missing git binary, non-repository `:path:`, no matching data, or a PyPI lookup that cannot answer for a dependency axis) is left untouched, so a transient failure never wipes a good table, and `--check` reports no drift for it. Examples nested inside longer code fences (like the ones on this page) are documented illustrations and are never refreshed.
 
 The same command also refreshes the `python:render` `:mirror:` regions found in the same files, in both the visible [fence](#self-updating-source-with-mirror) and the invisible [`<!-- mirror-src -->` comment](#mirror-src) forms, by executing each block's Python (`click_extra.sphinx.python.update_mirror_blocks(paths, check=...)` is the importable form). One invocation therefore keeps every self-updating block of a documentation tree current, whatever its kind.
 

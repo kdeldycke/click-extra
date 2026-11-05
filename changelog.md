@@ -9,7 +9,8 @@
 - Highlight the row and column under the pointer in the two-axis tables of a Sphinx build, and make each one-link cell clickable as a whole.
 - Add the documentation site to the package metadata, so PyPI links to it.
 - Replace the benchmark's 🟡 mark with 🪫 and its N/A with a blank cell, and grade 🪫 two cobra cells that rely on Viper.
-- Trim `matrix` tables to the support envelope: releases and versions the latest release no longer covers drop off, and a note dates the boundary.
+- Trim `matrix` tables to the support envelope: releases and versions the latest release no longer covers drop off.
+- Add the `<!-- envelope -->` region, which `refresh-directives` fills with the dated obsolete bounds of the support envelope across the axes it names.
 - Mark a dependency release published after a `matrix` range was replaced as `–` for that range, like a Python that did not exist yet.
 - Add the `full-history` option to the `matrix` directive and marker, which keeps every release range.
 - Read `matrix` column headers from their newest bound, like `9.4.x` ← `9.3.4`, while the columns run newest first.
