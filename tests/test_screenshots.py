@@ -36,6 +36,7 @@ import os
 import re
 import shutil
 import sys
+import unicodedata
 from dataclasses import fields, replace
 from html import escape, unescape
 from itertools import combinations, pairwise
@@ -92,11 +93,14 @@ from click_extra.capture.svg import (
     AUTO_HOLD_MAX,
     AUTO_HOLD_MIN,
     AUTO_HOLD_SECONDS_PER_LINE,
+    BLOCK_ELEMENTS,
     CELL_BLEED,
     CELL_WIDTH,
     CURSOR_THICKNESS,
+    HIDDEN_GLYPH_ATTRIBUTES,
     LINE_HEIGHT,
     REDUCED_MOTION_QUERY,
+    SHADE_DENSITY,
     TILE_RUN,
     TITLEBAR_HEIGHT,
     WATERMARK_INSET,
@@ -104,6 +108,7 @@ from click_extra.capture.svg import (
     auto_hold,
     blend,
     blink_css,
+    block_runs,
     column_segments,
     cursor_cell,
     frame_animation_css,
@@ -511,6 +516,175 @@ def test_tile_runs_keeps_every_piece_on_its_own_column():
         assert column == cell_width(rebuilt)
         rebuilt += piece
     assert rebuilt == text
+
+
+_GRID_RECT_RE = re.compile(
+    r'<rect fill="(?P<fill>#[0-9a-f]{6})" x="(?P<x>[\d.]+)" y="(?P<y>[\d.]+)" '
+    r'width="(?P<width>[\d.]+)" height="(?P<height>[\d.]+)" '
+    r'shape-rendering="crispEdges"/>'
+)
+"""A rectangle drawn on the text grid: a cell's background, a cursor or a block."""
+
+_NAMED_EIGHTHS = {
+    "ONE EIGHTH": 1,
+    "ONE QUARTER": 2,
+    "THREE EIGHTHS": 3,
+    "HALF": 4,
+    "FIVE EIGHTHS": 5,
+    "THREE QUARTERS": 6,
+    "SEVEN EIGHTHS": 7,
+}
+"""Eighths of a cell each fraction in a Block Elements name stands for."""
+
+_NAMED_QUADRANTS = {
+    "UPPER LEFT": (0, 0),
+    "UPPER RIGHT": (4, 0),
+    "LOWER LEFT": (0, 4),
+    "LOWER RIGHT": (4, 4),
+}
+"""Top-left corner, in eighths of a cell, of each quadrant a name lists."""
+
+
+def named_eighths(char: str) -> set[tuple[int, int]]:
+    """The eighths of its cell a Block Elements character fills, read off its name.
+
+    A Unicode name states the shape outright, like `LOWER THREE EIGHTHS BLOCK`
+    or `QUADRANT UPPER LEFT AND LOWER RIGHT`, which makes it a second source to
+    hold {data}`~click_extra.capture.svg.BLOCK_ELEMENTS` against.
+    """
+    name = unicodedata.name(char)
+    if name == "FULL BLOCK" or name.endswith(" SHADE"):
+        return {(x, y) for x in range(8) for y in range(8)}
+    if name.startswith("QUADRANT "):
+        filled: set[tuple[int, int]] = set()
+        for quadrant in name.removeprefix("QUADRANT ").split(" AND "):
+            left, top = _NAMED_QUADRANTS[quadrant]
+            filled |= {
+                (x, y) for x in range(left, left + 4) for y in range(top, top + 4)
+            }
+        return filled
+    side, _, fraction = name.removesuffix(" BLOCK").partition(" ")
+    size = _NAMED_EIGHTHS[fraction]
+    columns, rows = range(8), range(8)
+    match side:
+        case "UPPER":
+            rows = range(size)
+        case "LOWER":
+            rows = range(8 - size, 8)
+        case "LEFT":
+            columns = range(size)
+        case "RIGHT":
+            columns = range(8 - size, 8)
+    return {(x, y) for x in columns for y in rows}
+
+
+def test_block_elements_cover_their_whole_unicode_block():
+    """Every Block Elements character has a shape, and is one cell wide."""
+    block = "".join(chr(code) for code in range(0x2580, 0x25A0))
+    assert "".join(BLOCK_ELEMENTS) == block
+    assert all(cell_width(char) == 1 for char in block)
+    assert list(block_runs(block, 0)) == [(block, 0, True)]
+    assert {unicodedata.name(char): ink for char, ink in SHADE_DENSITY.items()} == {
+        "LIGHT SHADE": 0.25,
+        "MEDIUM SHADE": 0.5,
+        "DARK SHADE": 0.75,
+    }
+
+
+@pytest.mark.parametrize("char", tuple(BLOCK_ELEMENTS))
+def test_block_element_fills_what_its_name_states(char):
+    """Each Block Elements character fills the part of its cell its name states."""
+    drawn = {
+        (x, y)
+        for left, top, right, bottom in BLOCK_ELEMENTS[char]
+        for x in range(left, right)
+        for y in range(top, bottom)
+    }
+    assert drawn == named_eighths(char)
+
+
+@pytest.mark.parametrize(
+    ("text", "column", "expected"),
+    (
+        ("apple", 0, [("apple", 0, False)]),
+        ("▀▄█ apple", 0, [("▀▄█", 0, True), ("apple", 4, False)]),
+        ("kiwi ▒▒", 2, [("kiwi", 2, False), ("▒▒", 7, True)]),
+        ("┌─▄▄─┐", 0, [("┌─", 0, False), ("▄▄", 2, True), ("─┐", 4, False)]),
+        ("苹果 ██", 0, [("苹果", 0, False), ("██", 5, True)]),
+    ),
+)
+def test_block_runs_cut_blocks_from_the_text_between(text, column, expected):
+    """Block Elements are cut out on their own columns, and nothing else is."""
+    assert list(block_runs(text, column)) == expected
+
+
+def test_stacked_blocks_leave_no_gap():
+    """Two rows of full blocks paint one unbroken column, whatever the font.
+
+    A font draws `█` shorter than a capture's row, so the same picture set as
+    glyphs leaves a band of background between the two rows.
+    """
+    svg = render_svg("█\n█", columns=4)
+    (upper_top, upper_bottom), (lower_top, lower_bottom) = sorted(
+        (float(rect["y"]), float(rect["y"]) + float(rect["height"]))
+        for rect in _GRID_RECT_RE.finditer(svg)
+    )
+    assert upper_bottom >= lower_top
+    assert lower_bottom - upper_top >= 2 * LINE_HEIGHT
+
+
+def test_half_block_splits_its_cell_in_the_middle():
+    """`▀` inks the top half of its cell and leaves the bottom to the background."""
+    svg = render_svg(style("▀", fg=(255, 255, 255), bg=(0, 0, 128)), columns=4)
+    drawn = {rect["fill"]: rect for rect in _GRID_RECT_RE.finditer(svg)}
+    ink, paper = drawn["#ffffff"], drawn["#000080"]
+    assert ink["y"] == paper["y"]
+    assert float(ink["height"]) == pytest.approx(LINE_HEIGHT / 2, abs=0.05)
+    assert float(paper["height"]) == pytest.approx(LINE_HEIGHT + CELL_BLEED, abs=0.05)
+
+
+def test_block_run_is_one_shape():
+    """A bar of `█` is one rectangle, not one per cell."""
+    svg = render_svg("████████", columns=10)
+    (bar,) = _GRID_RECT_RE.finditer(svg)
+    assert float(bar["width"]) == pytest.approx(8 * CELL_WIDTH, abs=0.05)
+
+
+def test_shade_mixes_its_ink_with_the_paper():
+    """`▒` is half ink, mixed into the color behind it."""
+    svg = render_svg(style("▒", fg=(255, 255, 255), bg=(0, 0, 0)), columns=4)
+    assert {rect["fill"] for rect in _GRID_RECT_RE.finditer(svg)} == {
+        "#000000",
+        "#808080",
+    }
+
+
+def test_block_characters_stay_in_the_text():
+    """A run drawn as shapes keeps its characters, as text that paints nothing."""
+    text = "▀▄█ apple\n░▒▓  pear"
+    svg = render_svg(text, columns=20)
+    assert svg_to_lines(svg) == text.split("\n")
+    for element in _TEXT_ELEMENT_RE.finditer(svg):
+        blocks = any(char in BLOCK_ELEMENTS for char in unescape(element["content"]))
+        assert blocks == (HIDDEN_GLYPH_ATTRIBUTES in element["attrs"])
+
+
+def test_no_committed_capture_draws_a_block_element_as_a_glyph():
+    """Every committed capture draws its Block Elements as shapes.
+
+    A capture written before the renderer did still shows a band between its
+    stacked rows of block art. Rewrite it the way its page documents.
+    """
+    for path in sorted(ASSETS.glob("*.svg")):
+        svg = path.read_text(encoding="UTF-8")
+        if "@generated by" not in svg:
+            continue
+        for element in _TEXT_ELEMENT_RE.finditer(svg):
+            content = unescape(element["content"])
+            if any(char in BLOCK_ELEMENTS for char in content):
+                assert HIDDEN_GLYPH_ATTRIBUTES in element["attrs"], (
+                    f"{path.name}: {content!r} drawn as glyphs"
+                )
 
 
 @pytest.mark.parametrize(

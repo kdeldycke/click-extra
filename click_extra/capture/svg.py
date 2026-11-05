@@ -237,6 +237,78 @@ that a table's rule stays a handful of elements rather than one per cell. See
 """
 
 
+BLOCK_ELEMENTS = {
+    "▀": ((0, 0, 8, 4),),
+    "▁": ((0, 7, 8, 8),),
+    "▂": ((0, 6, 8, 8),),
+    "▃": ((0, 5, 8, 8),),
+    "▄": ((0, 4, 8, 8),),
+    "▅": ((0, 3, 8, 8),),
+    "▆": ((0, 2, 8, 8),),
+    "▇": ((0, 1, 8, 8),),
+    "█": ((0, 0, 8, 8),),
+    "▉": ((0, 0, 7, 8),),
+    "▊": ((0, 0, 6, 8),),
+    "▋": ((0, 0, 5, 8),),
+    "▌": ((0, 0, 4, 8),),
+    "▍": ((0, 0, 3, 8),),
+    "▎": ((0, 0, 2, 8),),
+    "▏": ((0, 0, 1, 8),),
+    "▐": ((4, 0, 8, 8),),
+    "░": ((0, 0, 8, 8),),
+    "▒": ((0, 0, 8, 8),),
+    "▓": ((0, 0, 8, 8),),
+    "▔": ((0, 0, 8, 1),),
+    "▕": ((7, 0, 8, 8),),
+    "▖": ((0, 4, 4, 8),),
+    "▗": ((4, 4, 8, 8),),
+    "▘": ((0, 0, 4, 4),),
+    "▙": ((0, 0, 4, 8), (4, 4, 8, 8)),
+    "▚": ((0, 0, 4, 4), (4, 4, 8, 8)),
+    "▛": ((0, 0, 8, 4), (0, 4, 4, 8)),
+    "▜": ((0, 0, 8, 4), (4, 4, 8, 8)),
+    "▝": ((4, 0, 8, 4),),
+    "▞": ((4, 0, 8, 4), (0, 4, 4, 8)),
+    "▟": ((4, 0, 8, 4), (0, 4, 8, 8)),
+}
+"""Rectangles each Block Elements character fills on its cell.
+
+Each rectangle is `(left, top, right, bottom)`, counted in eighths of the cell
+from its top-left corner: `▁`, the lower one eighth, is the finest step these
+characters take. {func}`block_svg` draws the rectangles in place of the glyphs.
+
+A font draws these characters to its own height, not to the row's. SF Mono
+`15.0d5e1` draws `█` exactly one em tall and Menlo `22.0d2e1` 1.02 em, while a
+capture's rows are {data}`LINE_HEIGHT` apart, 1.22 em. Set as glyphs, two
+stacked rows of block art leave a band of 4.0 to 4.4 pixels between them, and
+stretching the glyphs would take a factor and an offset per font, which a
+capture cannot know. A rectangle fills its share of the cell in every renderer,
+whatever font the reader has.
+
+Terminals draw these characters themselves rather than take them from the font,
+for the same result: WezTerm with
+[`custom_block_glyphs`](https://wezterm.org/config/lua/config/custom_block_glyphs.html)
+and Alacritty with
+[`builtin_box_drawing`](https://alacritty.org/config-alacritty.html), both on by
+default, and VS Code with
+[`terminal.integrated.customGlyphs`](https://code.visualstudio.com/docs/terminal/appearance)
+under GPU acceleration.
+
+The characters stay in the text, unpainted, see
+{data}`HIDDEN_GLYPH_ATTRIBUTES`. A decoration on one, like an underline, is
+hidden with it.
+"""
+
+
+SHADE_DENSITY = {"░": 0.25, "▒": 0.5, "▓": 0.75}
+"""How much of a shade character's cell is ink.
+
+{data}`BLOCK_ELEMENTS` gives each shade the full cell. Its ink is mixed with the
+color behind it up front rather than thinned with opacity, for the reason
+{func}`blend` gives, so a shade draws as one flat color.
+"""
+
+
 DIM_RATIO = 0.4
 """How far a `dim` run's ink is mixed toward the background, see {func}`blend`."""
 
@@ -267,6 +339,16 @@ every frame on top of the last: a git client's SVG diff view, and macOS Finder's
 `opacity`, so each property covers a reader the other misses, and dropping
 either takes a class of reader with it.
 ```
+"""
+
+
+HIDDEN_GLYPH_ATTRIBUTES = ' fill-opacity="0"'
+"""How a run drawn as shapes keeps its characters without painting them.
+
+Kept as text, the characters still reach a reader copying the capture's text,
+and whatever rebuilds the terminal's lines from it. `fill-opacity` rather than
+`fill`: the run's class sets `fill` in the stylesheet, which outranks a
+presentation attribute, and sets no `fill-opacity`.
 """
 
 
@@ -342,15 +424,20 @@ _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
 
 
-_TILING_RE = re.compile(r"[─-▟]")
-"""A Box Drawing or Block Elements character.
+_TILING_RE = re.compile(r"[─-╿]")
+"""A Box Drawing character.
 
-These are not letters, they are tiles: a table's rule, a tree's elbow and a
-gradient's bar are drawn by butting them edge to edge, and a fraction of a pixel
-of drift between two of them shows as a seam or a kink. They also never ligate,
-which is what makes it free to place each one on its own cell rather than
-letting the renderer space them, see {func}`glyph_offsets`.
+These are not letters, they are tiles: a table's rule and a tree's elbow are
+drawn by butting them edge to edge, and a fraction of a pixel of drift between
+two of them shows as a seam or a kink. They also never ligate, which is what
+makes it free to place each one on its own cell rather than letting the renderer
+space them, see {func}`glyph_offsets`. Block Elements are tiles too, and are
+drawn as shapes instead, see {data}`BLOCK_ELEMENTS`.
 """
+
+
+_BLOCK_RE = re.compile(r"[▀-▟]+")
+"""A run of Block Elements characters, which {func}`block_svg` draws as shapes."""
 
 
 _COLUMN_GAP_RE = re.compile(f"[{PADDING}]{{2,}}")
@@ -579,8 +666,10 @@ def palette_color(color: object, palette: TerminalPalette) -> str:
     raise ValueError(f"Cannot resolve color: {color!r}")
 
 
-def _compile_style(style: Style, palette: TerminalPalette) -> tuple[str, str | None]:
-    """Compile a style to the CSS its glyphs are drawn with, and the paint behind.
+def _compile_style(
+    style: Style, palette: TerminalPalette
+) -> tuple[str, str | None, str]:
+    """Compile a style to the CSS its glyphs are drawn with, and its two paints.
 
     A run naming no foreground takes the terminal's, and one naming no
     background paints none, showing the terminal's own. `reverse` swaps the
@@ -590,8 +679,9 @@ def _compile_style(style: Style, palette: TerminalPalette) -> tuple[str, str | N
     :param style: the run's style, as {func}`~click_extra.styling.split_ansi`
         yields it.
     :param palette: the terminal colors to resolve names against.
-    :return: the CSS declarations, semicolon-separated, and the color painted
-        behind the run as `#rrggbb`, or `None` where it shows the terminal's own.
+    :return: the CSS declarations, semicolon-separated; the color painted behind
+        the run as `#rrggbb`, or `None` where it shows the terminal's own; and
+        the ink, as `#rrggbb`, which a run drawn as shapes is painted in.
     """
     ink = palette.foreground if style.fg is None else palette_color(style.fg, palette)
     paper = None if style.bg is None else palette_color(style.bg, palette)
@@ -614,7 +704,7 @@ def _compile_style(style: Style, palette: TerminalPalette) -> tuple[str, str | N
     ]
     if decorations:
         rules.append(f"text-decoration: {' '.join(decorations)}")
-    return ";".join(rules), paper
+    return ";".join(rules), paper, ink
 
 
 def style_rules(style: Style, palette: TerminalPalette) -> str:
@@ -1097,6 +1187,83 @@ def glyph_offsets(text: str, column: int) -> str:
     return f'{start} textLength="{_svg_number(cell_width(text) * CELL_WIDTH)}"'
 
 
+def block_runs(text: str, column: int) -> Iterator[tuple[str, int, bool]]:
+    """Cut a column's text into its runs of Block Elements and the text between.
+
+    A run of Block Elements is drawn as shapes by {func}`block_svg`, and the text
+    between as glyphs. That text is trimmed of the blanks at either end, which
+    its offset pays for instead, as {func}`column_segments` does for a column.
+
+    :param text: the column's text.
+    :param column: the terminal column it starts on.
+    :return: each piece, with the column it starts on and whether it is a run
+        of Block Elements.
+    """
+    position = 0
+    for found in (*_BLOCK_RE.finditer(text), None):
+        end = len(text) if found is None else found.start()
+        glyphs = text[position:end].lstrip(PADDING)
+        # Padding is one cell per character, so the indent is a plain count.
+        indent = end - position - len(glyphs)
+        glyphs = glyphs.rstrip(PADDING)
+        if glyphs:
+            yield glyphs, column + indent, False
+        if found is None:
+            return
+        column += cell_width(text[position:end])
+        yield found.group(), column, True
+        column += cell_width(found.group())
+        position = found.end()
+
+
+def block_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
+    """Draw a run of Block Elements as the rectangles they name.
+
+    Each character fills its share of its cell, see {data}`BLOCK_ELEMENTS`.
+    Neighbors sharing a band and a paint merge into one rectangle, so a bar of
+    `█` is one shape rather than one per cell. A rectangle reaching the bottom
+    of its cell takes the {data}`CELL_BLEED` a background takes, which closes
+    the seam with the row below.
+
+    :param text: the run, Block Elements only.
+    :param column: the terminal column it starts on.
+    :param top: where the row's cells start, see {data}`CELL_TOP_INSET`.
+    :param ink: color the shapes are drawn in, as `#rrggbb`.
+    :param paper: color behind them, as `#rrggbb`, which a shade mixes its ink
+        with, see {data}`SHADE_DENSITY`.
+    :return: the SVG markup.
+    """
+    # Edges are counted in eighths of a cell, as integers, so two neighbors
+    # compare exactly when deciding whether they merge.
+    bands: dict[tuple[int, int, str], list[list[int]]] = {}
+    for offset, char in enumerate(text):
+        density = SHADE_DENSITY.get(char)
+        paint = ink if density is None else blend(ink, paper, 1 - density)
+        origin = (column + offset) * 8
+        for left, upper, right, lower in BLOCK_ELEMENTS[char]:
+            spans = bands.setdefault((upper, lower, paint), [])
+            if spans and spans[-1][1] == origin + left:
+                spans[-1][1] = origin + right
+            else:
+                spans.append([origin + left, origin + right])
+    shapes: list[str] = []
+    for (upper, lower, paint), spans in bands.items():
+        height = (lower - upper) * LINE_HEIGHT / 8
+        if lower == 8:
+            height += CELL_BLEED
+        shapes.extend(
+            _row_rect(
+                paint,
+                left * CELL_WIDTH / 8,
+                top + upper * LINE_HEIGHT / 8,
+                (right - left) * CELL_WIDTH / 8,
+                height=height,
+            )
+            for left, right in spans
+        )
+    return "".join(shapes)
+
+
 def _frame_visibility(state: str) -> str:
     """Declare a frame shown or hidden, in both of the ways a renderer reads."""
     return f"visibility: {state}; opacity: {1 if state == 'visible' else 0};"
@@ -1408,7 +1575,7 @@ def _draw_screens(
     classes: dict[str, int] = {}
     # Each style is compiled against the palette once, however many runs wear
     # it: a help screen repeats a handful of styles across hundreds of runs.
-    compiled: dict[Style, tuple[str, str | None]] = {}
+    compiled: dict[Style, tuple[str, str | None, str]] = {}
 
     def draw_row(row: int, runs: Sequence[tuple[Style, str, int]]) -> tuple[str, str]:
         """Draw one row's cell backgrounds and glyphs, as two markup strings."""
@@ -1420,7 +1587,7 @@ def _draw_screens(
             resolved = compiled.get(run_style)
             if resolved is None:
                 resolved = compiled[run_style] = _compile_style(run_style, palette)
-            css, paint = resolved
+            css, paint, ink = resolved
             # The paint spans the whole run, padding included: a styled
             # column keeps its background across the spaces trailing it.
             if paint is not None:
@@ -1434,11 +1601,21 @@ def _draw_screens(
                 continue
             rule = classes.setdefault(css, len(classes) + 1)
             opening = f'<text class="{unique_id}-r{rule}" '
+            behind = palette.background if paint is None else paint
             for column_text, start in column_segments(run, column):
-                for drawn, at in tile_runs(column_text, start):
-                    glyphs.append(
-                        f'{opening}{glyph_offsets(drawn, at)} y="{baseline}">'
+                for piece, at, shaped in block_runs(column_text, start):
+                    if shaped:
+                        hidden = (
+                            f'{opening}{glyph_offsets(piece, at)} y="{baseline}"'
+                            f"{HIDDEN_GLYPH_ATTRIBUTES}>{_xml_escape(piece)}</text>"
+                        )
+                        # Drawn after every row's backgrounds, like a glyph.
+                        glyphs.extend((block_svg(piece, at, top, ink, behind), hidden))
+                        continue
+                    glyphs.extend(
+                        f'{opening}{glyph_offsets(drawn, drawn_at)} y="{baseline}">'
                         f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
+                        for drawn, drawn_at in tile_runs(piece, at)
                     )
         return "".join(cells), "".join(glyphs)
 
@@ -1994,6 +2171,8 @@ def render_svg(
     Two primitives draw everything. A `<rect>` fills the cells behind a run that
     carries a background, and a `<text>` draws its glyphs, pinned to its columns
     with `textLength` so the layout survives a reader who does not have the font.
+    A run of Block Elements is drawn with the first and kept, unpainted, in the
+    second, see {data}`BLOCK_ELEMENTS`.
 
     ```{note}
     A run's padding is left out of its `<text>` and paid for in the `x` offset
