@@ -1,4 +1,4 @@
-# {octicon}`tasklist` Parameters
+# {octicon}`telescope` Parameters
 
 Click Extra implements tools to manipulate your CLI's parameters, options and arguments.
 

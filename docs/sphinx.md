@@ -1,4 +1,4 @@
-# {octicon}`browser` Sphinx
+# {octicon}`book` Sphinx
 
 [Sphinx](https://www.sphinx-doc.org) is the best way to document your Python CLI. Click Extra provides several utilities to improve the quality of life of maintainers.
 
