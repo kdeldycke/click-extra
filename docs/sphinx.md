@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [vertical tab-sets](#vertical-tab-sets), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -1044,6 +1044,42 @@ In a [two-axis table](table.md#two-axis-tables), the extension highlights the ro
 A cell whose whole content is one link becomes clickable over its full area, like a check mark that links to its evidence.
 
 Both apply only to the tables whose top-left cell holds the `↴` arrow. A table with a merged cell keeps its full-cell links but gets no crosshair, since its cells no longer line up with its columns. The extension writes the stylesheet and the script into the build. The colors come from the theme variables of [Furo](https://github.com/pradyunsg/furo), with a fallback for other themes.
+
+## Vertical tab-sets
+
+A [sphinx-design](https://sphinx-design.readthedocs.io) `tab-set` with many tabs, like the install channels of a project, wraps its labels into a strip that is hard to read. Mark it with the `tabs-vertical` class, and the extension stacks its labels down a left rail, with the selected pane on the right:
+
+``````{code-block} markdown
+`````{tab-set}
+:class: tabs-vertical
+````{tab-item} Apple
+Apples grow in temperate orchards.
+````
+
+````{tab-item} Banana
+Bananas grow in the tropics.
+````
+`````
+``````
+
+It renders as:
+
+`````{tab-set}
+:class: tabs-vertical
+````{tab-item} Apple
+Apples grow in temperate orchards.
+````
+
+````{tab-item} Banana
+Bananas grow in the tropics.
+````
+
+````{tab-item} Cherry
+Cherries grow on trees that need a cold winter.
+````
+`````
+
+On a screen narrower than `50em`, the tab-set falls back to the horizontal layout. A tab-set nested inside a pane keeps the horizontal layout too. The class is inert on a project that does not load sphinx-design.
 
 ## Viewcode pages nothing links to
 

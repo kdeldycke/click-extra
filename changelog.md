@@ -15,6 +15,7 @@
 - Add the `full-history` option to the `matrix` directive and marker, which keeps every release range.
 - Read `matrix` column headers from their newest bound, like `9.4.x` ← `9.3.4`, while the columns run newest first.
 - Tint the cells of two-axis tables in Sphinx builds by state: green for ✅, red for ❌ and grey for `–`.
+- Add the `tabs-vertical` class for sphinx-design tab-sets, which stacks their labels down a left rail, and use it on the install page.
 - Fix Sphinx builds publishing `sphinx.ext.viewcode` pages that no documented object links to, one per such module on a parallel read.
 - Fix Sphinx pickling the whole build environment into the doctree of each page holding an `{eval-rst}`, `python:render-rst` or `python:render-myst` block.
 - Fix MyST docstrings merging two inline code spans when the first ends in a role-shaped word, or in punctuation before an `_` span.

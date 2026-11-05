@@ -81,7 +81,7 @@ Hello, World!
 ## Installation methods
 
 `````{tab-set}
-
+:class: tabs-vertical
 ````{tab-item} uv
 Easiest way is to [install `uv`](https://docs.astral.sh/uv/getting-started/installation/), then add `click-extra` to your project:
 

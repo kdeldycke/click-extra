@@ -117,6 +117,15 @@
    :undoc-members:
 ```
 
+## `click_extra.sphinx.tabs` module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.tabs
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `click_extra.sphinx.theme_docs` module
 
 ```{eval-rst}

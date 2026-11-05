@@ -53,6 +53,7 @@ from . import (
     manpages,
     matrix,
     tables,
+    tabs,
     todos,
     viewcode,
 )
@@ -160,6 +161,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     - A crosshair on the same tables, which highlights the row and the column
       under the pointer, and makes a cell holding a single link clickable over
       its whole area. See {mod}`click_extra.sphinx.crosshair`.
+    - A vertical layout for a sphinx-design `tab-set` marked with
+      `:class: tabs-vertical`: its labels stack down a left rail. Inert without
+      sphinx-design. See {mod}`click_extra.sphinx.tabs`.
     - No `sphinx.ext.viewcode` page for a module that no documented object
       links to, so a parallel read publishes the pages of a serial one. Inert
       without `sphinx.ext.viewcode`. See {mod}`click_extra.sphinx.viewcode`.
@@ -236,6 +240,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # Highlight the row and the column under the pointer in the same tables
     # (see crosshair.py). Set up after tables.py, whose static folder it shares.
     crosshair.setup(app)
+
+    # Lay out a tab-set marked `tabs-vertical` in two columns (see tabs.py),
+    # in the static folder of tables.py too.
+    tabs.setup(app)
 
     # Drop the viewcode pages that no documented object links to (see
     # viewcode.py). Inert without `sphinx.ext.viewcode`.
