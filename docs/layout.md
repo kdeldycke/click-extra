@@ -1,4 +1,4 @@
-# {octicon}`rows` Layout
+# {octicon}`project-roadmap` Layout
 
 A terminal is a grid of cells. Anything a CLI draws to a stated width has to agree with the terminal on how many cells a string takes, and that number is not the string's length.
 
