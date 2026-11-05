@@ -341,6 +341,9 @@ todo_include_todos = True
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "click": ("https://click.palletsprojects.com", None),
+    # The annotations of click_extra.pytest name pytest's public classes, like
+    # the `pytest.ParameterSet` its decorator expanders return.
+    "pytest": ("https://docs.pytest.org/en/stable", None),
 }
 
 # Prefix document path to section labels, to use:
