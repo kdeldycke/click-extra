@@ -81,7 +81,9 @@ def runner():
     `monkeypatch` fixture on purpose: depending on `monkeypatch` here would
     tear it down *after* `isolated_filesystem` removed the working directory
     it tries to restore, breaking unrelated tests that `chdir` within the
-    runner.
+    runner. For the same reason, an autouse fixture that patches the environment
+    must use its own `pytest.MonkeyPatch.context()`, not the `monkeypatch`
+    fixture, which would outlive this one.
 
     ```{warning}
     The pinning is scoped to each test requesting this fixture, but a cache
