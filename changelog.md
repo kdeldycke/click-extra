@@ -20,6 +20,7 @@
 - Fix Sphinx pickling the whole build environment into the doctree of each page holding an `{eval-rst}`, `python:render-rst` or `python:render-myst` block.
 - Fix MyST docstrings merging two inline code spans when the first ends in a role-shaped word, or in punctuation before an `_` span.
 - Fix MyST docstrings breaking a double-backtick code span that holds single backticks, which Sphinx reported as an unterminated inline literal.
+- Fix a dependency `matrix` keeping every release range when `uv.lock` tracks that dependency from a git branch.
 - Fix a re-spelled floor-only `requires-python` ending its `matrix` range early, which left out the Pythons released later in that range.
 - Fix the social card image of the documentation, and add canonical links, a sitemap and a sidebar logo readable in dark mode.
 - Fix the `runner` pytest fixture leaving `XDG_CACHE_HOME` unpinned, so `get_cache_dir()` resolved to the cache of the user running the tests.

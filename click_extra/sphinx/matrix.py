@@ -1379,12 +1379,18 @@ def _column_candidates(
     `uv.lock` resolves, which shows what the project tests against. Without the
     release list, the floors of the ranges stand in for it, so a table rendered
     offline still shows where each range starts.
+
+    A locked pre-release or development version is left out, like PyPI's: it is
+    no release an installer gets from the index. A project tracking the branch of
+    a dependency locks such a version, which no PyPI date places in time, so it
+    would read as supported by every range and stretch the support envelope over
+    the whole history.
     """
     candidates = set(releases)
     if not candidates:
         candidates.update(filter(None, map(_spec_floor, specs)))
     locked_version = _safe_version(locked) if locked else None
-    if locked_version is not None:
+    if locked_version is not None and not locked_version.is_prerelease:
         candidates.add(locked_version)
     return candidates
 

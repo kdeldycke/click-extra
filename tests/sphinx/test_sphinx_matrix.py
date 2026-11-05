@@ -1256,6 +1256,8 @@ def test_envelope(
         ([">=2.1", "~=3.0.5", "<4"], [], "", ["2.1", "3.0.5"]),
         # An unreadable locked version is skipped.
         ([">=2.1"], ["2.1.0"], "not a version", ["2.1.0"]),
+        # So is a development version, like one locked from a git branch.
+        ([">=2.1"], ["2.1.0"], "2.5.0.dev0", ["2.1.0"]),
     ],
 )
 def test_column_candidates(
