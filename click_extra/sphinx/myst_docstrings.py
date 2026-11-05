@@ -139,6 +139,11 @@ def _convert_link(match: re.Match[str]) -> str:
 # reST-to-MyST converter reads it with.
 _RST_LITERAL_RE = re.compile(_RST_LITERAL_PATTERN)
 
+# A code span opened and closed by exactly two backticks, whose content may hold
+# single backticks. Its content holding one is what tells a MyST span apart from
+# the reST literals of `_RST_LITERAL_RE`.
+_DOUBLE_SPAN_RE = re.compile(r"(?<!`)``(?!`)((?:[^`\n]|(?<!`)`(?!`))+?)(?<!`)``(?!`)")
+
 # Backtick spans, lexed in one left-to-right pass so each alternative consumes
 # its span before a later alternative can restart inside it. In priority order:
 #   a reST role  — a cross-reference converted by step 2, kept verbatim
@@ -348,11 +353,20 @@ def myst_to_rst(lines: list[str]) -> None:
     # code, so a backtick, a role or a link in it is kept as written.
     text = "\n".join(_protect_code(text.split("\n"), _stash))
 
-    # 1. Protect reST double-backtick literals from every following step.
-    # Their content is verbatim by definition, and a brace-bearing literal
-    # abutting its closing backticks (like ``{levelname}:{message}``) would
-    # otherwise be misread by the cross-reference pattern as a role with an
-    # empty target, mangling the literal.
+    def _save_backtick_span(m: re.Match[str]) -> str:
+        # The padding that lets a MyST span start or end on a backtick goes:
+        # reST allows no space next to the delimiters of a literal.
+        if "`" not in m.group(1):
+            return m.group(0)
+        return _stash(f"``{m.group(1).strip()}``")
+
+    # 1. Protect double-backtick literals from every following step. Their
+    # content is verbatim by definition. The single backticks of a MyST span
+    # like `` `apple` pie `` would otherwise be doubled by step 6, which ends
+    # the literal early. And a brace-bearing literal abutting its closing
+    # backticks (like ``{levelname}:{message}``) would be misread by the
+    # cross-reference pattern as a role with an empty target.
+    text = _DOUBLE_SPAN_RE.sub(_save_backtick_span, text)
     text = _RST_LITERAL_RE.sub(_save, text)
 
     # 2. Cross-references: MyST roles become reST roles.

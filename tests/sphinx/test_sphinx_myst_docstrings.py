@@ -21,6 +21,8 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from docutils import nodes
+from docutils.core import publish_doctree
 from sphinx.errors import ExtensionError
 
 from click_extra.sphinx.myst_docstrings import _TYPEHINTS_EXT, myst_to_rst, setup
@@ -580,6 +582,36 @@ def test_inline_code_conversion(myst, expected):
 )
 def test_inline_code_not_converted(text):
     assert _convert(text) == text
+
+
+@pytest.mark.parametrize(
+    ("myst", "expected"),
+    [
+        # The padding CommonMark lets a span start or end on a backtick goes.
+        ("like `` - `apple` pie ``.", "like ``- `apple` pie``."),
+        ("`` `pear` `` and `plum`", "```pear``` and ``plum``"),
+        # A reST literal holding backticks passes through.
+        ("a ``fig `jam` here`` b", "a ``fig `jam` here`` b"),
+    ],
+    ids=["padded", "on-backticks", "unpadded"],
+)
+def test_double_backtick_span_keeps_its_backticks(myst, expected):
+    """A double-backtick span keeps its single backticks single.
+
+    Doubled, they would end the reST literal early: the conversion must parse
+    into whole literals, with no warning.
+    """
+    rst = _convert(myst)
+    assert rst == expected
+    tree = publish_doctree(
+        rst,
+        settings_overrides={
+            "report_level": 1,
+            "halt_level": 5,
+            "warning_stream": False,
+        },
+    )
+    assert list(tree.findall(nodes.system_message)) == []
 
 
 @pytest.mark.parametrize(
