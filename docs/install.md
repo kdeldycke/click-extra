@@ -165,8 +165,6 @@ The compatibility tables below keep the [support envelope](python-directives.md#
 
 ## Python compatibility
 
-The table below shows which Python versions each `click-extra` release range supports. For `4.9.0` and later, support comes from the `Programming Language :: Python :: 3.X` classifiers in `pyproject.toml`. For earlier releases, the floor comes from the `requires-python` declaration (Poetry `python = "..."` for older tags), capped at the latest Python released within the range. It is regenerated from the release tags by `click-extra refresh-directives` (the [`matrix`](python-directives.md#the-matrix-directive) mechanism).
-
 Each cell holds one of three states:
 
 - ✅: the release declares support for that Python.
