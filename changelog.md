@@ -19,6 +19,7 @@
 - Fix MyST docstrings merging two inline code spans when the first ends in a role-shaped word, or in punctuation before an `_` span.
 - Fix a re-spelled floor-only `requires-python` ending its `matrix` range early, which left out the Pythons released later in that range.
 - Fix the social card image of the documentation, and add canonical links, a sitemap and a sidebar logo readable in dark mode.
+- Fix the `runner` pytest fixture leaving `XDG_CACHE_HOME` unpinned, so `get_cache_dir()` resolved to the cache of the user running the tests.
 - Document the `:force:` option of `click:run`: it highlights output its lexer cannot parse, and logs no Sphinx warning.
 - Document the `accessibility`, `carapace`, `context`, `layout`, `mkdocs`, `styling`, `theme` and `tree` modules in the API reference.
 - Add GNU Guix, MacPorts and openSUSE Tumbleweed install instructions, and a man pages section, to the installation page.

@@ -67,7 +67,9 @@ def runner():
     deterministic and independent of the ambient environment. Without this, the
     handful of tests asserting on the config-search debug output depend on the
     caller's `HOME`: hermetic builders set `HOME=/homeless-shelter`, which
-    would otherwise leak into those assertions.
+    would otherwise leak into those assertions. `XDG_CACHE_HOME` is pinned too,
+    so {func}`~click_extra.carapace.get_cache_dir` never sends a CLI under test
+    to the cache of the user running the tests.
 
     It also unsets every variable in {data}`~click_extra.color.COLOR_ENVVARS`. The
     color option reads them, so a `FORCE_COLOR` or `CLICOLOR_FORCE` in the caller's
@@ -92,7 +94,14 @@ def runner():
     before the first test and outside this isolation.
     ```
     """
-    home_vars = ("HOME", "USERPROFILE", "XDG_CONFIG_HOME", "APPDATA", "LOCALAPPDATA")
+    home_vars = (
+        "HOME",
+        "USERPROFILE",
+        "XDG_CACHE_HOME",
+        "XDG_CONFIG_HOME",
+        "APPDATA",
+        "LOCALAPPDATA",
+    )
     runner = CliRunner()
     with runner.isolated_filesystem():
         home = os.path.join(os.getcwd(), "home")

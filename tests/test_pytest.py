@@ -24,7 +24,7 @@ from pathlib import Path
 import click
 import pytest
 
-from click_extra import command, echo, option, strip_ansi, style
+from click_extra import command, echo, get_cache_dir, option, strip_ansi, style
 from click_extra.color import COLOR_ENVVARS
 from click_extra.pytest import (
     default_debug_colored_config,
@@ -129,6 +129,29 @@ def test_runner_ignores_ambient_color_vars(ambient_color_var, runner):
     result = runner.invoke(my_cli)
     assert result.exit_code == 0
     assert result.stdout == "Apricot\n"
+
+
+@pytest.fixture
+def ambient_cache_home(monkeypatch, tmp_path):
+    """A cache folder set in the caller's shell, before `runner` starts.
+
+    Requested ahead of `runner` in a signature, so the variable is in place by the
+    time the fixture isolates the environment.
+    """
+    cache_home = tmp_path / "shell-cache"
+    monkeypatch.setenv("XDG_CACHE_HOME", str(cache_home))
+    return cache_home
+
+
+def test_runner_isolates_the_cache_dir(ambient_cache_home, runner):
+    """The cache directory of a CLI resolves inside the isolated filesystem.
+
+    The `XDG_CACHE_HOME` of the caller's shell would otherwise send every cache a
+    CLI writes to the folder of the user running the tests.
+    """
+    cache_dir = get_cache_dir("plum")
+    assert not cache_dir.is_relative_to(ambient_cache_home)
+    assert cache_dir.is_relative_to(Path.cwd())
 
 
 def test_runner_lets_a_test_ask_for_color(runner):
