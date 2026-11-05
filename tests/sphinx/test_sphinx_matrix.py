@@ -660,12 +660,14 @@ def test_python_matrix_table_envelope(split_floor_repo: Path) -> None:
         "`2.0.0`": ["✅", "✅"],
         "`1.0.1` → `1.1.x`": [UNDECLARED_CELL, "✅"],
     }
+    # The note dates the oldest release kept, from its tag, and the oldest
+    # Python kept, from its final release.
     assert note == (
         "> [!NOTE]\n"
-        "> This table shows the support envelope of `apricot`: its releases from"
-        " `1.0.1` onward, and the Python versions they support. Releases and"
-        " Python versions outside the envelope are obsolete. For an older"
-        " Python, find the last release that supports it in the [release"
+        "> This table shows the support envelope of `apricot`: the releases and"
+        " Python versions still in scope. Releases before `1.0.1` (2024-01-10)"
+        " and Python versions before `3.11` (2022-10-24) are obsolete. For an"
+        " older Python, find the last release that supports it in the [release"
         " history on PyPI](https://pypi.org/project/apricot/#history) or in the"
         " [GitHub releases](https://github.com/orchard/apricot/releases)."
     )
@@ -1688,7 +1690,11 @@ def test_dependency_matrix_table_envelope(
         "`3.0.0`": ["✅", "❌"],
         "`2.0.0`": ["✅", "✅"],
     }
-    assert "its releases from `2.0.0` onward, and the `widget` versions" in note
+    # The oldest `widget` kept is dated from PyPI.
+    assert (
+        "Releases before `2.0.0` (2024-06-10) and `widget` versions before `2.0.0`"
+        " (2024-05-01) are obsolete."
+    ) in note
 
 
 def test_dependency_matrix_groups_respelled_spec_continues_range(
@@ -2222,13 +2228,21 @@ def test_history_links(
 
 
 def test_envelope_note_without_links(tmp_path: Path) -> None:
-    """A project declaring neither a name nor a repository gets no link."""
-    note = _envelope_note("apple", "`banana`", "v1.2.0", tmp_path, verb="accept")
+    """A project declaring neither a name nor a repository gets no link, and a
+    version of unknown date gets no date."""
+    note = _envelope_note(
+        "apple",
+        "`banana`",
+        tmp_path,
+        verb="accept",
+        first_release=("v1.2.0", "2024-03-01"),
+        first_version=("2.0.0", ""),
+    )
     assert note == (
         "> [!NOTE]\n"
-        "> This table shows the support envelope of `apple`: its releases from"
-        " `1.2.0` onward, and the `banana` versions they accept. Releases and"
-        " `banana` versions outside the envelope are obsolete. For an older"
+        "> This table shows the support envelope of `apple`: the releases and"
+        " `banana` versions still in scope. Releases before `1.2.0` (2024-03-01)"
+        " and `banana` versions before `2.0.0` are obsolete. For an older"
         " `banana`, find the last release that accepts it in the project's"
         " release history."
     )

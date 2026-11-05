@@ -318,7 +318,7 @@ This project uses it for the [Click](install.md#click-compatibility) and [Cloup]
 | `8.x`                        |   ✅    |        ✅         |        ✅         |
 
 > [!NOTE]
-> This table shows the support envelope of `click-extra`: its releases from `8.0.0` onward, and the `click` versions they accept. Releases and `click` versions outside the envelope are obsolete. For an older `click`, find the last release that accepts it in the [release history on PyPI](https://pypi.org/project/click-extra/#history) or in the [GitHub releases](https://github.com/kdeldycke/click-extra/releases).
+> This table shows the support envelope of `click-extra`: the releases and `click` versions still in scope. Releases before `8.0.0` (2026-06-22) and `click` versions before `8.3.1` (2025-11-15) are obsolete. For an older `click`, find the last release that accepts it in the [release history on PyPI](https://pypi.org/project/click-extra/#history) or in the [GitHub releases](https://github.com/kdeldycke/click-extra/releases).
 ```
 ````
 
@@ -332,7 +332,7 @@ Both axes keep only the support envelope of the project: the releases and versio
 
 The oldest rows and columns drop off as the floor moves up. A latest range that supports nothing, like one pinning a yanked release, sets no floor, and the table keeps every row.
 
-When the envelope leaves out older releases, a note follows the table, like the one under the Click table above. It names the release the envelope starts at, and links the release history of the project on PyPI and its releases on GitHub. Both come from the `pyproject.toml` of the working tree: the declared name, then the first GitHub repository among the `Source`, `Repository`, `Source Code`, `GitHub` and `Homepage` URLs. The note is a GitHub alert, so it renders on GitHub, and as an admonition in Sphinx when MyST's `alert` extension is on.
+When the envelope leaves out older releases, a note follows the table, like the one under the Click table above. It names the oldest release and the oldest version the envelope keeps, each with its release date, and links the release history of the project on PyPI and its releases on GitHub. Both come from the `pyproject.toml` of the working tree: the declared name, then the first GitHub repository among the `Source`, `Repository`, `Source Code`, `GitHub` and `Homepage` URLs. The note is a GitHub alert, so it renders on GitHub, and as an admonition in Sphinx when MyST's `alert` extension is on.
 
 Add `:full-history:` to keep every release range instead.
 

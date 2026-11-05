@@ -202,15 +202,17 @@ repository too.
 
 ENVELOPE_NOTE: str = (
     "> [!NOTE]\n"
-    "> This table shows the support envelope of `{package}`: its releases from"
-    " `{first_release}` onward, and the {axis} versions they {verb}. Releases and"
-    " {axis} versions outside the envelope are obsolete. For an older {axis},"
-    " find the last release that {verb}s it {where}."
+    "> This table shows the support envelope of `{package}`: the releases and"
+    " {axis} versions still in scope. Releases before {first_release} and {axis}"
+    " versions before {first_version} are obsolete. For an older {axis}, find"
+    " the last release that {verb}s it {where}."
 )
 """The note following a table whose envelope leaves out older releases.
 
-A GitHub alert, which GitHub renders as a note and MyST's `alert` extension as a
-`note` admonition, so a marker region reads the same on both.
+`first_release` and `first_version` name the oldest release and the oldest
+version the envelope keeps, each followed by its release date when known. The
+note is a GitHub alert, which GitHub renders as a note and MyST's `alert`
+extension as a `note` admonition, so a marker region reads the same on both.
 """
 
 POETRY_VERSION_PATTERN: str = (
@@ -887,23 +889,37 @@ def _envelope(
 
 
 def _envelope_note(
-    package: str, axis: str, first_tag: str, project_root: Path, *, verb: str
+    package: str,
+    axis: str,
+    project_root: Path,
+    *,
+    verb: str,
+    first_release: tuple[str, str],
+    first_version: tuple[str, str],
 ) -> str:
     """Render the note following a table cut short by its support envelope.
 
     `axis` names the column versions the way the corner cell does, like `Python`
     or `` `click` ``, and `verb` what a release does to them: `support` or
-    `accept`. The note links the pages that list every past release, see
-    {func}`_history_links`.
+    `accept`. `first_release` is the oldest release the envelope keeps, and
+    `first_version` its oldest version, each a `(version, date)` pair whose ISO
+    date is empty when unknown. The note links the pages that list every past
+    release, see {func}`_history_links`.
     """
+
+    def dated(version: str, date: str) -> str:
+        bare = f"`{version.removeprefix('v')}`"
+        return f"{bare} ({date})" if date else bare
+
     where = " or ".join(
         f"in the [{text}]({url})" for text, url in _history_links(project_root)
     )
     return ENVELOPE_NOTE.format(
         package=package,
-        first_release=first_tag.removeprefix("v"),
         axis=axis,
         verb=verb,
+        first_release=dated(*first_release),
+        first_version=dated(*first_version),
         where=where or "in the project's release history",
     )
 
@@ -1075,8 +1091,15 @@ def python_matrix_table(
     )
     if older is None:
         return table
+    oldest_version = versions[first_column]
+    dates = PYTHON_RELEASE_DATES if release_dates is None else release_dates
     note = _envelope_note(
-        label, "Python", groups[first_row].first_tag, project_root, verb="support"
+        label,
+        "Python",
+        project_root,
+        verb="support",
+        first_release=(groups[first_row].first_tag, groups[first_row].first_date),
+        first_version=(oldest_version, dates.get(oldest_version, "")),
     )
     return f"{table}\n\n{note}"
 
@@ -1611,8 +1634,14 @@ def dependency_matrix_table(
     )
     if older is None:
         return table
+    oldest_version = candidates[first_column]
     note = _envelope_note(
-        label, f"`{dep_name}`", groups[first_row].first_tag, project_root, verb="accept"
+        label,
+        f"`{dep_name}`",
+        project_root,
+        verb="accept",
+        first_release=(groups[first_row].first_tag, groups[first_row].first_date),
+        first_version=(str(oldest_version), releases.get(oldest_version, "")),
     )
     return f"{table}\n\n{note}"
 
