@@ -244,7 +244,9 @@ _MARKER_OPEN_RE, _MARKER_CLOSE_RE = marker_res("matrix")
 _MARKER_CLOSE = region_markers("matrix")[1]
 
 # `<!-- envelope <axis>... [key=value ...] -->` … `<!-- envelope-end -->` region
-# markers, in the same grammar. Its bare args name the axes it covers.
+# markers, in the same grammar. Its bare args name the axes it covers. repomatic's
+# `update-docs` refreshes only the pages holding a prefix of its
+# `DIRECTIVE_BLOCK_MARKERS`: a new marker here needs its prefix there too.
 _ENVELOPE_OPEN_RE, _ENVELOPE_CLOSE_RE = marker_res("envelope")
 _ENVELOPE_CLOSE = region_markers("envelope")[1]
 
