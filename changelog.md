@@ -26,6 +26,9 @@
 
 ## [`10.1.1` (2026-11-02)](https://github.com/kdeldycke/click-extra/compare/v10.1.0...v10.1.1)
 
+> [!NOTE]
+> `10.1.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/10.1.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v10.1.1).
+
 - **Deprecated:** `click_extra.blocks` imports again, as an alias of `click_extra.markdown.blocks` that warns on each name it serves, until its removal in `11.0.0`.
 
 ## [`10.1.0` (2026-11-02)](https://github.com/kdeldycke/click-extra/compare/v10.0.0...v10.1.0)
