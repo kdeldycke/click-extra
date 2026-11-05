@@ -9,9 +9,15 @@
 - Highlight the row and column under the pointer in the two-axis tables of a Sphinx build, and make each one-link cell clickable as a whole.
 - Add the documentation site to the package metadata, so PyPI links to it.
 - Replace the benchmark's 🟡 mark with 🪫 and its N/A with a blank cell, and grade 🪫 two cobra cells that rely on Viper.
+- Trim `matrix` tables to the support envelope: releases and versions the latest release no longer covers drop off, with a note linking past releases.
+- Mark a dependency release published after a `matrix` range was replaced as `–` for that range, like a Python that did not exist yet.
+- Add the `full-history` option to the `matrix` directive and marker, which keeps every release range.
+- Read `matrix` column headers from their newest bound, like `9.4.x` ← `9.3.4`, while the columns run newest first.
+- Tint the cells of two-axis tables in Sphinx builds by state: green for ✅, red for ❌ and grey for `–`.
 - Fix Sphinx builds publishing `sphinx.ext.viewcode` pages that no documented object links to, one per such module on a parallel read.
 - Fix Sphinx pickling the whole build environment into the doctree of each page holding an `{eval-rst}`, `python:render-rst` or `python:render-myst` block.
 - Fix MyST docstrings merging two inline code spans when the first ends in a role-shaped word, or in punctuation before an `_` span.
+- Fix a re-spelled floor-only `requires-python` ending its `matrix` range early, which left out the Pythons released later in that range.
 - Fix the social card image of the documentation, and add canonical links, a sitemap and a sidebar logo readable in dark mode.
 - Document the `:force:` option of `click:run`: it highlights output its lexer cannot parse, and logs no Sphinx warning.
 - Document the `accessibility`, `carapace`, `context`, `layout`, `mkdocs`, `styling`, `theme` and `tree` modules in the API reference.

@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Keep the first column of a two-axis table on one line.
+"""Style the two-axis tables of a Sphinx build.
 
 A table whose top-left cell names both of its axes, as
 {func}`~click_extra.table.corner_header` spells them, is read down its first
@@ -23,10 +23,14 @@ date, which splits every label over several lines. The labels of such a table
 are short, so this module keeps each one whole: the table scrolls sideways
 instead, inside the `table-wrapper` Furo puts around every table.
 
+A compatibility matrix is such a table, and each of its cells holds the glyph of
+a state (see {mod}`click_extra.sphinx.matrix`). This module tints those cells
+green, red or grey by state, so the shape of the support reads at a glance.
+
 The extension marks every table whose first header cell holds
-{data}`~click_extra.table.CORNER_GLYPH`, and ships the stylesheet the mark
-hooks into. The stylesheet is written into the build rather than packaged as a
-data file.
+{data}`~click_extra.table.CORNER_GLYPH`, and each of its body cells holding a
+state glyph alone, then ships the stylesheet the marks hook into. The
+stylesheet is written into the build rather than packaged as a data file.
 """
 
 from __future__ import annotations
@@ -36,6 +40,7 @@ from pathlib import Path
 from docutils import nodes
 
 from ..table import CORNER_GLYPH
+from .matrix import FORBIDDEN_CELL, SUPPORTED_CELL, UNDECLARED_CELL
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -45,13 +50,50 @@ if TYPE_CHECKING:
 CORNER_TABLE_CLASS = "corner-table"
 """HTML class of a table whose top-left cell names both of its axes."""
 
+SUPPORTED_CELL_CLASS = "matrix-supported"
+"""HTML class of a cell holding {data}`~click_extra.sphinx.matrix.SUPPORTED_CELL`."""
+
+FORBIDDEN_CELL_CLASS = "matrix-forbidden"
+"""HTML class of a cell holding {data}`~click_extra.sphinx.matrix.FORBIDDEN_CELL`."""
+
+UNDECLARED_CELL_CLASS = "matrix-undeclared"
+"""HTML class of a cell holding {data}`~click_extra.sphinx.matrix.UNDECLARED_CELL`."""
+
+STATE_CELL_CLASSES: dict[str, str] = {
+    SUPPORTED_CELL: SUPPORTED_CELL_CLASS,
+    FORBIDDEN_CELL: FORBIDDEN_CELL_CLASS,
+    UNDECLARED_CELL: UNDECLARED_CELL_CLASS,
+}
+"""The HTML class of each state glyph, for a body cell holding that glyph alone."""
+
 CORNER_TABLE_CSS = f"""\
 table.{CORNER_TABLE_CLASS} th:first-child,
 table.{CORNER_TABLE_CLASS} td:first-child {{
   white-space: nowrap;
 }}
+
+/* State tints are translucent, so they read on light and dark themes alike.
+ * Each is drawn as a background image, which layers over the background color
+ * the crosshair sets on hover instead of hiding it. */
+table.{CORNER_TABLE_CLASS} td.{SUPPORTED_CELL_CLASS} {{
+  --matrix-tint: rgba(46, 160, 67, 0.15);
+}}
+table.{CORNER_TABLE_CLASS} td.{FORBIDDEN_CELL_CLASS} {{
+  --matrix-tint: rgba(248, 81, 73, 0.15);
+}}
+table.{CORNER_TABLE_CLASS} td.{UNDECLARED_CELL_CLASS} {{
+  --matrix-tint: rgba(128, 128, 128, 0.1);
+}}
+table.{CORNER_TABLE_CLASS} td.{SUPPORTED_CELL_CLASS},
+table.{CORNER_TABLE_CLASS} td.{FORBIDDEN_CELL_CLASS},
+table.{CORNER_TABLE_CLASS} td.{UNDECLARED_CELL_CLASS} {{
+  background-image: linear-gradient(var(--matrix-tint), var(--matrix-tint));
+}}
 """
-"""Stylesheet keeping the first column of a corner-labeled table on one line."""
+"""Stylesheet of corner-labeled tables.
+
+Keeps their first column on one line, and tints the state cells of a matrix.
+"""
 
 STATIC_DIR = "_click_extra_static"
 """Folder of the output directory the stylesheet is written to.
@@ -65,14 +107,24 @@ STYLESHEET = "click-extra.css"
 
 
 def mark_corner_tables(app: Sphinx, doctree: nodes.document) -> None:
-    """Add {data}`CORNER_TABLE_CLASS` to every table with a corner label."""
+    """Add {data}`CORNER_TABLE_CLASS` to every table with a corner label.
+
+    Each body cell of such a table holding a state glyph alone also gets the
+    class of that state (see {data}`STATE_CELL_CLASSES`).
+    """
     for table in doctree.findall(nodes.table):
         header = next(table.findall(nodes.thead), None)
         if header is None:
             continue
         corner = next(header.findall(nodes.entry), None)
-        if corner is not None and CORNER_GLYPH in corner.astext():
-            table["classes"].append(CORNER_TABLE_CLASS)
+        if corner is None or CORNER_GLYPH not in corner.astext():
+            continue
+        table["classes"].append(CORNER_TABLE_CLASS)
+        for body in table.findall(nodes.tbody):
+            for entry in body.findall(nodes.entry):
+                state = STATE_CELL_CLASSES.get(entry.astext().strip())
+                if state:
+                    entry["classes"].append(state)
 
 
 def add_stylesheet(app: Sphinx) -> None:

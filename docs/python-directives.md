@@ -236,6 +236,8 @@ The `matrix` directive renders a package's release compatibility matrix for a gi
 - `{matrix} python` renders the interpreter matrix (release ranges × Python versions).
 - `{matrix} <distribution>` (like `{matrix} click`) renders a dependency matrix (release ranges × that dependency's versions).
 
+Both keep only the [support envelope](#the-support-envelope) of the project: its recent releases, and the versions they support.
+
 The generated table lives **in the source**, kept current by the offline updater described below, so it shows up in the raw Markdown (and in pull-request diffs) and the HTML build needs no git access (it works on a shallow clone). There are two ways to write it, both refreshed by the same `refresh-directives` command:
 
 - **A directive fence**, ```` ```{matrix} python ```` … ```` ``` ````, rendered by Sphinx. Simplest on a docs-only page, but GitHub shows the fenced block as a code block. An empty fence falls back to generating from the git tags at build time, so a freshly authored block renders before its first refresh.
@@ -259,15 +261,17 @@ and the updater fills in the table below the options, regenerated from every `vM
 ```{matrix} python
 :package: click-extra
 
-| `click-extra` ↴ \\ Python → | `3.14` | `3.13` | `3.12` | `3.11` | `3.10` | `3.9` | `3.8` | `3.7` |
-| :-------------------------- | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
-| `6.2.x` → `9.x`             |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `6.0.1` → `6.1.x`           |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `5.0.x` → `6.0.0`           |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
-| `4.11.x` → `4.15.x`         |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
-| `4.9.x` → `4.10.x`          |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
-| `4.0.x` → `4.8.x`           |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
-| `0.0.x` → `3.10.x`          |   –    |   –    |   –    |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
+| `click-extra` ↴ \\ Python → | `3.15` | `3.14` | `3.13` | `3.12` | `3.11` | `3.10` | `3.9` | `3.8` | `3.7` |
+| :-------------------------- | :----: | :----: | :----: | :----: | :----: | :----: | :---: | :---: | :---: |
+| `10.x`                      |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `9.3.2` → `9.5.x`           |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
+| `6.2.x` → `9.3.1`           |   –    |   ✅   |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
+| `6.0.1` → `6.1.x`           |   –    |   ✅   |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `5.0.x` → `6.0.0`           |   –    |   –    |   ✅   |   ✅   |   ✅   |   ❌   |  ❌   |  ❌   |  ❌   |
+| `4.11.x` → `4.15.x`         |   –    |   –    |   ✅   |   ✅   |   ✅   |   ✅   |  ❌   |  ❌   |  ❌   |
+| `4.9.x` → `4.10.x`          |   –    |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ❌   |  ❌   |
+| `4.0.x` → `4.8.x`           |   –    |   –    |   –    |   ✅   |   ✅   |   ✅   |  ✅   |  ✅   |  ❌   |
+| `0.0.x` → `3.10.x`          |   –    |   –    |   –    |   –    |   ✅   |   ✅   |  ✅   |  ✅   |  ✅   |
 ```
 ````
 
@@ -287,7 +291,17 @@ The result reads as a staircase: ❌ fills the lower-left as the floor rises ove
 
 ### A dependency axis
 
-`{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). An extras bracket and an environment marker are both transparent: `tabulate[widechars]>=0.9` and `tomli>=2; python_version<'3.11'` each track the plain `>=` range. The distribution is matched on its [PEP 503](https://peps.python.org/pep-0503/) normalized name, looked up in the runtime dependencies then in those behind an extra. Development dependency groups ([PEP 735](https://peps.python.org/pep-0735/)) are skipped, since no installer resolves them for a consumer. Columns are auto-derived from the distribution's stable releases on PyPI, plus the version resolved in `uv.lock`: consecutive releases that every range accepts or rejects alike share one column, labeled like the rows (`3.0.1` → `3.0.4`, `2.1.x`, `1.x`). A range therefore accepts every release of a column or none of them. The oldest releases that no range accepts get no column. The PyPI lookup applies no cooldown, since an installer applies none either, so a new release shows up as soon as it is published. It needs network access: when PyPI cannot answer, the refresh logs a warning and leaves the block as it was, so an outage never rewrites a good table. An empty fence has no table to keep, so its build-time rendering bins the floors of the ranges instead, which gives a coarser table. Add `:show-spec:` for a `Spec` column with each range's raw specifier, in the release's own spelling. Without it, consecutive ranges merge whenever their cells match, since they then accept the same releases. With it, they merge only when their specifiers are equivalent, because a merged row shows a single one. Cells here stay two-valued: unlike Python, a dependency has no informational second declaration to disagree with its specifier, so there is nothing an undeclared cell could mean.
+`{matrix} <distribution>` tracks a runtime dependency instead. For each release range it reads that distribution's requirement specifier (PEP 621, Poetry, or `setup.py`) and marks ✅ / ❌ for each column version with [`packaging`](https://packaging.pypa.io). An extras bracket and an environment marker are both transparent: `tabulate[widechars]>=0.9` and `tomli>=2; python_version<'3.11'` each track the plain `>=` range. The distribution is matched on its [PEP 503](https://peps.python.org/pep-0503/) normalized name, looked up in the runtime dependencies then in those behind an extra. Development dependency groups ([PEP 735](https://peps.python.org/pep-0735/)) are skipped, since no installer resolves them for a consumer. Columns are auto-derived from the distribution's stable releases on PyPI, plus the version resolved in `uv.lock`: consecutive releases that every range in the table treats alike share one column. A range therefore holds the same cell for every release of a column. Columns are labeled like the rows, but read from their newest bound while they run newest first, so the versions decrease from left to right across the header row: `3.0.4` ← `3.0.1`, `2.1.x`, `1.x`. The oldest releases that no range in the table accepts get no column. The PyPI lookup applies no cooldown, since an installer applies none either, so a new release shows up as soon as it is published. It needs network access: when PyPI cannot answer, the refresh logs a warning and leaves the block as it was, so an outage never rewrites a good table. An empty fence has no table to keep, so its build-time rendering bins the floors of the ranges instead, which gives a coarser table. Add `:show-spec:` for a `Spec` column with each range's raw specifier, in the release's own spelling. Without it, consecutive ranges merge whenever their cells match, since they then accept the same releases. With it, they merge only when their specifiers are equivalent, because a merged row shows a single one.
+
+Cells are three-valued here too, and the dates of the releases decide the third state:
+
+| Cell | Meaning                                                                                    |
+| :--: | :----------------------------------------------------------------------------------------- |
+|  ✅  | The specifier accepts the release, which came out while the range was the latest one.      |
+|  ❌  | The specifier rules the release out.                                                       |
+|  –   | The specifier accepts the release, but it came out after the next range replaced this one. |
+
+An open specifier like `click>=8.0` lets every future Click through, whether it works or not, and `–` stops the table from reading that as support. A range is the latest one from its first release until the first release of the next range. A dependency release out on that last day counts as ✅. A release date is the day the first of its installable files reached PyPI, in UTC. Ranges are compared parsed, so a re-spelled specifier continues its range: `cloup >= 3.0.7` rewritten as `cloup>=3.0.7` by a formatter starts no new range, and cuts no range short.
 
 [Poetry's own range syntax](https://python-poetry.org/docs/dependency-specification/) is translated to PEP 440 before evaluation, since a project's older tags usually predate its move to PEP 621. Carets follow Poetry's rule of bumping the leftmost non-zero component, so `^1.2.3` caps at `2.0.0` while `^0.2.3` caps at `0.3.0` and `^0.0.3` at `0.0.4`: under a `0.` prefix every release may break, and a caret there covers far less than the major series. Tilde and wildcard ranges (`~1`, `~1.2`, `1.*`, `1.2.*`) translate the same way. A pre-, post- or dev-release suffix stays on the floor and leaves the ceiling alone, so `^2.0.0.post1` becomes `>=2.0.0.post1,<3.0.0`.
 
@@ -297,43 +311,47 @@ This project uses it for the [Click](install.md#click-compatibility) and [Cloup]
 ```{matrix} click
 :package: click-extra
 
-| `click-extra` ↴ \\ `click` → | `8.4.1` → `8.x` | `8.3.3` → `8.4.0` | `8.3.1` → `8.3.2` | `8.3.0` | `8.2.1` | `8.2.0` | `8.1.8` | `8.1.4` → `8.1.7` | `8.1.3` | `8.1.1` → `8.1.2` | `8.1.0` | `8.0.4` | `8.0.2` → `8.0.3` |
-| :--------------------------- | :-------------: | :---------------: | :---------------: | :-----: | :-----: | :-----: | :-----: | :---------------: | :-----: | :---------------: | :-----: | :-----: | :---------------: |
-| `9.x`                        |       ✅        |        ❌         |        ❌         |   ❌    |   ❌    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `8.x`                        |       ✅        |        ✅         |        ✅         |   ❌    |   ❌    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `7.17.x` → `7.20.x`          |       ✅        |        ❌         |        ❌         |   ❌    |   ❌    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `7.15.x` → `7.16.x`          |       ✅        |        ✅         |        ✅         |   ❌    |   ❌    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `7.14.1`                     |       ✅        |        ✅         |        ✅         |   ✅    |   ✅    |   ✅    |   ✅    |        ✅         |   ✅    |        ✅         |   ✅    |   ❌    |        ❌         |
-| `7.14.0`                     |       ✅        |        ✅         |        ❌         |   ❌    |   ❌    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `7.0.x` → `7.13.x`           |       ✅        |        ✅         |        ✅         |   ❌    |   ❌    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `6.x`                        |       ✅        |        ✅         |        ✅         |   ✅    |   ❌    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `5.1.1`                      |       ❌        |        ❌         |        ❌         |   ❌    |   ✅    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `5.1.0`                      |       ❌        |        ❌         |        ❌         |   ❌    |   ❌    |   ❌    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `5.0.x`                      |       ❌        |        ❌         |        ❌         |   ❌    |   ✅    |   ✅    |   ❌    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `4.12.x` → `4.15.x`          |       ❌        |        ❌         |        ❌         |   ❌    |   ❌    |   ❌    |   ✅    |        ❌         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `4.9.x` → `4.11.x`           |       ❌        |        ❌         |        ❌         |   ❌    |   ❌    |   ❌    |   ✅    |        ✅         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `4.6.x` → `4.8.x`            |       ✅        |        ✅         |        ✅         |   ✅    |   ✅    |   ✅    |   ✅    |        ✅         |   ❌    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `4.1.x` → `4.5.x`            |       ✅        |        ✅         |        ✅         |   ✅    |   ✅    |   ✅    |   ✅    |        ✅         |   ✅    |        ✅         |   ✅    |   ❌    |        ❌         |
-| `4.0.0`                      |       ✅        |        ✅         |        ✅         |   ✅    |   ✅    |   ✅    |   ✅    |        ✅         |   ✅    |        ❌         |   ❌    |   ❌    |        ❌         |
-| `1.7.x` → `3.10.x`           |       ✅        |        ✅         |        ✅         |   ✅    |   ✅    |   ✅    |   ✅    |        ✅         |   ✅    |        ✅         |   ❌    |   ❌    |        ❌         |
-| `1.5.x` → `1.6.x`            |       ✅        |        ✅         |        ✅         |   ✅    |   ✅    |   ✅    |   ✅    |        ✅         |   ✅    |        ✅         |   ✅    |   ✅    |        ❌         |
-| `0.0.x` → `1.4.x`            |       ✅        |        ✅         |        ✅         |   ✅    |   ✅    |   ✅    |   ✅    |        ✅         |   ✅    |        ✅         |   ✅    |   ✅    |        ✅         |
+| `click-extra` ↴ \\ `click` → | `8.5.0` | `8.4.2` ← `8.4.1` | `8.4.0` ← `8.3.1` |
+| :--------------------------- | :-----: | :---------------: | :---------------: |
+| `10.x`                       |   ✅    |        ❌         |        ❌         |
+| `9.x`                        |   ✅    |        ✅         |        ❌         |
+| `8.x`                        |   ✅    |        ✅         |        ✅         |
+
+> [!NOTE]
+> This table shows the support envelope of `click-extra`: its releases from `8.0.0` onward, and the `click` versions they accept. Releases and `click` versions outside the envelope are obsolete. For an older `click`, find the last release that accepts it in the [release history on PyPI](https://pypi.org/project/click-extra/#history) or in the [GitHub releases](https://github.com/kdeldycke/click-extra/releases).
 ```
 ````
 
+### The support envelope
+
+Both axes keep only the support envelope of the project: the releases and versions still in scope. The table itself defines it:
+
+1. Its floor is the oldest version the latest release range supports, like Python `3.11` for `click-extra`.
+2. Its rows run from the latest range down to the oldest one that supports the floor or a later version. The ranges in between stay, whatever they hold, so a release that dropped a version for a while keeps its row.
+3. Its columns start at the oldest version a kept range supports. A later column stays even when no kept range supports it, so a gap in support stays visible.
+
+The oldest rows and columns drop off as the floor moves up. A latest range that supports nothing, like one pinning a yanked release, sets no floor, and the table keeps every row.
+
+When the envelope leaves out older releases, a note follows the table, like the one under the Click table above. It names the release the envelope starts at, and links the release history of the project on PyPI and its releases on GitHub. Both come from the `pyproject.toml` of the working tree: the declared name, then the first GitHub repository among the `Source`, `Repository`, `Source Code`, `GitHub` and `Homepage` URLs. The note is a GitHub alert, so it renders on GitHub, and as an admonition in Sphinx when MyST's `alert` extension is on.
+
+Add `:full-history:` to keep every release range instead.
+
+In an HTML build, the extension tints each cell of a two-axis table that holds a state alone: green for ✅, red for ❌ and grey for `–`. The tints are translucent, so they work on light and dark themes alike.
+
 ### Options
 
-| Option            | Effect                                                                           | Default               |
-| ----------------- | -------------------------------------------------------------------------------- | --------------------- |
-| `:package:`       | Header column label, rendered in backticks.                                      | declared project name |
-| `:path:`          | Git working tree to walk, absolute or relative to the documented project's root. | project's git root    |
-| `:version-floor:` | Drop release rows below this package version.                                    | none (all tags)       |
-| `:tag-pattern:`   | Regex selecting release tags.                                                    | `^v\d+\.\d+\.\d+$`    |
-| `:column-order:`  | Left-to-right ordering of the version columns: `newest-first` or `oldest-first`. | `newest-first`        |
-| `:row-order:`     | Top-to-bottom ordering of the release rows: `newest-first` or `oldest-first`.    | `newest-first`        |
-| `:python-floor:`  | (`python` axis) Drop Python `X.Y` columns below this version.                    | none (all columns)    |
-| `:show-spec:`     | (dependency axis) Add a `Spec` column with each range's raw specifier.           | off                   |
-| `:show-date:`     | Follow each row label with the release date of its first tag.                    | off                   |
+| Option            | Effect                                                                            | Default               |
+| ----------------- | --------------------------------------------------------------------------------- | --------------------- |
+| `:package:`       | Header column label, rendered in backticks.                                       | declared project name |
+| `:path:`          | Git working tree to walk, absolute or relative to the documented project's root.  | project's git root    |
+| `:version-floor:` | Drop release rows below this package version.                                     | none (all tags)       |
+| `:tag-pattern:`   | Regex selecting release tags.                                                     | `^v\d+\.\d+\.\d+$`    |
+| `:column-order:`  | Left-to-right ordering of the version columns: `newest-first` or `oldest-first`.  | `newest-first`        |
+| `:row-order:`     | Top-to-bottom ordering of the release rows: `newest-first` or `oldest-first`.     | `newest-first`        |
+| `:python-floor:`  | (`python` axis) Drop Python `X.Y` columns below this version.                     | none (all columns)    |
+| `:show-spec:`     | (dependency axis) Add a `Spec` column with each range's raw specifier.            | off                   |
+| `:show-date:`     | Follow each row label with the release date of its first tag.                     | off                   |
+| `:full-history:`  | Keep every release range, not just the [support envelope](#the-support-envelope). | off                   |
 
 The label defaults to the name the project declares in its `pyproject.toml`: the `[project]` table is read first, then Poetry's `[tool.poetry]`. A clone, a fork or a git worktree under another folder name then renders the same table. A project that declares no name is labeled with the name of its folder.
 

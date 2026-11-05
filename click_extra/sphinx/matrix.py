@@ -34,8 +34,12 @@ Two axes are supported:
 - **A dependency** (``{matrix} <distribution>``, like ``{matrix} click``): the
   per-tag constraint is that distribution's requirement specifier; each
   column covers a run of that distribution's releases on PyPI (plus the
-  `uv.lock` resolved version) that every range treats alike, and each ✅ / ❌
-  cell is computed with `packaging`.
+  `uv.lock` resolved version) that every range treats alike. The specifier,
+  read with `packaging`, drives `✅` and `❌`, and a release it accepts but that
+  came out after the range was superseded renders as `–`, like a future Python.
+
+Both axes then keep only the support envelope of the project, the part of its
+history still in scope: see {func}`_envelope`.
 
 The rendered tables back the always-on `matrix` Sphinx directive (see
 {class}`MatrixDirective`), so a project's `install.md` can embed a live matrix
@@ -56,7 +60,6 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from http.client import HTTPException
 from itertools import groupby
-from operator import itemgetter
 from pathlib import Path
 from typing import NamedTuple
 from urllib.request import urlopen
@@ -148,16 +151,13 @@ ceiling, or inside an exclusion clause.
 UNDECLARED_CELL: str = "–"
 """Cell marking a version the release neither supports nor forbids.
 
-Covers the two flavours of *absence of evidence*: a Python that had not been
-released yet when the range shipped, and one that was released but never
-added to the classifier list. Neither is a statement of incompatibility, so
-spelling them {data}`FORBIDDEN_CELL` would over-claim.
-
-```{note}
-Only the `python` axis produces this cell. A dependency's requirement
-specifier is the whole truth about that dependency, with no second,
-informational source to disagree with it, so its cells stay binary.
-```
+Covers the flavours of *absence of evidence*: a version its declaration lets
+through but that came out after the range was superseded, and, on the `python`
+axis, a Python that was released but never added to the classifier list.
+Neither is a statement of incompatibility, so spelling them
+{data}`FORBIDDEN_CELL` would over-claim. Spelling the first one
+{data}`SUPPORTED_CELL` would over-claim the other way: an open-ended specifier
+like `click>=8.0` accepts every future release, whether it works or not.
 """
 
 DEFAULT_TAG_PATTERN: str = r"^v\d+\.\d+\.\d+$"
@@ -180,6 +180,38 @@ PYPI_JSON_URL: str = "https://pypi.org/pypi/{name}/json"
 
 PYPI_TIMEOUT: float = 10
 """Seconds to wait for PyPI before the release lookup gives up."""
+
+PYPI_HISTORY_URL: str = "https://pypi.org/project/{name}/#history"
+"""PyPI's release history of a project, formatted with its normalized name."""
+
+REPOSITORY_URL_LABELS: tuple[str, ...] = (
+    "source",
+    "repository",
+    "sourcecode",
+    "github",
+    "homepage",
+)
+"""The `[project.urls]` labels read for the project's GitHub repository, in order.
+
+Labels are compared normalized, as
+[PEP 753](https://peps.python.org/pep-0753/) spells them: lowercase, with
+punctuation and whitespace removed. The first four are the labels PEP 753 lists
+for a source repository. The homepage comes last, since it often points at the
+repository too.
+"""
+
+ENVELOPE_NOTE: str = (
+    "> [!NOTE]\n"
+    "> This table shows the support envelope of `{package}`: its releases from"
+    " `{first_release}` onward, and the {axis} versions they {verb}. Releases and"
+    " {axis} versions outside the envelope are obsolete. For an older {axis},"
+    " find the last release that {verb}s it {where}."
+)
+"""The note following a table whose envelope leaves out older releases.
+
+A GitHub alert, which GitHub renders as a note and MyST's `alert` extension as a
+`note` admonition, so a marker region reads the same on both.
+"""
 
 POETRY_VERSION_PATTERN: str = (
     r"(?P<release>\d+(?:\.\d+){0,2})"
@@ -226,6 +258,12 @@ _POETRY_PYTHON_RE = re.compile(
 
 _PYTHON_REQUIRES_RE = re.compile(r'python_requires\s*=\s*["\']([^"\']+)["\']')
 """A `setup.py` `python_requires` keyword, its specifier captured."""
+
+_GITHUB_REPOSITORY_RE = re.compile(
+    r"^https?://(?:www\.)?github\.com/"
+    r"(?P<owner>[\w.-]+)/(?P<repo>[\w.-]+?)(?:\.git)?/?$"
+)
+"""The root page of a GitHub repository, its owner and name captured."""
 
 _FENCE_OPEN_RE = re.compile(
     r"^(?P<indent>[ \t]*)(?P<fence>`{3,})\{matrix\}[ \t]+(?P<axis>\S+)[ \t]*$",
@@ -611,13 +649,16 @@ def python_matrix_groups(
     if not tag_data:
         return []
 
-    # Pass 2: group consecutive tags with same raw (classifiers, spec).
-    # Same-classifier neighbours with different spec strings (a floor bump
-    # from `>=3.8` to `>=3.8.6`) get split here and re-merge in Pass 4
-    # when their effective versions coincide.
+    # Pass 2: group consecutive tags declaring the same classifiers and the
+    # same spec, compared parsed. A re-spelled spec (`>= 3.10` rewritten
+    # `>=3.10`) continues its range: splitting it there would end the older
+    # half early, and a floor-only declaration would then be capped at that
+    # premature end in Pass 3. The group keeps the spelling of its first tag.
     raw_groups = [
         (first[0], last[0], first[1], first[2], first[3])
-        for _, first, last in _runs(tag_data, key=itemgetter(2, 3))
+        for _, first, last in _runs(
+            tag_data, key=lambda tag: (tag[2], parse_python_spec(tag[3]))
+        )
     ]
 
     # Pass 3: resolve effective versions per group. Classifiers win when
@@ -698,6 +739,7 @@ def _range_label(
     split_start: bool = False,
     split_end: bool = False,
     first_date: str = "",
+    descending: bool = False,
 ) -> str:
     """Render the version-range label for a matrix group.
 
@@ -716,6 +758,11 @@ def _range_label(
 
     `first_date` follows the lower bound, which is the release it dates:
     `6.0.x` (2025-09-25) → `9.x`.
+
+    `descending` puts the upper bound first, for a header read from the newest
+    version to the oldest one: `9.4.x` ← `9.3.4`. The arrow still points at the
+    newer bound, and the versions of a row of such headers decrease from left to
+    right.
     """
     first = first_tag.removeprefix("v")
     last = last_tag.removeprefix("v")
@@ -736,6 +783,8 @@ def _range_label(
         high = last
     else:
         high = f"{last_minor}.x"
+    if descending:
+        return f"`{high}` ← `{low}`{date}"
     return f"`{low}`{date} → `{high}`"
 
 
@@ -746,17 +795,28 @@ def _same_minor(tag: str, other_tag: str | None) -> bool:
     return _version_parts(tag)[:2] == _version_parts(other_tag)[:2]
 
 
-def _range_labels(bounds: list[tuple[str, str, str]]) -> list[str]:
+def _range_labels(
+    bounds: Sequence[tuple[str, str, str]],
+    *,
+    older: tuple[str, str, str] | None = None,
+    descending: bool = False,
+) -> list[str]:
     """Label each `(first_tag, last_tag, first_date)` group of a newest-first list.
 
     Each label depends on both neighbors: the newer group decides whether this
     one is the latest or spans a full major, and either neighbor can split a
     minor series with it (see {func}`_range_label`).
+
+    `older` is the group just below the list, when the support envelope cuts
+    the list short: the oldest label still shows the exact version a split
+    minor starts at, `6.0.1` → `6.1.x` rather than `6.0.x` → `6.1.x`, which
+    would claim the `6.0.0` release left out. `descending` flips every label.
     """
+    neighbors = [*bounds, older] if older else list(bounds)
     labels = []
     for index, (first_tag, last_tag, first_date) in enumerate(bounds):
         newer_first = bounds[index - 1][0] if index else None
-        older_last = bounds[index + 1][1] if index + 1 < len(bounds) else None
+        older_last = neighbors[index + 1][1] if index + 1 < len(neighbors) else None
         labels.append(
             _range_label(
                 first_tag,
@@ -766,6 +826,7 @@ def _range_labels(bounds: list[tuple[str, str, str]]) -> list[str]:
                 split_start=_same_minor(first_tag, older_last),
                 split_end=_same_minor(last_tag, newer_first),
                 first_date=first_date,
+                descending=descending,
             ),
         )
     return labels
@@ -781,6 +842,72 @@ def _corner_cell(label: str, axis: str) -> str:
     return corner_header(f"`{label}`", axis).replace("\\", "\\\\")
 
 
+def _envelope(
+    cells: Sequence[Sequence[str]], *, full_history: bool = False
+) -> tuple[int, int]:
+    """Return the first row and the first column of the support envelope.
+
+    `cells` holds one row per release range, oldest first, and one column per
+    version, ascending. The envelope is the part of the history still in scope:
+
+    1. Its floor is the oldest version the newest range marks
+       {data}`SUPPORTED_CELL`.
+    2. Its rows run from the newest range down to the oldest one supporting the
+       floor or a later version. The ranges in between stay whatever they hold,
+       so a release that dropped a version for a while keeps its row.
+    3. Its columns start at the oldest version a kept range supports. A later
+       column stays even when no kept range supports it, so a gap in support
+       stays visible.
+
+    A newest range supporting nothing has no floor, and every row stays, as
+    under `full_history`. The oldest columns no row supports go in all cases:
+    they only say that the history starts later.
+
+    :return: `(first_row, first_column)` indices into `cells`.
+    """
+    first_row = 0
+    floor = next(
+        (index for index, cell in enumerate(cells[-1]) if cell == SUPPORTED_CELL),
+        None,
+    )
+    if floor is not None and not full_history:
+        first_row = next(
+            index for index, row in enumerate(cells) if SUPPORTED_CELL in row[floor:]
+        )
+    first_column = min(
+        (
+            index
+            for row in cells[first_row:]
+            for index, cell in enumerate(row)
+            if cell == SUPPORTED_CELL
+        ),
+        default=0,
+    )
+    return first_row, first_column
+
+
+def _envelope_note(
+    package: str, axis: str, first_tag: str, project_root: Path, *, verb: str
+) -> str:
+    """Render the note following a table cut short by its support envelope.
+
+    `axis` names the column versions the way the corner cell does, like `Python`
+    or `` `click` ``, and `verb` what a release does to them: `support` or
+    `accept`. The note links the pages that list every past release, see
+    {func}`_history_links`.
+    """
+    where = " or ".join(
+        f"in the [{text}]({url})" for text, url in _history_links(project_root)
+    )
+    return ENVELOPE_NOTE.format(
+        package=package,
+        first_release=first_tag.removeprefix("v"),
+        axis=axis,
+        verb=verb,
+        where=where or "in the project's release history",
+    )
+
+
 def _render_matrix(
     label: str,
     axis: str,
@@ -789,6 +916,7 @@ def _render_matrix(
     *,
     row_order: str,
     leading_headers: Sequence[str] = (),
+    older: tuple[str, str, str] | None = None,
 ) -> str:
     """Render the release ranges of a matrix as a GitHub-flavored markdown table.
 
@@ -798,10 +926,13 @@ def _render_matrix(
     leaves the label undated, see `_range_labels`. `column_labels` head the
     version columns, centered, and `leading_headers` the cells before them,
     left-aligned like the label. Rows sit newest first unless `row_order` is
-    {data}`OLDEST_FIRST`.
+    {data}`OLDEST_FIRST`. `older` is the range just below the oldest row, when
+    the support envelope leaves it out (see {func}`_range_labels`).
     """
     ordered = list(reversed(groups))
-    labels = _range_labels([(first, last, date) for first, last, date, _ in ordered])
+    labels = _range_labels(
+        [(first, last, date) for first, last, date, _ in ordered], older=older
+    )
     rows = [
         [row_label, *cells]
         for row_label, (*_, cells) in zip(labels, ordered, strict=True)
@@ -857,6 +988,7 @@ def python_matrix_table(
     column_order: str = NEWEST_FIRST,
     row_order: str = NEWEST_FIRST,
     show_date: bool = False,
+    full_history: bool = False,
     release_dates: dict[str, str] | None = None,
 ) -> str:
     """Render the Python compatibility matrix as a GitHub-flavored markdown table.
@@ -865,6 +997,9 @@ def python_matrix_table(
     left, so the most recent compatibility information always sits in the
     upper-left corner of the table; `row_order` and `column_order` flip
     either axis.
+
+    The table keeps the support envelope of the project (see {func}`_envelope`).
+    Consecutive ranges whose cells then coincide merge into one row.
 
     :param project_root: git working tree to walk.
     :param label: the header column name (usually the package name, like
@@ -883,8 +1018,11 @@ def python_matrix_table(
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
     :param show_date: follow each row label with the release date of its
         first tag, like `6.0.x (2025-09-25) → 9.x`.
+    :param full_history: keep every release range, not just the support
+        envelope.
     :param release_dates: passed to {func}`python_matrix_groups`.
-    :return: rendered markdown table, or the empty string when no group
+    :return: rendered markdown table, followed by {data}`ENVELOPE_NOTE` when the
+        envelope leaves out older releases, or the empty string when no group
         was collected.
     :raises ValueError: on an unrecognized `column_order` or `row_order`.
     """
@@ -899,34 +1037,48 @@ def python_matrix_table(
     if not groups:
         return ""
 
-    all_versions = sorted(
-        {v for g in groups for v in g.python_versions},
-        key=_version_sort_key,
-        reverse=column_order == NEWEST_FIRST,
+    versions = sorted(
+        {v for g in groups for v in g.python_versions}, key=_version_sort_key
     )
     if python_floor:
         python_floor_key = _version_sort_key(python_floor)
-        all_versions = [
-            v for v in all_versions if _version_sort_key(v) >= python_floor_key
-        ]
-    if not all_versions:
+        versions = [v for v in versions if _version_sort_key(v) >= python_floor_key]
+    if not versions:
         return ""
 
-    return _render_matrix(
+    cells = [[_python_cell(version, group) for version in versions] for group in groups]
+    first_row, first_column = _envelope(cells, full_history=full_history)
+    columns = list(range(first_column, len(versions)))
+    if column_order == NEWEST_FIRST:
+        columns.reverse()
+
+    def rendered(row: int) -> list[str]:
+        return [cells[row][column] for column in columns]
+
+    rows = [
+        (
+            groups[oldest].first_tag,
+            groups[newest].last_tag,
+            groups[oldest].first_date if show_date else "",
+            rendered(oldest),
+        )
+        for _, oldest, newest in _runs(range(first_row, len(groups)), key=rendered)
+    ]
+    older = groups[first_row - 1] if first_row else None
+    table = _render_matrix(
         label,
         "Python",
-        [
-            (
-                group.first_tag,
-                group.last_tag,
-                group.first_date if show_date else "",
-                [_python_cell(version, group) for version in all_versions],
-            )
-            for group in groups
-        ],
-        [f"`{version}`" for version in all_versions],
+        rows,
+        [f"`{versions[column]}`" for column in columns],
         row_order=row_order,
+        older=(older.first_tag, older.last_tag, older.first_date) if older else None,
     )
+    if older is None:
+        return table
+    note = _envelope_note(
+        label, "Python", groups[first_row].first_tag, project_root, verb="support"
+    )
+    return f"{table}\n\n{note}"
 
 
 class DependencyMatrixGroup(NamedTuple):
@@ -1163,13 +1315,15 @@ class ReleasesUnreadable(Exception):
     """
 
 
-def _pypi_releases(dep_name: str, *, required: bool = False) -> tuple[Version, ...]:
-    """Return every stable release of `dep_name` on PyPI, oldest first.
+def _pypi_releases(dep_name: str, *, required: bool = False) -> dict[Version, str]:
+    """Return every stable release of `dep_name` on PyPI, with its date.
 
     Reads the `releases` mapping of PyPI's JSON API. A release stays when at
     least one of its files is not yanked, and goes when it is a pre-release, a
-    development release, or not a valid version. An error or a malformed answer
-    yields no release, and the table goes without the columns they add.
+    development release, or not a valid version. Its date is the UTC day the
+    first of its files that are not yanked was uploaded, empty when PyPI gives
+    none. An error or a malformed answer yields no release, and the table goes
+    without the columns they add.
 
     No cooldown applies. The matrix states what an installer accepts, and an
     installer applies no cooldown by default, so a release is installable as
@@ -1177,20 +1331,22 @@ def _pypi_releases(dep_name: str, *, required: bool = False) -> tuple[Version, .
 
     :param required: raise {class}`ReleasesUnreadable` instead of returning
         nothing, for a caller that cannot use the fallback table.
+    :return: each release, oldest first, mapped to its ISO `YYYY-MM-DD` date.
     """
     url = PYPI_JSON_URL.format(name=canonicalize_name(dep_name))
     try:
         with urlopen(url, timeout=PYPI_TIMEOUT) as response:
             releases = json.load(response)["releases"]
-        stable = sorted(
-            version
-            for version, files in (
-                (_safe_version(str(tag)), files) for tag, files in releases.items()
+        stable: dict[Version, str] = {}
+        for tag, files in releases.items():
+            version = _safe_version(str(tag))
+            installable = [file for file in files if not file.get("yanked")]
+            if version is None or version.is_prerelease or not installable:
+                continue
+            uploads = (
+                str(file.get("upload_time_iso_8601") or "")[:10] for file in installable
             )
-            if version is not None
-            and not version.is_prerelease
-            and any(not file.get("yanked") for file in files)
-        )
+            stable[version] = min(filter(None, uploads), default="")
     except (
         AttributeError,
         HTTPException,
@@ -1206,8 +1362,8 @@ def _pypi_releases(dep_name: str, *, required: bool = False) -> tuple[Version, .
         )
         if required:
             raise ReleasesUnreadable(dep_name) from error
-        return ()
-    return tuple(stable)
+        return {}
+    return dict(sorted(stable.items()))
 
 
 def _latest_locked_version(project_root: Path, dep_name: str) -> str:
@@ -1245,28 +1401,47 @@ def _column_candidates(
     return candidates
 
 
-def _dependency_columns(
-    spec_sets: Sequence[SpecifierSet | None], candidates: Iterable[Version]
-) -> list[tuple[Version, Version, tuple[bool, ...]]]:
-    """Bin `candidates` into columns of versions every range treats alike.
+def _dependency_cell(
+    spec_set: SpecifierSet | None, version: Version, released: str, end_date: str
+) -> str:
+    """Classify one release of a dependency against one release range.
 
-    Each candidate gets the vector of the ranges accepting it, one entry per
-    item of `spec_sets` (`None` for an unparsable range, which accepts nothing).
-    Consecutive candidates sharing a vector share a column, so a range accepts
-    every version of a column or none of them, and each ✅ / ❌ cell is exact.
-
-    :return: `(first, last, accepted)` bins, oldest first.
+    `released` is the ISO date of the release, empty when unknown, and
+    `end_date` the day the range was superseded. A release the specifier rules
+    out is forbidden, and an unparsable specifier rules out everything. A
+    release it accepts is supported when it came out while the range was
+    current, its last day included, and undeclared when it came out later (see
+    {data}`UNDECLARED_CELL`). A release of unknown date reads as supported:
+    the offline fallback columns carry no date to compare.
     """
+    if spec_set is None or not spec_set.contains(version, prereleases=True):
+        return FORBIDDEN_CELL
+    if released and released > end_date:
+        return UNDECLARED_CELL
+    return SUPPORTED_CELL
 
-    def accepting(version: Version) -> tuple[bool, ...]:
-        return tuple(
-            spec_set is not None and spec_set.contains(version, prereleases=True)
-            for spec_set in spec_sets
-        )
+
+def _dependency_columns(
+    cells: Sequence[Sequence[str]], rows: Iterable[int]
+) -> list[tuple[int, int]]:
+    """Bin the columns of `cells` into runs of versions that `rows` treat alike.
+
+    `cells` holds one row per range and one column per candidate version,
+    ascending. Consecutive columns whose cells agree in every one of `rows` share
+    a bin, so a shown range holds the same cell for every version of a bin, and
+    each cell is exact. Only the shown ranges count: two releases that only a
+    range outside the envelope tells apart share a bin.
+
+    :return: `(first, last)` column indices of each bin, ascending.
+    """
+    shown = list(rows)
+
+    def column_cells(column: int) -> list[str]:
+        return [cells[row][column] for row in shown]
 
     return [
-        (first, last, accepted)
-        for accepted, first, last in _runs(sorted(set(candidates)), key=accepting)
+        (first, last)
+        for _, first, last in _runs(range(len(cells[0]) if cells else 0), column_cells)
     ]
 
 
@@ -1279,6 +1454,12 @@ def dependency_matrix_groups(
     version_floor: str = "",
 ) -> list[DependencyMatrixGroup]:
     """Group consecutive release tags declaring the same `dep_name` spec.
+
+    Specifiers are compared parsed (see {func}`_spec_identity`), so a
+    re-spelled specifier continues its range: `cloup >= 3.0.7` rewritten as
+    `cloup>=3.0.7` by a formatter is no new range. Splitting there would end the
+    older half early, and every release of the dependency published after that
+    would read as undeclared for it. A group keeps the spelling of its first tag.
 
     :param dep_name: the distribution whose requirement specifier is tracked
         (like `"click"`).
@@ -1296,8 +1477,8 @@ def dependency_matrix_groups(
         if (spec := _extract_requirement(pyproject, setup_py, dep_name))
     ]
     return [
-        DependencyMatrixGroup(first[0], last[0], first[1], spec)
-        for spec, first, last in _runs(declared, key=itemgetter(2))
+        DependencyMatrixGroup(first[0], last[0], first[1], first[2])
+        for _, first, last in _runs(declared, key=lambda tag: _spec_identity(tag[2]))
     ]
 
 
@@ -1313,17 +1494,20 @@ def dependency_matrix_table(
     version_floor: str = "",
     column_order: str = NEWEST_FIRST,
     row_order: str = NEWEST_FIRST,
+    full_history: bool = False,
     require_releases: bool = False,
 ) -> str:
     """Render the `dep_name` compatibility matrix as a markdown table.
 
-    Each column covers a run of `dep_name` releases that every range treats
-    alike (see {func}`_column_candidates` and {func}`_dependency_columns`),
-    labeled like the rows; each ✅ / ❌ cell is computed with
-    `packaging`. Consecutive ranges whose cells coincide are re-merged
-    into one row. By default newest
-    releases sit on top and newest dependency versions on the left, matching
-    the Python axis; `row_order` and `column_order` flip either axis.
+    Each cell classifies a release of `dep_name` against a range (see
+    {func}`_dependency_cell`). Each column covers a run of releases that every
+    shown range treats alike (see {func}`_column_candidates` and
+    {func}`_dependency_columns`), labeled like the rows. Headers read from
+    their newest bound, `9.4.x` ← `9.3.4`, while the columns run newest first.
+    The table keeps the support envelope of the project (see {func}`_envelope`),
+    and consecutive ranges whose cells coincide merge into one row. By default
+    newest releases sit on top and newest dependency versions on the left,
+    matching the Python axis; `row_order` and `column_order` flip either axis.
 
     :param label: header column name (the documented package, in backticks).
     :param dep_name: the tracked distribution (`"click"`).
@@ -1337,9 +1521,12 @@ def dependency_matrix_table(
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
     :param row_order: top-to-bottom ordering of the release rows:
         {data}`NEWEST_FIRST` (default) or {data}`OLDEST_FIRST`.
+    :param full_history: keep every release range, not just the support
+        envelope.
     :param require_releases: refuse the offline fallback columns, for a caller
         comparing the result against a checked-in table.
-    :return: rendered markdown table, or `""` when nothing was collected.
+    :return: rendered markdown table, followed by {data}`ENVELOPE_NOTE` when the
+        envelope leaves out older releases, or `""` when nothing was collected.
     :raises ValueError: on an unrecognized `column_order` or `row_order`.
     :raises ReleasesUnreadable: under `require_releases`, when PyPI cannot
         answer for `dep_name`.
@@ -1354,75 +1541,80 @@ def dependency_matrix_table(
     )
     if not groups:
         return ""
-    specs = [g.spec for g in groups]
-    spec_sets = [_to_specifier_set(spec) for spec in specs]
-    candidates = _column_candidates(
-        specs,
-        _pypi_releases(dep_name, required=require_releases),
-        _latest_locked_version(project_root, dep_name),
-    )
-    bins = _dependency_columns(spec_sets, candidates)
-    if not bins:
-        return ""
-    # Label the columns the way the rows are labeled, newest first.
-    newest_first = list(reversed(bins))
-    column_labels = _range_labels([
-        (str(first), str(last), "") for first, last, _ in newest_first
-    ])
-    columns = [
-        (column_label, accepted)
-        for column_label, (*_, accepted) in zip(
-            column_labels, newest_first, strict=True
+    releases = _pypi_releases(dep_name, required=require_releases)
+    candidates = sorted(
+        _column_candidates(
+            [group.spec for group in groups],
+            releases,
+            _latest_locked_version(project_root, dep_name),
         )
+    )
+    if not candidates:
+        return ""
+    # A range is current until the next one starts, and the newest one today.
+    today = datetime.now(tz=UTC).date().isoformat()
+    end_dates = [group.first_date for group in groups[1:]] + [today]
+    spec_sets = [_to_specifier_set(group.spec) for group in groups]
+    cells = [
+        [
+            _dependency_cell(spec_set, version, releases.get(version, ""), end_date)
+            for version in candidates
+        ]
+        for spec_set, end_date in zip(spec_sets, end_dates, strict=True)
     ]
-    # Drop the oldest columns no range accepts: they only say that the history
-    # starts later. Labeled before the drop, the oldest column left still
-    # names the exact release it starts at.
-    if any(any(accepted) for _, accepted in columns):
-        while not any(columns[-1][1]):
-            columns.pop()
+    first_row, first_column = _envelope(cells, full_history=full_history)
+    shown = range(first_row, len(groups))
+
+    # Label the columns the way the rows are labeled, newest first.
+    bins = list(reversed(_dependency_columns(cells, shown)))
+    column_labels = _range_labels(
+        [(str(candidates[first]), str(candidates[last]), "") for first, last in bins],
+        descending=column_order == NEWEST_FIRST,
+    )
+    # Drop the oldest columns, outside the envelope. Labeled before the drop,
+    # the oldest column left still names the exact release it starts at.
+    columns = [
+        (column_label, first)
+        for column_label, (first, _) in zip(column_labels, bins, strict=True)
+        if first >= first_column
+    ]
     if column_order == OLDEST_FIRST:
         columns.reverse()
 
-    # Read each range's ✅ / ❌ vector off the bins, then re-merge consecutive
-    # ranges whose vectors coincide: they accept the same releases. A merged
-    # row shows the Spec cell of its oldest range, so with that column the
-    # ranges must also accept the same versions beyond the newest release.
-    ranges = [
-        (
-            group,
-            tuple(
-                SUPPORTED_CELL if accepted[index] else FORBIDDEN_CELL
-                for _, accepted in columns
-            ),
-        )
-        for index, group in enumerate(groups)
-    ]
-
-    def merge_key(
-        item: tuple[DependencyMatrixGroup, tuple[str, ...]],
-    ) -> tuple[tuple[str, ...], tuple[str, SpecifierSet | str] | None]:
-        group, cells = item
-        return cells, _spec_identity(group.spec) if show_spec else None
+    # Re-merge consecutive ranges whose cells coincide: they treat every shown
+    # release alike. A merged row shows the Spec cell of its oldest range, so
+    # with that column the ranges must also accept the same versions beyond the
+    # newest release.
+    def merge_key(row: int) -> tuple[list[str], tuple[str, SpecifierSet | str] | None]:
+        row_cells = [cells[row][column] for _, column in columns]
+        return row_cells, _spec_identity(groups[row].spec) if show_spec else None
 
     rows = []
-    for _, (oldest, cells), (newest, _cells) in _runs(ranges, key=merge_key):
-        spec_cells = [f"`{oldest.spec.replace(' ', '')}`"] if show_spec else []
+    for (row_cells, _), oldest, newest in _runs(shown, key=merge_key):
+        spec_cells = [f"`{groups[oldest].spec.replace(' ', '')}`"] if show_spec else []
         rows.append((
-            oldest.first_tag,
-            newest.last_tag,
-            oldest.first_date if show_date else "",
-            [*spec_cells, *cells],
+            groups[oldest].first_tag,
+            groups[newest].last_tag,
+            groups[oldest].first_date if show_date else "",
+            [*spec_cells, *row_cells],
         ))
 
-    return _render_matrix(
+    older = groups[first_row - 1] if first_row else None
+    table = _render_matrix(
         label,
         f"`{dep_name}`",
         rows,
         [column_label for column_label, _ in columns],
         row_order=row_order,
         leading_headers=["Spec"] if show_spec else [],
+        older=(older.first_tag, older.last_tag, older.first_date) if older else None,
     )
+    if older is None:
+        return table
+    note = _envelope_note(
+        label, f"`{dep_name}`", groups[first_row].first_tag, project_root, verb="accept"
+    )
+    return f"{table}\n\n{note}"
 
 
 def _resolve_root(path_opt: str | None, base_dir: Path) -> Path:
@@ -1459,18 +1651,83 @@ def _project_name(project_root: Path) -> str:
     worktree under another name each renders a different table, and
     `refresh-directives --check` then reports the checked-in one as stale.
     """
+    return _declared_name(_working_tree_pyproject(project_root))
+
+
+def _working_tree_pyproject(project_root: Path) -> dict[str, Any]:
+    """Parse the working-tree `pyproject.toml` of `project_root`.
+
+    A missing or unreadable file reads as empty, like an unparsable one.
+    """
     try:
         text = (project_root / "pyproject.toml").read_text(encoding="UTF-8")
     except (OSError, ValueError):
-        return ""
-    data = _pyproject_data(text)
+        return {}
+    return _pyproject_data(text)
+
+
+def _poetry_table(data: Mapping[str, Any]) -> Mapping[str, Any]:
+    """The `[tool.poetry]` table of a parsed `pyproject.toml`, empty when absent."""
     tool = data.get("tool")
     poetry = tool.get("poetry") if isinstance(tool, dict) else None
-    for table in (data.get("project"), poetry):
+    return poetry if isinstance(poetry, dict) else {}
+
+
+def _declared_name(data: Mapping[str, Any]) -> str:
+    """The name a parsed `pyproject.toml` declares, PEP 621 first, or `""`."""
+    for table in (data.get("project"), _poetry_table(data)):
         name = table.get("name") if isinstance(table, dict) else None
         if name and isinstance(name, str):
             return name
     return ""
+
+
+def _github_repository(data: Mapping[str, Any]) -> str:
+    """Return the GitHub repository a parsed `pyproject.toml` declares, or `""`.
+
+    Reads the `[project.urls]` labels of {data}`REPOSITORY_URL_LABELS` in order,
+    then Poetry's `repository` and `homepage` keys. Only the root page of a
+    repository counts: a link to a file inside one, like a changelog, does not
+    say where its releases are.
+    """
+    project = data.get("project")
+    urls = project.get("urls") if isinstance(project, dict) else None
+    labeled = {}
+    if isinstance(urls, dict):
+        labeled = {
+            "".join(char for char in str(label).lower() if char.isalnum()): url
+            for label, url in urls.items()
+        }
+    poetry = _poetry_table(data)
+    for url in (
+        *(labeled.get(label) for label in REPOSITORY_URL_LABELS),
+        poetry.get("repository"),
+        poetry.get("homepage"),
+    ):
+        m = _GITHUB_REPOSITORY_RE.match(url) if isinstance(url, str) else None
+        if m:
+            return f"https://github.com/{m['owner']}/{m['repo']}"
+    return ""
+
+
+def _history_links(project_root: Path) -> list[tuple[str, str]]:
+    """Return the pages listing every past release of the project at `project_root`.
+
+    Its release history on PyPI, from the name its working-tree `pyproject.toml`
+    declares, then its GitHub releases, from the repository it declares (see
+    {func}`_github_repository`). Each link is a `(text, url)` pair. A project
+    declaring neither gets none.
+    """
+    data = _working_tree_pyproject(project_root)
+    links = []
+    name = _declared_name(data)
+    if name:
+        url = PYPI_HISTORY_URL.format(name=canonicalize_name(name))
+        links.append(("release history on PyPI", url))
+    repository = _github_repository(data)
+    if repository:
+        links.append(("GitHub releases", f"{repository}/releases"))
+    return links
 
 
 def _render_block(
@@ -1507,6 +1764,7 @@ def _render_block(
             column_order=column_order,
             row_order=row_order,
             show_date="show-date" in options,
+            full_history="full-history" in options,
         )
     return dependency_matrix_table(
         root,
@@ -1518,6 +1776,7 @@ def _render_block(
         tag_pattern=tag_pattern,
         column_order=column_order,
         row_order=row_order,
+        full_history="full-history" in options,
         require_releases=require_releases,
     )
 
@@ -1563,6 +1822,8 @@ class MatrixDirective(ContentOffsetMixin):
     - `:python-floor:` drops the Python columns below `X.Y` (python axis).
     - `:show-spec:` adds a raw-specifier `Spec` column (dependency axis).
     - `:show-date:` follows each row label with its first release date.
+    - `:full-history:` keeps every release range, not just the support
+      envelope (see {func}`_envelope`).
 
     The git fallback is resilient: a missing git binary, a non-repository path,
     or a tag-less repository logs a build warning and renders nothing rather
@@ -1582,6 +1843,7 @@ class MatrixDirective(ContentOffsetMixin):
         "row-order": _order_option,
         "show-spec": directives.flag,
         "show-date": directives.flag,
+        "full-history": directives.flag,
     }
 
     def run(self) -> list[nodes.Node]:

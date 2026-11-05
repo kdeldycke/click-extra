@@ -47,8 +47,12 @@ from click_extra.sphinx.matrix import (
     PythonMatrixGroup,
     ReleasesUnreadable,
     _column_candidates,
+    _dependency_cell,
     _dependency_columns,
+    _envelope,
+    _envelope_note,
     _extract_requirement,
+    _history_links,
     _latest_locked_version,
     _pypi_releases,
     _python_cell,
@@ -122,6 +126,32 @@ def git_repo(path: Path) -> Callable[..., None]:
     return run
 
 
+def dated_tag(repo: Path, tag: str, date: str) -> None:
+    """Commit the working tree of ``repo`` on ``date`` and tag it ``tag``.
+
+    The dates decide when a range was superseded, which the undeclared cells
+    of both axes read.
+    """
+    stamp = f"{date}T12:00:00+00:00"
+    env = {**os.environ, "GIT_AUTHOR_DATE": stamp, "GIT_COMMITTER_DATE": stamp}
+    for args in (
+        ("git", "add", "--all"),
+        ("git", "commit", "--allow-empty", "-m", tag, "--quiet"),
+        ("git", "tag", tag),
+    ):
+        subprocess.run(args, cwd=repo, check=True, capture_output=True, env=env)
+
+
+def declare_python(repo: Path, spec: str, *classifiers: str) -> None:
+    """Write a ``pyproject.toml`` declaring ``requires-python`` and classifiers."""
+    lines = ["[project]", f'requires-python = "{spec}"']
+    if classifiers:
+        lines.append("classifiers = [")
+        lines.extend(f'  "Programming Language :: Python :: {c}",' for c in classifiers)
+        lines.append("]")
+    (repo / "pyproject.toml").write_text("\n".join(lines) + "\n", encoding="UTF-8")
+
+
 def declare_widget(repo: Path, spec: str) -> None:
     """Write a ``pyproject.toml`` requiring ``widget{spec}``.
 
@@ -178,8 +208,11 @@ def tagged_table_rows(table: str) -> dict[str, list[str]]:
     on the day the test runs.
     """
     rows = {}
-    # Skip the header and its alignment separator.
+    # Skip the header and its alignment separator, and stop at the envelope
+    # note, if any, which follows the table.
     for line in table.splitlines()[2:]:
+        if not line.startswith("|"):
+            break
         cells = table_cells(line)
         rows[LABEL_DATE_RE.sub("", cells[0])] = cells[1:]
     return rows
@@ -366,6 +399,27 @@ def test_python_matrix_groups_keeps_declared_spec(synthetic_repo: Path) -> None:
     attests, since the two drive different cells."""
     groups = python_matrix_groups(synthetic_repo)
     assert [g.spec for g in groups] == ["^3.10", ">=3.11"]
+
+
+def test_python_matrix_groups_respelled_floor_continues_range(tmp_path: Path) -> None:
+    """Re-spelling a floor-only ``requires-python`` does not end its range.
+
+    The range lasts until ``2.0.0``, after Python 3.11 and 3.12 came out, so its
+    capped support includes both. Split at the re-spelling, its older half would
+    end in June 2022, before 3.11, and read 3.10 alone.
+    """
+    repo = tmp_path / "respelled"
+    git_repo(repo)
+    for tag, date, spec in (
+        ("v1.0.0", "2022-01-10", ">= 3.10"),
+        ("v1.1.0", "2022-06-10", ">=3.10"),
+        ("v2.0.0", "2023-11-01", ">=3.12"),
+    ):
+        declare_python(repo, spec)
+        dated_tag(repo, tag, date)
+    first, *_ = python_matrix_groups(repo)
+    assert (first.first_tag, first.last_tag) == ("v1.0.0", "v1.1.0")
+    assert first.python_versions == ("3.10", "3.11", "3.12")
 
 
 @pytest.mark.parametrize(
@@ -569,6 +623,99 @@ def test_python_matrix_table_empty(tmp_path: Path) -> None:
     assert python_matrix_table(repo, "proj") == ""
 
 
+@pytest.fixture
+def split_floor_repo(tmp_path: Path) -> Path:
+    """A repo raising its Python floor in the ``1.0.1`` patch release.
+
+    The newest release supports 3.11 and later, and ``1.0.0`` only 3.9, so the
+    support envelope starts at ``1.0.1``, inside the ``1.0`` minor series. The
+    working tree declares a name and a GitHub repository, for the note's links.
+    """
+    repo = tmp_path / "split-floor"
+    git_repo(repo)
+    for tag, spec, classifiers in (
+        ("v1.0.0", ">=3.9", ("3.9",)),
+        ("v1.0.1", ">=3.11", ("3.11",)),
+        ("v1.1.0", ">=3.11", ("3.11",)),
+        ("v2.0.0", ">=3.11", ("3.11", "3.12")),
+    ):
+        declare_python(repo, spec, *classifiers)
+        dated_tag(repo, tag, "2024-01-10")
+    (repo / "pyproject.toml").write_text(
+        '[project]\nname = "apricot"\n'
+        'urls.Repository = "https://github.com/orchard/apricot"\n',
+        encoding="UTF-8",
+    )
+    return repo
+
+
+def test_python_matrix_table_envelope(split_floor_repo: Path) -> None:
+    """A range supporting only Pythons below the floor goes, with the columns
+    only it supported, and a note follows the table to say so."""
+    table, note = python_matrix_table(split_floor_repo, "apricot").split("\n\n")
+    assert table_header(table)[1:] == ["`3.12`", "`3.11`"]
+    # The dropped `1.0.0` still splits the `1.0` minor series, so the oldest
+    # label shows the exact release the envelope starts at.
+    assert tagged_table_rows(table) == {
+        "`2.0.0`": ["✅", "✅"],
+        "`1.0.1` → `1.1.x`": [UNDECLARED_CELL, "✅"],
+    }
+    assert note == (
+        "> [!NOTE]\n"
+        "> This table shows the support envelope of `apricot`: its releases from"
+        " `1.0.1` onward, and the Python versions they support. Releases and"
+        " Python versions outside the envelope are obsolete. For an older"
+        " Python, find the last release that supports it in the [release"
+        " history on PyPI](https://pypi.org/project/apricot/#history) or in the"
+        " [GitHub releases](https://github.com/orchard/apricot/releases)."
+    )
+
+
+def test_python_matrix_table_full_history(split_floor_repo: Path) -> None:
+    """The full history keeps every range and every column, with no note."""
+    table = python_matrix_table(split_floor_repo, "apricot", full_history=True)
+    assert table_header(table)[1:] == ["`3.12`", "`3.11`", "`3.9`"]
+    assert list(tagged_table_rows(table)) == [
+        "`2.0.0`",
+        "`1.0.1` → `1.1.x`",
+        "`1.0.0`",
+    ]
+    assert "[!NOTE]" not in table
+
+
+@pytest.mark.parametrize("full_history", [True, False])
+def test_matrix_directive_full_history_option(
+    sphinx_app_myst, split_floor_repo: Path, full_history: bool
+) -> None:
+    """``:full-history:`` keeps the releases the envelope leaves out, and the
+    note of a table cut short renders as an admonition."""
+    option = ":full-history:\n" if full_history else ""
+    html = sphinx_app_myst.build_document(
+        f"```{{matrix}} python\n:path: {split_floor_repo}\n{option}```\n"
+    )
+    assert html is not None
+    assert (">1.0.0<" in html) is full_history
+    assert ("admonition note" in html) is not full_history
+
+
+def test_update_matrix_blocks_full_history_marker(
+    split_floor_repo: Path, tmp_path: Path
+) -> None:
+    """The ``full-history`` marker flag keeps the releases the envelope drops."""
+    doc = tmp_path / "page.md"
+    for flag, full_history in (("", False), (" full-history", True)):
+        doc.write_text(
+            f"<!-- matrix python path={split_floor_repo}{flag} -->\n"
+            "<!-- matrix-end -->\n",
+            encoding="UTF-8",
+        )
+        assert update_matrix_blocks([doc]) == [doc]
+        text = doc.read_text(encoding="UTF-8")
+        assert ("| `1.0.0` " in text) is full_history
+        assert ("> [!NOTE]" in text) is not full_history
+        assert update_matrix_blocks([doc], check=True) == []
+
+
 def test_matrix_python_directive_renders_table(sphinx_app_myst, synthetic_repo) -> None:
     """``{matrix} python`` renders the generated table as a real ``<table>``."""
     content = dedent(f"""
@@ -767,7 +914,7 @@ def test_update_matrix_blocks_leaves_an_unreadable_pypi_untouched(
     def unreachable(dep_name, *, required=False):
         if required:
             raise ReleasesUnreadable(dep_name)
-        return ()
+        return {}
 
     monkeypatch.setattr(f"{MATRIX_MODULE}._pypi_releases", unreachable)
     doc = tmp_path / "page.md"
@@ -1047,58 +1194,80 @@ def test_extract_requirement_from_setup_py() -> None:
     assert _extract_requirement("", setup_py, "absent") == ""
 
 
-def bin_cells(accepted: tuple[bool, ...]) -> str:
-    """Spell a bin's acceptance vector as the cells it renders."""
-    return "".join("✅" if cell else "❌" for cell in accepted)
+@pytest.mark.parametrize(
+    ("spec", "version", "released", "expected"),
+    [
+        # The specifier rules a release out, whenever it came out.
+        (">=2.0", "1.0.0", "2020-01-01", FORBIDDEN_CELL),
+        ("<2.0", "3.0.0", "2026-01-01", FORBIDDEN_CELL),
+        # An unparsable specifier rules out everything.
+        ("not a spec", "1.0.0", "2020-01-01", FORBIDDEN_CELL),
+        # Out while the range was current, its last day included.
+        (">=1.0", "1.0.0", "2020-01-01", SUPPORTED_CELL),
+        (">=1.0", "2.0.0", "2024-06-10", SUPPORTED_CELL),
+        # Out after the range was superseded: nobody tried it.
+        (">=1.0", "3.0.0", "2024-06-11", UNDECLARED_CELL),
+        # The offline fallback carries no date to compare.
+        (">=1.0", "3.0.0", "", SUPPORTED_CELL),
+    ],
+)
+def test_dependency_cell(spec: str, version: str, released: str, expected: str) -> None:
+    cell = _dependency_cell(
+        _to_specifier_set(spec), Version(version), released, "2024-06-10"
+    )
+    assert cell == expected
 
 
 @pytest.mark.parametrize(
-    ("specs", "candidates", "expected"),
+    ("rows", "shown", "expected"),
     [
-        # Consecutive releases every range treats alike share a column.
-        (
-            [">=1.0", ">=2.1.3"],
-            ["1.0.0", "1.4.2", "2.1.0", "2.1.3", "2.2.0"],
-            [("1.0.0", "2.1.0", "✅❌"), ("2.1.3", "2.2.0", "✅✅")],
-        ),
-        # A run no range accepts is a column like any other.
-        (
-            [">=2.0"],
-            ["1.0.0", "1.5.0", "2.0.0", "3.0.0"],
-            [("1.0.0", "1.5.0", "❌"), ("2.0.0", "3.0.0", "✅")],
-        ),
-        # So is a newer one, like a major no range accepts yet.
-        (
-            ["~=2.1.3"],
-            ["2.1.3", "2.1.5", "2.2.0"],
-            [("2.1.3", "2.1.5", "✅"), ("2.2.0", "2.2.0", "❌")],
-        ),
-        # An exact pin isolates the one release it accepts.
-        (
-            ["==8.1.4"],
-            ["8.1.3", "8.1.4", "8.1.5"],
-            [
-                ("8.1.3", "8.1.3", "❌"),
-                ("8.1.4", "8.1.4", "✅"),
-                ("8.1.5", "8.1.5", "❌"),
-            ],
-        ),
-        # Duplicates and order do not matter.
-        ([">=1.0"], ["2.0.0", "1.0.0", "2.0.0"], [("1.0.0", "2.0.0", "✅")]),
-        # An unparsable range accepts nothing.
-        (["not a spec"], ["1.0.0", "2.0.0"], [("1.0.0", "2.0.0", "❌")]),
-        ([">=1.0"], [], []),
+        # Consecutive columns every shown range treats alike share a bin.
+        (["✅✅❌❌", "❌✅✅✅"], [0, 1], [(0, 0), (1, 1), (2, 3)]),
+        # A range outside the envelope tells no column apart.
+        (["✅✅❌❌", "❌✅✅✅"], [1], [(0, 0), (1, 3)]),
+        # An undeclared cell splits a bin like any other state.
+        (["✅✅––"], [0], [(0, 1), (2, 3)]),
+        ([], [], []),
     ],
 )
 def test_dependency_columns(
-    specs: list[str], candidates: list[str], expected: list[tuple[str, str, str]]
+    rows: list[str], shown: list[int], expected: list[tuple[int, int]]
 ) -> None:
-    bins = _dependency_columns(
-        [_to_specifier_set(spec) for spec in specs], map(Version, candidates)
+    assert _dependency_columns([list(row) for row in rows], shown) == expected
+
+
+@pytest.mark.parametrize(
+    ("rows", "full_history", "expected"),
+    [
+        # Every range supports the floor: nothing goes.
+        (["✅✅❌", "❌✅✅"], False, (0, 0)),
+        # A range supporting only versions below the floor goes, and the
+        # columns only it supported go with it.
+        (["✅❌❌", "❌✅✅"], False, (1, 1)),
+        # A range between the newest one and the oldest kept one stays,
+        # whatever it holds.
+        (["✅✅❌", "❌❌❌", "❌✅✅"], False, (0, 0)),
+        # A range that dropped the floor for a while, but kept a later version,
+        # stays.
+        (["❌❌✅", "❌✅✅"], False, (0, 1)),
+        # An old column no kept range supports goes, undeclared cells included.
+        (["–✅", "❌✅"], False, (0, 1)),
+        # A newest range supporting nothing sets no floor: every row stays.
+        (["✅❌", "❌❌"], False, (0, 0)),
+        (["❌❌", "❌–"], False, (0, 0)),
+        # The full history keeps every row, and drops the columns no range
+        # supports.
+        (["✅❌❌", "❌✅✅"], True, (0, 0)),
+        (["❌✅❌", "❌✅✅"], True, (0, 1)),
+    ],
+)
+def test_envelope(
+    rows: list[str], full_history: bool, expected: tuple[int, int]
+) -> None:
+    """Rows come oldest first, and columns run from the oldest version."""
+    assert _envelope([list(row) for row in rows], full_history=full_history) == (
+        expected
     )
-    assert [
-        (str(first), str(last), bin_cells(accepted)) for first, last, accepted in bins
-    ] == expected
 
 
 @pytest.mark.parametrize(
@@ -1143,13 +1312,24 @@ def test_latest_locked_version_without_lockfile(tmp_path: Path) -> None:
     assert _latest_locked_version(tmp_path, "widget") == ""
 
 
-def stub_releases(monkeypatch: pytest.MonkeyPatch, *versions: str) -> None:
-    """Make PyPI list ``versions`` as the stable releases of every dependency."""
+def stub_releases(
+    monkeypatch: pytest.MonkeyPatch,
+    *versions: str,
+    dates: dict[str, str] | None = None,
+) -> None:
+    """Make PyPI list ``versions`` as the stable releases of every dependency.
+
+    A release is undated unless ``dates`` gives its ISO publication date, so a
+    stub without dates never produces an undeclared cell.
+    """
+    published = {
+        Version(version): (dates or {}).get(version, "") for version in versions
+    }
     monkeypatch.setattr(
         f"{MATRIX_MODULE}._pypi_releases",
         # Takes `required` like the real one: a stub answering every read has
         # nothing to refuse, but a mismatched signature would fail the call.
-        lambda dep_name, *, required=False: tuple(map(Version, versions)),
+        lambda dep_name, *, required=False: published,
     )
 
 
@@ -1184,12 +1364,13 @@ def test_dependency_matrix_table_columns_and_cells(
         synthetic_dep_repo, "proj", "widget", show_spec=True
     )
     # The >=2.1.3 floor splits the releases in two runs, labeled like rows and
-    # newest-first, like the Python axis.
+    # newest-first, like the Python axis. Each header reads from its newest
+    # bound, as the whole header row does.
     assert table_header(table) == [
         WIDGET_CORNER,
         "Spec",
-        "`2.1.3` → `2.x`",
-        "`1.0.x` → `2.1.0`",
+        "`2.x` ← `2.1.3`",
+        "`2.1.0` ← `1.0.x`",
     ]
     # The Spec column carries each range's raw specifier.
     assert tagged_table_rows(table) == {
@@ -1230,14 +1411,17 @@ def test_dependency_matrix_table_exotic_specs(
     """Each specifier shape resolves to the right ``✅`` / ``❌`` vector.
 
     The exclusion hole of ``>=4.0,!=4.1.*`` isolates 4.1.0, and the 2.1.0
-    release no range accepts keeps its column between two that some do.
+    release no range accepts keeps its column between two that some do. The
+    full history keeps the ranges the support envelope would leave out.
     """
     stub_releases(
         monkeypatch,
         *("1.0.0", "1.5.0", "2.1.0", "2.1.4", "2.1.9", "3.1.0", "3.5.0"),
         *("4.0.0", "4.1.0", "4.2.0", "5.2.0", "5.2.1", "6.0.0", "7.0.0"),
     )
-    table = dependency_matrix_table(exotic_spec_repo, "proj", "widget", show_spec=True)
+    table = dependency_matrix_table(
+        exotic_spec_repo, "proj", "widget", show_spec=True, full_history=True
+    )
     assert len(table_header(table)) == 12
     rows = tagged_table_rows(table)
     # Each row keeps its raw specifier (whitespace squeezed out) next to the
@@ -1254,11 +1438,11 @@ def test_dependency_matrix_table_exotic_specs(
 
 
 def test_dependency_matrix_table_merges_equivalent_specs(tmp_path: Path) -> None:
-    """Consecutive ranges differing only in spelling render as a single row.
+    """Consecutive tags differing only in spelling form a single range.
 
     Poetry's ``^2.0`` and PEP 621's ``>=2.0,<3.0.0`` describe the same set, so
-    the re-merge pass collapses them instead of emitting two identical rows.
-    This is what a packaging-backend migration looks like in the history.
+    they group into one range instead of two identical rows. This is what a
+    packaging-backend migration looks like in the history.
     """
     repo = tmp_path / "equivalent"
     run = git_repo(repo)
@@ -1268,12 +1452,12 @@ def test_dependency_matrix_table_merges_equivalent_specs(tmp_path: Path) -> None
         run("git", "commit", "-m", tag, "--quiet")
         run("git", "tag", tag)
 
-    assert [g.spec for g in dependency_matrix_groups(repo, "widget")] == [
-        "^2.0",
-        ">=2.0,<3.0.0",
+    groups = dependency_matrix_groups(repo, "widget")
+    assert [(g.first_tag, g.last_tag, g.spec) for g in groups] == [
+        ("v1.0.0", "v1.1.0", "^2.0"),
     ]
-    # Two groups, but one row: the label spans both tags (collapsing to the
-    # whole major series) and the Spec column keeps the oldest spelling.
+    # One row: the label spans both tags (collapsing to the whole major
+    # series) and the Spec column keeps the oldest spelling.
     rows = tagged_table_rows(
         dependency_matrix_table(repo, "proj", "widget", show_spec=True)
     )
@@ -1385,8 +1569,8 @@ def pinned_widget_repo(tmp_path: Path, name: str, spec: str) -> Path:
     ("spec", "columns", "cells"),
     [
         # An exact pin isolates the one release it accepts.
-        ("==2.1.4", ["`2.1.5` → `2.x`", "`2.1.4`"], "❌✅"),
-        ("===2.1.4", ["`2.1.5` → `2.x`", "`2.1.4`"], "❌✅"),
+        ("==2.1.4", ["`2.x` ← `2.1.5`", "`2.1.4`"], "❌✅"),
+        ("===2.1.4", ["`2.x` ← `2.1.5`", "`2.1.4`"], "❌✅"),
         # A wildcard pin accepts its whole series.
         ("==2.1.*", ["`2.4.0`", "`2.1.x`"], "❌✅"),
     ],
@@ -1428,7 +1612,7 @@ def test_dependency_matrix_table_suffixed_poetry_floor(
     repo = pinned_widget_repo(tmp_path, "post-release", "^2.0.0.post1")
     stub_releases(monkeypatch, "2.0.0", "2.0.0.post1", "2.4.0", "3.0.0")
     table = dependency_matrix_table(repo, "proj", "widget")
-    assert table_header(table) == [WIDGET_CORNER, "`3.0.0`", "`2.0.0.post1` → `2.4.x`"]
+    assert table_header(table) == [WIDGET_CORNER, "`3.0.0`", "`2.4.x` ← `2.0.0.post1`"]
     assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "❌✅"
 
 
@@ -1443,8 +1627,121 @@ def test_dependency_matrix_table_shows_a_release_ahead_of_the_lock(
     repo = pinned_widget_repo(tmp_path, "ahead-of-lock", ">=2.1,<3")
     stub_releases(monkeypatch, "2.1.0", "3.0.0")
     table = dependency_matrix_table(repo, "proj", "widget")
-    assert table_header(table) == [WIDGET_CORNER, "`3.0.0`", "`2.1.x` → `2.4.x`"]
+    assert table_header(table) == [WIDGET_CORNER, "`3.0.0`", "`2.4.x` ← `2.1.x`"]
     assert "".join(tagged_table_rows(table)["`1.0.0`"]) == "❌✅"
+
+
+WIDGET_DATES = {
+    "1.0.0": "2023-12-01",
+    "2.0.0": "2024-05-01",
+    # Out on the day `v2.0.0` superseded `v1.0.0`.
+    "2.1.0": "2024-06-10",
+    "3.0.0": "2025-01-01",
+}
+"""Publication dates of the ``widget`` releases the dated repository sees."""
+
+
+@pytest.fixture
+def dated_dep_repo(tmp_path: Path) -> Path:
+    """A repo raising its ``widget`` floor at each of three dated tags."""
+    repo = tmp_path / "dated"
+    git_repo(repo)
+    for tag, date, spec in (
+        ("v1.0.0", "2024-01-10", ">=1.0"),
+        ("v2.0.0", "2024-06-10", ">=2.0"),
+        ("v3.0.0", "2025-02-01", ">=3.0"),
+    ):
+        declare_widget(repo, spec)
+        dated_tag(repo, tag, date)
+    return repo
+
+
+def test_dependency_matrix_table_undeclared_after_superseded(
+    dated_dep_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A release out after a range was superseded reads ``–`` for that range,
+    though its specifier accepts it. One out on the last day reads ``✅``."""
+    stub_releases(monkeypatch, *WIDGET_DATES, dates=WIDGET_DATES)
+    table = dependency_matrix_table(dated_dep_repo, "proj", "widget", full_history=True)
+    assert table_header(table)[1:] == ["`3.0.0`", "`2.x`", "`1.0.0`"]
+    assert tagged_table_rows(table) == {
+        "`3.0.0`": ["✅", "❌", "❌"],
+        "`2.0.0`": ["✅", "✅", "❌"],
+        "`1.0.0`": [UNDECLARED_CELL, "✅", "✅"],
+    }
+
+
+def test_dependency_matrix_table_envelope(
+    dated_dep_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The envelope stops at the oldest range current when the floor came out.
+
+    ``1.0.0`` was superseded before ``widget`` 3.0.0, the floor of the newest
+    range, so it goes, and the ``widget`` 1.0.0 column it alone accepted too.
+    """
+    stub_releases(monkeypatch, *WIDGET_DATES, dates=WIDGET_DATES)
+    table, note = dependency_matrix_table(dated_dep_repo, "proj", "widget").split(
+        "\n\n"
+    )
+    assert table_header(table)[1:] == ["`3.0.0`", "`2.x`"]
+    assert tagged_table_rows(table) == {
+        "`3.0.0`": ["✅", "❌"],
+        "`2.0.0`": ["✅", "✅"],
+    }
+    assert "its releases from `2.0.0` onward, and the `widget` versions" in note
+
+
+def test_dependency_matrix_groups_respelled_spec_continues_range(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A re-spelled specifier continues its range.
+
+    ``widget`` 1.5.0 came out after ``1.1.0`` re-spelled the specifier, while
+    that range was still current, so it reads ``✅`` for the whole range. Split
+    at the re-spelling, ``1.0.0`` would look superseded before 1.5.0 came out.
+    """
+    repo = tmp_path / "respelled"
+    git_repo(repo)
+    for tag, date, spec in (
+        ("v1.0.0", "2024-01-10", " >= 1.0"),
+        ("v1.1.0", "2024-03-10", ">=1.0"),
+        ("v2.0.0", "2024-09-10", ">=2.0"),
+    ):
+        declare_widget(repo, spec)
+        dated_tag(repo, tag, date)
+    groups = dependency_matrix_groups(repo, "widget")
+    assert [(g.first_tag, g.last_tag) for g in groups] == [
+        ("v1.0.0", "v1.1.0"),
+        ("v2.0.0", "v2.0.0"),
+    ]
+    dates = {"1.0.0": "2023-12-01", "1.5.0": "2024-05-01", "2.0.0": "2024-08-01"}
+    stub_releases(monkeypatch, *dates, dates=dates)
+    assert tagged_table_rows(dependency_matrix_table(repo, "proj", "widget")) == {
+        "`2.0.0`": ["✅", "❌"],
+        "`1.x`": ["✅", "✅"],
+    }
+
+
+@pytest.mark.parametrize(
+    ("column_order", "expected"),
+    [
+        ("newest-first", ["`2.x` ← `2.1.3`", "`2.1.0` ← `1.0.x`"]),
+        ("oldest-first", ["`1.0.x` → `2.1.0`", "`2.1.3` → `2.x`"]),
+    ],
+)
+def test_dependency_matrix_table_headers_read_in_column_order(
+    synthetic_dep_repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    column_order: str,
+    expected: list[str],
+) -> None:
+    """A header reads from the bound its neighbors continue: the newest one
+    while the columns run newest first, the oldest one otherwise."""
+    stub_releases(monkeypatch, "1.0.0", "1.4.0", "2.1.0", "2.1.3", "2.2.0")
+    table = dependency_matrix_table(
+        synthetic_dep_repo, "proj", "widget", column_order=column_order
+    )
+    assert table_header(table)[1:] == expected
 
 
 @pytest.fixture
@@ -1466,7 +1763,33 @@ def test_pypi_releases(pypi) -> None:
             "2.0.0": [{"yanked": True}, {"yanked": False}],
         }
     })
-    assert _pypi_releases("Widget") == tuple(map(Version, ("1.0.0", "2.0.0", "3.0.0")))
+    releases = _pypi_releases("Widget")
+    assert list(releases) == list(map(Version, ("1.0.0", "2.0.0", "3.0.0")))
+    # The files carry no upload time, so no release gets a date.
+    assert set(releases.values()) == {""}
+
+
+def test_pypi_releases_dates(pypi) -> None:
+    """A release is dated by the first upload among its files not yanked."""
+    pypi.expect_request("/pypi/widget/json").respond_with_json({
+        "releases": {
+            "1.0.0": [
+                {"yanked": False, "upload_time_iso_8601": "2024-03-02T08:00:00Z"},
+                {"yanked": False, "upload_time_iso_8601": "2024-03-01T23:59:00Z"},
+            ],
+            "2.0.0": [
+                {"yanked": True, "upload_time_iso_8601": "2024-05-01T00:00:00Z"},
+                {"yanked": False, "upload_time_iso_8601": "2024-06-01T00:00:00Z"},
+            ],
+            # A file without an upload time leaves its release undated.
+            "3.0.0": [{"yanked": False}],
+        }
+    })
+    assert _pypi_releases("widget") == {
+        Version("1.0.0"): "2024-03-01",
+        Version("2.0.0"): "2024-06-01",
+        Version("3.0.0"): "",
+    }
 
 
 @pytest.mark.parametrize(
@@ -1484,7 +1807,7 @@ def test_pypi_releases_discards(pypi, tag: str, files: list) -> None:
     pypi.expect_request("/pypi/widget/json").respond_with_json({
         "releases": {"1.0.0": [{"yanked": False}], tag: files}
     })
-    assert _pypi_releases("widget") == (Version("1.0.0"),)
+    assert _pypi_releases("widget") == {Version("1.0.0"): ""}
 
 
 @pytest.mark.parametrize(
@@ -1502,7 +1825,7 @@ def test_pypi_releases_unreadable(pypi, body: str, status: int) -> None:
     A caller that cannot use the fallback columns hears about the failure.
     """
     pypi.expect_request("/pypi/widget/json").respond_with_data(body, status=status)
-    assert _pypi_releases("widget") == ()
+    assert _pypi_releases("widget") == {}
     with pytest.raises(ReleasesUnreadable, match="widget"):
         _pypi_releases("widget", required=True)
 
@@ -1834,6 +2157,81 @@ def test_render_block_default_package_label(
     repo = named_repo(tmp_path / "orchard", pyproject)
     table = _render_block("python", options, repo)
     assert table_header(table)[0].startswith(f"`{expected}` ")
+
+
+PYPI_LINK = ("release history on PyPI", "https://pypi.org/project/apricot/#history")
+GITHUB_LINK = ("GitHub releases", "https://github.com/orchard/apricot/releases")
+
+
+@pytest.mark.parametrize(
+    ("pyproject", "expected"),
+    [
+        # The PyPI history of the declared name, then the GitHub releases of
+        # the declared repository.
+        (
+            (
+                '[project]\nname = "apricot"\n'
+                '[project.urls]\nRepository = "https://github.com/orchard/apricot"\n'
+            ),
+            [PYPI_LINK, GITHUB_LINK],
+        ),
+        # The name is normalized, the label too, and a `.git` suffix dropped.
+        (
+            (
+                '[project]\nname = "Apricot"\n[project.urls]\n'
+                '"Source Code" = "https://github.com/orchard/apricot.git"\n'
+            ),
+            [PYPI_LINK, GITHUB_LINK],
+        ),
+        # A page inside a repository names no repository, so the homepage,
+        # read last, stands in.
+        (
+            (
+                '[project]\nname = "apricot"\n[project.urls]\n'
+                'Source = "https://github.com/orchard/apricot/tree/main"\n'
+                'Homepage = "https://github.com/orchard/apricot/"\n'
+            ),
+            [PYPI_LINK, GITHUB_LINK],
+        ),
+        # Poetry's own keys.
+        (
+            (
+                '[tool.poetry]\nname = "apricot"\n'
+                'repository = "https://github.com/orchard/apricot"\n'
+            ),
+            [PYPI_LINK, GITHUB_LINK],
+        ),
+        # A repository off GitHub has no releases page to link.
+        (
+            (
+                '[project]\nname = "apricot"\n'
+                '[project.urls]\nRepository = "https://gitlab.com/orchard/apricot"\n'
+            ),
+            [PYPI_LINK],
+        ),
+        ('[project]\nrequires-python = ">=3.11"\n', []),
+        (None, []),
+    ],
+)
+def test_history_links(
+    tmp_path: Path, pyproject: str | None, expected: list[tuple[str, str]]
+) -> None:
+    if pyproject is not None:
+        (tmp_path / "pyproject.toml").write_text(pyproject, encoding="UTF-8")
+    assert _history_links(tmp_path) == expected
+
+
+def test_envelope_note_without_links(tmp_path: Path) -> None:
+    """A project declaring neither a name nor a repository gets no link."""
+    note = _envelope_note("apple", "`banana`", "v1.2.0", tmp_path, verb="accept")
+    assert note == (
+        "> [!NOTE]\n"
+        "> This table shows the support envelope of `apple`: its releases from"
+        " `1.2.0` onward, and the `banana` versions they accept. Releases and"
+        " `banana` versions outside the envelope are obsolete. For an older"
+        " `banana`, find the last release that accepts it in the project's"
+        " release history."
+    )
 
 
 def test_update_matrix_blocks_label_ignores_checkout_name(tmp_path: Path) -> None:
