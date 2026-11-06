@@ -18,15 +18,14 @@ from __future__ import annotations
 
 import os
 import tomllib
-from datetime import UTC, datetime
+from datetime import date
 from pathlib import Path
 
 import click
-from docutils.nodes import container
-from sphinxcontrib.mermaid import MermaidClassDiagram
 
 import click_extra.config.option
 from click_extra import ShowParamsOption
+from click_extra.sphinx.announcement import years_since
 from click_extra.sphinx.theme_docs import inject_slot_example_docstring
 
 project_path = Path(__file__).parent.parent.resolve()
@@ -53,13 +52,8 @@ project = " ".join(word.title() for word in project_id.split("-"))
 github_user = "kdeldycke"
 
 # Whole years since `0.0.1` (2021-10-18), the oldest entry of the changelog, for
-# the announcement banner below. The figure goes up on each anniversary, so it is
-# never ahead of the one it claims. A count of days divided by 365 runs a day
-# ahead for each leap day in between.
-build_date = datetime.now(tz=UTC).date()
-maintained_years = (
-    build_date.year - 2021 - ((build_date.month, build_date.day) < (10, 18))
-)
+# the announcement banner below.
+maintained_years = years_since(date(2021, 10, 18))
 
 # Addons.
 extensions = [
@@ -208,27 +202,9 @@ myst_heading_slug_func = "docutils.nodes.make_id"
 # https://github.com/mgaitan/sphinxcontrib-mermaid/issues/99#issuecomment-2339587001
 myst_fence_as_directive = ["mermaid"]
 
+# d3 zoom on every diagram. click_extra.sphinx keeps it off the inline class
+# trees of `autoclasstree`, so the wheel scrolls the page past them.
 mermaid_d3_zoom = True
-
-
-class NoZoomClassDiagram(MermaidClassDiagram):
-    """`autoclasstree` with its diagram opted out of inline d3 zoom.
-
-    `mermaid_d3_zoom` is all-or-nothing: it attaches wheel and drag handlers
-    to every diagram's `<svg>`, and sphinxcontrib-mermaid has no per-diagram
-    opt-out while its fullscreen feature is active. On the tall class
-    inheritance trees of the API sections, the wheel handler hijacks page
-    scrolling. So this subclass wraps each tree in a marked container that
-    `custom.css` targets to disable pointer events on the inline SVG: events
-    then never reach the `<svg>`, d3's handlers stay quiet, and the page
-    scrolls normally. The fullscreen viewer clones the diagram outside the
-    container, so its button and zoom still work there. Registered in
-    {func}`setup` as an override of the upstream directive.
-    """
-
-    def run(self):
-        return [container("", *super().run(), classes=["autoclasstree"])]
-
 
 exclude_patterns = ["_build", "_linkcheck", "html", "Thumbs.db", ".DS_Store"]
 
@@ -282,8 +258,9 @@ nitpick_ignore_regex = [
     (r"py:.*", r"click\.(testing|types|_\w+)\..*"),
     # Private (underscore-prefixed) symbols, in click-extra or upstream.
     (r"py:.*", r"(.*\.)?_[A-Za-z]\w*(\..*)?"),
-    # Third-party types that only the annotations of the documented test helpers
-    # name, on the tests page: not worth an inventory download on every build.
+    # Third-party types that only a few annotations name: the test helpers on the
+    # tests page, and the `requests` request of click_extra.sphinx.linkcheck. Not
+    # worth an inventory download on every build.
     (r"py:.*", r"(packaging|requests)\..*"),
 ]
 
@@ -424,36 +401,6 @@ linkcheck_anchors_ignore_for_url = [
 # them as broken.
 linkcheck_retries = 3
 
-# Authenticate the github.com crawl when CI exposes a token: GitHub throttles
-# anonymous requests to about one a minute, which overruns the link-check job on
-# a link-heavy site. The docs workflow exposes `GITHUB_TOKEN` on the linkcheck
-# step for this consumer, and local builds carry no token, so they stay
-# anonymous.
-#
-# Release-asset downloads stay anonymous: an `Authorization` header makes
-# github.com redirect them to the legacy `objects.githubusercontent.com` host,
-# whose signed URL answers 401. The binaries page links one download per
-# released binary, so authenticating them would report the whole catalog as
-# broken. `linkcheck_auth` carries the exception because its patterns are
-# regular expressions, where `linkcheck_request_headers` matches whole hosts only.
-if os.environ.get("GITHUB_TOKEN"):
-
-    def github_bearer_auth(request):
-        """Sign a request with the CI token.
-
-        Returns the prepared request, as `requests` expects from an `auth`
-        callable.
-        """
-        request.headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
-        return request
-
-    linkcheck_auth = [
-        (
-            r"https://github\.com/(?!.*/releases/(?:latest/)?download/)",
-            github_bearer_auth,
-        ),
-    ]
-
 linkcheck_ignore = [
     # This site returns 403 to bots but is valid.
     r"https://docutils\.sourceforge\.io",
@@ -568,11 +515,5 @@ def setup(app):
     the rendered output cannot drift from the actual Theme code path: tweak a
     built-in theme in `click_extra/theme.py` and the next build picks up the
     new colors.
-
-    Also swaps sphinxcontrib-mermaid's `autoclasstree` directive for
-    {class}`NoZoomClassDiagram`: conf.py is loaded as the last extension,
-    so this registration wins.
     """
     app.connect("autodoc-process-docstring", inject_slot_example_docstring)
-
-    app.add_directive("autoclasstree", NoZoomClassDiagram, override=True)

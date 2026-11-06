@@ -10,6 +10,9 @@
 - Highlight the row and column under the pointer in the two-axis tables of a Sphinx build, and make each one-link cell clickable as a whole.
 - Tint the cells of two-axis tables in Sphinx builds by state: green for ✅, red for ❌ and grey for `–`.
 - Add the `tabs-vertical` class for sphinx-design tab-sets, which stacks their labels down a left rail, and use it on the install page.
+- Add `click_extra.sphinx.announcement.years_since()`, which counts the whole years from a date to the day of the build, for a banner like "maintained for 5+ years".
+- Keep the `mermaid_d3_zoom` of sphinxcontrib-mermaid off the `autoclasstree` diagrams of a Sphinx build, so the mouse wheel scrolls the page over them.
+- Sign the `linkcheck` requests of a Sphinx build to `github.com` with `GITHUB_TOKEN` when it is set, release downloads excepted.
 - Add the documentation site to the package metadata, so PyPI links to it.
 - Trim `matrix` tables to the support envelope, which can leave out the oldest release ranges, then the oldest versions no remaining range supports.
 - Add the `full-history` option to the `matrix` directive and marker, which keeps every release range.

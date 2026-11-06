@@ -9,6 +9,15 @@
 
 ## Submodules
 
+## `click_extra.sphinx.announcement` module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.announcement
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `click_extra.sphinx.changelog` module
 
 ```{eval-rst}
@@ -72,6 +81,15 @@
    :undoc-members:
 ```
 
+## `click_extra.sphinx.linkcheck` module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.linkcheck
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `click_extra.sphinx.manpages` module
 
 ```{eval-rst}
@@ -85,6 +103,15 @@
 
 ```{eval-rst}
 .. automodule:: click_extra.sphinx.matrix
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `click_extra.sphinx.mermaid` module
+
+```{eval-rst}
+.. automodule:: click_extra.sphinx.mermaid
    :members:
    :show-inheritance:
    :undoc-members:

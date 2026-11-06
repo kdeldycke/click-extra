@@ -27,6 +27,15 @@
    :undoc-members:
 ```
 
+## `tests.sphinx.test_sphinx_announcement` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_announcement
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `tests.sphinx.test_sphinx_changelog` module
 
 ```{eval-rst}
@@ -90,6 +99,15 @@
    :undoc-members:
 ```
 
+## `tests.sphinx.test_sphinx_linkcheck` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_linkcheck
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `tests.sphinx.test_sphinx_manpages` module
 
 ```{eval-rst}
@@ -103,6 +121,15 @@
 
 ```{eval-rst}
 .. automodule:: tests.sphinx.test_sphinx_matrix
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.sphinx.test_sphinx_mermaid` module
+
+```{eval-rst}
+.. automodule:: tests.sphinx.test_sphinx_mermaid
    :members:
    :show-inheritance:
    :undoc-members:

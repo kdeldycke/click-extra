@@ -50,8 +50,10 @@ from . import (
     crosshair,
     doctrees,
     fail_on_warnings,
+    linkcheck,
     manpages,
     matrix,
+    mermaid,
     tables,
     tabs,
     todos,
@@ -164,6 +166,13 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     - A vertical layout for a sphinx-design `tab-set` marked with
       `:class: tabs-vertical`: its labels stack down a left rail. Inert without
       sphinx-design. See {mod}`click_extra.sphinx.tabs`.
+    - Class diagrams of `autoclasstree` that let the mouse wheel scroll the
+      page, where the d3 zoom of sphinxcontrib-mermaid would catch it. Inert
+      without sphinxcontrib-mermaid, or with `mermaid_d3_zoom` off. See
+      {mod}`click_extra.sphinx.mermaid`.
+    - The `linkcheck` requests to github.com signed with the token of
+      `GITHUB_TOKEN`, release downloads excepted. Inert until the variable is
+      set. See {mod}`click_extra.sphinx.linkcheck`.
     - No `sphinx.ext.viewcode` page for a module that no documented object
       links to, so a parallel read publishes the pages of a serial one. Inert
       without `sphinx.ext.viewcode`. See {mod}`click_extra.sphinx.viewcode`.
@@ -245,6 +254,14 @@ def setup(app: Sphinx) -> ExtensionMetadata:
 
     # Lay out a tab-set marked `tabs-vertical` in two columns (see tabs.py).
     tabs.setup(app)
+
+    # Keep the d3 zoom of sphinxcontrib-mermaid off the `autoclasstree` diagrams
+    # (see mermaid.py). Inert without it, or with `mermaid_d3_zoom` off.
+    mermaid.setup(app)
+
+    # Sign the `linkcheck` requests to github.com with `GITHUB_TOKEN` (see
+    # linkcheck.py). Inert until the variable is set.
+    linkcheck.setup(app)
 
     # Drop the viewcode pages that no documented object links to (see
     # viewcode.py). Inert without `sphinx.ext.viewcode`.

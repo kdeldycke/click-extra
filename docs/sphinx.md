@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the [`matrix` directive](python-directives.md#the-matrix-directive), [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [vertical tab-sets](#vertical-tab-sets), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the [`matrix` directive](python-directives.md#the-matrix-directive), [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [vertical tab-sets](#vertical-tab-sets), [class diagrams that let the page scroll](#class-diagrams-that-let-the-page-scroll), [GitHub link checks with a token](#github-link-checks-with-a-token), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -1094,6 +1094,58 @@ A serial read publishes such a page only for the last document it reads. A paral
 Sphinx pickles the doctree of each page it reads, and leaves the build environment out of the pickle. myst-parser parses an [`{eval-rst}` block](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html#how-directives-parse-content) into a separate document, which holds the environment, and the nodes it moves into the page keep a reference to that document. Without a fix, each page with such a block pickles the whole environment with its doctree: on a project with an API reference, these doctrees weigh megabytes each, which costs disk space, memory and build time.
 
 The extension points every node at its own page before Sphinx pickles it, which leaves the environment out. The `python:render-rst` and `python:render-myst` [directives](python-directives.md) move nodes the same way, and get the same fix.
+
+## Class diagrams that let the page scroll
+
+With [sphinxcontrib-mermaid](https://github.com/mgaitan/sphinxcontrib-mermaid) loaded and its d3 zoom on, the mouse wheel scrolls the page over the class diagrams of `autoclasstree`, instead of zooming them:
+
+```{code-block} python
+:caption: `conf.py`
+extensions = [
+    ...
+    "click_extra.sphinx",
+    "sphinxcontrib.mermaid",
+]
+mermaid_d3_zoom = True
+```
+
+`mermaid_d3_zoom` makes sphinxcontrib-mermaid attach the wheel and drag handlers of d3 to every diagram of a page. It has no per-diagram opt-out, and the zoom of its fullscreen viewer needs the same option. A class inheritance tree is often taller than the screen, and the wheel then zooms the tree where the reader wants to scroll. The extension wraps each `autoclasstree` diagram in a container whose inline diagram ignores the pointer. Other diagrams keep their zoom, and so does the fullscreen viewer, which copies the diagram out of the container.
+
+The fix is inert on a project that does not load sphinxcontrib-mermaid, or that leaves `mermaid_d3_zoom` off.
+
+## GitHub link checks with a token
+
+Set `GITHUB_TOKEN` in the environment of the `linkcheck` builder, and the extension signs each of its requests to github.com with that token:
+
+```{code-block} yaml
+:caption: `.github/workflows/docs.yaml`
+- name: Check links
+  run: sphinx-build --builder linkcheck docs docs/_linkcheck
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+GitHub throttles anonymous requests to about one a minute, which overruns the link check of a site with many links to github.com. A local build has no token, so its requests stay anonymous.
+
+Release downloads stay anonymous too: with an `Authorization` header, github.com redirects them to a signed URL that answers 401. The extension adds its entry to [`linkcheck_auth`](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-linkcheck_auth) after the entries of `conf.py`. Sphinx signs a request with the first entry whose pattern matches its URL, so an entry of the project keeps precedence.
+
+## Years in an announcement banner
+
+{func}`~click_extra.sphinx.announcement.years_since` counts the whole years from a date to the day of the build, so the figure of a banner like "maintained for 5+ years" stays current:
+
+```{code-block} python
+:caption: `conf.py`
+from datetime import date
+
+from click_extra.sphinx.announcement import years_since
+
+orchard_years = years_since(date(2019, 4, 1))
+html_theme_options = {
+    "announcement": f"This orchard has grown pears for {orchard_years}+ years.",
+}
+```
+
+The count goes up on each anniversary of the date, never before it. A count of days divided by 365 would run a day ahead for each leap day in between.
 
 ## ANSI shell sessions
 
