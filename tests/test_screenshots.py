@@ -100,6 +100,9 @@ from click_extra.capture.svg import (
     AUTO_HOLD_MIN,
     AUTO_HOLD_SECONDS_PER_LINE,
     BLOCK_ELEMENTS,
+    BOX_ARMS,
+    BOX_CURVES,
+    BOX_DASHES,
     CELL_BLEED,
     CELL_WIDTH,
     CURSOR_THICKNESS,
@@ -115,6 +118,7 @@ from click_extra.capture.svg import (
     auto_hold,
     blend,
     blink_css,
+    box_strokes,
     braille_dots,
     column_segments,
     cursor_cell,
@@ -617,7 +621,8 @@ def test_block_element_fills_what_its_name_states(char):
         ("apple", 0, [("apple", 0, False)]),
         ("▀▄█ apple", 0, [("▀▄█", 0, True), ("apple", 4, False)]),
         ("kiwi ▒▒", 2, [("kiwi", 2, False), ("▒▒", 7, True)]),
-        ("┌─▄▄─┐", 0, [("┌─", 0, False), ("▄▄", 2, True), ("─┐", 4, False)]),
+        ("┌─▄▄─┐", 0, [("┌─▄▄─┐", 0, True)]),
+        ("│ kiwi │", 0, [("│", 0, True), ("kiwi", 2, False), ("│", 7, True)]),
         ("苹果 ██", 0, [("苹果", 0, False), ("██", 5, True)]),
         ("⠋ Picking apples", 0, [("⠋", 0, True), ("Picking apples", 2, False)]),
         ("▀⣿▄ kiwi", 3, [("▀⣿▄", 3, True), ("kiwi", 7, False)]),
@@ -677,6 +682,148 @@ def test_braille_dots_keep_one_pitch_across_cells():
         assert len(positions) == count
         for step in (after - before for before, after in pairwise(positions)):
             assert step == pytest.approx(CELL_WIDTH / 2, abs=0.11)
+
+
+_BOX_WEIGHTS = {"LIGHT": 1, "SINGLE": 1, "HEAVY": 2, "DOUBLE": 3}
+"""Weight each word of a Box Drawing name stands for, see `BOX_ARMS`."""
+
+_BOX_DIRECTIONS = {
+    "UP": ("up",),
+    "RIGHT": ("right",),
+    "DOWN": ("down",),
+    "LEFT": ("left",),
+    "VERTICAL": ("up", "down"),
+    "HORIZONTAL": ("left", "right"),
+}
+"""Arms each direction word of a Box Drawing name stands for."""
+
+_BOX_DASH_COUNTS = {"DOUBLE": 2, "TRIPLE": 3, "QUADRUPLE": 4}
+"""Dashes each count word of a dashed Box Drawing name stands for."""
+
+
+def named_arms(char: str) -> tuple[int, ...]:
+    """The arms of a Box Drawing line, read off its Unicode name.
+
+    A name states one weight for all its arms, as in `LIGHT DOWN AND RIGHT`, or
+    one per group of arms, as in `DOWN LIGHT AND RIGHT HEAVY`.
+    """
+    name = unicodedata.name(char).removeprefix("BOX DRAWINGS ")
+    groups = [group.split() for group in name.split(" AND ")]
+    shared = next(
+        _BOX_WEIGHTS[word] for group in groups for word in group if word in _BOX_WEIGHTS
+    )
+    arms = dict.fromkeys(("up", "right", "down", "left"), 0)
+    for group in groups:
+        weight = next(
+            (_BOX_WEIGHTS[word] for word in group if word in _BOX_WEIGHTS), shared
+        )
+        for word in group:
+            for arm in _BOX_DIRECTIONS.get(word, ()):
+                arms[arm] = weight
+    return tuple(arms.values())
+
+
+def test_box_drawing_covers_its_whole_unicode_block():
+    """Every Box Drawing character is a line, a dash or a curve, one cell wide."""
+    block = "".join(chr(code) for code in range(0x2500, 0x2580))
+    kinds = (BOX_ARMS, BOX_DASHES, BOX_CURVES)
+    assert sorted(char for kind in kinds for char in kind) == list(block)
+    assert all(cell_width(char) == 1 for char in block)
+    assert list(shape_runs(block, 0)) == [(block, 0, True)]
+    for char in BOX_CURVES:
+        assert {"ARC", "DIAGONAL"} & set(unicodedata.name(char).split())
+
+
+@pytest.mark.parametrize("char", tuple(BOX_ARMS))
+def test_box_arms_match_their_unicode_names(char):
+    """Each Box Drawing line has the arms and weights its Unicode name lists."""
+    assert BOX_ARMS[char] == named_arms(char)
+
+
+@pytest.mark.parametrize("char", tuple(BOX_DASHES))
+def test_box_dashes_match_their_unicode_names(char):
+    """Each dashed line runs the way, weighs and counts what its name says."""
+    words = unicodedata.name(char).split()
+    vertical, weight, dashes = BOX_DASHES[char]
+    assert vertical == ("VERTICAL" in words)
+    assert weight == _BOX_WEIGHTS[words[2]]
+    assert dashes == _BOX_DASH_COUNTS[words[3]]
+
+
+@pytest.mark.parametrize(
+    ("char", "expected"),
+    (
+        pytest.param("─", {(False, 15, 17, 0, 16)}, id="light-horizontal"),
+        pytest.param("┃", {(True, 6, 10, 0, 32)}, id="heavy-vertical"),
+        pytest.param(
+            "┼", {(False, 15, 17, 0, 16), (True, 7, 9, 0, 32)}, id="light-cross"
+        ),
+        pytest.param(
+            "┌", {(False, 15, 17, 7, 16), (True, 7, 9, 15, 32)}, id="light-corner"
+        ),
+        pytest.param(
+            "═", {(False, 13, 15, 0, 16), (False, 17, 19, 0, 16)}, id="double"
+        ),
+        # The outer stroke turns the outer corner, the inner one the inner corner.
+        pytest.param(
+            "╔",
+            {
+                (False, 13, 15, 5, 16),
+                (False, 17, 19, 9, 16),
+                (True, 5, 7, 13, 32),
+                (True, 9, 11, 17, 32),
+            },
+            id="double-corner",
+        ),
+        # The top stroke runs on, the bottom one stops at the gap below it.
+        pytest.param(
+            "╦",
+            {
+                (False, 13, 15, 0, 16),
+                (False, 17, 19, 0, 7),
+                (False, 17, 19, 9, 16),
+                (True, 5, 7, 17, 32),
+                (True, 9, 11, 17, 32),
+            },
+            id="double-tee",
+        ),
+        # A single line ending on a double one stops at its nearer stroke.
+        pytest.param(
+            "╤",
+            {(False, 13, 15, 0, 16), (False, 17, 19, 0, 16), (True, 7, 9, 17, 32)},
+            id="single-on-double",
+        ),
+        # A single line passing through crosses the double line's gap.
+        pytest.param(
+            "╪",
+            {(False, 13, 15, 0, 16), (False, 17, 19, 0, 16), (True, 7, 9, 0, 32)},
+            id="single-through-double",
+        ),
+    ),
+)
+def test_box_strokes_join_as_menlo_draws_them(char, expected):
+    """A line's strokes meet where Menlo `22.0d2e1` joins them."""
+    assert set(box_strokes(char)) == expected
+
+
+def test_double_cross_leaves_its_gaps_open():
+    """No stroke of `╬` crosses into the gaps between its double lines."""
+    for _, low, high, start, end in box_strokes("╬"):
+        assert not (start < 16 < end and low < 8 < high)
+        assert not (start < 8 < end and low < 16 < high)
+
+
+def test_box_rule_is_one_shape_and_its_lines_meet_across_rows():
+    """A rule merges across its cells, and a vertical line runs on into the next row."""
+    svg = render_svg("──────\n│\n│", columns=8, collapse_titlebar=True)
+    rects = sorted(
+        (float(rect["y"]), float(rect["height"]), float(rect["width"]))
+        for rect in _GRID_RECT_RE.finditer(svg)
+    )
+    assert len(rects) == 3
+    (_, _, rule_width), (upper_y, upper_height, _), (lower_y, _, _) = rects
+    assert rule_width == pytest.approx(6 * CELL_WIDTH, abs=0.05)
+    assert upper_y + upper_height >= lower_y
 
 
 def test_blank_braille_draws_nothing_and_keeps_its_text():
@@ -2748,6 +2895,22 @@ def test_block_css_paints_the_shape_of_its_character(char):
     assert f"height: {LINE_SPACING:g}em" in declarations
     if char in SHADE_DENSITY:
         assert f"currentColor {SHADE_DENSITY[char]:.0%}" in declarations
+
+
+def test_render_html_draws_each_box_run_as_one_svg():
+    """A run of Box Drawing is one box holding the run's lines as an SVG.
+
+    One SVG per run rather than a background per cell, so a rule merges into one
+    line, and the characters stay in the text.
+    """
+    text = "┌─┐ kiwi\n└─┘"
+    html = render(
+        text, format=CaptureFormat.HTML, full=False, chrome=Chrome(watermark="")
+    )
+    assert html_to_text(html) == text
+    assert html.count("<svg ") == 2
+    assert html.count("position: relative") == 2
+    assert 'fill="currentColor"' in html
 
 
 @pytest.mark.parametrize("code", (0x2800, 0x2801, 0x280B, 0x28FF))

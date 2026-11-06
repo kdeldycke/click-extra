@@ -38,7 +38,7 @@ from __future__ import annotations
 import re
 import zlib
 from collections import Counter
-from functools import lru_cache
+from functools import cache, lru_cache
 from itertools import accumulate, groupby
 from math import ceil, cos, hypot, pi, sin
 from typing import NamedTuple, cast
@@ -228,12 +228,11 @@ that terminal's own shape instead, see
 
 
 TILE_RUN = 8
-"""Cells of tiling characters drawn before their offset is restated.
+"""Cells of tiling characters {func}`tile_runs` groups before restating an offset.
 
 Small enough that a font whose tiles are a fraction of a pixel off the grid
 cannot drift a visible amount before the next offset resets it, and large enough
-that a table's rule stays a handful of elements rather than one per cell. See
-{func}`tile_runs`.
+that a table's rule stays a handful of elements rather than one per cell.
 """
 
 
@@ -339,6 +338,184 @@ BRAILLE_DOT_RADIUS = 0.25
 
 A quarter, so a dot is half as wide as the pitch: the proportion Apple Braille
 `22.0d3e1` draws, a dot 248 units across on a pitch of 488.
+"""
+
+
+BOX_ARMS = {
+    "─": (0, 1, 0, 1),
+    "━": (0, 2, 0, 2),
+    "│": (1, 0, 1, 0),
+    "┃": (2, 0, 2, 0),
+    "┌": (0, 1, 1, 0),
+    "┍": (0, 2, 1, 0),
+    "┎": (0, 1, 2, 0),
+    "┏": (0, 2, 2, 0),
+    "┐": (0, 0, 1, 1),
+    "┑": (0, 0, 1, 2),
+    "┒": (0, 0, 2, 1),
+    "┓": (0, 0, 2, 2),
+    "└": (1, 1, 0, 0),
+    "┕": (1, 2, 0, 0),
+    "┖": (2, 1, 0, 0),
+    "┗": (2, 2, 0, 0),
+    "┘": (1, 0, 0, 1),
+    "┙": (1, 0, 0, 2),
+    "┚": (2, 0, 0, 1),
+    "┛": (2, 0, 0, 2),
+    "├": (1, 1, 1, 0),
+    "┝": (1, 2, 1, 0),
+    "┞": (2, 1, 1, 0),
+    "┟": (1, 1, 2, 0),
+    "┠": (2, 1, 2, 0),
+    "┡": (2, 2, 1, 0),
+    "┢": (1, 2, 2, 0),
+    "┣": (2, 2, 2, 0),
+    "┤": (1, 0, 1, 1),
+    "┥": (1, 0, 1, 2),
+    "┦": (2, 0, 1, 1),
+    "┧": (1, 0, 2, 1),
+    "┨": (2, 0, 2, 1),
+    "┩": (2, 0, 1, 2),
+    "┪": (1, 0, 2, 2),
+    "┫": (2, 0, 2, 2),
+    "┬": (0, 1, 1, 1),
+    "┭": (0, 1, 1, 2),
+    "┮": (0, 2, 1, 1),
+    "┯": (0, 2, 1, 2),
+    "┰": (0, 1, 2, 1),
+    "┱": (0, 1, 2, 2),
+    "┲": (0, 2, 2, 1),
+    "┳": (0, 2, 2, 2),
+    "┴": (1, 1, 0, 1),
+    "┵": (1, 1, 0, 2),
+    "┶": (1, 2, 0, 1),
+    "┷": (1, 2, 0, 2),
+    "┸": (2, 1, 0, 1),
+    "┹": (2, 1, 0, 2),
+    "┺": (2, 2, 0, 1),
+    "┻": (2, 2, 0, 2),
+    "┼": (1, 1, 1, 1),
+    "┽": (1, 1, 1, 2),
+    "┾": (1, 2, 1, 1),
+    "┿": (1, 2, 1, 2),
+    "╀": (2, 1, 1, 1),
+    "╁": (1, 1, 2, 1),
+    "╂": (2, 1, 2, 1),
+    "╃": (2, 1, 1, 2),
+    "╄": (2, 2, 1, 1),
+    "╅": (1, 1, 2, 2),
+    "╆": (1, 2, 2, 1),
+    "╇": (2, 2, 1, 2),
+    "╈": (1, 2, 2, 2),
+    "╉": (2, 1, 2, 2),
+    "╊": (2, 2, 2, 1),
+    "╋": (2, 2, 2, 2),
+    "═": (0, 3, 0, 3),
+    "║": (3, 0, 3, 0),
+    "╒": (0, 3, 1, 0),
+    "╓": (0, 1, 3, 0),
+    "╔": (0, 3, 3, 0),
+    "╕": (0, 0, 1, 3),
+    "╖": (0, 0, 3, 1),
+    "╗": (0, 0, 3, 3),
+    "╘": (1, 3, 0, 0),
+    "╙": (3, 1, 0, 0),
+    "╚": (3, 3, 0, 0),
+    "╛": (1, 0, 0, 3),
+    "╜": (3, 0, 0, 1),
+    "╝": (3, 0, 0, 3),
+    "╞": (1, 3, 1, 0),
+    "╟": (3, 1, 3, 0),
+    "╠": (3, 3, 3, 0),
+    "╡": (1, 0, 1, 3),
+    "╢": (3, 0, 3, 1),
+    "╣": (3, 0, 3, 3),
+    "╤": (0, 3, 1, 3),
+    "╥": (0, 1, 3, 1),
+    "╦": (0, 3, 3, 3),
+    "╧": (1, 3, 0, 3),
+    "╨": (3, 1, 0, 1),
+    "╩": (3, 3, 0, 3),
+    "╪": (1, 3, 1, 3),
+    "╫": (3, 1, 3, 1),
+    "╬": (3, 3, 3, 3),
+    "╴": (0, 0, 0, 1),
+    "╵": (1, 0, 0, 0),
+    "╶": (0, 1, 0, 0),
+    "╷": (0, 0, 1, 0),
+    "╸": (0, 0, 0, 2),
+    "╹": (2, 0, 0, 0),
+    "╺": (0, 2, 0, 0),
+    "╻": (0, 0, 2, 0),
+    "╼": (0, 2, 0, 1),
+    "╽": (1, 0, 2, 0),
+    "╾": (0, 1, 0, 2),
+    "╿": (2, 0, 1, 0),
+}
+"""Arms of each Box Drawing line, as their `(up, right, down, left)` weights.
+
+`0` draws no arm, `1` a light one, `2` a heavy one and `3` a double one: the
+weights the character's Unicode name lists. {func}`box_svg` draws each arm from
+its cell's edge toward the middle, and works out where two arms' strokes meet.
+
+As glyphs, two of these meet wherever the font and the renderer place them, a
+fraction of a pixel off the grid, and a table's rule shows a seam or a kink at
+every join: [`rich#2536`](https://github.com/Textualize/rich/issues/2536), which
+its maintainer answers takes drawn shapes. Terminals draw these characters
+themselves: WezTerm with
+[`custom_block_glyphs`](https://wezterm.org/config/lua/config/custom_block_glyphs.html),
+Alacritty with
+[`builtin_box_drawing`](https://alacritty.org/config-alacritty.html) and VS Code
+with
+[`terminal.integrated.customGlyphs`](https://code.visualstudio.com/docs/terminal/appearance).
+"""
+
+
+BOX_STROKES = {1: ((-1, 1),), 2: ((-2, 2),), 3: ((-3, -1), (1, 3))}
+"""Where the strokes of a light, heavy and double arm sit across it.
+
+Counted from the cell's middle line, in sixteenths of its width or thirty-seconds
+of its height: one unit on both axes, a row being twice as tall as a column is
+wide. A light stroke is two units thick, 0.076 em, close to Menlo `22.0d2e1`'s
+0.078 em. A heavy one is twice that, and a double one is two light strokes a
+light stroke apart, as Menlo draws them.
+"""
+
+
+BOX_DASHES = {
+    "┄": (False, 1, 3),
+    "┅": (False, 2, 3),
+    "┆": (True, 1, 3),
+    "┇": (True, 2, 3),
+    "┈": (False, 1, 4),
+    "┉": (False, 2, 4),
+    "┊": (True, 1, 4),
+    "┋": (True, 2, 4),
+    "╌": (False, 1, 2),
+    "╍": (False, 2, 2),
+    "╎": (True, 1, 2),
+    "╏": (True, 2, 2),
+}
+"""Dashed Box Drawing lines, as whether each runs down, its weight and its dashes.
+
+A dash covers two thirds of its share of the cell and leaves the rest as a gap
+split between its two ends, so dashes keep one pitch across cells.
+"""
+
+
+BOX_CURVES = {
+    "╭": "M16,16 A8,8 0 0,0 8,24 L8,32",
+    "╮": "M0,16 A8,8 0 0,1 8,24 L8,32",
+    "╯": "M8,0 L8,8 A8,8 0 0,1 0,16",
+    "╰": "M8,0 L8,8 A8,8 0 0,0 16,16",
+    "╱": "M16,0 L0,32",
+    "╲": "M0,0 L16,32",
+    "╳": "M16,0 L0,32 M0,0 L16,32",
+}
+"""Arcs and diagonals of Box Drawing, as SVG path data on a 16 by 32 cell.
+
+Drawn as a light stroke, see {data}`BOX_STROKES`. An arc turns on a radius of
+half the cell's width, so it meets the straight arms of its neighbors.
 """
 
 
@@ -461,14 +638,12 @@ _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 
 
 _TILING_RE = re.compile(r"[─-╿]")
-"""A Box Drawing character.
+"""A Box Drawing character, which {func}`tile_runs` cuts text at.
 
 These are not letters, they are tiles: a table's rule and a tree's elbow are
 drawn by butting them edge to edge, and a fraction of a pixel of drift between
-two of them shows as a seam or a kink. They also never ligate, which is what
-makes it free to place each one on its own cell rather than letting the renderer
-space them, see {func}`glyph_offsets`. Block Elements are tiles too, and are
-drawn as shapes instead, see {data}`BLOCK_ELEMENTS`.
+two of them shows as a seam or a kink. A capture draws them as shapes, see
+{data}`BOX_ARMS`.
 """
 
 
@@ -480,10 +655,11 @@ source would read as a space.
 """
 
 
-_SHAPED_RE = re.compile(f"[▀-▟{chr(_BRAILLE_BASE)}-{chr(_BRAILLE_BASE + 0xFF)}]+")
-"""A run of characters drawn as shapes: Block Elements and Braille patterns.
+_SHAPED_RE = re.compile(f"[─-▟{chr(_BRAILLE_BASE)}-{chr(_BRAILLE_BASE + 0xFF)}]+")
+"""A run of characters drawn as shapes: Box Drawing, Block Elements and Braille.
 
-{func}`shape_svg` draws them.
+The first two blocks are contiguous, from U+2500 to U+259F. {func}`shape_svg`
+draws them.
 """
 
 
@@ -1180,7 +1356,10 @@ def column_segments(text: str, column: int) -> Iterator[tuple[str, int]]:
 
 
 def tile_runs(text: str, column: int) -> Iterator[tuple[str, int]]:
-    """Break a column's text into the pieces drawn as one element each.
+    """Break a column's text into pieces, each to be drawn as one element.
+
+    A capture no longer draws its pieces this way: it draws Box Drawing as
+    shapes, see {func}`box_svg`, which leaves no tile among its glyphs.
 
     Ordinary text is one piece: the renderer lays it out and `textLength` holds
     the result to the width it occupies.
@@ -1312,9 +1491,11 @@ def block_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
     return "".join(shapes)
 
 
-def _is_braille(char: str) -> bool:
-    """Whether `char` is a Braille pattern, the blank one included."""
-    return 0 <= ord(char) - _BRAILLE_BASE <= 0xFF
+def _shape_kind(char: str) -> str:
+    """Which drawer draws a character of {data}`_SHAPED_RE`: `box`, `block` or `braille`."""
+    if ord(char) >= _BRAILLE_BASE:
+        return "braille"
+    return "block" if char in BLOCK_ELEMENTS else "box"
 
 
 def braille_dots(char: str) -> tuple[tuple[int, int], ...]:
@@ -1346,8 +1527,183 @@ def braille_svg(text: str, column: int, top: float, ink: str) -> str:
     return f'<g fill="{ink}">{dots}</g>' if dots else ""
 
 
+def _box_reach(spans: Sequence[tuple[int, int]], from_end: bool) -> int:
+    """How far toward its middle a stroke runs to meet the nearest of `spans`."""
+    if from_end:
+        return max(low for low, _ in spans)
+    return min(high for _, high in spans)
+
+
+def _box_far(spans: Sequence[tuple[int, int]], from_end: bool, middle: int) -> int:
+    """How far a stroke runs to cross all of `spans`, or to its middle without any."""
+    if not spans:
+        return middle
+    if from_end:
+        return min(low for low, _ in spans)
+    return max(high for _, high in spans)
+
+
+@cache
+def box_strokes(char: str) -> tuple[tuple[bool, float, float, float, float], ...]:
+    """The rectangles a Box Drawing line or dash fills on its cell.
+
+    Each is `(vertical, low, high, start, end)`: whether the stroke runs down,
+    then its span across and its span along, in the units of
+    {data}`BOX_STROKES`, on a cell 16 wide and 32 tall. Strokes on one line are
+    merged, so a straight line is one rectangle.
+
+    A stroke runs from its cell's edge toward the middle, and stops where its
+    arm meets the arms across it, the way Menlo `22.0d2e1` draws each join:
+
+    - A line passing straight through runs on into its other half, across the
+      gap of a double line if it meets one, as in `╪`.
+    - A single line ending on a double line that passes through stops at its
+      nearer stroke, as in `╤`.
+    - A stroke of a double line stops at the nearer stroke of the arm on its
+      side, as the inner corner of `╔` does.
+    - Any other stroke runs to the far edge of the arms across it, which fills
+      the corner it turns, as the outer corner of `╔` does.
+
+    :param char: a Box Drawing line or dash, see {data}`BOX_ARMS` and
+        {data}`BOX_DASHES`.
+    :return: the rectangles.
+    """
+    dashed = BOX_DASHES.get(char)
+    if dashed is not None:
+        vertical, weight, dashes = dashed
+        ((low, high),) = BOX_STROKES[weight]
+        middle, length = (8, 32) if vertical else (16, 16)
+        pitch = length / dashes
+        return tuple(
+            (
+                vertical,
+                middle + low,
+                middle + high,
+                (n + 1 / 6) * pitch,
+                (n + 5 / 6) * pitch,
+            )
+            for n in range(dashes)
+        )
+    weights = dict(zip(("up", "right", "down", "left"), BOX_ARMS[char]))
+
+    def spans(arm: str) -> list[tuple[int, int]]:
+        """Where an arm's strokes sit across it, on the axis along the others."""
+        middle = 8 if arm in ("up", "down") else 16
+        return [
+            (middle + low, middle + high)
+            for low, high in BOX_STROKES.get(weights[arm], ())
+        ]
+
+    lines: dict[tuple[bool, int, int], list[list[int]]] = {}
+    for arm, weight in weights.items():
+        if not weight:
+            continue
+        vertical = arm in ("up", "down")
+        from_end = arm in ("right", "down")
+        middle, length = (16, 32) if vertical else (8, 16)
+        lower, upper = ("left", "right") if vertical else ("up", "down")
+        opposite = {"up": "down", "down": "up", "left": "right", "right": "left"}[arm]
+        across = spans(lower) + spans(upper)
+        lanes = spans(arm)
+        for lane, (low, high) in enumerate(lanes):
+            if len(lanes) == 1:
+                if weights[opposite] or not across:
+                    reach = middle
+                elif weights[lower] == weights[upper] == 3:
+                    reach = _box_reach(across, from_end)
+                else:
+                    reach = _box_far(across, from_end, middle)
+            else:
+                side = (lower, upper)[lane]
+                if weights[side]:
+                    reach = _box_reach(spans(side), from_end)
+                else:
+                    reach = _box_far(across, from_end, middle)
+            lines.setdefault((vertical, low, high), []).append(
+                [reach, length] if from_end else [0, reach]
+            )
+    merged = []
+    for (vertical, low, high), extents in lines.items():
+        extents.sort()
+        start, end = extents[0]
+        for next_start, next_end in extents[1:]:
+            if next_start > end:
+                merged.append((vertical, low, high, start, end))
+                start = next_start
+            end = max(end, next_end)
+        merged.append((vertical, low, high, start, end))
+    return tuple(sorted(merged))
+
+
+def box_svg(text: str, column: int, top: float, ink: str) -> str:
+    """Draw a run of Box Drawing as the lines it names.
+
+    Lines and dashes are rectangles, see {func}`box_strokes`, and a stroke
+    running on into the next cell merges with it, so a table's rule is one
+    shape. Arcs and diagonals are paths, see {data}`BOX_CURVES`. A vertical
+    stroke reaching the bottom of its cell takes the {data}`CELL_BLEED` a
+    background takes, which closes the seam with the row below.
+
+    :param text: the run, Box Drawing only.
+    :param column: the terminal column it starts on.
+    :param top: where the row's cells start, see {data}`CELL_TOP_INSET`.
+    :param ink: color the lines are drawn in.
+    :return: the SVG markup.
+    """
+    across = CELL_WIDTH / 16
+    down = LINE_HEIGHT / 32
+    shapes: list[str] = []
+    rules: dict[tuple[float, float], list[list[float]]] = {}
+    for offset, char in enumerate(text):
+        origin = (column + offset) * 16
+        curve = BOX_CURVES.get(char)
+        if curve is not None:
+            shapes.append(
+                f'<path transform="translate('
+                f"{_svg_number((column + offset) * CELL_WIDTH)},{_svg_number(top)}) "
+                f'scale({across:g},{down:g})" d="{curve}" fill="none" '
+                f'stroke="{ink}" stroke-width="2" stroke-linecap="square"/>'
+            )
+            continue
+        for vertical, low, high, start, end in box_strokes(char):
+            if vertical:
+                height = (end - start) * down
+                if end == 32:
+                    height += CELL_BLEED
+                shapes.append(
+                    _row_rect(
+                        ink,
+                        (origin + low) * across,
+                        top + start * down,
+                        (high - low) * across,
+                        height=height,
+                    )
+                )
+                continue
+            spans = rules.setdefault((low, high), [])
+            if spans and spans[-1][1] >= origin + start:
+                spans[-1][1] = max(spans[-1][1], origin + end)
+            else:
+                spans.append([origin + start, origin + end])
+    shapes.extend(
+        _row_rect(
+            ink,
+            start * across,
+            top + low * down,
+            (end - start) * across,
+            height=(high - low) * down,
+        )
+        for (low, high), spans in rules.items()
+        for start, end in spans
+    )
+    return "".join(shapes)
+
+
 def shape_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
-    """Draw a run of shapes: Block Elements as rectangles, Braille as dots.
+    """Draw a run of shapes: lines, rectangles and dots.
+
+    Box Drawing is drawn by {func}`box_svg`, Block Elements by
+    {func}`block_svg` and Braille patterns by {func}`braille_svg`.
 
     :param text: the run, see {func}`shape_runs`.
     :param column: the terminal column it starts on.
@@ -1357,13 +1713,14 @@ def shape_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
     :return: the SVG markup.
     """
     drawn = []
-    for braille, chars in groupby(text, key=_is_braille):
+    for kind, chars in groupby(text, key=_shape_kind):
         run = "".join(chars)
-        drawn.append(
-            braille_svg(run, column, top, ink)
-            if braille
-            else block_svg(run, column, top, ink, paper)
-        )
+        if kind == "braille":
+            drawn.append(braille_svg(run, column, top, ink))
+        elif kind == "block":
+            drawn.append(block_svg(run, column, top, ink, paper))
+        else:
+            drawn.append(box_svg(run, column, top, ink))
         column += len(run)
     return "".join(drawn)
 
@@ -1716,10 +2073,9 @@ def _draw_screens(
                         # Drawn after every row's backgrounds, like a glyph.
                         glyphs.extend((shape_svg(piece, at, top, ink, behind), hidden))
                         continue
-                    glyphs.extend(
-                        f'{opening}{glyph_offsets(drawn, drawn_at)} y="{baseline}">'
-                        f"{_xml_escape(drawn, preserve_spaces=True)}</text>"
-                        for drawn, drawn_at in tile_runs(piece, at)
+                    glyphs.append(
+                        f'{opening}{glyph_offsets(piece, at)} y="{baseline}">'
+                        f"{_xml_escape(piece, preserve_spaces=True)}</text>"
                     )
         return "".join(cells), "".join(glyphs)
 
@@ -2275,8 +2631,8 @@ def render_svg(
     Two primitives draw everything. A `<rect>` fills the cells behind a run that
     carries a background, and a `<text>` draws its glyphs, pinned to its columns
     with `textLength` so the layout survives a reader who does not have the font.
-    Block Elements and Braille patterns are the exception: drawn as shapes by
-    {func}`shape_svg`, and kept, unpainted, as text.
+    Box Drawing, Block Elements and Braille patterns are the exception: drawn
+    as shapes by {func}`shape_svg`, and kept, unpainted, as text.
 
     ```{note}
     A run's padding is left out of its `<text>` and paid for in the `x` offset

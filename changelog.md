@@ -26,6 +26,7 @@
 - Fix the `runner` pytest fixture leaving `XDG_CACHE_HOME` unpinned, so `get_cache_dir()` resolved to the cache of the user running the tests.
 - Fix SVG and HTML captures leaving a band between stacked rows of block characters like `▀▄█`, which are now drawn as rectangles filling their cell.
 - Fix Braille spinners in SVG and HTML captures overflowing their column when the font lacks Braille: the patterns are now drawn as dots.
+- Fix seams between box-drawing characters in SVG and HTML captures, which are now drawn as lines meeting at every join.
 - Document the `:force:` option of `click:run`: it highlights output its lexer cannot parse, and logs no Sphinx warning.
 - Document the `accessibility`, `carapace`, `context`, `layout`, `mkdocs`, `styling`, `theme` and `tree` modules in the API reference.
 - Add GNU Guix, MacPorts and openSUSE Tumbleweed install instructions, and a man pages section, to the installation page.

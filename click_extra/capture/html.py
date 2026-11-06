@@ -34,6 +34,8 @@ from .svg import (
     _SHAPED_RE,
     BLOCK_ELEMENTS,
     BRAILLE_DOT_RADIUS,
+    CELL_WIDTH,
+    LINE_HEIGHT,
     SHADE_DENSITY,
     SHADOW_BLUR,
     SHADOW_OFFSET,
@@ -41,7 +43,9 @@ from .svg import (
     WATERMARK_SIZE,
     WATERMARK_URL,
     _escape_markup,
-    _is_braille,
+    _shape_kind,
+    _svg_number,
+    box_svg,
     braille_dots,
     credit_markup,
 )
@@ -154,6 +158,27 @@ def braille_css(char: str, count: int) -> str:
     )
 
 
+def box_html(text: str) -> str:
+    """Draw a run of Box Drawing as an SVG filling the run's box.
+
+    The SVG holds the lines {func}`~click_extra.capture.svg.box_svg` draws for
+    an SVG capture, scaled to the run's cells and painted in the run's own
+    color. One SVG spans the whole run, so a table's rule is one shape: repeated
+    cell by cell, a background would end each line on a fraction of a pixel and
+    leave seams.
+
+    :param text: the run, Box Drawing only.
+    :return: the SVG markup, to sit in the run's box, see {func}`_pre_markup`.
+    """
+    width = _svg_number(len(text) * CELL_WIDTH)
+    return (
+        f'<svg viewBox="0 0 {width} {_svg_number(LINE_HEIGHT)}" '
+        'preserveAspectRatio="none" aria-hidden="true" style="position: absolute; '
+        'left: 0; top: 0; width: 100%; height: 100%; overflow: visible">'
+        f"{box_svg(text, 0, 0, 'currentColor')}</svg>"
+    )
+
+
 def _pre_markup(text: str) -> str:
     """Translate captured text to the markup a capture's `<pre>` holds.
 
@@ -183,13 +208,25 @@ def _pre_markup(text: str) -> str:
                     )
                 if found is None:
                     break
-                for char, cells in groupby(found.group()):
-                    count = len(tuple(cells))
-                    shape = braille_css if _is_braille(char) else block_css
-                    declarations = shape(char, count)
-                    if css:
-                        declarations = f"{css}; {declarations}"
-                    chunks.append(f'<span style="{declarations}">{char * count}</span>')
+                for kind, group in groupby(found.group(), key=_shape_kind):
+                    piece = "".join(group)
+                    if kind == "box":
+                        declarations = f"{_shape_box(len(piece))}; position: relative"
+                        if css:
+                            declarations = f"{css}; {declarations}"
+                        chunks.append(
+                            f'<span style="{declarations}">{piece}{box_html(piece)}</span>'
+                        )
+                        continue
+                    shape = braille_css if kind == "braille" else block_css
+                    for char, cells in groupby(piece):
+                        count = len(tuple(cells))
+                        declarations = shape(char, count)
+                        if css:
+                            declarations = f"{css}; {declarations}"
+                        chunks.append(
+                            f'<span style="{declarations}">{char * count}</span>'
+                        )
                 position = found.end()
     return "".join(chunks)
 
