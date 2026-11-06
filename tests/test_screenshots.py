@@ -518,18 +518,22 @@ def test_tile_runs_never_opens_a_piece_on_padding():
     tile behind it a cell late. The cut is made on character count, which lands
     on a blank whenever a label sits inside a rule.
     """
-    text = TRUNCATION_RULE * _TILE_RUN + "[ x ]"
-    assert not any(piece[0] in PADDING for piece, _ in _tile_runs(text, 0))
+    text = "─" * (_TILE_RUN - 1) + "[ x ]"
+    assert list(_tile_runs(text, 0)) == [("─" * 7 + "[ ", 0), ("x ]", 9)]
 
 
 def test_tile_runs_keeps_every_piece_on_its_own_column():
-    """Cutting a tiled column apart never moves a glyph off its cell."""
-    text = f"{TRUNCATION_RULE * 9}[ x ]{TRUNCATION_RULE * 9}"
-    rebuilt = ""
-    for piece, column in _tile_runs(text, 0):
-        assert column == cell_width(rebuilt)
-        rebuilt += piece
-    assert rebuilt == text
+    """Cutting a tiled column apart never moves a glyph off its cell.
+
+    The cut counts characters and the offset counts cells, which part ways on a
+    wide character.
+    """
+    text = f"{'─' * 9}[ 苹果 ]{'─' * 9}"
+    assert list(_tile_runs(text, 0)) == [
+        ("─" * 8, 0),
+        ("─[ 苹果 ]─", 8),
+        ("─" * 8, 18),
+    ]
 
 
 @pytest.mark.parametrize("tile", ("─", "▀"), ids=("box-drawing", "block"))
