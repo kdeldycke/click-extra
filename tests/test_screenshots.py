@@ -37,6 +37,7 @@ import re
 import shutil
 import sys
 import unicodedata
+import warnings
 from dataclasses import fields, replace
 from html import escape, unescape
 from itertools import combinations, pairwise
@@ -47,6 +48,7 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, style, unstyle
+from click_extra.capture import svg as capture_svg
 from click_extra.capture.html import (
     LINE_SPACING,
     block_css,
@@ -95,6 +97,7 @@ from click_extra.capture.snippet import render_snippet
 from click_extra.capture.svg import (
     _COLUMN_GAP_RE,
     _SHAPED_RE,
+    _TILE_RUN,
     AUTO_HOLD,
     AUTO_HOLD_MAX,
     AUTO_HOLD_MIN,
@@ -110,11 +113,11 @@ from click_extra.capture.svg import (
     LINE_HEIGHT,
     REDUCED_MOTION_QUERY,
     SHADE_DENSITY,
-    TILE_RUN,
     TITLEBAR_HEIGHT,
     WATERMARK_INSET,
     WATERMARK_URL,
     _split_arguments,
+    _tile_runs,
     auto_hold,
     blend,
     blink_css,
@@ -130,7 +133,6 @@ from click_extra.capture.svg import (
     render_svg,
     shape_runs,
     style_rules,
-    tile_runs,
     window_buttons,
 )
 from click_extra.cli_capture import deliver_capture, screenshot_cmd
@@ -516,18 +518,46 @@ def test_tile_runs_never_opens_a_piece_on_padding():
     tile behind it a cell late. The cut is made on character count, which lands
     on a blank whenever a label sits inside a rule.
     """
-    text = TRUNCATION_RULE * TILE_RUN + "[ x ]"
-    assert not any(piece[0] in PADDING for piece, _ in tile_runs(text, 0))
+    text = TRUNCATION_RULE * _TILE_RUN + "[ x ]"
+    assert not any(piece[0] in PADDING for piece, _ in _tile_runs(text, 0))
 
 
 def test_tile_runs_keeps_every_piece_on_its_own_column():
     """Cutting a tiled column apart never moves a glyph off its cell."""
     text = f"{TRUNCATION_RULE * 9}[ x ]{TRUNCATION_RULE * 9}"
     rebuilt = ""
-    for piece, column in tile_runs(text, 0):
+    for piece, column in _tile_runs(text, 0):
         assert column == cell_width(rebuilt)
         rebuilt += piece
     assert rebuilt == text
+
+
+@pytest.mark.parametrize(
+    ("name", "private"),
+    (
+        ("tile_runs", "_tile_runs"),
+        ("TILE_RUN", "_TILE_RUN"),
+        ("_TILING_RE", "_TILE_RE"),
+    ),
+)
+def test_tile_helpers_warn_until_their_removal(name, private):
+    """The tile helpers a capture no longer uses still resolve, with a warning."""
+    with pytest.warns(
+        DeprecationWarning,
+        match=(
+            rf"^click_extra\.capture\.svg\.{name} is deprecated and will be "
+            r"removed in click-extra 11\.0\.0: "
+        ),
+    ):
+        value = getattr(capture_svg, name)
+    assert value is getattr(capture_svg, private)
+
+
+def test_svg_module_serves_no_other_missing_name():
+    """A name the module never had stays missing, and sets off no warning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert not hasattr(capture_svg, "tile_rune")
 
 
 _GRID_RECT_RE = re.compile(

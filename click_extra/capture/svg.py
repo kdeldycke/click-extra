@@ -36,6 +36,7 @@ two documents look like the same terminal. The paints and sizes a
 from __future__ import annotations
 
 import re
+import warnings
 import zlib
 from collections import Counter
 from functools import cache, lru_cache
@@ -64,7 +65,7 @@ from .presets import (
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
-    from typing import Literal, TypeAlias
+    from typing import Any, Literal, TypeAlias
 
     from ..styling import Style
     from .presets import Chrome
@@ -227,8 +228,8 @@ that terminal's own shape instead, see
 """
 
 
-TILE_RUN = 8
-"""Cells of tiling characters {func}`tile_runs` groups before restating an offset.
+_TILE_RUN = 8
+"""Cells of tiling characters {func}`_tile_runs` groups before restating an offset.
 
 Small enough that a font whose tiles are a fraction of a pixel off the grid
 cannot drift a visible amount before the next offset resets it, and large enough
@@ -637,8 +638,8 @@ _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
 
 
-_TILING_RE = re.compile(r"[─-╿]")
-"""A Box Drawing character, which {func}`tile_runs` cuts text at.
+_TILE_RE = re.compile(r"[─-╿]")
+"""A Box Drawing character, which {func}`_tile_runs` cuts text at.
 
 These are not letters, they are tiles: a table's rule and a tree's elbow are
 drawn by butting them edge to edge, and a fraction of a pixel of drift between
@@ -1355,17 +1356,18 @@ def column_segments(text: str, column: int) -> Iterator[tuple[str, int]]:
         position = gap.end()
 
 
-def tile_runs(text: str, column: int) -> Iterator[tuple[str, int]]:
+def _tile_runs(text: str, column: int) -> Iterator[tuple[str, int]]:
     """Break a column's text into pieces, each to be drawn as one element.
 
-    A capture no longer draws its pieces this way: it draws Box Drawing as
-    shapes, see {func}`box_svg`, which leaves no tile among its glyphs.
+    Served as the deprecated `tile_runs` until `11.0.0`, see
+    {data}`_DEPRECATED_NAMES`: a capture draws Box Drawing as shapes, which
+    leaves no tile among its glyphs.
 
     Ordinary text is one piece: the renderer lays it out and `textLength` holds
     the result to the width it occupies.
 
-    Text carrying a tile ({data}`_TILING_RE`) is cut into groups of at most
-    {data}`TILE_RUN` cells, each landing on a stated offset. A `<text>` element
+    Text carrying a tile ({data}`_TILE_RE`) is cut into groups of at most
+    {data}`_TILE_RUN` cells, each landing on a stated offset. A `<text>` element
     is the smallest thing some renderers position at all: `librsvg` (and through
     it `rsvg-convert` and ImageMagick) honors the first `x` of an element and
     then lays every following glyph out at the font's own advance, ignoring both
@@ -1379,13 +1381,13 @@ def tile_runs(text: str, column: int) -> Iterator[tuple[str, int]]:
     :param column: the terminal column it starts on.
     :return: each piece, with the column it starts on.
     """
-    if not _TILING_RE.search(text):
+    if not _TILE_RE.search(text):
         yield text, column
         return
     cell = column
     start = 0
     while start < len(text):
-        end = min(start + TILE_RUN, len(text))
+        end = min(start + _TILE_RUN, len(text))
         # A piece is placed by its first glyph, so one opening on a blank draws
         # every tile behind it a cell late. Carry the blank into the piece
         # before it instead, which is the one already holding its own offset.
@@ -2841,3 +2843,38 @@ def render_svg(
         defs=defs,
         body=body,
     )
+
+
+_DEPRECATED_NAMES = {
+    "TILE_RUN": "_TILE_RUN",
+    "_TILING_RE": "_TILE_RE",
+    "tile_runs": "_tile_runs",
+}
+"""Names a capture no longer uses, each with the private one holding its value.
+
+{func}`box_svg` draws Box Drawing as shapes, which leaves no tile among a
+capture's glyphs for {func}`_tile_runs` to cut. `__getattr__` serves each old
+name until {data}`_REMOVAL_VERSION`.
+"""
+
+
+_REMOVAL_VERSION = "11.0.0"
+"""The release in which the names of {data}`_DEPRECATED_NAMES` stop resolving."""
+
+
+def __getattr__(name: str) -> Any:
+    """Serve a name of {data}`_DEPRECATED_NAMES`, with a warning.
+
+    The value is never cached here, so every access warns. Any other name raises
+    {exc}`AttributeError` without a warning.
+    """
+    private = _DEPRECATED_NAMES.get(name)
+    if private is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    warnings.warn(
+        f"{__name__}.{name} is deprecated and will be removed in click-extra "
+        f"{_REMOVAL_VERSION}: a capture draws Box Drawing as shapes.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return globals()[private]

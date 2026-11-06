@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- **Deprecated:** `tile_runs()` and `TILE_RUN` of `click_extra.capture.svg`, which captures no longer use, now warn and stop resolving in `11.0.0`.
 - Add the `click_extra_release_anchors` Sphinx setting, which anchors each changelog release on its version, like `#v1-4-2`, in place of a positional `#idN`.
 - Highlight the row and column under the pointer in the two-axis tables of a Sphinx build, and make each one-link cell clickable as a whole.
 - Add the documentation site to the package metadata, so PyPI links to it.
