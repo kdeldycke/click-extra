@@ -31,8 +31,9 @@ from itertools import groupby
 from ..styling import split_ansi
 from .presets import BARE_CHROME, CAPTURE_FONT_STACK, DEFAULT_PRESET, NO_PAINT, OPAQUE
 from .svg import (
-    _BLOCK_RE,
+    _SHAPED_RE,
     BLOCK_ELEMENTS,
+    BRAILLE_DOT_RADIUS,
     SHADE_DENSITY,
     SHADOW_BLUR,
     SHADOW_OFFSET,
@@ -40,6 +41,8 @@ from .svg import (
     WATERMARK_SIZE,
     WATERMARK_URL,
     _escape_markup,
+    _is_braille,
+    braille_dots,
     credit_markup,
 )
 
@@ -54,6 +57,19 @@ LINE_SPACING = 1.25
 {func}`block_css` draws a block element this tall too, so two stacked rows of
 block art meet where their lines do.
 """
+
+
+def _shape_box(count: int) -> str:
+    """The box a run of shapes is drawn in: a line tall, a cell per character.
+
+    The glyphs stay in it, with a transparent fill. The width is stated rather
+    than left to the glyphs, so a font drawing them wider than a cell cannot
+    push the rest of the line off its columns.
+    """
+    return (
+        f"display: inline-block; width: {count}ch; height: {LINE_SPACING:g}em; "
+        "vertical-align: top; -webkit-text-fill-color: transparent"
+    )
 
 
 def block_css(char: str, count: int) -> str:
@@ -102,8 +118,7 @@ def block_css(char: str, count: int) -> str:
             repeats.append("repeat-x")
         positions.append(f"0 {LINE_SPACING * top / 8:g}em")
     return (
-        f"display: inline-block; width: {count}ch; height: {LINE_SPACING:g}em; "
-        "vertical-align: top; -webkit-text-fill-color: transparent; "
+        f"{_shape_box(count)}; "
         f"background-image: {', '.join(images)}; "
         f"background-size: {', '.join(sizes)}; "
         f"background-position: {', '.join(positions)}; "
@@ -111,13 +126,42 @@ def block_css(char: str, count: int) -> str:
     )
 
 
+def braille_css(char: str, count: int) -> str:
+    """Draw a run of one Braille pattern as dots, in CSS.
+
+    Each dot the pattern raises becomes a background layer: a disc in the run's
+    own color, at its place on a tile one cell wide, repeated along the run, see
+    {data}`~click_extra.capture.svg.BRAILLE_DOTS`. The disc's edge fades over a
+    pixel, which a hard stop would leave jagged.
+
+    :param char: the Braille pattern.
+    :param count: how many cells of it the run holds.
+    :return: the declarations, semicolon-separated.
+    """
+    radius = f"{BRAILLE_DOT_RADIUS * LINE_SPACING / 4:g}em"
+    images = [
+        f"radial-gradient(circle {radius} at {(2 * x + 1) * 25:g}% "
+        f"{(2 * y + 1) * 12.5:g}%, currentColor calc({radius} - 0.5px), "
+        f"transparent calc({radius} + 0.5px))"
+        for x, y in braille_dots(char)
+    ]
+    if not images:
+        return _shape_box(count)
+    return (
+        f"{_shape_box(count)}; "
+        f"background-image: {', '.join(images)}; "
+        f"background-size: 1ch {LINE_SPACING:g}em; background-repeat: repeat-x"
+    )
+
+
 def _pre_markup(text: str) -> str:
     """Translate captured text to the markup a capture's `<pre>` holds.
 
     What {func}`~click_extra.styling.ansi_to_html` writes, but for Block
-    Elements: each run of one character is cut out into a box of its own, drawn
-    by {func}`block_css` and wearing the style of the run it came from. Spans
-    never cross a line, as there.
+    Elements and Braille patterns: each run of one character is cut out into a
+    box of its own, drawn by {func}`block_css` or {func}`braille_css` and
+    wearing the style of the run it came from. Spans never cross a line, as
+    there.
 
     :param text: captured output, already escaped, ANSI escape sequences
         included.
@@ -130,7 +174,7 @@ def _pre_markup(text: str) -> str:
             if index:
                 chunks.append("\n")
             position = 0
-            for found in (*_BLOCK_RE.finditer(line), None):
+            for found in (*_SHAPED_RE.finditer(line), None):
                 end = len(line) if found is None else found.start()
                 between = line[position:end]
                 if between:
@@ -141,7 +185,8 @@ def _pre_markup(text: str) -> str:
                     break
                 for char, cells in groupby(found.group()):
                     count = len(tuple(cells))
-                    declarations = block_css(char, count)
+                    shape = braille_css if _is_braille(char) else block_css
+                    declarations = shape(char, count)
                     if css:
                         declarations = f"{css}; {declarations}"
                     chunks.append(f'<span style="{declarations}">{char * count}</span>')
@@ -178,7 +223,8 @@ def render_html(
     by the host. Nothing else is needed either: a `<pre>` preserves the
     capture's own spacing, which is what spares HTML the column arithmetic
     {func}`~click_extra.capture.svg.render_svg` performs for a picture. Block
-    Elements are the exception, drawn as shapes by {func}`block_css`.
+    Elements and Braille patterns are the exception, drawn as shapes by
+    {func}`block_css` and {func}`braille_css`.
 
     ```{caution}
     The text is escaped before its ANSI is translated, the order

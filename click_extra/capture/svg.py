@@ -39,7 +39,7 @@ import re
 import zlib
 from collections import Counter
 from functools import lru_cache
-from itertools import accumulate
+from itertools import accumulate, groupby
 from math import ceil, cos, hypot, pi, sin
 from typing import NamedTuple, cast
 
@@ -310,6 +310,38 @@ color behind it up front rather than thinned with opacity, for the reason
 """
 
 
+BRAILLE_DOTS = ((0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (0, 3), (1, 3))
+"""Where each Braille dot sits on its cell, as `(column, row)` on a 2 by 4 grid.
+
+Listed in bit order: bit `n` of a pattern's offset from U+2800 raises dot
+`n + 1`. The dots number down the left column, then down the right, and the
+bottom row, dots 7 and 8, comes last: 8-dot Braille extends the 6-dot cell with
+that row. {func}`braille_svg` draws them.
+
+The rows split the line into four and the columns split the cell into two, so
+the dots keep one pitch across cells, and stacked rows of Braille plot one even
+grid.
+
+Menlo, where a stock macOS falls through
+{data}`~click_extra.capture.presets.CAPTURE_FONT_STACK`, has no Braille. Its
+stand-in, Apple Symbols `22.0d3e1`, draws every pattern 0.684 em wide, 1.5
+pixels wider than its column at a capture's size. Drawn as dots, a pattern
+fits its cell whatever font the reader has. Terminals draw Braille themselves
+too: WezTerm with
+[`custom_block_glyphs`](https://wezterm.org/config/lua/config/custom_block_glyphs.html)
+and VS Code with
+[`terminal.integrated.customGlyphs`](https://code.visualstudio.com/docs/terminal/appearance).
+"""
+
+
+BRAILLE_DOT_RADIUS = 0.25
+"""Radius of a Braille dot, as a share of the pitch between two dots.
+
+A quarter, so a dot is half as wide as the pitch: the proportion Apple Braille
+`22.0d3e1` draws, a dot 248 units across on a pitch of 488.
+"""
+
+
 DIM_RATIO = 0.4
 """How far a `dim` run's ink is mixed toward the background, see {func}`blend`."""
 
@@ -437,8 +469,19 @@ drawn as shapes instead, see {data}`BLOCK_ELEMENTS`.
 """
 
 
-_BLOCK_RE = re.compile(r"[▀-▟]+")
-"""A run of Block Elements characters, which {func}`block_svg` draws as shapes."""
+_BRAILLE_BASE = 0x2800
+"""Code point of the blank Braille pattern, which every other one is offset from.
+
+Kept as a number: the blank pattern prints as nothing, so a literal one in the
+source would read as a space.
+"""
+
+
+_SHAPED_RE = re.compile(f"[▀-▟{chr(_BRAILLE_BASE)}-{chr(_BRAILLE_BASE + 0xFF)}]+")
+"""A run of characters drawn as shapes: Block Elements and Braille patterns.
+
+{func}`shape_svg` draws them.
+"""
 
 
 _COLUMN_GAP_RE = re.compile(f"[{PADDING}]{{2,}}")
@@ -1188,20 +1231,21 @@ def glyph_offsets(text: str, column: int) -> str:
     return f'{start} textLength="{_svg_number(cell_width(text) * CELL_WIDTH)}"'
 
 
-def block_runs(text: str, column: int) -> Iterator[tuple[str, int, bool]]:
-    """Cut a column's text into its runs of Block Elements and the text between.
+def shape_runs(text: str, column: int) -> Iterator[tuple[str, int, bool]]:
+    """Cut a column's text into its runs of shapes and the text between.
 
-    A run of Block Elements is drawn as shapes by {func}`block_svg`, and the text
-    between as glyphs. That text is trimmed of the blanks at either end, which
-    its offset pays for instead, as {func}`column_segments` does for a column.
+    A run of Block Elements and Braille patterns is drawn as shapes by
+    {func}`shape_svg`, and the text between as glyphs. That text is trimmed of
+    the blanks at either end, which its offset pays for instead, as
+    {func}`column_segments` does for a column.
 
     :param text: the column's text.
     :param column: the terminal column it starts on.
-    :return: each piece, with the column it starts on and whether it is a run
-        of Block Elements.
+    :return: each piece, with the column it starts on and whether it is drawn as
+        shapes.
     """
     position = 0
-    for found in (*_BLOCK_RE.finditer(text), None):
+    for found in (*_SHAPED_RE.finditer(text), None):
         end = len(text) if found is None else found.start()
         glyphs = text[position:end].lstrip(PADDING)
         # Padding is one cell per character, so the indent is a plain count.
@@ -1263,6 +1307,62 @@ def block_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
             for left, right in spans
         )
     return "".join(shapes)
+
+
+def _is_braille(char: str) -> bool:
+    """Whether `char` is a Braille pattern, the blank one included."""
+    return 0 <= ord(char) - _BRAILLE_BASE <= 0xFF
+
+
+def braille_dots(char: str) -> tuple[tuple[int, int], ...]:
+    """Where the dots a Braille pattern raises sit on its cell.
+
+    :param char: a Braille pattern, from U+2800 to U+28FF.
+    :return: each raised dot's `(column, row)`, see {data}`BRAILLE_DOTS`.
+    """
+    bits = ord(char) - _BRAILLE_BASE
+    return tuple(dot for index, dot in enumerate(BRAILLE_DOTS) if bits >> index & 1)
+
+
+def braille_svg(text: str, column: int, top: float, ink: str) -> str:
+    """Draw a run of Braille patterns as the dots they raise.
+
+    :param text: the run, Braille patterns only.
+    :param column: the terminal column it starts on.
+    :param top: where the row's cells start, see {data}`CELL_TOP_INSET`.
+    :param ink: color the dots are drawn in, as `#rrggbb`.
+    :return: the SVG markup, empty when no pattern raises a dot.
+    """
+    radius = _svg_number(BRAILLE_DOT_RADIUS * CELL_WIDTH / 2)
+    dots = "".join(
+        f'<circle cx="{_svg_number((column + offset + (2 * x + 1) / 4) * CELL_WIDTH)}" '
+        f'cy="{_svg_number(top + (2 * y + 1) * LINE_HEIGHT / 8)}" r="{radius}"/>'
+        for offset, char in enumerate(text)
+        for x, y in braille_dots(char)
+    )
+    return f'<g fill="{ink}">{dots}</g>' if dots else ""
+
+
+def shape_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
+    """Draw a run of shapes: Block Elements as rectangles, Braille as dots.
+
+    :param text: the run, see {func}`shape_runs`.
+    :param column: the terminal column it starts on.
+    :param top: where the row's cells start, see {data}`CELL_TOP_INSET`.
+    :param ink: color the shapes are drawn in, as `#rrggbb`.
+    :param paper: color behind them, as `#rrggbb`, see {func}`block_svg`.
+    :return: the SVG markup.
+    """
+    drawn = []
+    for braille, chars in groupby(text, key=_is_braille):
+        run = "".join(chars)
+        drawn.append(
+            braille_svg(run, column, top, ink)
+            if braille
+            else block_svg(run, column, top, ink, paper)
+        )
+        column += len(run)
+    return "".join(drawn)
 
 
 def _frame_visibility(state: str) -> str:
@@ -1604,14 +1704,14 @@ def _draw_screens(
             opening = f'<text class="{unique_id}-r{rule}" '
             behind = palette.background if paint is None else paint
             for column_text, start in column_segments(run, column):
-                for piece, at, shaped in block_runs(column_text, start):
+                for piece, at, shaped in shape_runs(column_text, start):
                     if shaped:
                         hidden = (
                             f'{opening}{glyph_offsets(piece, at)} y="{baseline}"'
                             f"{HIDDEN_GLYPH_ATTRIBUTES}>{_xml_escape(piece)}</text>"
                         )
                         # Drawn after every row's backgrounds, like a glyph.
-                        glyphs.extend((block_svg(piece, at, top, ink, behind), hidden))
+                        glyphs.extend((shape_svg(piece, at, top, ink, behind), hidden))
                         continue
                     glyphs.extend(
                         f'{opening}{glyph_offsets(drawn, drawn_at)} y="{baseline}">'
@@ -2172,8 +2272,8 @@ def render_svg(
     Two primitives draw everything. A `<rect>` fills the cells behind a run that
     carries a background, and a `<text>` draws its glyphs, pinned to its columns
     with `textLength` so the layout survives a reader who does not have the font.
-    A run of Block Elements is drawn with the first and kept, unpainted, in the
-    second, see {data}`BLOCK_ELEMENTS`.
+    Block Elements and Braille patterns are the exception: drawn as shapes by
+    {func}`shape_svg`, and kept, unpainted, as text.
 
     ```{note}
     A run's padding is left out of its `<text>` and paid for in the `x` offset

@@ -383,12 +383,13 @@ JuliaMono subset under `docs/_static/` does not change this: it sets the
 documentation's own HTML, where a stylesheet reaches the text, and reusing it in
 a capture would be that same redistribution.
 
-The fallback has a cost. A stock macOS falls through to Menlo, which carries
-no Braille and none of the Mathematical Operators the spinner catalog draws, so
-those resolve to the proportional Apple Symbols: nearly a third of the spinner
-tiles draw wider than their column, and the window's clip cuts the overflow. A
-reader with either of the first two families sees none of it, and emoji stay out
-of reach of every monospaced font.
+The fallback has a cost. A stock macOS falls through to Menlo `22.0d2e1`, which
+carries none of the mathematical symbols, Myanmar letters and emoji some
+spinners draw, so those resolve to proportional fonts: 6 of the 89 spinner
+captures draw a glyph wider than its column, and the window's clip cuts the
+overflow. Menlo has no Braille either, which a capture draws as dots instead,
+see {data}`~click_extra.capture.svg.BRAILLE_DOTS`. Emoji stay out of reach of
+every monospaced font.
 
 Fitting each run to its columns instead (`lengthAdjust="spacingAndGlyphs"`) is
 no cure: it stretches a narrow glyph as readily as it squeezes a wide one, and

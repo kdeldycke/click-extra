@@ -47,7 +47,12 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, style, unstyle
-from click_extra.capture.html import LINE_SPACING, block_css, render_html
+from click_extra.capture.html import (
+    LINE_SPACING,
+    block_css,
+    braille_css,
+    render_html,
+)
 from click_extra.capture.presets import (
     BARE_CHROME,
     CAPTURE_BORDERS,
@@ -89,6 +94,7 @@ from click_extra.capture.screenshot import (
 from click_extra.capture.snippet import render_snippet
 from click_extra.capture.svg import (
     _COLUMN_GAP_RE,
+    _SHAPED_RE,
     AUTO_HOLD,
     AUTO_HOLD_MAX,
     AUTO_HOLD_MIN,
@@ -109,7 +115,7 @@ from click_extra.capture.svg import (
     auto_hold,
     blend,
     blink_css,
-    block_runs,
+    braille_dots,
     column_segments,
     cursor_cell,
     frame_animation_css,
@@ -118,6 +124,7 @@ from click_extra.capture.svg import (
     parse_hold,
     parse_pause,
     render_svg,
+    shape_runs,
     style_rules,
     tile_runs,
     window_buttons,
@@ -584,7 +591,7 @@ def test_block_elements_cover_their_whole_unicode_block():
     block = "".join(chr(code) for code in range(0x2580, 0x25A0))
     assert "".join(BLOCK_ELEMENTS) == block
     assert all(cell_width(char) == 1 for char in block)
-    assert list(block_runs(block, 0)) == [(block, 0, True)]
+    assert list(shape_runs(block, 0)) == [(block, 0, True)]
     assert {unicodedata.name(char): ink for char, ink in SHADE_DENSITY.items()} == {
         "LIGHT SHADE": 0.25,
         "MEDIUM SHADE": 0.5,
@@ -612,11 +619,72 @@ def test_block_element_fills_what_its_name_states(char):
         ("kiwi ▒▒", 2, [("kiwi", 2, False), ("▒▒", 7, True)]),
         ("┌─▄▄─┐", 0, [("┌─", 0, False), ("▄▄", 2, True), ("─┐", 4, False)]),
         ("苹果 ██", 0, [("苹果", 0, False), ("██", 5, True)]),
+        ("⠋ Picking apples", 0, [("⠋", 0, True), ("Picking apples", 2, False)]),
+        ("▀⣿▄ kiwi", 3, [("▀⣿▄", 3, True), ("kiwi", 7, False)]),
     ),
 )
-def test_block_runs_cut_blocks_from_the_text_between(text, column, expected):
-    """Block Elements are cut out on their own columns, and nothing else is."""
-    assert list(block_runs(text, column)) == expected
+def test_shape_runs_cut_shapes_from_the_text_between(text, column, expected):
+    """Block Elements and Braille are cut out on their own columns, and nothing else."""
+    assert list(shape_runs(text, column)) == expected
+
+
+_BRAILLE_DOT_PLACES = {
+    1: (0, 0),
+    2: (0, 1),
+    3: (0, 2),
+    4: (1, 0),
+    5: (1, 1),
+    6: (1, 2),
+    7: (0, 3),
+    8: (1, 3),
+}
+"""Where each numbered dot of a Braille cell sits, as the Unicode charts lay it out."""
+
+
+@pytest.mark.parametrize(
+    "code", range(0x2800, 0x2900), ids=lambda code: f"U+{code:04X}"
+)
+def test_braille_dots_match_their_unicode_names(code):
+    """Each Braille pattern raises the dots its Unicode name lists."""
+    char = chr(code)
+    name = unicodedata.name(char)
+    numbers = name.removeprefix("BRAILLE PATTERN DOTS-")
+    if name == "BRAILLE PATTERN BLANK":
+        numbers = ""
+    assert set(braille_dots(char)) == {
+        _BRAILLE_DOT_PLACES[int(number)] for number in numbers
+    }
+    assert list(shape_runs(char, 0)) == [(char, 0, True)]
+    assert cell_width(char) == 1
+
+
+def test_braille_dots_keep_one_pitch_across_cells():
+    """Two stacked rows of full Braille cells plot one even grid of dots.
+
+    The dot positions are rounded to a tenth of a pixel, the precision every
+    coordinate of a capture is written at.
+    """
+    full = chr(0x28FF)
+    # No title bar, whose window buttons are circles too.
+    svg = render_svg(f"{full}{full}\n{full}{full}", columns=4, collapse_titlebar=True)
+    dots = [
+        (float(x), float(y))
+        for x, y in re.findall(r'<circle cx="([\d.]+)" cy="([\d.]+)"', svg)
+    ]
+    assert len(dots) == 32
+    for axis, count in ((0, 4), (1, 8)):
+        positions = sorted({dot[axis] for dot in dots})
+        assert len(positions) == count
+        for step in (after - before for before, after in pairwise(positions)):
+            assert step == pytest.approx(CELL_WIDTH / 2, abs=0.11)
+
+
+def test_blank_braille_draws_nothing_and_keeps_its_text():
+    """The blank pattern raises no dot, and still reads back as itself."""
+    text = f"{chr(0x2800)}apple"
+    svg = render_svg(text, columns=10, collapse_titlebar=True)
+    assert "<circle" not in svg
+    assert svg_to_lines(svg) == [text]
 
 
 def test_stacked_blocks_leave_no_gap():
@@ -660,21 +728,22 @@ def test_shade_mixes_its_ink_with_the_paper():
     }
 
 
-def test_block_characters_stay_in_the_text():
+def test_shapes_stay_in_the_text():
     """A run drawn as shapes keeps its characters, as text that paints nothing."""
-    text = "▀▄█ apple\n░▒▓  pear"
+    text = "▀▄█ apple\n░▒▓  pear\n⠋ plum"
     svg = render_svg(text, columns=20)
     assert svg_to_lines(svg) == text.split("\n")
     for element in _TEXT_ELEMENT_RE.finditer(svg):
-        blocks = any(char in BLOCK_ELEMENTS for char in unescape(element["content"]))
-        assert blocks == (HIDDEN_GLYPH_ATTRIBUTES in element["attrs"])
+        shaped = bool(_SHAPED_RE.search(unescape(element["content"])))
+        assert shaped == (HIDDEN_GLYPH_ATTRIBUTES in element["attrs"])
 
 
-def test_no_committed_capture_draws_a_block_element_as_a_glyph():
-    """Every committed capture draws its Block Elements as shapes.
+def test_no_committed_capture_draws_shapes_as_glyphs():
+    """Every committed capture draws its Block Elements and Braille as shapes.
 
     A capture written before the renderer did still shows a band between its
-    stacked rows of block art. Rewrite it the way its page documents.
+    stacked rows of block art, or Braille wider than its column. Rewrite it the
+    way its page documents: a recording, by deleting it and building again.
     """
     for path in sorted(ASSETS.glob("*.svg")):
         svg = path.read_text(encoding="UTF-8")
@@ -682,7 +751,7 @@ def test_no_committed_capture_draws_a_block_element_as_a_glyph():
             continue
         for element in _TEXT_ELEMENT_RE.finditer(svg):
             content = unescape(element["content"])
-            if any(char in BLOCK_ELEMENTS for char in content):
+            if _SHAPED_RE.search(content):
                 assert HIDDEN_GLYPH_ATTRIBUTES in element["attrs"], (
                     f"{path.name}: {content!r} drawn as glyphs"
                 )
@@ -2681,8 +2750,18 @@ def test_block_css_paints_the_shape_of_its_character(char):
         assert f"currentColor {SHADE_DENSITY[char]:.0%}" in declarations
 
 
-def test_render_html_draws_blocks_as_shapes():
-    """Every block element sits in a box drawing it, whatever its run's style.
+@pytest.mark.parametrize("code", (0x2800, 0x2801, 0x280B, 0x28FF))
+def test_braille_css_draws_one_disc_per_dot(code):
+    """The CSS of a Braille pattern paints a disc for each dot it raises."""
+    char = chr(code)
+    declarations = braille_css(char, 2)
+    assert declarations.count("radial-gradient(") == len(braille_dots(char))
+    assert "width: 2ch" in declarations
+    assert f"height: {LINE_SPACING:g}em" in declarations
+
+
+def test_render_html_draws_shapes():
+    """Every shape sits in a box drawing it, whatever its run's style.
 
     Its glyphs stay in the text, so the capture still reads back as the terminal
     text, and the run keeps the colors it came with.
@@ -2690,7 +2769,7 @@ def test_render_html_draws_blocks_as_shapes():
     text = (
         "▀▄█ apple\n"
         + style("▀▀", fg=(255, 255, 255), bg=(0, 0, 128))
-        + style(" pear ░", fg="green")
+        + style(" pear ░⠋", fg="green")
     )
     html = render(
         text, format=CaptureFormat.HTML, full=False, chrome=Chrome(watermark="")
@@ -2703,7 +2782,7 @@ def test_render_html_draws_blocks_as_shapes():
         if "display: inline-block" in span["css"]
         and "-webkit-text-fill-color: transparent" in span["css"]
     )
-    assert shaped == "▀▄█▀▀░"
+    assert shaped == "▀▄█▀▀░⠋"
     (two_tone,) = (span for span in _SPAN_RE.finditer(html) if span["text"] == "▀▀")
     assert "color: #ffffff; background-color: #000080; " in two_tone["css"]
 
