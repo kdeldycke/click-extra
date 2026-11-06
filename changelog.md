@@ -7,6 +7,9 @@
 
 ## [`10.2.0` (2026-11-06)](https://github.com/kdeldycke/click-extra/compare/v10.1.1...v10.2.0)
 
+> [!NOTE]
+> `10.2.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/10.2.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v10.2.0).
+
 - **Deprecated:** `tile_runs()` and `TILE_RUN` of `click_extra.capture.svg`, which captures no longer use, now warn and stop resolving in `11.0.0`.
 - Add the `click_extra_release_anchors` Sphinx setting, which anchors each changelog release on its version, like `#v1-4-2`, in place of a positional `#idN`.
 - Highlight the row and column under the pointer in the two-axis tables of a Sphinx build, and make each one-link cell clickable as a whole.
