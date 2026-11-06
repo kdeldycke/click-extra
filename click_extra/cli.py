@@ -481,6 +481,9 @@ def refresh_directives_cmd(
     - matrix blocks (directive fences and marker regions alike), regenerated
       from the project git history;
 
+    - envelope regions, whose list of the obsolete bounds of the support
+      envelope is regenerated from the same history;
+
     - python:render blocks carrying the :mirror: flag, whose Python code is
       executed to regenerate the mirrored region below the fence (inserted on
       first refresh);

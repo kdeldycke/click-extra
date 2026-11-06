@@ -107,6 +107,22 @@ def offline_pypi(monkeypatch: pytest.MonkeyPatch) -> None:
     stub_releases(monkeypatch)
 
 
+@pytest.fixture
+def unreadable_pypi(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make every PyPI lookup fail, over the read ``offline_pypi`` stubs.
+
+    The lookup answers ``required`` the way the real one does: a required read
+    raises, and any other read returns no release.
+    """
+
+    def unreachable(dep_name, *, required=False):
+        if required:
+            raise ReleasesUnreadable(dep_name)
+        return {}
+
+    monkeypatch.setattr(f"{MATRIX_MODULE}._pypi_releases", unreachable)
+
+
 def git_repo(path: Path) -> Callable[..., None]:
     """Initialize a bare-bones git repository at ``path``.
 
@@ -640,8 +656,10 @@ def split_floor_repo(tmp_path: Path) -> Path:
 
 
 def test_python_matrix_table_envelope(split_floor_repo: Path) -> None:
-    """A range supporting only Pythons below the floor goes, with the columns
-    only it supported."""
+    """The ranges below the oldest one supporting the floor or a later Python go.
+
+    The oldest columns, which no remaining range supports, go with them.
+    """
     table = python_matrix_table(split_floor_repo, "apricot")
     assert table_header(table)[1:] == ["`3.12`", "`3.11`"]
     # The dropped `1.0.0` still splits the `1.0` minor series, so the oldest
@@ -881,19 +899,9 @@ def test_update_matrix_blocks_keeps_other_line_separators(tmp_path) -> None:
 
 
 def test_update_matrix_blocks_leaves_an_unreadable_pypi_untouched(
-    synthetic_dep_repo, tmp_path, monkeypatch: pytest.MonkeyPatch
+    synthetic_dep_repo, tmp_path, unreadable_pypi
 ) -> None:
     """An unreachable PyPI is a generation failure, not a stale block."""
-
-    # Overrides the autouse `offline_pypi`, which stands for a read that
-    # succeeded. This one fails, so it answers `required` the way the real
-    # lookup does.
-    def unreachable(dep_name, *, required=False):
-        if required:
-            raise ReleasesUnreadable(dep_name)
-        return {}
-
-    monkeypatch.setattr(f"{MATRIX_MODULE}._pypi_releases", unreachable)
     doc = tmp_path / "page.md"
     original = dedent(f"""
         ```{{matrix}} widget
@@ -1218,8 +1226,8 @@ def test_dependency_columns(
     [
         # Every range supports the floor: nothing goes.
         (["✅✅❌", "❌✅✅"], False, (0, 0)),
-        # A range supporting only versions below the floor goes, and the
-        # columns only it supported go with it.
+        # A range below every range supporting the floor or a later version
+        # goes, and the columns only it supported go with it.
         (["✅❌❌", "❌✅✅"], False, (1, 1)),
         # A range between the newest one and the oldest kept one stays,
         # whatever it holds.
@@ -1232,8 +1240,8 @@ def test_dependency_columns(
         # A newest range supporting nothing sets no floor: every row stays.
         (["✅❌", "❌❌"], False, (0, 0)),
         (["❌❌", "❌–"], False, (0, 0)),
-        # The full history keeps every row, and drops the columns no range
-        # supports.
+        # The full history keeps every row, and drops the oldest columns no
+        # range supports.
         (["✅❌❌", "❌✅✅"], True, (0, 0)),
         (["❌✅❌", "❌✅✅"], True, (0, 1)),
     ],
@@ -1653,10 +1661,12 @@ def test_dependency_matrix_table_undeclared_after_superseded(
 def test_dependency_matrix_table_envelope(
     dated_dep_repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The envelope stops at the oldest range current when the floor came out.
+    """The envelope stops at the oldest range supporting the floor or later.
 
-    ``1.0.0`` was superseded before ``widget`` 3.0.0, the floor of the newest
-    range, so it goes, and the ``widget`` 1.0.0 column it alone accepted too.
+    A range supports a dated release it accepts only when the release came out
+    while the range was current. ``1.0.0`` was superseded before ``widget``
+    3.0.0, the floor of the newest range, so it goes, and the ``widget`` 1.0.0
+    column it alone accepted too.
     """
     stub_releases(monkeypatch, *WIDGET_DATES, dates=WIDGET_DATES)
     table = dependency_matrix_table(dated_dep_repo, "proj", "widget")
@@ -1749,16 +1759,9 @@ def test_update_matrix_blocks_envelope_region(
 
 @pytest.mark.parametrize("args", ["python widget", "package=apricot"])
 def test_update_matrix_blocks_leaves_an_envelope_region_untouched(
-    envelope_repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, args: str
+    envelope_repo: Path, tmp_path: Path, unreadable_pypi, args: str
 ) -> None:
     """An unreadable PyPI, or a region naming no axis, rewrites nothing."""
-
-    def unreachable(dep_name, *, required=False):
-        if required:
-            raise ReleasesUnreadable(dep_name)
-        return {}
-
-    monkeypatch.setattr(f"{MATRIX_MODULE}._pypi_releases", unreachable)
     doc = tmp_path / "page.md"
     original = f"<!-- envelope {args} path={envelope_repo} -->\n<!-- envelope-end -->\n"
     doc.write_text(original, encoding="UTF-8")

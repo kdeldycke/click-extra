@@ -2246,11 +2246,10 @@ def test_click_run_screenshot_preset_defaults_to_the_project_wide_one(sphinx_app
 
 
 def test_click_run_screenshot_carries_no_watermark_by_default(sphinx_app_myst):
-    """A capture a build rewrites carries no release number to go stale.
+    """A capture a `click:run` block writes carries no credit line by default.
 
     The `screenshot` command credits click-extra on every image it writes. A
-    block's image is regenerated and committed on every build, so the same mark
-    would rewrite every asset the day the release it names changes.
+    block's image sits on a page that already says what drew it.
     """
     sphinx_app_myst.build_document(
         dedent("""

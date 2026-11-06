@@ -187,6 +187,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
 
     - `click:source` / `click:run` to define and execute Click CLIs
       at build time.
+    - `click:tree` / `click:config` to render the command reference and the
+      configuration reference of a Click CLI at build time.
     - `python:source` / `python:run` to execute arbitrary Python at
       build time and render its source or captured `stdout`.
     - `python:render` / `python:render-myst` / `python:render-rst`
@@ -238,11 +240,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     tables.setup(app)
 
     # Highlight the row and the column under the pointer in the same tables
-    # (see crosshair.py). Set up after tables.py, whose static folder it shares.
+    # (see crosshair.py).
     crosshair.setup(app)
 
-    # Lay out a tab-set marked `tabs-vertical` in two columns (see tabs.py),
-    # in the static folder of tables.py too.
+    # Lay out a tab-set marked `tabs-vertical` in two columns (see tabs.py).
     tabs.setup(app)
 
     # Drop the viewcode pages that no documented object links to (see

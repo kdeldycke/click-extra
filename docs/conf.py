@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 import tomllib
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import click
@@ -53,9 +53,13 @@ project = " ".join(word.title() for word in project_id.split("-"))
 github_user = "kdeldycke"
 
 # Whole years since `0.0.1` (2021-10-18), the oldest entry of the changelog, for
-# the announcement banner below. Floored, so the figure is never ahead of the
-# anniversary it claims.
-maintained_years = (datetime.now(tz=UTC).date() - date(2021, 10, 18)).days // 365
+# the announcement banner below. The figure goes up on each anniversary, so it is
+# never ahead of the one it claims. A count of days divided by 365 runs a day
+# ahead for each leap day in between.
+build_date = datetime.now(tz=UTC).date()
+maintained_years = (
+    build_date.year - 2021 - ((build_date.month, build_date.day) < (10, 18))
+)
 
 # Addons.
 extensions = [
@@ -208,18 +212,18 @@ mermaid_d3_zoom = True
 
 
 class NoZoomClassDiagram(MermaidClassDiagram):
-    """``autoclasstree`` with its diagram opted out of inline d3 zoom.
+    """`autoclasstree` with its diagram opted out of inline d3 zoom.
 
-    ``mermaid_d3_zoom`` is all-or-nothing: it attaches wheel and drag handlers
-    to every diagram's ``<svg>``, and sphinxcontrib-mermaid has no per-diagram
+    `mermaid_d3_zoom` is all-or-nothing: it attaches wheel and drag handlers
+    to every diagram's `<svg>`, and sphinxcontrib-mermaid has no per-diagram
     opt-out while its fullscreen feature is active. On the tall class
     inheritance trees of the API sections, the wheel handler hijacks page
     scrolling. So this subclass wraps each tree in a marked container that
-    ``custom.css`` targets to disable pointer events on the inline SVG: events
-    then never reach the ``<svg>``, d3's handlers stay quiet, and the page
+    `custom.css` targets to disable pointer events on the inline SVG: events
+    then never reach the `<svg>`, d3's handlers stay quiet, and the page
     scrolls normally. The fullscreen viewer clones the diagram outside the
     container, so its button and zoom still work there. Registered in
-    :func:`setup` as an override of the upstream directive.
+    {func}`setup` as an override of the upstream directive.
     """
 
     def run(self):
@@ -557,16 +561,16 @@ pin_app_dir()
 def setup(app):
     """Sphinx extension entry point.
 
-    Registers the ``autodoc-process-docstring`` hook that injects a colored
-    example into every :class:`HelpTheme` slot's autodoc block. The
+    Registers the `autodoc-process-docstring` hook that injects a colored
+    example into every {class}`HelpTheme` slot's autodoc block. The
     example is computed live by replaying the templates in
-    ``_PALETTE_EXAMPLES`` through the active dark theme's slot styling, so
+    `_PALETTE_EXAMPLES` through the active dark theme's slot styling, so
     the rendered output cannot drift from the actual Theme code path: tweak a
-    built-in theme in ``click_extra/theme.py`` and the next build picks up the
+    built-in theme in `click_extra/theme.py` and the next build picks up the
     new colors.
 
-    Also swaps sphinxcontrib-mermaid's ``autoclasstree`` directive for
-    :class:`NoZoomClassDiagram`: conf.py is loaded as the last extension,
+    Also swaps sphinxcontrib-mermaid's `autoclasstree` directive for
+    {class}`NoZoomClassDiagram`: conf.py is loaded as the last extension,
     so this registration wins.
     """
     app.connect("autodoc-process-docstring", inject_slot_example_docstring)

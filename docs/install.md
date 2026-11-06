@@ -152,7 +152,7 @@ $ sudo zypper install python313-click-extra
 
 ## Support envelope
 
-The compatibility tables below keep the [support envelope](python-directives.md#the-support-envelope) of `click-extra`. Outside of it, these are obsolete:
+Each compatibility table below keeps the [support envelope](python-directives.md#the-support-envelope) of its own axis. Across the three tables, these are obsolete, even where a table still shows them:
 
 <!-- envelope python click cloup -->
 
@@ -171,7 +171,7 @@ Each cell holds one of three states:
 - ❌: the `requires-python` of the release rules that Python out.
 - `–`: the release neither claimed nor forbade that Python, usually because that Python was not out yet when the release declared its requirements.
 
-See [three states, two sources](python-directives.md#three-states-two-sources). The table keeps the [support envelope](python-directives.md#the-support-envelope) of `click-extra`, so the oldest releases drop off as the oldest supported Python moves up.
+See [three states, two sources](python-directives.md#three-states-two-sources). The table keeps the [support envelope](python-directives.md#the-support-envelope) of its axis, so the oldest releases drop off as the oldest Python the latest release supports moves up.
 
 <!-- matrix python -->
 

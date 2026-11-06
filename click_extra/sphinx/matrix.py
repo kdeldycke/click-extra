@@ -38,10 +38,11 @@ Two axes are supported:
   read with `packaging`, drives `✅` and `❌`, and a release it accepts but that
   came out after the range was superseded renders as `–`, like a future Python.
 
-Both axes then keep only the support envelope of the project, the part of its
-history still in scope: see {func}`_envelope`. The `<!-- envelope -->` region
-lists the obsolete bounds of that envelope across several axes: see
-{func}`envelope_bounds`.
+Both axes then keep only the support envelope of the project (see
+{func}`_envelope`): the ranges from the newest one down to the oldest one that
+supports the floor of the newest range or a later version, and the versions from
+the oldest one these ranges support. The `<!-- envelope -->` region lists the
+obsolete bounds of the envelopes of several axes: see {func}`envelope_bounds`.
 
 The rendered tables back the always-on `matrix` Sphinx directive (see
 {class}`MatrixDirective`), so a project's `install.md` can embed a live matrix
@@ -813,6 +814,14 @@ def _corner_cell(label: str, axis: str) -> str:
     return corner_header(f"`{label}`", axis).replace("\\", "\\\\")
 
 
+def _supported_columns(rows: Iterable[Sequence[str]]) -> Iterator[int]:
+    """Yield the column of each {data}`SUPPORTED_CELL` of `rows`, row after row."""
+    for row in rows:
+        for index, cell in enumerate(row):
+            if cell == SUPPORTED_CELL:
+                yield index
+
+
 def _envelope(
     cells: Sequence[Sequence[str]], *, full_history: bool = False
 ) -> tuple[int, int]:
@@ -831,30 +840,18 @@ def _envelope(
        stays visible.
 
     A newest range supporting nothing has no floor, and every row stays, as
-    under `full_history`. The oldest columns no row supports go in all cases:
-    they only say that the history starts later.
+    under `full_history`. The oldest columns no row supports go whenever some
+    row supports a column: they only say that the history starts later.
 
     :return: `(first_row, first_column)` indices into `cells`.
     """
     first_row = 0
-    floor = next(
-        (index for index, cell in enumerate(cells[-1]) if cell == SUPPORTED_CELL),
-        None,
-    )
+    floor = next(_supported_columns(cells[-1:]), None)
     if floor is not None and not full_history:
         first_row = next(
             index for index, row in enumerate(cells) if SUPPORTED_CELL in row[floor:]
         )
-    first_column = min(
-        (
-            index
-            for row in cells[first_row:]
-            for index, cell in enumerate(row)
-            if cell == SUPPORTED_CELL
-        ),
-        default=0,
-    )
-    return first_row, first_column
+    return first_row, min(_supported_columns(cells[first_row:]), default=0)
 
 
 def _render_matrix(
@@ -865,7 +862,7 @@ def _render_matrix(
     *,
     row_order: str,
     leading_headers: Sequence[str] = (),
-    older: tuple[str, str, str] | None = None,
+    older: PythonMatrixGroup | DependencyMatrixGroup | None = None,
 ) -> str:
     """Render the release ranges of a matrix as a GitHub-flavored markdown table.
 
@@ -880,7 +877,8 @@ def _render_matrix(
     """
     ordered = list(reversed(groups))
     labels = _range_labels(
-        [(first, last, date) for first, last, date, _ in ordered], older=older
+        [(first, last, date) for first, last, date, _ in ordered],
+        older=(older.first_tag, older.last_tag, older.first_date) if older else None,
     )
     rows = [
         [row_label, *cells]
@@ -1011,9 +1009,12 @@ def python_matrix_table(
     :param tag_pattern: passed to {func}`python_matrix_groups`.
     :param tags_sort: passed to {func}`python_matrix_groups`.
     :param python_floor: drop every Python `X.Y` column below this bare
-        version (`"3.9"`). Empty (the default) keeps all columns. Trims
-        columns only; combine with `version_floor` to also drop the old
-        release rows that supported nothing above the floor.
+        version (`"3.9"`). Empty (the default) sets no floor. The support
+        envelope reads its floor from the columns left (see {func}`_envelope`):
+        a `python_floor` above the oldest Python of the newest range raises
+        that floor, which drops the ranges below the oldest one supporting it
+        or a later Python. Under `full_history`, `python_floor` drops columns
+        only.
     :param version_floor: passed to {func}`python_matrix_groups` to drop
         release rows below a bare package version.
     :param column_order: left-to-right ordering of the Python columns:
@@ -1058,14 +1059,13 @@ def python_matrix_table(
         )
         for _, oldest, newest in _runs(range(first_row, len(groups)), key=rendered)
     ]
-    older = groups[first_row - 1] if first_row else None
     return _render_matrix(
         label,
         "Python",
         rows,
         [f"`{versions[column]}`" for column in columns],
         row_order=row_order,
-        older=(older.first_tag, older.last_tag, older.first_date) if older else None,
+        older=groups[first_row - 1] if first_row else None,
     )
 
 
@@ -1382,9 +1382,9 @@ def _column_candidates(
 
     A locked pre-release or development version is left out, like PyPI's: it is
     no release an installer gets from the index. A project tracking the branch of
-    a dependency locks such a version, which no PyPI date places in time, so it
-    would read as supported by every range and stretch the support envelope over
-    the whole history.
+    a dependency locks such a version, which no PyPI date places in time. Every
+    range whose specifier accepts it would read as supporting it, and so stay in
+    the support envelope however old the range is.
     """
     candidates = set(releases)
     if not candidates:
@@ -1626,7 +1626,6 @@ def dependency_matrix_table(
             [*spec_cells, *row_cells],
         ))
 
-    older = groups[first_row - 1] if first_row else None
     return _render_matrix(
         label,
         f"`{dep_name}`",
@@ -1634,18 +1633,24 @@ def dependency_matrix_table(
         [column_label for column_label, _ in columns],
         row_order=row_order,
         leading_headers=["Spec"] if show_spec else [],
-        older=(older.first_tag, older.last_tag, older.first_date) if older else None,
+        older=groups[first_row - 1] if first_row else None,
     )
 
 
 class EnvelopeBound(NamedTuple):
-    """An obsolete bound of the support envelope: what is older lies outside it."""
+    """An obsolete bound of the support envelopes of several axes.
+
+    The release bound is the oldest release every envelope keeps. A version
+    bound is the oldest version that a range in scope supports, which can be
+    newer than the oldest column of the matrix of its axis (see
+    {func}`envelope_bounds`).
+    """
 
     subject: str
     """What the bound limits: the package releases, or the versions of an axis."""
 
     version: str
-    """The oldest release or version inside the envelope."""
+    """The oldest release in scope, or the oldest version a range in scope supports."""
 
     date: str
     """The ISO release date of that release or version, empty when unknown."""
@@ -1660,7 +1665,7 @@ def envelope_bounds(
     tags_sort: str = DEFAULT_TAGS_SORT,
     require_releases: bool = False,
 ) -> list[EnvelopeBound]:
-    """Return the obsolete bounds of the support envelope across `axes`.
+    """Return the obsolete bounds of the support envelopes of `axes`.
 
     Each axis keeps its own envelope, as its matrix does (see {func}`_envelope`).
     A release is in scope when every envelope that leaves out releases keeps it,
@@ -1721,12 +1726,7 @@ def envelope_bounds(
             >= _version_sort_key(release.first_tag)
         ]
         column = min(
-            (
-                index
-                for row in in_scope
-                for index, cell in enumerate(grid.cells[row])
-                if cell == SUPPORTED_CELL
-            ),
+            _supported_columns(grid.cells[row] for row in in_scope),
             default=first_column,
         )
         bounds.append(EnvelopeBound(subject, grid.versions[column], grid.dates[column]))
@@ -1742,7 +1742,7 @@ def envelope_list(
     tags_sort: str = DEFAULT_TAGS_SORT,
     require_releases: bool = False,
 ) -> str:
-    """Render the obsolete bounds of the support envelope as a Markdown list.
+    """Render the obsolete bounds of the envelopes of `axes` as a Markdown list.
 
     One item per bound of {func}`envelope_bounds`, which takes every parameter.
     An item names what the bound limits and the oldest version in scope, then
@@ -1812,6 +1812,18 @@ def _project_name(project_root: Path) -> str:
     return ""
 
 
+def _resolve_project(options: Mapping[str, str], base_dir: Path) -> tuple[Path, str]:
+    """Resolve the working tree and the package label a block's options name.
+
+    The tree comes from the `path` option (see {func}`_resolve_root`). The label
+    is the `package` option, else the name the project declares, else the name
+    of its folder. Every block and region resolves its project here, so a region
+    and the matrices beside it name the same one.
+    """
+    root = _resolve_root(options.get("path"), base_dir)
+    return root, options.get("package") or _project_name(root) or root.name
+
+
 def _render_block(
     axis: str,
     options: Mapping[str, str],
@@ -1830,8 +1842,7 @@ def _render_block(
     `require_releases` reaches the dependency axis alone: the Python axis reads
     git history and a static table, so it renders the same answer offline.
     """
-    root = _resolve_root(options.get("path"), base_dir)
-    package = options.get("package") or _project_name(root) or root.name
+    root, package = _resolve_project(options, base_dir)
     tag_pattern = options.get("tag-pattern") or DEFAULT_TAG_PATTERN
     version_floor = options.get("version-floor", "")
     column_order = options.get("column-order") or NEWEST_FIRST
@@ -1859,28 +1870,6 @@ def _render_block(
         column_order=column_order,
         row_order=row_order,
         full_history="full-history" in options,
-        require_releases=require_releases,
-    )
-
-
-def _render_envelope(
-    axes: Sequence[str],
-    options: Mapping[str, str],
-    base_dir: Path,
-    *,
-    require_releases: bool = False,
-) -> str:
-    """Render the list of an `<!-- envelope <axis>... -->` region.
-
-    Resolves the package and the path like {func}`_render_block`, so a region
-    and the matrices beside it name the same project.
-    """
-    root = _resolve_root(options.get("path"), base_dir)
-    return envelope_list(
-        root,
-        options.get("package") or _project_name(root) or root.name,
-        axes,
-        tag_pattern=options.get("tag-pattern") or DEFAULT_TAG_PATTERN,
         require_releases=require_releases,
     )
 
@@ -2005,28 +1994,21 @@ def _parse_marker_options(tokens: Iterable[str]) -> dict[str, str]:
     return options
 
 
-def _regenerate(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
-    """Render a block, returning `""` on any git/OS failure (non-destructive).
+_REFRESH_ERRORS = (OSError, ReleasesUnreadable, subprocess.SubprocessError)
+"""The failures that leave a block or a region of the source as it is.
 
-    An unreadable PyPI counts as such a failure here, where it does not for
-    live rendering: the caller writes this table into the source, or compares
-    it against what is already there, and the fallback columns would drift
-    every checked-in dependency block whenever the network hiccups.
-    """
+An unreadable PyPI is one of them, where live rendering keeps the fallback
+columns instead: the refresh writes the new table into the source, or compares
+it against what is already there, and the fallback columns would drift every
+checked-in dependency block whenever the network hiccups.
+"""
+
+
+def _regenerate(axis: str, options: Mapping[str, str], base_dir: Path) -> str:
+    """Render a block, returning `""` on any of the {data}`_REFRESH_ERRORS`."""
     try:
         return _render_block(axis, options, base_dir, require_releases=True)
-    except (OSError, ReleasesUnreadable, subprocess.SubprocessError):
-        return ""
-
-
-def _regenerate_envelope(
-    axes: Sequence[str], options: Mapping[str, str], base_dir: Path
-) -> str:
-    """Render an envelope region, returning `""` on any failure, like
-    {func}`_regenerate` does for a matrix."""
-    try:
-        return _render_envelope(axes, options, base_dir, require_releases=True)
-    except (OSError, ReleasesUnreadable, subprocess.SubprocessError):
+    except _REFRESH_ERRORS:
         return ""
 
 
@@ -2076,10 +2058,10 @@ def _refresh_marker_region(
     `base_dir`, and returns the new body, or `""` to keep the region as it is.
     The start marker is kept verbatim; the body between the markers is
     replaced, blank-line padded so `mdformat` does not ping-pong on the
-    surrounding HTML comments.
-    The search for the closing marker, `close_re`, skips fence spans, so a
-    closing marker shown inside a code example cannot close a live region. Kept
-    verbatim when unterminated, argument-less, or on failure.
+    surrounding HTML comments. The search for the closing marker, `close_re`,
+    skips fence spans, so a closing marker shown inside a code example cannot
+    close a live region. Kept verbatim when unterminated, argument-less, or on
+    failure.
     """
     indent = match.group("indent")
     tokens = (match.group("args") or "").split()
@@ -2115,14 +2097,26 @@ def _refresh_matrix(tokens: list[str], base_dir: Path) -> str:
 def _refresh_envelope(tokens: list[str], base_dir: Path) -> str:
     """Render a `<!-- envelope <axis>... [key=value ...] -->` region.
 
-    Its bare arguments name the axes, in order, and its `key=value` pairs are
-    the options of {func}`_render_envelope`.
+    Its bare arguments name the axes, in order. Its `key=value` pairs are the
+    `package`, `path` and `tag-pattern` options of a matrix block, read the
+    same way (see {func}`_resolve_project`). Returns `""` on any of the
+    {data}`_REFRESH_ERRORS`, like {func}`_regenerate`.
     """
     axes = [token for token in tokens if "=" not in token]
     if not axes:
         return ""
     options = _parse_marker_options(token for token in tokens if "=" in token)
-    return _regenerate_envelope(axes, options, base_dir)
+    try:
+        root, package = _resolve_project(options, base_dir)
+        return envelope_list(
+            root,
+            package,
+            axes,
+            tag_pattern=options.get("tag-pattern") or DEFAULT_TAG_PATTERN,
+            require_releases=True,
+        )
+    except _REFRESH_ERRORS:
+        return ""
 
 
 def rewrite_matrix_blocks(text: str, base_dir: Path) -> str:

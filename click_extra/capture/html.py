@@ -42,11 +42,11 @@ from .svg import (
     WATERMARK_INSET,
     WATERMARK_SIZE,
     WATERMARK_URL,
+    _braille_centers,
     _escape_markup,
     _shape_kind,
     _svg_number,
     box_svg,
-    braille_dots,
     credit_markup,
 )
 
@@ -58,8 +58,8 @@ if TYPE_CHECKING:
 LINE_SPACING = 1.25
 """Height of a line of a capture's `<pre>`, as a multiple of its font size.
 
-{func}`block_css` draws a block element this tall too, so two stacked rows of
-block art meet where their lines do.
+Every box a run of shapes is drawn in is this tall too, so two stacked rows of
+shapes meet where their lines do.
 """
 
 
@@ -144,10 +144,9 @@ def braille_css(char: str, count: int) -> str:
     """
     radius = f"{BRAILLE_DOT_RADIUS * LINE_SPACING / 4:g}em"
     images = [
-        f"radial-gradient(circle {radius} at {(2 * x + 1) * 25:g}% "
-        f"{(2 * y + 1) * 12.5:g}%, currentColor calc({radius} - 0.5px), "
-        f"transparent calc({radius} + 0.5px))"
-        for x, y in braille_dots(char)
+        f"radial-gradient(circle {radius} at {across * 100:g}% {down * 100:g}%, "
+        f"currentColor calc({radius} - 0.5px), transparent calc({radius} + 0.5px))"
+        for across, down in _braille_centers(char)
     ]
     if not images:
         return _shape_box(count)
@@ -179,14 +178,24 @@ def box_html(text: str) -> str:
     )
 
 
+def _styled_span(content: str, css: str, declarations: str = "") -> str:
+    """Wrap `content` in a span wearing a run's `css` and any `declarations`.
+
+    Given neither, the content is left bare, as
+    {func}`~click_extra.styling.ansi_to_html` leaves a run whose style has no CSS.
+    """
+    joined = "; ".join(part for part in (css, declarations) if part)
+    return f'<span style="{joined}">{content}</span>' if joined else content
+
+
 def _pre_markup(text: str) -> str:
     """Translate captured text to the markup a capture's `<pre>` holds.
 
-    What {func}`~click_extra.styling.ansi_to_html` writes, but for Block
-    Elements and Braille patterns: each run of one character is cut out into a
-    box of its own, drawn by {func}`block_css` or {func}`braille_css` and
-    wearing the style of the run it came from. Spans never cross a line, as
-    there.
+    What {func}`~click_extra.styling.ansi_to_html` writes, but for the characters
+    drawn as shapes: a run of Box Drawing is cut out into a box of its own, drawn
+    by {func}`box_html`, and so is each run of one Block Elements character or
+    Braille pattern, drawn by {func}`block_css` or {func}`braille_css`. Each box
+    wears the style of the run it came from. Spans never cross a line, as there.
 
     :param text: captured output, already escaped, ANSI escape sequences
         included.
@@ -203,29 +212,25 @@ def _pre_markup(text: str) -> str:
                 end = len(line) if found is None else found.start()
                 between = line[position:end]
                 if between:
-                    chunks.append(
-                        f'<span style="{css}">{between}</span>' if css else between
-                    )
+                    chunks.append(_styled_span(between, css))
                 if found is None:
                     break
                 for kind, group in groupby(found.group(), key=_shape_kind):
                     piece = "".join(group)
                     if kind == "box":
-                        declarations = f"{_shape_box(len(piece))}; position: relative"
-                        if css:
-                            declarations = f"{css}; {declarations}"
                         chunks.append(
-                            f'<span style="{declarations}">{piece}{box_html(piece)}</span>'
+                            _styled_span(
+                                f"{piece}{box_html(piece)}",
+                                css,
+                                f"{_shape_box(len(piece))}; position: relative",
+                            )
                         )
                         continue
                     shape = braille_css if kind == "braille" else block_css
                     for char, cells in groupby(piece):
                         count = len(tuple(cells))
-                        declarations = shape(char, count)
-                        if css:
-                            declarations = f"{css}; {declarations}"
                         chunks.append(
-                            f'<span style="{declarations}">{char * count}</span>'
+                            _styled_span(char * count, css, shape(char, count))
                         )
                 position = found.end()
     return "".join(chunks)
@@ -259,9 +264,9 @@ def render_html(
     existing page needs no stylesheet and cannot be restyled out of legibility
     by the host. Nothing else is needed either: a `<pre>` preserves the
     capture's own spacing, which is what spares HTML the column arithmetic
-    {func}`~click_extra.capture.svg.render_svg` performs for a picture. Block
-    Elements and Braille patterns are the exception, drawn as shapes by
-    {func}`block_css` and {func}`braille_css`.
+    {func}`~click_extra.capture.svg.render_svg` performs for a picture. Box
+    Drawing, Block Elements and Braille patterns are the exception, drawn as
+    shapes by {func}`box_html`, {func}`block_css` and {func}`braille_css`.
 
     ```{caution}
     The text is escaped before its ANSI is translated, the order

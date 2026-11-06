@@ -96,10 +96,10 @@ Keeps their first column on one line, and tints the state cells of a matrix.
 """
 
 STATIC_DIR = "_click_extra_static"
-"""Folder of the output directory the stylesheet is written to.
+"""Output folder of the stylesheets and scripts the extension writes.
 
 Sphinx copies it into `_static` with the other static files, as it does for
-every folder listed in `html_static_path`.
+every folder listed in `html_static_path`. See `_write_static_file`.
 """
 
 STYLESHEET = "click-extra.css"
@@ -127,6 +127,19 @@ def mark_corner_tables(app: Sphinx, doctree: nodes.document) -> None:
                     entry["classes"].append(state)
 
 
+def _write_static_file(app: Sphinx, name: str, content: str) -> None:
+    """Write `content` to the file `name` of {data}`STATIC_DIR` in the build.
+
+    The folder joins `html_static_path` with its first file, whichever module
+    writes it, so Sphinx serves every file of the folder from `_static`.
+    """
+    static_dir = Path(app.outdir) / STATIC_DIR
+    static_dir.mkdir(parents=True, exist_ok=True)
+    (static_dir / name).write_text(content, encoding="UTF-8")
+    if str(static_dir) not in app.config.html_static_path:
+        app.config.html_static_path.append(str(static_dir))
+
+
 def add_stylesheet(app: Sphinx) -> None:
     """Write {data}`CORNER_TABLE_CSS` into the build and link it from each page.
 
@@ -134,10 +147,7 @@ def add_stylesheet(app: Sphinx) -> None:
     """
     if app.builder.format != "html":
         return
-    static_dir = Path(app.outdir) / STATIC_DIR
-    static_dir.mkdir(parents=True, exist_ok=True)
-    (static_dir / STYLESHEET).write_text(CORNER_TABLE_CSS, encoding="UTF-8")
-    app.config.html_static_path.append(str(static_dir))
+    _write_static_file(app, STYLESHEET, CORNER_TABLE_CSS)
     app.add_css_file(STYLESHEET)
 
 

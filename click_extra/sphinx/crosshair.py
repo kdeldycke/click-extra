@@ -32,9 +32,7 @@ script are written into the build rather than packaged as data files.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from .tables import CORNER_TABLE_CLASS, STATIC_DIR
+from .tables import CORNER_TABLE_CLASS, _write_static_file
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -161,18 +159,14 @@ SCRIPT = "click-extra-crosshair.js"
 def add_crosshair(app: Sphinx) -> None:
     """Write {data}`CROSSHAIR_CSS` and {data}`CROSSHAIR_JS` into the build.
 
-    Both files go to the folder {func}`click_extra.sphinx.tables.add_stylesheet`
-    writes to, which is listed in `html_static_path` once, and every page links
-    them. Only an HTML builder serves them, so other builders skip it.
+    Both files go to the static folder of the extension (see
+    `click_extra.sphinx.tables._write_static_file`), and every page links them.
+    Only an HTML builder serves them, so other builders skip it.
     """
     if app.builder.format != "html":
         return
-    static_dir = Path(app.outdir) / STATIC_DIR
-    static_dir.mkdir(parents=True, exist_ok=True)
-    (static_dir / STYLESHEET).write_text(CROSSHAIR_CSS, encoding="UTF-8")
-    (static_dir / SCRIPT).write_text(CROSSHAIR_JS, encoding="UTF-8")
-    if str(static_dir) not in app.config.html_static_path:
-        app.config.html_static_path.append(str(static_dir))
+    _write_static_file(app, STYLESHEET, CROSSHAIR_CSS)
+    _write_static_file(app, SCRIPT, CROSSHAIR_JS)
     app.add_css_file(STYLESHEET)
     app.add_js_file(SCRIPT)
 

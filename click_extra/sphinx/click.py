@@ -178,8 +178,9 @@ what a command printed, whose colors that command already chose.
 SCREENSHOT_WATERMARK_CONFIG = "click_extra_screenshot_watermark"
 """Name of the `conf.py` value crediting every capture a `click:run` writes.
 
-Empty by default, where a capture carries the credit of the `screenshot` command.
-A project wanting its own text states it here, or per block with
+Empty by default, which draws no credit line: unlike a capture of the
+`screenshot` command, a block's image sits on a page that already says what drew
+it. A project wanting a credit states its text here, or per block with
 `:screenshot-watermark:`.
 """
 
@@ -946,8 +947,8 @@ class ClickDirective(ContentOffsetMixin):
             if f"screenshot-{name}" in self.options
         }
         # Stated even when nothing asks for one, the renderer crediting
-        # click-extra by default: an image a build rewrites and commits cannot
-        # carry a release number without being rewritten by every release.
+        # click-extra by default: the page around a block already says what
+        # drew its image.
         decoration.setdefault(
             "watermark",
             getattr(self.env.config, SCREENSHOT_WATERMARK_CONFIG),

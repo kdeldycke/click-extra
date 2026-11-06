@@ -8,26 +8,26 @@
 - **Deprecated:** `tile_runs()` and `TILE_RUN` of `click_extra.capture.svg`, which captures no longer use, now warn and stop resolving in `11.0.0`.
 - Add the `click_extra_release_anchors` Sphinx setting, which anchors each changelog release on its version, like `#v1-4-2`, in place of a positional `#idN`.
 - Highlight the row and column under the pointer in the two-axis tables of a Sphinx build, and make each one-link cell clickable as a whole.
-- Add the documentation site to the package metadata, so PyPI links to it.
-- Replace the benchmark's 🟡 mark with 🪫 and its N/A with a blank cell, and grade 🪫 two cobra cells that rely on Viper.
-- Trim `matrix` tables to the support envelope: releases and versions the latest release no longer covers drop off.
-- Add the `<!-- envelope -->` region, which `refresh-directives` fills with the dated obsolete bounds of the support envelope across the axes it names.
-- Mark a dependency release published after a `matrix` range was replaced as `–` for that range, like a Python that did not exist yet.
-- Add the `full-history` option to the `matrix` directive and marker, which keeps every release range.
-- Read `matrix` column headers from their newest bound, like `9.4.x` ← `9.3.4`, while the columns run newest first.
 - Tint the cells of two-axis tables in Sphinx builds by state: green for ✅, red for ❌ and grey for `–`.
 - Add the `tabs-vertical` class for sphinx-design tab-sets, which stacks their labels down a left rail, and use it on the install page.
+- Add the documentation site to the package metadata, so PyPI links to it.
+- Trim `matrix` tables to the support envelope, which can leave out the oldest release ranges, then the oldest versions no remaining range supports.
+- Add the `full-history` option to the `matrix` directive and marker, which keeps every release range.
+- Add the `<!-- envelope -->` region, which `refresh-directives` fills with the dated obsolete bounds of the support envelope across the axes it names.
+- Mark a dependency release published after a `matrix` range was replaced as `–` for that range, like a Python that did not exist yet.
+- Read `matrix` column headers from their newest bound, like `9.4.x` ← `9.3.4`, while the columns run newest first.
 - Fix Sphinx builds publishing `sphinx.ext.viewcode` pages that no documented object links to, one per such module on a parallel read.
 - Fix Sphinx pickling the whole build environment into the doctree of each page holding an `{eval-rst}`, `python:render-rst` or `python:render-myst` block.
 - Fix MyST docstrings merging two inline code spans when the first ends in a role-shaped word, or in punctuation before an `_` span.
 - Fix MyST docstrings breaking a double-backtick code span that holds single backticks, which Sphinx reported as an unterminated inline literal.
-- Fix a dependency `matrix` keeping every release range when `uv.lock` tracks that dependency from a git branch.
+- Fix a dependency `matrix` listing the development version that `uv.lock` locks from a git branch as a column, like `8.5.0.dev0`.
 - Fix a re-spelled floor-only `requires-python` ending its `matrix` range early, which left out the Pythons released later in that range.
-- Fix the social card image of the documentation, and add canonical links, a sitemap and a sidebar logo readable in dark mode.
 - Fix the `runner` pytest fixture leaving `XDG_CACHE_HOME` unpinned, so `get_cache_dir()` resolved to the cache of the user running the tests.
 - Fix SVG and HTML captures leaving a band between stacked rows of block characters like `▀▄█`, which are now drawn as rectangles filling their cell.
-- Fix Braille spinners in SVG and HTML captures overflowing their column when the font lacks Braille: the patterns are now drawn as dots.
+- Fix Braille patterns, like spinner frames, in SVG and HTML captures overflowing their column when the font lacks Braille: they are now drawn as dots.
 - Fix seams between box-drawing characters in SVG and HTML captures, which are now drawn as lines meeting at every join.
+- Fix the social card image of the documentation, and add canonical links, a sitemap and a sidebar logo readable in dark mode.
+- Replace the benchmark's 🟡 mark with 🪫 and its N/A with a blank cell, and grade 🪫 two cobra cells that rely on Viper.
 - Document the `:force:` option of `click:run`: it highlights output its lexer cannot parse, and logs no Sphinx warning.
 - Document the `accessibility`, `carapace`, `context`, `layout`, `mkdocs`, `styling`, `theme` and `tree` modules in the API reference.
 - Add GNU Guix, MacPorts and openSUSE Tumbleweed install instructions, and a man pages section, to the installation page.

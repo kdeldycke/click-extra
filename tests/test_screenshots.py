@@ -532,6 +532,18 @@ def test_tile_runs_keeps_every_piece_on_its_own_column():
     assert rebuilt == text
 
 
+@pytest.mark.parametrize("tile", ("─", "▀"), ids=("box-drawing", "block"))
+def test_tile_runs_cuts_every_tile_it_was_released_with(tile):
+    """`tile_runs` cuts Block Elements as well as Box Drawing, as `10.1.1` did.
+
+    A capture draws both as shapes, which leaves the deprecated helper no caller
+    in the renderer: its answer stays the released one until it goes. The cut
+    is spelled out, so `TILE_RUN` keeping its released 8 cells is checked too.
+    """
+    assert _TILE_RUN == 8
+    assert list(_tile_runs(tile * 10, 0)) == [(tile * 8, 0), (tile * 2, 8)]
+
+
 @pytest.mark.parametrize(
     ("name", "private"),
     (
@@ -645,6 +657,10 @@ def test_block_element_fills_what_its_name_states(char):
     assert drawn == named_eighths(char)
 
 
+_ZWJ = "\N{ZERO WIDTH JOINER}"
+"""Joins the character after it to the cluster before it, see `_SHAPED_RE`."""
+
+
 @pytest.mark.parametrize(
     ("text", "column", "expected"),
     (
@@ -656,11 +672,53 @@ def test_block_element_fills_what_its_name_states(char):
         ("苹果 ██", 0, [("苹果", 0, False), ("██", 5, True)]),
         ("⠋ Picking apples", 0, [("⠋", 0, True), ("Picking apples", 2, False)]),
         ("▀⣿▄ kiwi", 3, [("▀⣿▄", 3, True), ("kiwi", 7, False)]),
+        (f"x{_ZWJ}█ab", 0, [(f"x{_ZWJ}█ab", 0, False)]),
+        (
+            f"x{_ZWJ}██ab",
+            0,
+            [(f"x{_ZWJ}█", 0, False), ("█", 1, True), ("ab", 2, False)],
+        ),
     ),
 )
 def test_shape_runs_cut_shapes_from_the_text_between(text, column, expected):
-    """Block Elements and Braille are cut out on their own columns, and nothing else."""
+    """Shapes are cut out on their own columns, and nothing else.
+
+    Box Drawing, Block Elements and Braille patterns are drawn as shapes. One
+    following a zero width joiner belongs to the cluster before it, and stays in
+    its text.
+    """
     assert list(shape_runs(text, column)) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "▀▄█ apple",
+        "│ kiwi │",
+        "苹果 ██",
+        "⠋ Picking apples",
+        f"x{_ZWJ}█ab",
+        f"x{_ZWJ}⣿ kiwi",
+        f"🍑{_ZWJ}─┐ pear",
+        f"█{_ZWJ}█",
+        f"plum {_ZWJ}▀▄",
+    ),
+)
+def test_shape_runs_place_each_piece_where_cell_width_counts_it(text):
+    """Each piece starts on the column `cell_width` counts up to it.
+
+    `cell_width` counts the character after a zero width joiner in the cluster
+    before it. A shape cut out of that cluster would push the text after it a
+    cell past its column, onto the run the grid places next.
+    """
+    pieces = list(shape_runs(text, 0))
+    position = 0
+    for piece, column, _ in pieces:
+        index = text.index(piece, position)
+        assert column == cell_width(text[:index]), piece
+        position = index + len(piece)
+    last_piece, last_column, _ = pieces[-1]
+    assert last_column + cell_width(last_piece) == cell_width(text)
 
 
 _BRAILLE_DOT_PLACES = {
@@ -916,11 +974,12 @@ def test_shapes_stay_in_the_text():
 
 
 def test_no_committed_capture_draws_shapes_as_glyphs():
-    """Every committed capture draws its Block Elements and Braille as shapes.
+    """No committed capture draws Box Drawing, Block Elements or Braille as glyphs.
 
-    A capture written before the renderer did still shows a band between its
-    stacked rows of block art, or Braille wider than its column. Rewrite it the
-    way its page documents: a recording, by deleting it and building again.
+    A capture written before the renderer did still shows a seam at the joins of
+    its box drawing, a band between its stacked rows of block art, or Braille
+    wider than its column. Rewrite it the way its page documents: a recording, by
+    deleting it and building again.
     """
     for path in sorted(ASSETS.glob("*.svg")):
         svg = path.read_text(encoding="UTF-8")
@@ -2978,6 +3037,21 @@ def test_render_html_draws_shapes():
     assert shaped == "▀▄█▀▀░⠋"
     (two_tone,) = (span for span in _SPAN_RE.finditer(html) if span["text"] == "▀▀")
     assert "color: #ffffff; background-color: #000080; " in two_tone["css"]
+
+
+def test_render_html_keeps_a_joined_shape_in_its_cluster():
+    """A shape after a zero width joiner stays in the text, as in an SVG capture."""
+    text = f"x{_ZWJ}█ab ▀"
+    html = render(
+        text, format=CaptureFormat.HTML, full=False, chrome=Chrome(watermark="")
+    )
+    assert html_to_text(html) == text
+    shaped = [
+        span["text"]
+        for span in _SPAN_RE.finditer(html)
+        if "display: inline-block" in span["css"]
+    ]
+    assert shaped == ["▀"]
 
 
 @pytest.mark.parametrize(

@@ -40,9 +40,7 @@ Projects then set that option instead of the class.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from .tables import STATIC_DIR
+from .tables import _write_static_file
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -123,17 +121,13 @@ STYLESHEET = "click-extra-tabs.css"
 def add_vertical_tabs(app: Sphinx) -> None:
     """Write {data}`VERTICAL_TABS_CSS` into the build and link it from each page.
 
-    The file goes to the folder {func}`click_extra.sphinx.tables.add_stylesheet`
-    writes to, which is listed in `html_static_path` once. Only an HTML builder
-    serves it, so other builders skip it.
+    The file goes to the static folder of the extension (see
+    `click_extra.sphinx.tables._write_static_file`). Only an HTML builder serves
+    it, so other builders skip it.
     """
     if app.builder.format != "html":
         return
-    static_dir = Path(app.outdir) / STATIC_DIR
-    static_dir.mkdir(parents=True, exist_ok=True)
-    (static_dir / STYLESHEET).write_text(VERTICAL_TABS_CSS, encoding="UTF-8")
-    if str(static_dir) not in app.config.html_static_path:
-        app.config.html_static_path.append(str(static_dir))
+    _write_static_file(app, STYLESHEET, VERTICAL_TABS_CSS)
     app.add_css_file(STYLESHEET)
 
 

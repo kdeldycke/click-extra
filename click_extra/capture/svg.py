@@ -65,13 +65,16 @@ from .presets import (
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator, Sequence
-    from typing import Any, Literal, TypeAlias
+    from typing import Any, Literal, TypeAlias, TypeVar
 
     from ..styling import Style
     from .presets import Chrome
 
     THold: TypeAlias = float | Literal["auto"]
     """Pause an animation takes on its last frame, see {data}`AUTO_HOLD`."""
+
+    _Edge = TypeVar("_Edge", int, float)
+    """Where a span starts or ends, see {func}`_extend_spans`."""
 
 
 TITLEBAR_HEIGHT = 40
@@ -638,13 +641,13 @@ _NON_IDENTIFIER_RE = re.compile(r"[^A-Za-z0-9_-]+")
 """Characters a CSS class name cannot carry, as written into `unique_id`."""
 
 
-_TILE_RE = re.compile(r"[─-╿]")
-"""A Box Drawing character, which {func}`_tile_runs` cuts text at.
+_TILE_RE = re.compile(r"[─-▟]")
+"""A Box Drawing or Block Elements character, which {func}`_tile_runs` cuts text at.
 
-These are not letters, they are tiles: a table's rule and a tree's elbow are
-drawn by butting them edge to edge, and a fraction of a pixel of drift between
-two of them shows as a seam or a kink. A capture draws them as shapes, see
-{data}`BOX_ARMS`.
+These are not letters, they are tiles: a table's rule, a tree's elbow and a
+gradient's bar are drawn by butting them edge to edge, and a fraction of a pixel
+of drift between two of them shows as a seam or a kink. A capture draws them as
+shapes, see {data}`BOX_ARMS` and {data}`BLOCK_ELEMENTS`.
 """
 
 
@@ -656,11 +659,19 @@ source would read as a space.
 """
 
 
-_SHAPED_RE = re.compile(f"[─-▟{chr(_BRAILLE_BASE)}-{chr(_BRAILLE_BASE + 0xFF)}]+")
+_SHAPED_RE = re.compile(
+    r"(?<!\N{ZERO WIDTH JOINER})"
+    f"[─-▟{chr(_BRAILLE_BASE)}-{chr(_BRAILLE_BASE + 0xFF)}]+"
+)
 """A run of characters drawn as shapes: Box Drawing, Block Elements and Braille.
 
 The first two blocks are contiguous, from U+2500 to U+259F. {func}`shape_svg`
 draws them.
+
+A run never opens on the character after a zero width joiner, which
+{func}`~click_extra.layout.cell_width` counts in the cluster before it. Cut out
+as a shape, it would push the text after it a cell past its column, so it stays
+in the cluster's text.
 """
 
 
@@ -1360,8 +1371,8 @@ def _tile_runs(text: str, column: int) -> Iterator[tuple[str, int]]:
     """Break a column's text into pieces, each to be drawn as one element.
 
     Served as the deprecated `tile_runs` until `11.0.0`, see
-    {data}`_DEPRECATED_NAMES`: a capture draws Box Drawing as shapes, which
-    leaves no tile among its glyphs.
+    {data}`_DEPRECATED_NAMES`: a capture draws Box Drawing and Block Elements as
+    shapes, which leaves no tile among its glyphs.
 
     Ordinary text is one piece: the renderer lays it out and `textLength` holds
     the result to the width it occupies.
@@ -1418,9 +1429,9 @@ def glyph_offsets(text: str, column: int) -> str:
 def shape_runs(text: str, column: int) -> Iterator[tuple[str, int, bool]]:
     """Cut a column's text into its runs of shapes and the text between.
 
-    A run of Block Elements and Braille patterns is drawn as shapes by
-    {func}`shape_svg`, and the text between as glyphs. That text is trimmed of
-    the blanks at either end, which its offset pays for instead, as
+    A run of Box Drawing, Block Elements and Braille patterns is drawn as shapes
+    by {func}`shape_svg`, and the text between as glyphs. That text is trimmed
+    of the blanks at either end, which its offset pays for instead, as
     {func}`column_segments` does for a column.
 
     :param text: the column's text.
@@ -1443,6 +1454,18 @@ def shape_runs(text: str, column: int) -> Iterator[tuple[str, int, bool]]:
         yield found.group(), column, True
         column += cell_width(found.group())
         position = found.end()
+
+
+def _extend_spans(spans: list[list[_Edge]], start: _Edge, end: _Edge) -> None:
+    """Add the span from `start` to `end` to `spans`, which arrive sorted by start.
+
+    A span reaching the last one, or overlapping it, merges into it, so a line
+    running on across cells is one shape.
+    """
+    if spans and spans[-1][1] >= start:
+        spans[-1][1] = max(spans[-1][1], end)
+    else:
+        spans.append([start, end])
 
 
 def block_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
@@ -1470,11 +1493,11 @@ def block_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
         paint = ink if density is None else blend(ink, paper, 1 - density)
         origin = (column + offset) * 8
         for left, upper, right, lower in BLOCK_ELEMENTS[char]:
-            spans = bands.setdefault((upper, lower, paint), [])
-            if spans and spans[-1][1] == origin + left:
-                spans[-1][1] = origin + right
-            else:
-                spans.append([origin + left, origin + right])
+            _extend_spans(
+                bands.setdefault((upper, lower, paint), []),
+                origin + left,
+                origin + right,
+            )
     shapes: list[str] = []
     for (upper, lower, paint), spans in bands.items():
         height = (lower - upper) * LINE_HEIGHT / 8
@@ -1494,7 +1517,7 @@ def block_svg(text: str, column: int, top: float, ink: str, paper: str) -> str:
 
 
 def _shape_kind(char: str) -> str:
-    """Which drawer draws a character of {data}`_SHAPED_RE`: `box`, `block` or `braille`."""
+    """The drawer of a {data}`_SHAPED_RE` character: `box`, `block` or `braille`."""
     if ord(char) >= _BRAILLE_BASE:
         return "braille"
     return "block" if char in BLOCK_ELEMENTS else "box"
@@ -1510,6 +1533,19 @@ def braille_dots(char: str) -> tuple[tuple[int, int], ...]:
     return tuple(dot for index, dot in enumerate(BRAILLE_DOTS) if bits >> index & 1)
 
 
+def _braille_centers(char: str) -> tuple[tuple[float, float], ...]:
+    """Where the dots a Braille pattern raises are centered on its cell.
+
+    Each dot sits in the middle of its place on the grid of {data}`BRAILLE_DOTS`.
+    {func}`braille_svg` and {func}`~click_extra.capture.html.braille_css` both
+    draw them there.
+
+    :param char: a Braille pattern, from U+2800 to U+28FF.
+    :return: each raised dot's center, as shares of the cell's width and height.
+    """
+    return tuple(((2 * x + 1) / 4, (2 * y + 1) / 8) for x, y in braille_dots(char))
+
+
 def braille_svg(text: str, column: int, top: float, ink: str) -> str:
     """Draw a run of Braille patterns as the dots they raise.
 
@@ -1521,10 +1557,10 @@ def braille_svg(text: str, column: int, top: float, ink: str) -> str:
     """
     radius = _svg_number(BRAILLE_DOT_RADIUS * CELL_WIDTH / 2)
     dots = "".join(
-        f'<circle cx="{_svg_number((column + offset + (2 * x + 1) / 4) * CELL_WIDTH)}" '
-        f'cy="{_svg_number(top + (2 * y + 1) * LINE_HEIGHT / 8)}" r="{radius}"/>'
+        f'<circle cx="{_svg_number((column + offset + across) * CELL_WIDTH)}" '
+        f'cy="{_svg_number(top + down * LINE_HEIGHT)}" r="{radius}"/>'
         for offset, char in enumerate(text)
-        for x, y in braille_dots(char)
+        for across, down in _braille_centers(char)
     )
     return f'<g fill="{ink}">{dots}</g>' if dots else ""
 
@@ -1624,16 +1660,12 @@ def box_strokes(char: str) -> tuple[tuple[bool, float, float, float, float], ...
             lines.setdefault((vertical, low, high), []).append(
                 [reach, length] if from_end else [0, reach]
             )
-    merged = []
+    merged: list[tuple[bool, float, float, float, float]] = []
     for (vertical, low, high), extents in lines.items():
-        extents.sort()
-        start, end = extents[0]
-        for next_start, next_end in extents[1:]:
-            if next_start > end:
-                merged.append((vertical, low, high, start, end))
-                start = next_start
-            end = max(end, next_end)
-        merged.append((vertical, low, high, start, end))
+        joined: list[list[int]] = []
+        for start, end in sorted(extents):
+            _extend_spans(joined, start, end)
+        merged.extend((vertical, low, high, start, end) for start, end in joined)
     return tuple(sorted(merged))
 
 
@@ -1654,6 +1686,8 @@ def box_svg(text: str, column: int, top: float, ink: str) -> str:
     """
     across = CELL_WIDTH / 16
     down = LINE_HEIGHT / 32
+    # A curve is drawn as thick as a light stroke.
+    (light,) = BOX_STROKES[1]
     shapes: list[str] = []
     rules: dict[tuple[float, float], list[list[float]]] = {}
     for offset, char in enumerate(text):
@@ -1664,7 +1698,8 @@ def box_svg(text: str, column: int, top: float, ink: str) -> str:
                 f'<path transform="translate('
                 f"{_svg_number((column + offset) * CELL_WIDTH)},{_svg_number(top)}) "
                 f'scale({across:g},{down:g})" d="{curve}" fill="none" '
-                f'stroke="{ink}" stroke-width="2" stroke-linecap="square"/>'
+                f'stroke="{ink}" stroke-width="{light[1] - light[0]}" '
+                'stroke-linecap="square"/>'
             )
             continue
         for vertical, low, high, start, end in box_strokes(char):
@@ -1682,11 +1717,9 @@ def box_svg(text: str, column: int, top: float, ink: str) -> str:
                     )
                 )
                 continue
-            spans = rules.setdefault((low, high), [])
-            if spans and spans[-1][1] >= origin + start:
-                spans[-1][1] = max(spans[-1][1], origin + end)
-            else:
-                spans.append([origin + start, origin + end])
+            _extend_spans(
+                rules.setdefault((low, high), []), origin + start, origin + end
+            )
     shapes.extend(
         _row_rect(
             ink,
@@ -2852,9 +2885,9 @@ _DEPRECATED_NAMES = {
 }
 """Names a capture no longer uses, each with the private one holding its value.
 
-{func}`box_svg` draws Box Drawing as shapes, which leaves no tile among a
-capture's glyphs for {func}`_tile_runs` to cut. `__getattr__` serves each old
-name until {data}`_REMOVAL_VERSION`.
+{func}`shape_svg` draws Box Drawing and Block Elements as shapes, which leaves no
+tile among a capture's glyphs for {func}`_tile_runs` to cut. `__getattr__` serves
+each old name until {data}`_REMOVAL_VERSION`.
 """
 
 

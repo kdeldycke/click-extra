@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [vertical tab-sets](#vertical-tab-sets), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the [`matrix` directive](python-directives.md#the-matrix-directive), [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [vertical tab-sets](#vertical-tab-sets), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -52,7 +52,7 @@ The risk profile is identical to other build-time-execution extensions like `jup
 click_extra_enable_exec_directives = True
 ```
 
-Without it, `click:source`, `click:run`, `python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` are not registered with Sphinx. Documents that reference them get an "Unknown directive" warning and the directive body is never executed. This way a transitive import of `click_extra.sphinx`, or a maintainer who installs the extension purely for ANSI-aware code blocks, cannot be tricked into running attacker-supplied Python by a doc-only pull request.
+Without it, `click:source`, `click:run`, `click:tree`, `click:config`, `python:source`, `python:run`, `python:render`, `python:render-myst`, and `python:render-rst` are not registered with Sphinx. Documents that reference them get an "Unknown directive" warning and the directive body is never executed. This way a transitive import of `click_extra.sphinx`, or a maintainer who installs the extension purely for ANSI-aware code blocks, cannot be tricked into running attacker-supplied Python by a doc-only pull request.
 ````
 
 ```{tip}
@@ -68,16 +68,18 @@ Using MkDocs instead of Sphinx? See the [MkDocs integration](mkdocs.md).
 
 ## `click:*` directives
 
-Click Extra adds two new directives:
+Click Extra adds four directives:
 
-| Directive      | Purpose                                                                                            |
-| -------------- | -------------------------------------------------------------------------------------------------- |
-| `click:source` | Define and show the source code of a Click CLI in Sphinx.                                          |
-| `click:run`    | Invoke the CLI defined above, and display the results as if it was executed in a terminal session. |
+| Directive      | Purpose                                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `click:source` | Define and show the source code of a Click CLI in Sphinx.                                                                     |
+| `click:run`    | Invoke the CLI defined above, and display the results as if it was executed in a terminal session.                            |
+| `click:tree`   | Expand a Click group into a [reference page](#cli-reference-tree): a summary table, then the `--help` screen of each command. |
+| `click:config` | Document the [configuration schema](#configuration-reference) of a CLI: a summary table, then one section per option.         |
 
 Thanks to these, you can directly demonstrate the usage of your CLI in your documentation: the outputs stay in sync with the latest revision.
 
-These directives support both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax.
+`click:source` and `click:run` support both [MyST Markdown](https://myst-parser.readthedocs.io) and [reStructuredText](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html) syntax. `click:tree` and `click:config` support MyST only.
 
 ### Usage
 
@@ -472,7 +474,7 @@ Inside these pages a `click:run` block renders live, so none of them needs a scr
 
 - `:screenshot-preset:` draws the capture as a named terminal, from its window decorations down to the sigil its shell prompts with. A block naming none falls back to the `click_extra_screenshot_preset` `conf.py` value, so a project drawing every capture as the same desktop states it once. See [terminal presets](screenshots.md#terminal-presets).
 
-- `:screenshot-watermark:` credits the image in its bottom-right corner, with `:screenshot-watermark-color:` for the ink. Unlike the `screenshot` command, which credits click-extra on every image it writes, a block draws none unless asked: its image is rewritten and committed on every build, so a mark naming a release would rewrite every asset the day that release changes. `click_extra_screenshot_watermark` in `conf.py` turns it on for the whole project. See [the credit line](screenshots.md#the-credit-line).
+- `:screenshot-watermark:` credits the image in its bottom-right corner, with `:screenshot-watermark-color:` for the ink. Unlike the `screenshot` command, which credits click-extra on every image it writes, a block draws none unless asked: the page around it already says what drew it. `click_extra_screenshot_watermark` in `conf.py` turns it on for the whole project. See [the credit line](screenshots.md#the-credit-line).
 
 - `:screenshot-background: light` draws the capture on white chrome, with the ANSI palette to match, for a block rendering a light-background theme. Defaults to `dark`, what a terminal and this package's default theme both look like. Only the image answers to it: the page's own results block is styled by the site's stylesheet and follows the reader's theme either way. See [light and dark chrome](screenshots.md#light-and-dark-chrome) for the CLI-side flag.
 
@@ -704,7 +706,7 @@ Loaded Extensions
 
 (...)
 * myst_parser (5.1.0)
-* click_extra.sphinx (10.1.0)
+* click_extra.sphinx (10.1.1)
 
 Traceback
 =========

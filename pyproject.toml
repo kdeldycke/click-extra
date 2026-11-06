@@ -850,8 +850,8 @@ test-matrix.full-include = [
   { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "main", cloup-version = "master", state = "unstable" },
   { os = "ubuntu-26.04-arm", python-version = "3.15t", click-version = "main", cloup-version = "master", state = "unstable" },
 ]
-# The suite also checks docs/ and readme.md: test_docs_directives,
-# test_docs_anchors and test_sphinx_crossrefs read them. This list replaces the
+# The suite also checks docs/ and readme.md: the test_docs_* modules,
+# test_readme and test_sphinx_crossrefs read them. This list replaces the
 # canonical filter of tests.yaml, so a change to those files runs the tests too.
 workflow.paths."tests.yaml" = [
   "click_extra/**",

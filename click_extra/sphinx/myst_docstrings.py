@@ -152,11 +152,11 @@ _DOUBLE_SPAN_RE = re.compile(r"(?<!`)``(?!`)((?:[^`\n]|(?<!`)`(?!`))+?)(?<!`)``(
 # The single pass is what keeps a code span whole. Its opening backtick comes
 # before anything it holds, so the span is consumed before the scan reaches a
 # role-shaped word inside it, like the `:keep-stems:` of `` `:keep-stems:` ``
-# or of `` `basket :keep-stems:` ``. Read as a role, that word would take
-# the span's closing backtick as the opening of its target,
-# and swallow everything up to the next backtick, a line below if need be: the
-# span and the one after it would mispair. The role alternative cannot stop at
-# a line end instead, since the target of a real role can wrap.
+# or of `` `basket :keep-stems:` ``. Read as a role, that word would take the
+# span's closing backtick as the opening of its target, and swallow everything
+# up to the next backtick, a line below if need be: the span and the one after
+# it would mispair. The role alternative cannot stop at a line end instead,
+# since the target of a real role can wrap.
 # Adjacency stays safe the same way: when two converted roles abut with no
 # separator, the first role consumes the backtick that the code-span
 # alternative would otherwise claim as its opening delimiter.
@@ -342,6 +342,13 @@ def myst_to_rst(lines: list[str]) -> None:
     def _save(m: re.Match[str]) -> str:
         return _stash(m.group(0))
 
+    def _save_backtick_span(m: re.Match[str]) -> str:
+        # The padding that lets a MyST span start or end on a backtick goes:
+        # reST allows no space next to the delimiters of a literal.
+        if "`" not in m.group(1):
+            return m.group(0)
+        return _stash(f"``{m.group(1).strip()}``")
+
     def _convert_span(m: re.Match[str]) -> str:
         # A code span (group 1) is doubled in place. A role or a hyperlink
         # reference is kept verbatim behind a placeholder.
@@ -352,13 +359,6 @@ def myst_to_rst(lines: list[str]) -> None:
     # 0. Protect the content of code blocks from every following step. It is
     # code, so a backtick, a role or a link in it is kept as written.
     text = "\n".join(_protect_code(text.split("\n"), _stash))
-
-    def _save_backtick_span(m: re.Match[str]) -> str:
-        # The padding that lets a MyST span start or end on a backtick goes:
-        # reST allows no space next to the delimiters of a literal.
-        if "`" not in m.group(1):
-            return m.group(0)
-        return _stash(f"``{m.group(1).strip()}``")
 
     # 1. Protect double-backtick literals from every following step. Their
     # content is verbatim by definition. The single backticks of a MyST span
