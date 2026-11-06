@@ -375,13 +375,16 @@ either takes a class of reader with it.
 """
 
 
-HIDDEN_GLYPH_ATTRIBUTES = ' fill-opacity="0"'
+HIDDEN_GLYPH_ATTRIBUTES = ' opacity="0"'
 """How a run drawn as shapes keeps its characters without painting them.
 
 Kept as text, the characters still reach a reader copying the capture's text,
-and whatever rebuilds the terminal's lines from it. `fill-opacity` rather than
-`fill`: the run's class sets `fill` in the stylesheet, which outranks a
-presentation attribute, and sets no `fill-opacity`.
+and whatever rebuilds the terminal's lines from it.
+
+`opacity`, because every reader honors it, see {data}`HIDDEN_FRAME_ATTRIBUTES`.
+`fill` would lose to the run's class, which sets it in the stylesheet, and
+AppKit's `NSImage` ignores `fill-opacity` on text: macOS Finder's preview pane
+and a git client's SVG diff view then draw each glyph over its own shapes.
 """
 
 
