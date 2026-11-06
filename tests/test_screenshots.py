@@ -47,7 +47,7 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, style, unstyle
-from click_extra.capture.html import render_html
+from click_extra.capture.html import LINE_SPACING, block_css, render_html
 from click_extra.capture.presets import (
     BARE_CHROME,
     CAPTURE_BORDERS,
@@ -105,6 +105,7 @@ from click_extra.capture.svg import (
     TITLEBAR_HEIGHT,
     WATERMARK_INSET,
     WATERMARK_URL,
+    _split_arguments,
     auto_hold,
     blend,
     blink_css,
@@ -2636,6 +2637,75 @@ def test_render_html_quotes_survive_the_style_attribute():
     opening = fragment[: fragment.index(">") + 1]
     assert opening.count('"') == 2, f"unbalanced quoting: {opening}"
     assert "monospace" in opening
+
+
+_SPAN_RE = re.compile(r'<span style="(?P<css>[^"]*)">(?P<text>[^<]*)</span>')
+"""One styled run of an HTML capture, with its inline declarations."""
+
+
+def css_rects(declarations: str) -> set[tuple[int, int, int, int]]:
+    """The rectangles a {func}`~click_extra.capture.html.block_css` box paints.
+
+    Read back off its background layers, in eighths of a cell, the unit of
+    {data}`~click_extra.capture.svg.BLOCK_ELEMENTS`.
+    """
+    css = dict(part.split(": ", 1) for part in declarations.split("; "))
+    layers = zip(
+        _split_arguments(css["background-image"]),
+        _split_arguments(css["background-size"]),
+        _split_arguments(css["background-position"]),
+    )
+    rects = set()
+    for image, size, position in layers:
+        stops = _split_arguments(image.removeprefix("linear-gradient(")[:-1])
+        if stops[0] == "90deg":
+            left = round(float(stops[1].rsplit(" ", 1)[1][:-1]) * 8 / 100)
+            right = round(float(stops[3].rsplit(" ", 1)[1][:-1]) * 8 / 100)
+        else:
+            left, right = 0, 8
+        height = float(size.split()[1].removesuffix("em"))
+        top = float(position.split()[1].removesuffix("em"))
+        upper = round(top / LINE_SPACING * 8)
+        rects.add((left, upper, right, upper + round(height / LINE_SPACING * 8)))
+    return rects
+
+
+@pytest.mark.parametrize("char", tuple(BLOCK_ELEMENTS))
+def test_block_css_paints_the_shape_of_its_character(char):
+    """The CSS of a block element paints the rectangles its shape names."""
+    declarations = block_css(char, 3)
+    assert css_rects(declarations) == set(BLOCK_ELEMENTS[char])
+    assert "width: 3ch" in declarations
+    assert f"height: {LINE_SPACING:g}em" in declarations
+    if char in SHADE_DENSITY:
+        assert f"currentColor {SHADE_DENSITY[char]:.0%}" in declarations
+
+
+def test_render_html_draws_blocks_as_shapes():
+    """Every block element sits in a box drawing it, whatever its run's style.
+
+    Its glyphs stay in the text, so the capture still reads back as the terminal
+    text, and the run keeps the colors it came with.
+    """
+    text = (
+        "▀▄█ apple\n"
+        + style("▀▀", fg=(255, 255, 255), bg=(0, 0, 128))
+        + style(" pear ░", fg="green")
+    )
+    html = render(
+        text, format=CaptureFormat.HTML, full=False, chrome=Chrome(watermark="")
+    )
+    assert html_to_text(html) == unstyle(text)
+    assert f"line-height: {LINE_SPACING:g};" in html
+    shaped = "".join(
+        span["text"]
+        for span in _SPAN_RE.finditer(html)
+        if "display: inline-block" in span["css"]
+        and "-webkit-text-fill-color: transparent" in span["css"]
+    )
+    assert shaped == "▀▄█▀▀░"
+    (two_tone,) = (span for span in _SPAN_RE.finditer(html) if span["text"] == "▀▀")
+    assert "color: #ffffff; background-color: #000080; " in two_tone["css"]
 
 
 @pytest.mark.parametrize(

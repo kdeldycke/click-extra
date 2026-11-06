@@ -695,7 +695,7 @@ Right-to-left scripts are the case cell arithmetic cannot settle. Arabic and Heb
 
 Box-drawing characters are not letters but *tiles*: a table's rule and a tree's elbow are drawn by butting them edge to edge. They are emitted in short groups, each landing on a stated offset, so a font drawing them a fraction of a pixel off the grid cannot accumulate that error across a rule and leave the table's corners missing their own border. What remains is whether two adjacent tiles *join* cleanly, which is the font's business and no renderer's: that one is [`rich#2536`](https://github.com/Textualize/rich/issues/2536), where the answer upstream is that it would take replacing the characters with drawn shapes.
 
-Block elements, from `▀` to `▟`, are drawn that way: each is the rectangles it names, filling its share of the cell, as terminals draw them. A font draws them shorter than a capture's row, so as glyphs, two stacked rows of block art would leave a band of background between them. The characters stay in the text, unpainted, so copying a capture's text still returns them. See {data}`click_extra.capture.svg.BLOCK_ELEMENTS`.
+Block elements, from `▀` to `▟`, are drawn that way: each is the rectangles it names, filling its share of the cell, as terminals draw them. A font draws them shorter than a capture's row, so as glyphs, two stacked rows of block art would leave a band of background between them. An SVG capture draws the rectangles as shapes, an HTML capture as CSS backgrounds. The characters stay in the text, unpainted, so copying a capture's text still returns them. See {data}`click_extra.capture.svg.BLOCK_ELEMENTS`.
 ```
 
 ## Animate a capture

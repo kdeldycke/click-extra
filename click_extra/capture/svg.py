@@ -275,7 +275,8 @@ BLOCK_ELEMENTS = {
 
 Each rectangle is `(left, top, right, bottom)`, counted in eighths of the cell
 from its top-left corner: `▁`, the lower one eighth, is the finest step these
-characters take. {func}`block_svg` draws the rectangles in place of the glyphs.
+characters take. {func}`block_svg` draws the rectangles in place of the glyphs,
+and {func}`~click_extra.capture.html.block_css` does in an HTML capture.
 
 A font draws these characters to its own height, not to the row's. SF Mono
 `15.0d5e1` draws `█` exactly one em tall and Menlo `22.0d2e1` 1.02 em, while a
