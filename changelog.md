@@ -1,5 +1,10 @@
 # Changelog
 
+## [`10.2.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.2.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`10.2.0` (2026-11-06)](https://github.com/kdeldycke/click-extra/compare/v10.1.1...v10.2.0)
 
 - **Deprecated:** `tile_runs()` and `TILE_RUN` of `click_extra.capture.svg`, which captures no longer use, now warn and stop resolving in `11.0.0`.
