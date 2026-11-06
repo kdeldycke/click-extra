@@ -34,7 +34,7 @@ assert "Usage:" in result.output
 
 ````{tab-item} Specific version
 ```shell-session
-$ uvx click-extra@10.1.1
+$ uvx click-extra@10.2.0
 ```
 ````
 
