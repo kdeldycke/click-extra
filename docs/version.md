@@ -596,6 +596,15 @@ assert re.fullmatch((
 
 The message is a plain string, built when the decorator runs, so any other fact joins it the same way: from the standard library's [`platform`](https://docs.python.org/3/library/platform.html) module, or from anywhere else. The [version screen](#version-screen) seats the same two facts beside a logo.
 
+```{todo}
+Regroup the bug report helpers of [kdeldycke/mail-deduplicate](https://github.com/kdeldycke/mail-deduplicate) and [kdeldycke/meta-package-manager](https://github.com/kdeldycke/meta-package-manager) in Click Extra, so every CLI built on it invites a report the same way:
+
+- mail-deduplicate's [`report_url()` and `render_report()`](https://github.com/kdeldycke/mail-deduplicate/blob/ab443f1eb0dff6f528ce5aef092e3ca7e62924a7/mail_deduplicate/bug_report.py#L777-L815) print the link to a pre-filled issue form, a block to paste between `8<` markers, and a caution for an AI agent.
+- meta-package-manager's [`_build_issue_url()`](https://github.com/kdeldycke/meta-package-manager/blob/6a6e12ddc367b8c97d729601a15238cbe3b6f503/meta_package_manager/config.py#L300) pre-fills an issue from a user override, and its [`override_experiment()`](https://github.com/kdeldycke/meta-package-manager/blob/6a6e12ddc367b8c97d729601a15238cbe3b6f503/meta_package_manager/config.py#L427) suggests the override to test when the CLI cannot use a tool.
+
+Each project then keeps only the content of its own reports: the mail fingerprint, the override table.
+```
+
 ## Version screen
 
 `--version` can draw a screen instead of a line: a logo, with the facts worth pasting into a bug report seated beside it. Click Extra's own CLI does it, and the machinery is yours to point at any artwork.
