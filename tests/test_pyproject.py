@@ -45,6 +45,9 @@ SENTINELS = ("released", "stable", "main")
 release, and Click's ``stable`` and ``main`` development branches. Everything
 else in the axis is a pinned release number."""
 
+UV_LOCK = PYPROJECT.parent / "uv.lock"
+"""Path to the project's ``uv.lock``, which holds the Click ``released`` cells run."""
+
 
 def load_click_matrix() -> tuple[SpecifierSet, list[str], set[str]]:
     """Read the Click setup from ``pyproject.toml``.
@@ -93,6 +96,21 @@ def stable_pypi_versions(package: str) -> set[Version]:
     return versions
 
 
+def locked_versions(package: str) -> set[str]:
+    """Return the versions of ``package`` that ``uv.lock`` pins.
+
+    A ``released`` cell installs from the lock with ``uv run --frozen``, so it runs
+    this version, not the newest one on PyPI: the cooldown keeps a new release out
+    of the lock for a week.
+    """
+    lock = tomllib.loads(UV_LOCK.read_text(encoding="UTF-8"))
+    return {
+        str(Version(entry["version"]))
+        for entry in lock["package"]
+        if entry["name"] == package
+    }
+
+
 @pytest.mark.once
 def test_click_floor_is_pinned_and_sentinels_present():
     """The matrix floor stays in sync with the dependency floor (hermetic).
@@ -132,11 +150,11 @@ def test_click_matrix_matches_authorized_releases():
     """The pinned releases match exactly the Click releases the specifier allows.
 
     Every release allowed by the ``click`` specifier must be referenced in the
-    matrix: the newest through the ``released`` sentinel, every earlier one by an
-    explicit pin. This asserts the set equality in both directions:
+    matrix: the locked one through the ``released`` sentinel, every other one by
+    an explicit pin. This asserts the set equality in both directions:
 
-    - a **missing** pin means Click published a release the matrix has not caught
-      up to (the previous newest is no longer covered by ``released``);
+    - a **missing** pin means a Click release that no cell runs, like a new
+      release that the cooldown still keeps out of ``uv.lock``;
     - a **stale** pin means a pinned version is no longer an authorized release
       (the floor was raised past it, or the release was yanked).
 
@@ -156,9 +174,9 @@ def test_click_matrix_matches_authorized_releases():
     assert authorized, f"No Click release satisfies {specifier}."
     authorized_strings = {str(v) for v in authorized}
 
-    # The newest authorized release is exercised through the `released` sentinel;
-    # every earlier release must be pinned explicitly.
-    covered = {str(authorized[-1])} if "released" in variations else set()
+    # The `released` sentinel runs the locked release; every other authorized
+    # release must be pinned explicitly.
+    covered = locked_versions("click") if "released" in variations else set()
     required = authorized_strings - covered
 
     missing = required - pinned
@@ -166,9 +184,10 @@ def test_click_matrix_matches_authorized_releases():
     assert not (missing or stale), "\n".join(
         message
         for message in (
-            f"Pin these new Click releases as test-matrix.full-include rows: "
-            f"{sorted(missing, key=Version)} (and re-check which release `released` "
-            f"now covers)."
+            f"No cell runs these Click releases: {sorted(missing, key=Version)}. "
+            f"The `released` cells run the {sorted(covered, key=Version)} of uv.lock: "
+            "lock the newest release, or pin the others as test-matrix.full-include "
+            "rows."
             if missing
             else "",
             f"Drop these stale pins, no longer authorized by `click{specifier}`: "
