@@ -1500,7 +1500,7 @@ class HelpCommand(_InjectedCommand):
             # Check each parameter.
             for param in sub_cmd.get_params(sub_ctx):
                 opts_str = " / ".join(param.opts)
-                help_str = getattr(param, "help", None) or ""
+                help_str = param.help or ""
                 combined = f"{opts_str}  {help_str}".strip()
                 if term_lower in combined.lower():
                     results.append((cmd_path, combined))

@@ -28,7 +28,6 @@ from __future__ import annotations
 import inspect
 import logging
 import re
-from contextlib import nullcontext
 from enum import Enum
 from functools import cache, cached_property, reduce
 from itertools import chain
@@ -41,10 +40,7 @@ from click import ParamType, get_current_context
 from click.core import _format_deprecated_label
 
 from . import context
-
-# Imported under a private name so this module does not offer a second public
-# spelling of the helper: its canonical home is click_extra._utils.
-from ._utils import patch_attr as _patch_attr, set_nested
+from ._utils import set_nested
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -243,9 +239,8 @@ def resolve_param_help(param: click.Parameter, ctx: click.Context) -> str | None
     backend of this module renders them (or deliberately does not) from
     structured fields of its own.
     """
-    help_text = getattr(param, "help", None)
-    if help_text:
-        return str(help_text)
+    if param.help:
+        return param.help
 
     record = param.get_help_record(ctx)
     if not record:
@@ -618,25 +613,12 @@ def _python_type_of(
 def get_param_spec(param: click.Parameter, ctx: click.Context) -> str | None:
     """Extract the option-spec string (like `-v, --verbose`) from a parameter.
 
-    Temporarily unhides hidden options so their help record can be produced.
-
-    ```{note}
-    The `hidden` property is only supported by `Option`, not `Argument`.
-    ```
-
-    ```{todo}
-    Upstream [pallets/click#3821](https://github.com/pallets/click/pull/3821)
-    splits the spec half of `Option.get_help_record()` into its own
-    `get_help_spec()` method, which returns it even for hidden options.
-    Once a Click release ships it, drop the monkey-patching below and call
-    that method directly.
-    ```
+    A hidden option has one too: `click.Option.get_help_spec()` ignores
+    `hidden`. An argument has no spec, so it gets `None`.
     """
-    if not hasattr(param, "hidden"):
+    if not isinstance(param, click.Option):
         return None
-    with _patch_attr(param, "hidden", False) if param.hidden else nullcontext():
-        help_record = param.get_help_record(ctx)
-        return help_record[0] if help_record else None
+    return param.get_help_spec(ctx)
 
 
 def make_resilient_context(

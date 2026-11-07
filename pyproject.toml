@@ -83,10 +83,10 @@ classifiers = [
 # - aligns minimal Python requirements to ours,
 # - adds new explicit support Python version.
 dependencies = [
-  # Click 8.5.0 adds `custom_version_option`, which the package root re-exports,
-  # and makes `ProgressBar.render_finish()` apply pending steps
-  # (pallets/click#3769), which progress.progressbar() relies on.
-  "click>=8.5",
+  # Click 8.5.1 adds `Option.get_help_spec()` (pallets/click#3821), which
+  # `get_param_spec()` calls, and quotes each name of a tuple `envvar` in error
+  # hints (pallets/click#3884), the form Click Extra stores every `envvar` in.
+  "click>=8.5.1",
   # Cloup 4.0.0 hashes `Style` by value (janluke/cloup#224), builds the themes of
   # `HelpTheme` subclasses (janluke/cloup#225), and exports the `ArgumentKwargs`
   # and `OptionKwargs` the package root re-exports.
@@ -330,7 +330,9 @@ exclude-newer = "1 week"
 # extra-platforms is published by this repository's own maintainer: the cooldown
 # guards against a compromised upstream, which does not apply here, and it
 # otherwise holds each release back a week from the projects that consume it.
-exclude-newer-package = { extra-platforms = "2026-11-02T00:00:00Z" }
+# XXX The `click` entry lets the `click>=8.5.1` floor resolve inside its
+# cooldown: drop this comment once `sync-uv-lock` prunes the entry.
+exclude-newer-package = { click = "0 days", extra-platforms = "2026-11-02T00:00:00Z" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 build-backend.source-exclude = [
@@ -710,6 +712,8 @@ dependency-graph.all-groups = false
 # extra, so left in the graph it greedily claims all optional packages into a
 # single `--extra all` box and the per-extra subgraphs render empty.
 dependency-graph.no-extras = [ "all" ]
+# XXX Drop once `lint-deps` reports that this entry exempts nothing.
+lint-deps.allow.click = "Click 8.5.1 is on PyPI: only an install under a cooldown fails, until 2026-11-13."
 # Entries of the bundled `pytest.toml` and `ruff.toml` that `[tool.pytest]` and
 # `[tool.ruff]` leave out on purpose, each mapped to its reason: see § Test
 # suite specifics and § Heavy dependencies in AGENTS.md. `lint-repo` reports
@@ -834,9 +838,9 @@ test-matrix.full-include = [
   # The sdist the way a distribution builds it: unpacked outside the git
   # checkout, on the newest release of each dependency the cooldown admits.
   { os = "ubuntu-26.04-arm", python-version = "3.15", source = "sdist" },
-  # Every Click release the >=8.5.0 floor allows, except the one `released`
+  # Every Click release the >=8.5.1 floor allows, except the one `released`
   # covers, each on the floor Python 3.11.
-  { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.5.0" },
+  { os = "ubuntu-26.04-arm", python-version = "3.11", click-version = "8.5.1" },
   # Click's stable and main dev branches on released Cloup, latest Pythons.
   { os = "ubuntu-26.04-arm", python-version = "3.15", click-version = "stable", cloup-version = "released", state = "unstable" },
   { os = "ubuntu-26.04-arm", python-version = "3.15t", click-version = "stable", cloup-version = "released", state = "unstable" },

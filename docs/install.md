@@ -122,7 +122,7 @@ Arch Linux users install [`python-click-extra`](https://aur.archlinux.org/packag
 $ paru -S python-click-extra
 ```
 
-The package needs `python-click` `8.5.0` or newer. The `[extra]` repository ships that version.
+The package needs `python-click` `8.5.1` or newer.
 ````
 
 ````{tab-item} GNU Guix

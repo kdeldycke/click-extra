@@ -2504,8 +2504,8 @@ def test_option_deprecation_notice_names_its_flags(invoke):
 def test_option_error_hint_names_each_environment_variable(invoke, envvar, hint):
     """The hint of a failing option quotes each variable that feeds it.
 
-    Click formats the `envvar` attribute as is, which prints the `repr` of the
-    tuple Click Extra stores there.
+    Click Extra stores every `envvar` as a tuple, which the hint must not print
+    as its `repr`.
     """
 
     @command(context_settings={"show_envvar": True})
