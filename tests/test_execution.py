@@ -1215,18 +1215,20 @@ def test_run_cli_handles_an_interrupt_tripped_as_the_wait_began():
 
 
 @skip_windows
+# _KILL_SIGNAL, not signal.SIGKILL: these values are read as the module is
+# collected, and Windows, where the test skips, has no SIGKILL.
 @pytest.mark.parametrize(
     ("code", "stop_signals"),
     (
         pytest.param(
             "import time; time.sleep(30)",
-            (signal.SIGTERM, signal.SIGKILL),
+            (signal.SIGTERM, _KILL_SIGNAL),
             id="exits-on-sigterm",
         ),
         pytest.param(
             "import signal, time;"
             " signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(30)",
-            (signal.SIGKILL,),
+            (_KILL_SIGNAL,),
             id="ignores-sigterm",
         ),
     ),
