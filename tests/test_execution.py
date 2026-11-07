@@ -59,6 +59,7 @@ from click_extra.execution import (
     _LIVE_PROCESSES,
     _LIVE_PROCESSES_LOCK,
     PROMPT,
+    _TERMINATE_GRACE,
     _descendant_pids,
     _die_by_sigint,
     _escaped_process_groups,
@@ -1214,9 +1215,29 @@ def test_run_cli_handles_an_interrupt_tripped_as_the_wait_began():
 
 
 @skip_windows
-def test_run_cli_kill_survives_a_second_interrupt(monkeypatch):
-    """A Ctrl+C landing while the kill reads the process table waits for the
-    kill to land, so the child never outlives the interrupt."""
+@pytest.mark.parametrize(
+    ("code", "stop_signals"),
+    (
+        pytest.param(
+            "import time; time.sleep(30)",
+            (signal.SIGTERM, signal.SIGKILL),
+            id="exits-on-sigterm",
+        ),
+        pytest.param(
+            "import signal, time;"
+            " signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(30)",
+            (signal.SIGKILL,),
+            id="ignores-sigterm",
+        ),
+    ),
+)
+def test_run_cli_kill_survives_a_second_interrupt(monkeypatch, code, stop_signals):
+    """A Ctrl+C landing while the timeout reads the process table waits for the
+    signals to land, so the child never outlives the interrupt.
+
+    The timeout sends `SIGTERM` first, which a child may die of. A child ignoring
+    it dies of the `SIGKILL` that the interrupt brings forward.
+    """
     spawned: list[subprocess.Popen] = []
 
     class RecordingPopen(subprocess.Popen):
@@ -1233,11 +1254,12 @@ def test_run_cli_kill_survives_a_second_interrupt(monkeypatch):
     monkeypatch.setattr("click_extra.execution._posix_process_table", interrupted_table)
     try:
         with pytest.raises(KeyboardInterrupt):
-            run_cli((sys.executable, "-c", "import time; time.sleep(30)"), timeout=0.5)
-        # The child, spawned first, was killed despite the interrupt: it ends
+            # Long enough for the child to set its handler before the timeout.
+            run_cli((sys.executable, "-c", code), timeout=2)
+        # The child, spawned first, was stopped despite the interrupt: it ends
         # at once, where a surviving one would sleep through the wait.
         assert spawned
-        assert spawned[0].wait(timeout=5) == -signal.SIGKILL
+        assert -spawned[0].wait(timeout=5) in stop_signals
     finally:
         for process in spawned:
             if process.poll() is None:
@@ -1508,10 +1530,56 @@ def test_run_cli_timeout_kills_grandchildren_without_a_session(grandchild_sessio
     grandchild down, killed one PID at a time since no group can be signalled
     without hitting the test process too.
 
-    This is the shape an escalated call takes: `sudo` runs the command under a
-    monitor process, so killing `sudo` alone would leave the command running.
+    This is the shape of a shell script running commands of its own. An
+    escalated call has it too, but the command `sudo` runs as root is out of
+    reach of the per-PID kill: see `test_run_cli_timeout_sends_sigterm_first`.
     """
     _assert_timeout_reaps_grandchild(grandchild_session, start_new_session=False)
+
+
+@skip_windows
+def test_run_cli_timeout_sends_sigterm_first(tmp_path):
+    """A timed-out child gets `SIGTERM` before any `SIGKILL`, so it can clean up.
+
+    This is what stops an escalated command: `sudo` forwards a `SIGTERM` to the
+    command it runs as root, which a `SIGKILL` from the caller cannot reach.
+    """
+    marker = tmp_path / "terminated"
+    code = dedent("""\
+        import signal, sys, time
+        def stop(signum, frame):
+            open(sys.argv[1], "w").close()
+            sys.exit(0)
+        signal.signal(signal.SIGTERM, stop)
+        time.sleep(30)
+        """)
+    start = monotonic()
+    with pytest.raises(subprocess.TimeoutExpired):
+        run_cli((sys.executable, "-c", code, str(marker)), timeout=3)
+    assert marker.exists(), "the child got no SIGTERM before it died"
+    # It exited on the SIGTERM, before the grace ran out.
+    assert monotonic() - start < 3 + _TERMINATE_GRACE
+    assert not _LIVE_PROCESSES
+
+
+@skip_windows
+def test_run_cli_timeout_kills_a_child_ignoring_sigterm():
+    """A timed-out child ignoring `SIGTERM` is killed once the grace runs out."""
+    code = dedent("""\
+        import os, signal, time
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        print(f"pid={os.getpid()}", flush=True)
+        time.sleep(30)
+        """)
+    start = monotonic()
+    with pytest.raises(subprocess.TimeoutExpired) as excinfo:
+        run_cli((sys.executable, "-c", code), timeout=2)
+    elapsed = monotonic() - start
+    assert 2 + _TERMINATE_GRACE <= elapsed < 15
+    match = re.search(r"pid=(\d+)", excinfo.value.output or "")
+    assert match, "the child never reported its PID"
+    _assert_process_dies(int(match.group(1)))
+    assert not _LIVE_PROCESSES
 
 
 def test_descendant_pids_walks_the_whole_tree_deepest_first():

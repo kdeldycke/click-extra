@@ -532,11 +532,11 @@ def _kill_descendants(
     What a child sharing the caller's own process group gets instead of
     {func}`_kill_posix_process_group`, which cannot signal that group without
     hitting the caller too. Killing such a child leaves its own descendants
-    running: `sudo` runs the command under a monitor process whenever `use_pty`
-    is on, the upstream default since `1.9.14`, so a killed `sudo` leaves the
-    escalated command alive and holding whatever lock it took.
+    running, like the commands a shell script started.
 
-    A PID that is already gone, or owned by another user, is skipped.
+    A PID that is already gone, or owned by another user, is skipped. That
+    includes the command `sudo` runs as root: {func}`_stop_timed_out_process`
+    says how a timeout still stops it.
     """
     for pid in _descendant_pids(leader, table):
         try:
@@ -841,10 +841,10 @@ def _second_interrupt(signum: int, frame: FrameType | None) -> None:
 
 
 _TERMINATE_GRACE: Final = 3.0
-"""Seconds an interrupted CLI gives the children of {func}`run_cli` to exit.
+"""Seconds a child of {func}`run_cli` gets to exit on `SIGTERM`.
 
-They get `SIGTERM` as the run aborts, so they can clean up, and
-{data}`_KILL_SIGNAL` once this grace runs out.
+It gets `SIGTERM` when its CLI is interrupted or when it outlives its timeout,
+so it can clean up, and {data}`_KILL_SIGNAL` once this grace runs out.
 """
 
 
@@ -1103,6 +1103,72 @@ def _stop_process(process: subprocess.Popen[Any], grace: float) -> int:
     return process.wait()
 
 
+def _kill_seen_descendants(seen: dict[int, int]) -> None:
+    """Kill the descendants written down before a `SIGTERM`, if still running.
+
+    `seen` maps each PID to the process group it was seen in. A PID still in that
+    group is taken for the same process: the two readings of the process table
+    are at most one grace period apart, too short for the system to reuse the
+    PID. A descendant leading a group of its own takes that group down with it,
+    as {func}`_kill_posix_process_group` does.
+    """
+    with _deferred_interrupt():
+        table = _posix_process_table()
+        for pid, group in seen.items():
+            if table.get(pid, (0, 0))[1] != group:
+                continue
+            try:
+                if pid == group:
+                    os.killpg(pid, _KILL_SIGNAL)
+                else:
+                    os.kill(pid, _KILL_SIGNAL)
+            except OSError:
+                # Gone since the table was read, or owned by another user.
+                pass
+
+
+def _stop_timed_out_process(process: subprocess.Popen[Any], *, leader: bool) -> None:
+    """Stop a child of {func}`run_cli` that outlived its timeout, and reap it.
+
+    On POSIX, `SIGTERM` comes first, the way {func}`terminate_live_processes`
+    sends it: to the process groups of a `leader` child, to the child alone
+    otherwise. A child still running after {data}`_TERMINATE_GRACE` is killed
+    with its descendants, see {func}`_kill_process`. A child that exits on the
+    `SIGTERM` takes with it the only link to what it started, so its descendants
+    are written down first and killed too, see {func}`_kill_seen_descendants`.
+    Windows has a single forced termination, which ends the whole process tree at
+    once.
+
+    `sudo` is why `SIGTERM` comes first. It forwards a `SIGTERM` to the command it
+    runs, but cannot forward a `SIGKILL`, and a caller that is not root cannot
+    signal a command running as root: a `SIGKILL` alone leaves an escalated
+    command running, holding whatever lock it took.
+    """
+    # Deferred import: keeps subprocess off the startup path of every CLI.
+    import subprocess
+
+    if is_windows():
+        _kill_process(process, leader=leader)
+        return
+    seen: dict[int, int] = {}
+    try:
+        # A Ctrl+C held back here lands as the block ends, after the SIGTERM:
+        # the handler below then kills what the SIGTERM did not stop.
+        with _deferred_interrupt():
+            table = _posix_process_table()
+            seen = {pid: table[pid][1] for pid in _descendant_pids(process.pid, table)}
+            _signal_posix_child(process, signal.SIGTERM, table, leader=leader)
+        _wait_process(process, time.monotonic() + _TERMINATE_GRACE)
+    except subprocess.TimeoutExpired:
+        _kill_process(process, leader=leader)
+    except KeyboardInterrupt:
+        _kill_process(process, leader=leader)
+        _kill_seen_descendants(seen)
+        raise
+    _kill_seen_descendants(seen)
+    process.wait()
+
+
 def _drain_readers(readers: Iterable[threading.Thread], deadline: float | None) -> bool:
     """Join the reader threads, by the {func}`time.monotonic` `deadline`.
 
@@ -1158,11 +1224,12 @@ def run_cli(
       `stdout` and `stderr` decoded as UTF-8;
     - raises {exc}`subprocess.TimeoutExpired` (with the partial capture attached)
       when the child, or the draining of its output, outlives `timeout`. The
-      child is killed first, and so is every descendant it left behind: the
-      whole process tree on Windows (see {func}`_kill_windows_process_tree`),
-      the POSIX process group and every group its descendants moved to when
-      spawned with `start_new_session`, the child plus each descendant PID
-      otherwise;
+      child is stopped first, and so is every descendant it left behind: on
+      POSIX with `SIGTERM`, then `SIGKILL` once a grace period runs out (see
+      {func}`_stop_timed_out_process`), sent to the process group and every
+      group its descendants moved to when spawned with `start_new_session`, to
+      the child plus each descendant PID otherwise. Windows ends the whole
+      process tree at once (see {func}`_kill_windows_process_tree`);
     - a {exc}`KeyboardInterrupt` mid-run kills the child (with the same tree,
       group or per-PID scope), then propagates.
 
@@ -1187,7 +1254,8 @@ def run_cli(
         is {func}`subprocess.run`'s own default. A relative `args[0]` is resolved
         by the OS against this directory, not the caller's, so pass an absolute
         path (or a name on the `PATH`) when moving the child elsewhere.
-    :param timeout: seconds before the child is killed. `None` waits forever.
+    :param timeout: seconds before the child is asked to stop. `None` waits
+        forever.
     :param label: tag identifying this call on each streamed output line, for
         when several children interleave in one log. Carried as the record's
         `label` attribute, which {class}`click_extra.logging.Formatter` renders
@@ -1335,8 +1403,10 @@ def run_cli(
             log.debug(f"Waiting for PID {process.pid} (timeout={timeout_desc}).")
             _wait_process(process, deadline)
         except subprocess.TimeoutExpired:
-            abort("timed out")
-            log.debug(f"PID {process.pid} killed; exit {process.returncode}.")
+            log.debug(f"PID {process.pid} timed out; asking it to stop.")
+            _stop_timed_out_process(process, leader=start_new_session)
+            _drain_readers(readers, time.monotonic() + _KILL_DRAIN_GRACE)
+            log.debug(f"PID {process.pid} stopped; exit {process.returncode}.")
             raise timeout_expired() from None
         except KeyboardInterrupt:
             abort("interrupted")
