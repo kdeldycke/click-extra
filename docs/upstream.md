@@ -186,6 +186,10 @@ Documentation:
 
 - [`#413` - Fix colorization of CLI in docs, upgrade to latest `click-extra`](https://github.com/callowayproject/bump-my-version/pull/413)
 
+### [`sphinx-design`](https://github.com/executablebooks/sphinx-design)
+
+- [`#304` - Implements vertical tabs](https://github.com/executablebooks/sphinx-design/pull/304)
+
 ## Upstreamed from click-extra
 
 Issues that click-extra solved with local workarounds first. The fix was later contributed upstream and the workaround removed from click-extra.
@@ -453,6 +457,7 @@ click-extra maintains and extends the [`click:source`/`click:run` directives](sp
 - [`pallets-sphinx-themes#61` - Move `.. click:example::` and `.. click:run::` implementation to `sphinx-click`](https://github.com/pallets/pallets-sphinx-themes/issues/61)
 - [`sphinx-click#110` - Supports `.. click:example::` and `.. click:run::` directives](https://github.com/click-contrib/sphinx-click/issues/110)
 - [`cloup#92` - Use sphinx directive to generate output of full examples in the docs](https://github.com/janluke/cloup/issues/92)
+- [`MyST-Parser#1177` - `body_offset` is inflated by one when a directive has an option block and its body ends in blank line(s)](https://github.com/executablebooks/MyST-Parser/issues/1177): reported from click-extra, and fixed by [`MyST-Parser#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179) in November 2026. Until a release ships the fix, `click_extra.sphinx._base._myst_content_offset_inflation` corrects the source line of an error in a directive body, for `myst-parser` `5.1.0` and older. The `block_text` alignment of [`MyST-Parser#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164), which superseded [`MyST-Parser#1048`](https://github.com/executablebooks/MyST-Parser/pull/1048), also waits for a release.
 
 ### Sphinx `python:*` directives and live document rendering
 
@@ -483,8 +488,7 @@ The [`click_extra.sphinx` extension](sphinx.md#setup) fixes two defects in what 
 
 The [`tabs-vertical` class](sphinx.md#vertical-tab-sets) stacks the labels of a sphinx-design `tab-set` down a left rail:
 
-- [`sphinx-design#219` - Vertically-oriented tabs](https://github.com/executablebooks/sphinx-design/issues/219): open since August 2024.
-- [`sphinx-design#304` - Implements vertical tabs](https://github.com/executablebooks/sphinx-design/pull/304): open since August 2026. It adds an `:orientation: vertical` option to `tab-set`, which replaces the class once a release ships it.
+- [`sphinx-design#219` - Vertically-oriented tabs](https://github.com/executablebooks/sphinx-design/issues/219): closed in November 2026 by [`sphinx-design#304`](https://github.com/executablebooks/sphinx-design/pull/304), which adds an `:orientation: vertical` option to `tab-set`. The option replaces the class once a release ships it.
 
 ## Declined by upstream
 
@@ -533,12 +537,7 @@ PRs and issues still pending upstream.
 ### [`executablebooks/MyST-Parser`](https://github.com/executablebooks/MyST-Parser)
 
 - [`#1119` - Batch syntax for consecutive same-type directives](https://github.com/executablebooks/MyST-Parser/issues/1119)
-- `content_offset` is inflated by one when a directive's option block precedes a body ending in blank line(s), shifting the reported source line of every body element. Worked around for `myst-parser <= 5.1.0` in `click_extra.sphinx._base._myst_content_offset_inflation`; a root-cause fix is prepared upstream. (The earlier `block_text` alignment [`#1048`](https://github.com/executablebooks/MyST-Parser/pull/1048) was superseded and merged as [`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164), still unreleased.)
-- The open rework [`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) makes a directive's `content_offset` document-relative (the rST convention) but does not fix the inflation above. When it releases, `click_extra.sphinx._base.ContentOffsetMixin.abs_content_offset` collapses onto its rST branch (`content_offset` verbatim) instead of adding `directive.lineno`; see the sketch tracked for that migration.
-
-### [`executablebooks/sphinx-design`](https://github.com/executablebooks/sphinx-design)
-
-- [`#304` - Implements vertical tabs](https://github.com/executablebooks/sphinx-design/pull/304)
+- The open rework [`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) makes a directive's `content_offset` document-relative (the rST convention). When it releases, `click_extra.sphinx._base.ContentOffsetMixin.abs_content_offset` collapses onto its rST branch (`content_offset` verbatim) instead of adding `directive.lineno`; see the sketch tracked for that migration.
 
 ### [`click-contrib/click-log`](https://github.com/click-contrib/click-log)
 

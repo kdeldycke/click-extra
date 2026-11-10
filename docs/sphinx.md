@@ -1016,6 +1016,10 @@ The build still runs to its end and reports every warning. Then it exits with st
 - Set `myst_heading_anchors`. Without it, myst-parser registers no heading as a target, so it warns on every link to a heading, even one that works because docutils emits a matching HTML `id`.
 - A link to another page resolves against that page's heading slugs only, so it warns on a `(target)=` label there although the browser lands on it. A raw-HTML anchor like `<a name="...">` is invisible to myst-parser on any page. To keep such a link without suppressing the whole type, add its target to `nitpick_ignore` as `("myst", "{target}")`.
 
+```{todo}
+Drop the `(target)=` case from the cross-page caveat above once the `myst-parser` floor of the `sphinx` extra passes the release carrying [executablebooks/MyST-Parser#1158](https://github.com/executablebooks/MyST-Parser/pull/1158), which resolves a link to a label on another page. That fix closes [executablebooks/MyST-Parser#1151](https://github.com/executablebooks/MyST-Parser/issues/1151), and no release carries it yet.
+```
+
 Sphinx has an open request for this feature: [sphinx-doc/sphinx#7949](https://github.com/sphinx-doc/sphinx/issues/7949).
 
 ## Stable changelog anchors
