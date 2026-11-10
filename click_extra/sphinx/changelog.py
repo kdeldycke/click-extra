@@ -75,6 +75,8 @@ class ReleaseAnchors(SphinxTransform):
         if not getattr(self.config, RELEASE_ANCHORS_CONFIG, False):
             return
         renamed: dict[str, str] = {}
+        # The line and text of each release heading, keyed by its anchor.
+        releases: dict[str, tuple[int | None, str]] = {}
         for release in self.document.findall(nodes.section):
             title = release.children[0] if release.children else None
             if not isinstance(title, nodes.title) or not release["ids"]:
@@ -93,15 +95,25 @@ class ReleaseAnchors(SphinxTransform):
             for name in release["names"]:
                 self.document.nameids[name] = anchor
             renamed[docutils_id] = anchor
+            releases[anchor] = (release.line, title.astext())
 
         # The same object as `env.metadata[docname]["myst_slugs"]`, which is why
-        # it is updated in place.
-        slugs = getattr(self.document, "myst_slugs", {})
+        # it is updated in place. A reST document has none.
+        slugs = getattr(self.document, "myst_slugs", None)
+        if slugs is None or not releases:
+            return
         for slug, (line, section_id, title_text) in list(slugs.items()):
             if section_id in renamed:
                 del slugs[slug]
-                anchor = renamed[section_id]
-                slugs[anchor] = (line, anchor, title_text)
+                releases[renamed[section_id]] = (line, title_text)
+        # Add every release, not only the ones renamed above: myst-parser stores
+        # no entry for an empty slug, which is what `docutils.nodes.make_id`
+        # makes of a title without letters, like `1.4.2 (2026-03-15)`.
+        for anchor, (line, title_text) in releases.items():
+            slugs[anchor] = (line, anchor, title_text)
+        # myst-parser gives the table to the environment only when it is not
+        # empty, and a page whose headings all have an empty slug leaves it so.
+        self.env.metadata[self.env.docname].setdefault("myst_slugs", slugs)
 
 
 def setup(app: Sphinx) -> None:

@@ -44,6 +44,19 @@ See the [next release](#v1-5-0).
 """
 """A MyST changelog, one release titled as a link, one as plain text."""
 
+LETTERLESS_CHANGELOG = """\
+# 2026
+
+## `1.4.2` (2026-03-15)
+
+- Prune the apple trees.
+
+## `1.4.1` (2026-02-01)
+
+- Water the plums.
+"""
+"""A MyST changelog whose headings all have no letters, so no heading slug."""
+
 RST_CHANGELOG = """\
 Changelog
 =========
@@ -153,6 +166,18 @@ def test_links_resolve_to_version_anchors(tmp_path):
     assert "myst.xref_missing" not in warnings
     changelog = (outdir / "changelog.html").read_text(encoding="UTF-8")
     assert 'href="#v1-5-0"' in changelog
+    orchard = (outdir / "orchard.html").read_text(encoding="UTF-8")
+    assert 'href="changelog.html#v1-4-2"' in orchard
+
+
+def test_links_resolve_on_a_page_without_heading_slugs(tmp_path):
+    """A link resolves to a release on a page where no heading has a slug."""
+    outdir, warnings = build(
+        tmp_path,
+        {"changelog.md": LETTERLESS_CHANGELOG, "orchard.md": ORCHARD_PAGE},
+        anchors=True,
+    )
+    assert "myst.xref_missing" not in warnings
     orchard = (outdir / "orchard.html").read_text(encoding="UTF-8")
     assert 'href="changelog.html#v1-4-2"' in orchard
 
