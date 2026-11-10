@@ -488,7 +488,7 @@ The [`click_extra.sphinx` extension](sphinx.md#setup) fixes two defects in what 
 
 The [`tabs-vertical` class](sphinx.md#vertical-tab-sets) stacks the labels of a sphinx-design `tab-set` down a left rail:
 
-- [`sphinx-design#219` - Vertically-oriented tabs](https://github.com/executablebooks/sphinx-design/issues/219): closed in November 2026 by [`sphinx-design#304`](https://github.com/executablebooks/sphinx-design/pull/304), which adds an `:orientation: vertical` option to `tab-set`. The option replaces the class once a release ships it.
+- [`sphinx-design#219` - Vertically-oriented tabs](https://github.com/executablebooks/sphinx-design/issues/219): closed in November 2026 by [`sphinx-design#304`](https://github.com/executablebooks/sphinx-design/pull/304), which adds an `:orientation: vertical` option to `tab-set`. The option replaces the class once sphinx-design `0.8.0` ships it.
 
 ## Declined by upstream
 
@@ -508,6 +508,10 @@ click-extra maintains a [local patch](https://github.com/kdeldycke/click-extra/b
 ### [`dbcli/cli_helpers`](https://github.com/dbcli/cli_helpers)
 
 - [`#79` - Replace local tabulate formats with those available upstream](https://github.com/dbcli/cli_helpers/issues/79)
+
+### [`executablebooks/MyST-Parser`](https://github.com/executablebooks/MyST-Parser)
+
+- [`#1119` - Batch syntax for consecutive same-type directives](https://github.com/executablebooks/MyST-Parser/issues/1119): closed by the maintainer, who keeps the body of a fenced directive for the directive. One `{eval-rst}` block holding every `.. autodata::` line covers the batch.
 
 ## Open upstream
 
@@ -536,7 +540,6 @@ PRs and issues still pending upstream.
 
 ### [`executablebooks/MyST-Parser`](https://github.com/executablebooks/MyST-Parser)
 
-- [`#1119` - Batch syntax for consecutive same-type directives](https://github.com/executablebooks/MyST-Parser/issues/1119)
 - The open rework [`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) makes a directive's `content_offset` document-relative (the rST convention). When it releases, `click_extra.sphinx._base.ContentOffsetMixin.abs_content_offset` collapses onto its rST branch (`content_offset` verbatim) instead of adding `directive.lineno`; see the sketch tracked for that migration.
 
 ### [`click-contrib/click-log`](https://github.com/click-contrib/click-log)

@@ -31,10 +31,10 @@ build rather than packaged as a data file, and is inert on a project that does
 not load sphinx-design.
 
 ```{todo}
-Delete this module once
+Delete this module once sphinx-design `0.8.0` ships
 [executablebooks/sphinx-design#304](https://github.com/executablebooks/sphinx-design/pull/304),
-which adds an `:orientation: vertical` option to `tab-set`, ships in a release.
-Projects then set that option instead of the class.
+which adds an `:orientation: vertical` option to `tab-set`. Projects then set
+that option instead of the class.
 ```
 """
 
