@@ -37,6 +37,8 @@ Two axes are supported:
   `uv.lock` resolved version) that every range treats alike. The specifier,
   read with `packaging`, drives `✅` and `❌`, and a release it accepts but that
   came out after the range was superseded renders as `–`, like a future Python.
+  So does a release of a major that came out after the last release of a
+  superseded range: no release of that range ever met it.
 
 Both axes then keep only the support envelope of the project (see
 {func}`_envelope`): the ranges from the newest one down to the oldest one that
@@ -155,8 +157,9 @@ UNDECLARED_CELL: str = "–"
 """Cell marking a version the release neither supports nor forbids.
 
 Covers the flavours of *absence of evidence*: a version its declaration lets
-through but that came out after the range was superseded, and, on the `python`
-axis, a Python that was released but never added to the classifier list.
+through but that came out after the range was superseded or belongs to a major
+that came out after its last release, and, on the `python` axis, a Python that
+was released but never added to the classifier list.
 Neither is a statement of incompatibility, so spelling them
 {data}`FORBIDDEN_CELL` would over-claim. Spelling the first one
 {data}`SUPPORTED_CELL` would over-claim the other way: an open-ended specifier
@@ -1081,6 +1084,9 @@ class DependencyMatrixGroup(NamedTuple):
     first_date: str
     """ISO `YYYY-MM-DD` date of the first tag's commit."""
 
+    last_date: str
+    """ISO `YYYY-MM-DD` date of the last tag's commit."""
+
     spec: str
     """The raw requirement specifier declared for the dependency at this range."""
 
@@ -1395,8 +1401,28 @@ def _column_candidates(
     return candidates
 
 
+def _newest_major(releases: Mapping[Version, str], cutoff: str) -> int | None:
+    """Return the newest major of the `releases` out on `cutoff` or before.
+
+    `None` when no release carries a date, like the offline fallback columns: no
+    major cap applies then.
+    """
+    return max(
+        (
+            version.major
+            for version, date in releases.items()
+            if date and date <= cutoff
+        ),
+        default=None,
+    )
+
+
 def _dependency_cell(
-    spec_set: SpecifierSet | None, version: Version, released: str, end_date: str
+    spec_set: SpecifierSet | None,
+    version: Version,
+    released: str,
+    end_date: str,
+    major_cap: int | None = None,
 ) -> str:
     """Classify one release of a dependency against one release range.
 
@@ -1407,10 +1433,17 @@ def _dependency_cell(
     current, its last day included, and undeclared when it came out later (see
     {data}`UNDECLARED_CELL`). A release of unknown date reads as supported:
     the offline fallback columns carry no date to compare.
+
+    `major_cap` is the newest major of the dependency out by the last release of
+    a superseded range, `None` for the newest range. A release the specifier
+    accepts from a later major is undeclared too: no release of the range ever
+    met it, and a new major is free to break.
     """
     if spec_set is None or not spec_set.contains(version, prereleases=True):
         return FORBIDDEN_CELL
     if released and released > end_date:
+        return UNDECLARED_CELL
+    if major_cap is not None and version.major > major_cap:
         return UNDECLARED_CELL
     return SUPPORTED_CELL
 
@@ -1471,7 +1504,7 @@ def dependency_matrix_groups(
         if (spec := _extract_requirement(pyproject, setup_py, dep_name))
     ]
     return [
-        DependencyMatrixGroup(first[0], last[0], first[1], first[2])
+        DependencyMatrixGroup(first[0], last[0], first[1], last[1], first[2])
         for _, first, last in _runs(declared, key=lambda tag: _spec_identity(tag[2]))
     ]
 
@@ -1514,6 +1547,9 @@ def _dependency_grid(
     # A range is current until the next one starts, and the newest one today.
     today = datetime.now(tz=UTC).date().isoformat()
     end_dates = [group.first_date for group in groups[1:]] + [today]
+    # A superseded range attests no major out after its own last release.
+    major_caps = [_newest_major(releases, group.last_date) for group in groups[:-1]]
+    major_caps.append(None)
     spec_sets = [_to_specifier_set(group.spec) for group in groups]
     return _Grid(
         groups,
@@ -1521,10 +1557,14 @@ def _dependency_grid(
         [releases.get(version, "") for version in candidates],
         [
             [
-                _dependency_cell(spec_set, version, releases.get(version, ""), end)
+                _dependency_cell(
+                    spec_set, version, releases.get(version, ""), end, major_cap
+                )
                 for version in candidates
             ]
-            for spec_set, end in zip(spec_sets, end_dates, strict=True)
+            for spec_set, end, major_cap in zip(
+                spec_sets, end_dates, major_caps, strict=True
+            )
         ],
     )
 

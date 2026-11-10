@@ -52,6 +52,7 @@ from click_extra.sphinx.matrix import (
     _envelope,
     _extract_requirement,
     _latest_locked_version,
+    _newest_major,
     _pypi_releases,
     _python_cell,
     _range_labels,
@@ -1204,6 +1205,38 @@ def test_dependency_cell(spec: str, version: str, released: str, expected: str) 
 
 
 @pytest.mark.parametrize(
+    ("version", "released", "expected"),
+    [
+        # A major out after the last release of the range: no release met it.
+        ("2.0.0", "2024-03-01", UNDECLARED_CELL),
+        ("2.0.0", "", UNDECLARED_CELL),
+        # A later release of a major the range met.
+        ("1.5.0", "2024-03-01", SUPPORTED_CELL),
+    ],
+)
+def test_dependency_cell_caps_later_majors(
+    version: str, released: str, expected: str
+) -> None:
+    """A superseded range never attests a major newer than its cap."""
+    cell = _dependency_cell(
+        _to_specifier_set(">=1.0"), Version(version), released, "2024-06-10", 1
+    )
+    assert cell == expected
+
+
+def test_newest_major() -> None:
+    """The newest major out by a day, and none without a dated release."""
+    releases = {
+        Version("1.0.0"): "2023-12-01",
+        Version("2.0.0"): "2024-05-01",
+        Version("3.0.0"): "",
+    }
+    assert _newest_major(releases, "2024-01-10") == 1
+    assert _newest_major(releases, "2024-05-01") == 2
+    assert _newest_major({Version("1.0.0"): ""}, "2024-01-10") is None
+
+
+@pytest.mark.parametrize(
     ("rows", "shown", "expected"),
     [
         # Consecutive columns every shown range treats alike share a bin.
@@ -1647,14 +1680,45 @@ def test_dependency_matrix_table_undeclared_after_superseded(
     dated_dep_repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A release out after a range was superseded reads ``–`` for that range,
-    though its specifier accepts it. One out on the last day reads ``✅``."""
+    though its specifier accepts it. So does a release of a major out after the
+    last release of the range: ``1.0.0`` never met ``widget`` 2.x, and ``2.0.0``
+    never met ``widget`` 3.0.0."""
     stub_releases(monkeypatch, *WIDGET_DATES, dates=WIDGET_DATES)
     table = dependency_matrix_table(dated_dep_repo, "proj", "widget", full_history=True)
     assert table_header(table)[1:] == ["`3.0.0`", "`2.x`", "`1.0.0`"]
     assert tagged_table_rows(table) == {
         "`3.0.0`": ["✅", "❌", "❌"],
+        "`2.0.0`": [UNDECLARED_CELL, "✅", "❌"],
+        "`1.0.0`": [UNDECLARED_CELL, UNDECLARED_CELL, "✅"],
+    }
+
+
+def test_dependency_matrix_table_unmet_major_after_last_release(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A major out after the last release of a superseded range reads ``–``.
+
+    ``widget`` 1.5.0 and 2.0.0 both come out after ``1.1.0``, the last release
+    of the ``1.x`` range, and before ``2.0.0`` supersedes it. Its open specifier
+    accepts both, and the range met the 1.x major, so 1.5.0 reads ``✅``. No
+    release of the range ever met 2.0.0.
+    """
+    repo = tmp_path / "unmet-major"
+    git_repo(repo)
+    for tag, date, spec in (
+        ("v1.0.0", "2024-01-10", ">=1.0"),
+        ("v1.1.0", "2024-03-10", ">=1.0"),
+        ("v2.0.0", "2024-09-10", ">=1.5"),
+    ):
+        declare_widget(repo, spec)
+        dated_tag(repo, tag, date)
+    dates = {"1.0.0": "2023-12-01", "1.5.0": "2024-05-01", "2.0.0": "2024-08-01"}
+    stub_releases(monkeypatch, *dates, dates=dates)
+    table = dependency_matrix_table(repo, "proj", "widget")
+    assert table_header(table)[1:] == ["`2.0.0`", "`1.5.0`", "`1.0.0`"]
+    assert tagged_table_rows(table) == {
         "`2.0.0`": ["✅", "✅", "❌"],
-        "`1.0.0`": [UNDECLARED_CELL, "✅", "✅"],
+        "`1.x`": [UNDECLARED_CELL, "✅", "✅"],
     }
 
 
@@ -1664,17 +1728,14 @@ def test_dependency_matrix_table_envelope(
     """The envelope stops at the oldest range supporting the floor or later.
 
     A range supports a dated release it accepts only when the release came out
-    while the range was current. ``1.0.0`` was superseded before ``widget``
-    3.0.0, the floor of the newest range, so it goes, and the ``widget`` 1.0.0
-    column it alone accepted too.
+    while the range was current, from a major out by its last release. Neither
+    older range ever met ``widget`` 3.0.0, the floor of the newest range, so both
+    go, and the columns only they accepted too.
     """
     stub_releases(monkeypatch, *WIDGET_DATES, dates=WIDGET_DATES)
     table = dependency_matrix_table(dated_dep_repo, "proj", "widget")
-    assert table_header(table)[1:] == ["`3.0.0`", "`2.x`"]
-    assert tagged_table_rows(table) == {
-        "`3.0.0`": ["✅", "❌"],
-        "`2.0.0`": ["✅", "✅"],
-    }
+    assert table_header(table)[1:] == ["`3.0.0`"]
+    assert tagged_table_rows(table) == {"`3.0.0`": ["✅"]}
 
 
 ENVELOPE_WIDGET_DATES = {
@@ -1777,6 +1838,8 @@ def test_dependency_matrix_groups_respelled_spec_continues_range(
     ``widget`` 1.5.0 came out after ``1.1.0`` re-spelled the specifier, while
     that range was still current, so it reads ``✅`` for the whole range. Split
     at the re-spelling, ``1.0.0`` would look superseded before 1.5.0 came out.
+    The whole history keeps the range in the table, though it never met the 2.x
+    major that the newest range floors.
     """
     repo = tmp_path / "respelled"
     git_repo(repo)
@@ -1794,9 +1857,10 @@ def test_dependency_matrix_groups_respelled_spec_continues_range(
     ]
     dates = {"1.0.0": "2023-12-01", "1.5.0": "2024-05-01", "2.0.0": "2024-08-01"}
     stub_releases(monkeypatch, *dates, dates=dates)
-    assert tagged_table_rows(dependency_matrix_table(repo, "proj", "widget")) == {
+    table = dependency_matrix_table(repo, "proj", "widget", full_history=True)
+    assert tagged_table_rows(table) == {
         "`2.0.0`": ["✅", "❌"],
-        "`1.x`": ["✅", "✅"],
+        "`1.x`": [UNDECLARED_CELL, "✅"],
     }
 
 

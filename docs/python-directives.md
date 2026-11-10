@@ -295,13 +295,13 @@ The result reads as a staircase: ❌ fills the lower-left as the floor rises ove
 
 Cells are three-valued here too, and the dates of the releases decide the third state:
 
-| Cell | Meaning                                                                                    |
-| :--: | :----------------------------------------------------------------------------------------- |
-|  ✅  | The specifier accepts the release, which came out while the range was the latest one.      |
-|  ❌  | The specifier rules the release out.                                                       |
-|  –   | The specifier accepts the release, but it came out after the next range replaced this one. |
+| Cell | Meaning                                                                                                                                            |
+| :--: | :------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  ✅  | The specifier accepts the release, which came out while the range was the latest one, in a major out by its last release.                          |
+|  ❌  | The specifier rules the release out.                                                                                                               |
+|  –   | The specifier accepts the release, but it came out after the next range replaced this one, or in a major out after the last release of this range. |
 
-An open specifier like `click>=8.0` lets every future Click through, whether it works or not, and `–` stops the table from reading that as support. A range is the latest one from its first release until the first release of the next range. A dependency release out on that last day counts as ✅. A release date is the day the first of its installable files reached PyPI, in UTC. Ranges are compared parsed, so a re-spelled specifier continues its range: `cloup >= 3.0.7` rewritten as `cloup>=3.0.7` by a formatter starts no new range, and cuts no range short.
+An open specifier like `click>=8.0` lets every future Click through, whether it works or not, and `–` stops the table from reading that as support. A range is the latest one from its first release until the first release of the next range. A dependency release out on that last day counts as ✅. A replaced range also never met a major that came out after its own last release, even before the next range: it reads `–` there, since a new major is free to break. The latest range carries no such cap. A release date is the day the first of its installable files reached PyPI, in UTC. Ranges are compared parsed, so a re-spelled specifier continues its range: `cloup >= 3.0.7` rewritten as `cloup>=3.0.7` by a formatter starts no new range, and cuts no range short.
 
 [Poetry's own range syntax](https://python-poetry.org/docs/dependency-specification/) is translated to PEP 440 before evaluation, since a project's older tags usually predate its move to PEP 621. Carets follow Poetry's rule of bumping the leftmost non-zero component, so `^1.2.3` caps at `2.0.0` while `^0.2.3` caps at `0.3.0` and `^0.0.3` at `0.0.4`: under a `0.` prefix every release may break, and a caret there covers far less than the major series. Tilde and wildcard ranges (`~1`, `~1.2`, `1.*`, `1.2.*`) translate the same way. A pre-, post- or dev-release suffix stays on the floor and leaves the ceiling alone, so `^2.0.0.post1` becomes `>=2.0.0.post1,<3.0.0`.
 
