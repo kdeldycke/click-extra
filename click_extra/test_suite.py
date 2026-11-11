@@ -34,6 +34,13 @@ a target, parallelized per the resolved `--jobs` count (see
 
 This is the black-box, subprocess-level complement to
 {class}`click_extra.testing.CliRunner`, which drives a CLI in-process.
+
+```{todo}
+Import `NestedReferences` from the root of `extra_platforms`, in place of the
+private `extra_platforms._types._TNestedReferences`, once `extra-platforms`
+`15.0.0` ships on PyPI and the floor of that dependency moves to `>=15`.
+`extra-platforms` `16.0.0` removes the private alias.
+```
 """
 
 from __future__ import annotations
