@@ -9,6 +9,7 @@
 - Send `SIGTERM` to a `run_cli` child that outlives its timeout, and `SIGKILL` only after a grace period, so `sudo` can forward the first to the command it escalated.
 - In a dependency compatibility matrix, show `–` instead of `✅` for a major that came out after the last release of a superseded range.
 - Keep links to release anchors resolving once myst-parser ships [executablebooks/MyST-Parser#1168](https://github.com/executablebooks/MyST-Parser/pull/1168), which drops the empty slug `make_id` gives a release heading.
+- Skip the process-tree tests where the process table does not list the test process, like in the MacPorts build sandbox.
 
 ## [`10.2.0` (2026-11-06)](https://github.com/kdeldycke/click-extra/compare/v10.1.1...v10.2.0)
 

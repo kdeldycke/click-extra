@@ -501,6 +501,7 @@ stubborn()
     ("SIG_IGN", "SIG_DFL"),
     ids=("stubborn-child", "child-exits-first"),
 )
+@pytest.mark.usefixtures("requires_process_table")
 def test_interrupted_run_kills_grandchildren_ignoring_sigterm(
     tmp_path, new_session, child_on_sigterm
 ):
@@ -1382,6 +1383,7 @@ def _assert_timeout_reaps_grandchild(
 
 @skip_windows
 @GRANDCHILD_SESSIONS
+@pytest.mark.usefixtures("requires_process_table")
 def test_run_cli_timeout_new_session_kills_grandchildren(grandchild_session):
     """A timed-out start_new_session child takes its whole process tree down:
     the grandchild is reaped along with it instead of surviving as an orphan
@@ -1420,6 +1422,7 @@ def test_run_cli_registers_live_process_then_discards_it():
 
 @skip_windows
 @GRANDCHILD_SESSIONS
+@pytest.mark.usefixtures("requires_process_table")
 def test_terminate_live_processes_signals_whole_group(tmp_path, grandchild_session):
     """Interrupting a start_new_session child reaps its grandchild too: the
     group never received the terminal's SIGINT (it left the foreground group),
@@ -1468,6 +1471,7 @@ def test_terminate_live_processes_signals_whole_group(tmp_path, grandchild_sessi
     _assert_process_dies(int(pid_file.read_text(encoding="UTF-8")))
 
 
+@pytest.mark.usefixtures("requires_process_table")
 def test_kill_signal_reaches_a_grandchild_holding_the_output(tmp_path):
     """The kill signal ends what a child started too, on every platform.
 
@@ -1520,6 +1524,7 @@ def test_parse_proc_stat(stat, expected):
 
 
 @skip_windows
+@pytest.mark.usefixtures("requires_process_table")
 def test_posix_process_table_lists_this_process():
     table = _posix_process_table()
     assert table[os.getpid()] == (os.getppid(), os.getpgid(0))
@@ -1527,6 +1532,7 @@ def test_posix_process_table_lists_this_process():
 
 @skip_windows
 @GRANDCHILD_SESSIONS
+@pytest.mark.usefixtures("requires_process_table")
 def test_run_cli_timeout_kills_grandchildren_without_a_session(grandchild_session):
     """A timed-out child sharing the caller's process group still takes its
     grandchild down, killed one PID at a time since no group can be signalled

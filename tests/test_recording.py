@@ -440,6 +440,7 @@ def _wait_until_gone(pid: int, timeout: float = 5.0) -> bool:
 
 
 @skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+@pytest.mark.usefixtures("requires_process_table")
 def test_record_command_kills_what_its_command_started(monkeypatch):
     """A command killed at the end of its recording takes its descendants along.
 

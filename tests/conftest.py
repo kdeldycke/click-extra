@@ -18,6 +18,8 @@
 from __future__ import annotations
 
 import io
+import os
+import subprocess
 import threading
 import time
 
@@ -57,6 +59,34 @@ def httpserver_listen_address():
     question: this only removes the lookup that failed first.
     """
     return ("127.0.0.1", 0)
+
+
+@pytest.fixture(scope="session")
+def requires_process_table():
+    """Skip a test where the process table does not list the test's own process.
+
+    The kill paths of `run_cli` find a command's descendants in the process table.
+    Linux reads it from `/proc`. Elsewhere it comes from `ps`, which a build
+    sandbox can deny: the MacPorts test phase gets an empty listing, so the kill
+    tests would fail on what the sandbox hides rather than on the code.
+
+    The probe runs `ps` itself instead of `_posix_process_table()`, so a
+    regression that empties the table still fails those tests.
+    """
+    if os.path.exists("/proc/self/stat"):
+        return
+    try:
+        listing = subprocess.run(
+            ("ps", "-A", "-o", "pid="),
+            capture_output=True,
+            encoding="UTF-8",
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        pytest.skip("No ps command answers here.")
+    if str(os.getpid()) not in listing.stdout.split():
+        pytest.skip("The process table does not list the test process.")
 
 
 @pytest.fixture(autouse=True)
