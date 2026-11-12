@@ -50,9 +50,10 @@ announce that release.
 
 ```{todo}
 Delete `click_extra/sphinx/tabs.py`, its `setup` call in
-`click_extra/sphinx/__init__.py`, `tests/sphinx/test_sphinx_tabs.py` and the
-vertical tab-sets section of `docs/sphinx.md` in `11.0.0`: its warnings announce
-that release. Move its entry in `docs/upstream.md` to the upstreamed section.
+`click_extra/sphinx/__init__.py`, `tests/sphinx/test_sphinx_tabs.py`, its
+`NON_META_KEYS` entry in `tests/test_context.py` and the vertical tab-sets
+section of `docs/sphinx.md` in `11.0.0`: its warnings announce that release.
+Move its entry in `docs/upstream.md` to the upstreamed section.
 ```
 """
 

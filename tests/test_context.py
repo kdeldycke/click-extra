@@ -132,6 +132,7 @@ NON_META_KEYS = frozenset({
     "click_extra.normalize_keys",
     # The types of Sphinx warnings.
     "click_extra.config_docstring_heading",
+    "click_extra.tabs_vertical",
     "click_extra.todo_unrendered",
 })
 """Literals sharing :data:`~click_extra.context.META_NAMESPACE` that name no
