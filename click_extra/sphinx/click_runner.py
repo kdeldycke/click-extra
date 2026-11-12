@@ -164,12 +164,11 @@ def _resolve_run_capture(
 ) -> Literal["sys", "fd"]:
     """Degrade a preferred stream-capture mode to one the platform supports.
 
-    `"fd"` backs the captured streams with a real file descriptor so a command
-    writing through `sys.stdout.fileno()` renders (see {class}`ClickRunner`), but
-    Windows has no Unix file descriptors and Click rejects `capture="fd"` there.
-    Degrading `"fd"` to `"sys"` on Windows lets the documentation build proceed:
-    such fileno-writing commands do not render, instead of aborting the whole
-    build.
+    `"fd"` captures what is written to file descriptors `1` and `2`, and keeps
+    `sys.stdout.fileno()` from raising (see {class}`ClickRunner`), but Windows has
+    no Unix file descriptors and Click rejects `capture="fd"` there. Degrading
+    `"fd"` to `"sys"` on Windows lets the documentation build proceed: only a
+    command that needs `sys.stdout.fileno()` fails, instead of the whole build.
 
     Applies to the `click_extra_run_capture` `conf.py` value and to the default of
     {class}`ClickRunner`, never to a mode a caller passes it explicitly.
@@ -193,10 +192,15 @@ class ClickRunner(CliRunner):
     executes.
 
     The runner defaults to `capture="fd"`, overridable through the
-    `click_extra_run_capture` `conf.py` value, so a documented command that writes
-    through `sys.stdout.fileno()` is captured and rendered, instead of aborting the
-    build with {exc}`io.UnsupportedOperation`. On Windows, where fd-backed streams
-    are not supported, the default falls back to `capture="sys"`.
+    `click_extra_run_capture` `conf.py` value. Click then sends file descriptors
+    `1` and `2` to the capture, so a block also renders what a subprocess, a C
+    extension or a direct write to descriptor `1` prints, placed after what the
+    command wrote to `sys.stdout`. `sys.stdout.fileno()` returns a copy of the
+    original stdout descriptor instead of raising {exc}`io.UnsupportedOperation`,
+    so a command calling it does not abort the build. But what the command writes
+    through that copy goes to the stdout of the build, not to the page. On
+    Windows, where fd-backed streams are not supported, the default falls back to
+    `capture="sys"`.
     """
 
     def __init__(self, capture: Literal["sys", "fd"] | None = None) -> None:

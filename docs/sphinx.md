@@ -606,7 +606,9 @@ Log records print in a `click:run` block as in a reader's own shell: once, and f
 
 ### Capture mode
 
-`click:run` and `click:tree` execute the documented CLI through Click's test runner. The output is captured at the file-descriptor level (Click's `capture="fd"` mode), so a CLI that writes through its `stdout` descriptor, such as one re-opening `sys.stdout.fileno()` to force UTF-8 output, renders normally instead of aborting the build with `io.UnsupportedOperation`.
+`click:run` and `click:tree` execute the documented CLI through Click's test runner. The output is captured at the file-descriptor level (Click's `capture="fd"` mode), so a block also shows what a subprocess, a C extension or a direct write to descriptor `1` prints, after what the CLI wrote to `sys.stdout`.
+
+In this mode, `sys.stdout.fileno()` does not raise `io.UnsupportedOperation`: it returns a copy of the stdout descriptor of the build. A CLI that opens a stream on it, for example to force UTF-8 output, writes past the capture, and its output goes to the build log instead of the page. Write to `sys.stdout` instead, as {func}`~click_extra.output.prep_path` does for `-`.
 
 Select the capture mode with the `click_extra_run_capture` value in `conf.py`:
 

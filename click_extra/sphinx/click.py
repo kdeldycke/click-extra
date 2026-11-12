@@ -139,10 +139,10 @@ RUN_CAPTURE_CONFIG = "click_extra_run_capture"
 `click:run` and `click:tree` execute.
 
 Maps to the `capture` parameter of Click's {class}`~click.testing.CliRunner`,
-`"sys"` or `"fd"`. Defaults to `"fd"` so a command writing through
-`sys.stdout.fileno()` is captured at the file-descriptor level and renders,
-instead of aborting the build with {exc}`io.UnsupportedOperation`. Windows has no
-file-descriptor capture, so `"fd"` degrades to `"sys"` there.
+`"sys"` or `"fd"`. Defaults to `"fd"`, which also captures what a subprocess or a
+C extension writes to the standard file descriptors: see
+{class}`~click_extra.sphinx.click_runner.ClickRunner` for what it leaves out.
+Windows has no file-descriptor capture, so `"fd"` degrades to `"sys"` there.
 """
 
 SCREENSHOT_DIR_CONFIG = "click_extra_screenshot_dir"

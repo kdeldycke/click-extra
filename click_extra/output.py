@@ -81,29 +81,37 @@ def is_stdout(path: Path) -> bool:
 def prep_path(path: Path) -> IO[str]:
     """Open *path* for writing as UTF-8 text, or return stdout for `-`.
 
-    Always yields a UTF-8 stream, stdout included, sidestepping the
-    `UnicodeEncodeError` a non-ASCII payload triggers on Windows, where the
-    console defaults to `cp1252`. For a real path, missing parent directories
-    are created first, absorbing the `mkdir -p` a caller would otherwise need.
+    Yields a UTF-8 stream for a path and for the stdout of the process itself,
+    sidestepping the `UnicodeEncodeError` a non-ASCII payload triggers on Windows,
+    where the console defaults to `cp1252`. For a real path, missing parent
+    directories are created first, absorbing the `mkdir -p` a caller would
+    otherwise need.
 
     ```{note}
-    When stdout is an in-memory capture with no backing file descriptor (Click's
-    test runner, the Sphinx `{click:run}` directive that live-renders CLI output
-    in the docs), `fileno()` raises and the existing stream is returned as-is.
-    Such streams are already Python text objects, so the Windows `cp1252` concern
-    does not apply: that only bites a real terminal, which always has a
-    descriptor.
+    A `sys.stdout` that something replaced is returned as-is: Click's test runner,
+    the Sphinx `{click:run}` directive that live-renders CLI output in the docs, a
+    {func}`contextlib.redirect_stdout` block. The replacement is where the output
+    must go, in the encoding its owner chose. Its descriptor can point somewhere
+    else: under `CliRunner(capture="fd")`, Click sends descriptors `1` and `2` to
+    the capture, but `sys.stdout.fileno()` returns a copy of the original stdout
+    descriptor, so a stream opened on it writes past the capture. A stdout with no
+    file descriptor is returned as-is too.
     ```
 
     :param path: The destination path, or `-` for stdout.
-    :return: A writable text stream. The caller closes it; the stdout stream is
-        wrapped with `closefd=False`, so closing it leaves the real stdout open.
+    :return: A writable text stream. The caller closes it, unless it is
+        `sys.stdout`. The stream opened on the stdout descriptor uses
+        `closefd=False`, so closing it leaves the real stdout open.
     """
     if is_stdout(path):
-        try:
-            fd = sys.stdout.fileno()
-        except (OSError, ValueError):
+        # `None` when the process started without a stdout, like under `pythonw`.
+        original = sys.__stdout__
+        if original is None or sys.stdout is not original:
             return sys.stdout
+        try:
+            fd = original.fileno()
+        except (OSError, ValueError):
+            return original
         return open(fd, "w", encoding="UTF-8", closefd=False)
     path.parent.mkdir(parents=True, exist_ok=True)
     return path.open("w", encoding="UTF-8")

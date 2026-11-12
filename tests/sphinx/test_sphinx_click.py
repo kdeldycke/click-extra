@@ -29,9 +29,10 @@ from textwrap import dedent
 import click
 import pytest
 from docutils import nodes
+from extra_platforms.pytest import skip_windows
 from pygments.styles import get_style_by_name
 
-from click_extra import strip_ansi, verbosity_option
+from click_extra import prep_path, strip_ansi, verbosity_option
 from click_extra.capture.presets import CAPTURE_PALETTES
 from click_extra.capture.snippet import DEFAULT_SYNTAX_STYLES
 from click_extra.capture.svg import CELL_WIDTH
@@ -1266,13 +1267,15 @@ def test_clickrunner_sets_the_level_of_the_build_aside(document_level, expected)
     ),
 )
 def test_clickrunner_capture_mode_controls_fileno(capture, renders):
-    """``ClickRunner(capture=...)`` decides whether a fileno-writing CLI renders.
+    """``ClickRunner(capture=...)`` decides whether a CLI calling ``fileno()`` renders.
 
     Click's ``"sys"`` mode backs the captured stream with an in-memory buffer whose
     ``fileno()`` raises :exc:`io.UnsupportedOperation`, so a documented command that
     re-opens its descriptor (a common UTF-8-on-Windows guard) aborts. ``"fd"`` (the
     default on Unix, also exposed as the ``click_extra_run_capture`` conf.py value)
-    backs it with a real descriptor, so the command renders. On Windows, where fd-backed
+    returns a copy of the original stdout descriptor, so the command runs and its
+    ``click.echo`` output renders. What it writes through that copy does not, see
+    ``test_clickrunner_captures_prep_path_stdout``. On Windows, where fd-backed
     streams are not supported, the default falls back to ``"sys"``.
     """
 
@@ -1290,6 +1293,39 @@ def test_clickrunner_capture_mode_controls_fileno(capture, renders):
     else:
         assert result.exit_code != 0
         assert "papaya" not in result.output
+
+
+@pytest.mark.parametrize(
+    "capture",
+    (
+        # No argument: "fd" on Unix, "sys" on Windows.
+        None,
+        pytest.param(
+            "fd", marks=skip_windows(reason='capture="fd" is not supported on Windows.')
+        ),
+        "sys",
+    ),
+)
+def test_clickrunner_captures_prep_path_stdout(capture):
+    """A command writing to ``-`` through ``prep_path`` renders in every capture mode.
+
+    Under ``"fd"``, ``sys.stdout.fileno()`` returns a copy of the original stdout
+    descriptor, so a stream opened on it writes past the capture.
+    """
+
+    @click.command()
+    def harvest():
+        stream = prep_path(Path("-"))
+        try:
+            click.echo("papaya", file=stream)
+        finally:
+            if stream is not sys.stdout:
+                stream.close()
+
+    result = ClickRunner(capture=capture).invoke(harvest, [])
+
+    assert result.exit_code == 0
+    assert result.output == "papaya\n"
 
 
 @pytest.mark.parametrize(

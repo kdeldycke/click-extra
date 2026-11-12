@@ -17,9 +17,13 @@
 from __future__ import annotations
 
 import io
+import sys
 from pathlib import Path
 
+import click
 import pytest
+from click.testing import CliRunner
+from extra_platforms.pytest import skip_windows
 
 from click_extra import (
     STDOUT_SENTINEL,
@@ -80,6 +84,66 @@ def test_prep_path_stdout(capsys) -> None:
     stream.write("papaya")
     stream.flush()
     assert capsys.readouterr().out == "papaya"
+
+
+def test_prep_path_reopens_the_process_stdout_as_utf8(monkeypatch, tmp_path) -> None:
+    """The stdout of the process itself is opened again on its descriptor, as UTF-8.
+
+    Its own `cp1252` encoding cannot carry the glyphs. Closing the stream returned
+    leaves that stdout open.
+    """
+    target = tmp_path / "stdout.txt"
+    glyphs = "".join(UNENCODABLE_ON_CP1252)
+    with target.open("w", encoding="cp1252") as stdout, monkeypatch.context() as patch:
+        patch.setattr(sys, "stdout", stdout)
+        patch.setattr(sys, "__stdout__", stdout)
+
+        stream = prep_path(Path("-"))
+        stream.write(glyphs)
+        stream.close()
+
+        assert not stdout.closed
+    assert target.read_bytes() == glyphs.encode("UTF-8")
+
+
+def test_prep_path_returns_a_process_stdout_without_descriptor(monkeypatch) -> None:
+    """A stdout of the process with no file descriptor is returned as-is."""
+    stdout = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", stdout)
+    monkeypatch.setattr(sys, "__stdout__", stdout)
+
+    assert prep_path(Path("-")) is stdout
+
+
+@pytest.mark.parametrize(
+    "capture",
+    (
+        "sys",
+        pytest.param(
+            "fd", marks=skip_windows(reason='Click rejects capture="fd" on Windows.')
+        ),
+    ),
+)
+def test_prep_path_stdout_reaches_the_runner_capture(capture) -> None:
+    """A command writing to `-` prints into the capture of Click's test runner.
+
+    Under `capture="fd"`, `sys.stdout.fileno()` returns a copy of the original
+    stdout descriptor, so a stream opened on it writes past the capture.
+    """
+
+    @click.command()
+    def harvest():
+        stream = prep_path(Path("-"))
+        try:
+            echo("papaya", file=stream)
+        finally:
+            if stream is not sys.stdout:
+                stream.close()
+
+    result = CliRunner(capture=capture).invoke(harvest)
+
+    assert result.exit_code == 0
+    assert result.output == "papaya\n"
 
 
 @pytest.mark.parametrize(
