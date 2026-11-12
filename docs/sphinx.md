@@ -1053,39 +1053,24 @@ Both apply only to the tables whose top-left cell holds the `↴` arrow. A table
 
 ## Vertical tab-sets
 
-A [sphinx-design](https://sphinx-design.readthedocs.io) `tab-set` with many tabs, like the install channels of a project, wraps its labels into a strip that is hard to read. Mark it with the `tabs-vertical` class, and the extension stacks its labels down a left rail, with the selected pane on the right:
+A [sphinx-design](https://sphinx-design.readthedocs.io) `tab-set` with many tabs, like the install channels of a project, wraps its labels into a strip that is hard to read. sphinx-design `0.8.0` stacks the labels down a left rail, with the selected pane on the right, for a tab-set that sets `:orientation: vertical`. The [install page](install.md#installation-methods) sets it.
 
-``````{code-block} markdown
-`````{tab-set}
-:class: tabs-vertical
-````{tab-item} Apple
-Apples grow in temperate orchards.
-````
+The extension lays out a tab-set marked with the `tabs-vertical` class the same way, for a project on an older sphinx-design. On a screen narrower than `50em`, the tab-set falls back to the horizontal layout. A tab-set nested inside a pane keeps the horizontal layout too. The class is inert on a project that does not load sphinx-design.
 
-````{tab-item} Banana
-Bananas grow in the tropics.
-````
-`````
+```{warning}
+The `tabs-vertical` class is deprecated and stops working in click-extra `11.0.0`. Each tab-set that carries it gets a `click_extra.tabs_vertical` warning, which `--fail-on-warning` turns into a failed build.
+```
+
+Replace the class with the option:
+
+``````{code-block} diff
+ `````{tab-set}
+-:class: tabs-vertical
++:orientation: vertical
+ ````{tab-item} Apple
 ``````
 
-It renders as:
-
-`````{tab-set}
-:class: tabs-vertical
-````{tab-item} Apple
-Apples grow in temperate orchards.
-````
-
-````{tab-item} Banana
-Bananas grow in the tropics.
-````
-
-````{tab-item} Cherry
-Cherries grow on trees that need a cold winter.
-````
-`````
-
-On a screen narrower than `50em`, the tab-set falls back to the horizontal layout. A tab-set nested inside a pane keeps the horizontal layout too. The class is inert on a project that does not load sphinx-design.
+To keep the class on a sphinx-design older than `0.8.0`, list `click_extra.tabs_vertical` in `suppress_warnings`.
 
 ## Viewcode pages nothing links to
 

@@ -284,8 +284,9 @@ docs = [
   # sphinx-datatables 1.0.0 is the first stable release; renders the binaries
   # catalog as a searchable, sortable table.
   "sphinx-datatables>=1",
-  # sphinx-design 0.6 introduced the current directive syntax for cards, grids, and tabs.
-  "sphinx-design>=0.6",
+  # sphinx-design 0.8.0 added the `:orientation: vertical` option of `tab-set`,
+  # which the install page sets: an older release fails the build on it.
+  "sphinx-design>=0.8",
   # sphinx-sitemap 2.6.0 added `sitemap_excludes`, which docs/conf.py uses to
   # keep the search and index pages out of the sitemap.
   "sphinx-sitemap>=2.6",
@@ -332,7 +333,10 @@ exclude-newer = "1 week"
 # otherwise holds each release back a week from the projects that consume it.
 # XXX The `click` entry lets the `click>=8.5.1` floor resolve inside its
 # cooldown: drop this comment once `sync-uv-lock` prunes the entry.
-exclude-newer-package = { click = "2026-11-08T00:00:00Z", extra-platforms = "2026-11-02T00:00:00Z" }
+# XXX The `sphinx-design` entry lets the `sphinx-design>=0.8` floor of the docs
+# group resolve inside its cooldown: drop this comment once `sync-uv-lock`
+# prunes the entry.
+exclude-newer-package = { click = "2026-11-08T00:00:00Z", extra-platforms = "2026-11-02T00:00:00Z", sphinx-design = "0 days" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 build-backend.source-exclude = [
@@ -714,6 +718,10 @@ dependency-graph.all-groups = false
 dependency-graph.no-extras = [ "all" ]
 # XXX Drop once `lint-deps` reports that this entry exempts nothing.
 lint-deps.allow.click = "Click 8.5.1 is on PyPI: only an install under a cooldown fails, until 2026-11-13."
+# XXX Drop once `lint-deps` reports that this entry exempts nothing.
+lint-deps.allow.sphinx-design = """\
+  sphinx-design 0.8.0 is on PyPI: only a docs install under a cooldown fails, until 2026-11-17.\
+  """
 # Entries of the bundled `pytest.toml` and `ruff.toml` that `[tool.pytest]` and
 # `[tool.ruff]` leave out on purpose, each mapped to its reason: see § Test
 # suite specifics and § Heavy dependencies in AGENTS.md. `lint-repo` reports

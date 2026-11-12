@@ -47,6 +47,13 @@ in `11.0.0`, with the `__getattr__` serving them as `tile_runs`, `TILE_RUN` and
 `_TILING_RE`, and their tests in `tests/test_screenshots.py`: its warnings
 announce that release.
 ```
+
+```{todo}
+Delete `click_extra/sphinx/tabs.py`, its `setup` call in
+`click_extra/sphinx/__init__.py`, `tests/sphinx/test_sphinx_tabs.py` and the
+vertical tab-sets section of `docs/sphinx.md` in `11.0.0`: its warnings announce
+that release. Move its entry in `docs/upstream.md` to the upstreamed section.
+```
 """
 
 from __future__ import annotations

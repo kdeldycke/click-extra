@@ -30,15 +30,17 @@ inside a pane keeps the horizontal layout. The stylesheet is written into the
 build rather than packaged as a data file, and is inert on a project that does
 not load sphinx-design.
 
-```{todo}
-Delete this module once sphinx-design `0.8.0` ships
-[executablebooks/sphinx-design#304](https://github.com/executablebooks/sphinx-design/pull/304),
-which adds an `:orientation: vertical` option to `tab-set`. Projects then set
-that option instead of the class.
-```
+The class is deprecated: sphinx-design `0.8.0` lays out a tab-set the same way
+with the `:orientation: vertical` option of `tab-set`, from
+[executablebooks/sphinx-design#304](https://github.com/executablebooks/sphinx-design/pull/304).
+Each tab-set that carries the class gets a {data}`VERTICAL_TABS_WARNING`, and
+the class stops working in `11.0.0`.
 """
 
 from __future__ import annotations
+
+from docutils import nodes
+from sphinx.util import logging
 
 from .tables import _write_static_file
 
@@ -47,8 +49,19 @@ if TYPE_CHECKING:
     from sphinx.application import Sphinx
 
 
+logger = logging.getLogger(__name__)
+
 VERTICAL_TABS_CLASS = "tabs-vertical"
 """The class a `tab-set` takes in its `:class:` option to lay out vertically."""
+
+VERTICAL_TABS_WARNING = "click_extra.tabs_vertical"
+"""Type and subtype of the warning about a {data}`VERTICAL_TABS_CLASS` tab-set.
+
+List it in `suppress_warnings` to silence the warning.
+"""
+
+_REMOVAL_VERSION = "11.0.0"
+"""The release in which {data}`VERTICAL_TABS_CLASS` stops working."""
 
 NARROW_SCREEN = "50em"
 """The screen width under which a vertical tab-set falls back to horizontal tabs."""
@@ -131,10 +144,32 @@ def add_vertical_tabs(app: Sphinx) -> None:
     app.add_css_file(STYLESHEET)
 
 
+def warn_vertical_tabs_class(app: Sphinx, doctree: nodes.document) -> None:
+    """Warn about each tab-set of `doctree` marked with {data}`VERTICAL_TABS_CLASS`.
+
+    sphinx-design gives the node of each `tab-set` and `tab-set-code` the
+    `sd-tab-set` class, beside the classes of its `:class:` option.
+    """
+    warning_type, _, subtype = VERTICAL_TABS_WARNING.partition(".")
+    for node in doctree.findall(nodes.Element):
+        if "sd-tab-set" in node["classes"] and VERTICAL_TABS_CLASS in node["classes"]:
+            logger.warning(
+                "click_extra.sphinx: the `%s` class is deprecated and stops working "
+                "in click-extra %s. Set `:orientation: vertical` on the tab-set "
+                "instead, which needs sphinx-design 0.8.0.",
+                VERTICAL_TABS_CLASS,
+                _REMOVAL_VERSION,
+                type=warning_type,
+                subtype=subtype,
+                location=node,
+            )
+
+
 def setup(app: Sphinx) -> None:
-    """Register the vertical tab stylesheet on `app`.
+    """Register the vertical tab stylesheet and the deprecation warning on `app`.
 
     Called from {func}`click_extra.sphinx.setup` so projects only need to list
     `"click_extra.sphinx"` in their `extensions`.
     """
     app.connect("builder-inited", add_vertical_tabs)
+    app.connect("doctree-read", warn_vertical_tabs_class)

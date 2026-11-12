@@ -488,7 +488,7 @@ The [`click_extra.sphinx` extension](sphinx.md#setup) fixes two defects in what 
 
 The [`tabs-vertical` class](sphinx.md#vertical-tab-sets) stacks the labels of a sphinx-design `tab-set` down a left rail:
 
-- [`sphinx-design#219` - Vertically-oriented tabs](https://github.com/executablebooks/sphinx-design/issues/219): closed in November 2026 by [`sphinx-design#304`](https://github.com/executablebooks/sphinx-design/pull/304), which adds an `:orientation: vertical` option to `tab-set`. The option replaces the class once sphinx-design `0.8.0` ships it.
+- [`sphinx-design#219` - Vertically-oriented tabs](https://github.com/executablebooks/sphinx-design/issues/219): closed in November 2026 by [`sphinx-design#304`](https://github.com/executablebooks/sphinx-design/pull/304), which adds an `:orientation: vertical` option to `tab-set`. sphinx-design `0.8.0` ships the option, so the class is deprecated and goes in click-extra `11.0.0`.
 
 ## Declined by upstream
 

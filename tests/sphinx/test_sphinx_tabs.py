@@ -20,7 +20,14 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from click_extra.sphinx.tabs import STYLESHEET, VERTICAL_TABS_CLASS, VERTICAL_TABS_CSS
+import pytest
+
+from click_extra.sphinx.tabs import (
+    STYLESHEET,
+    VERTICAL_TABS_CLASS,
+    VERTICAL_TABS_CSS,
+    VERTICAL_TABS_WARNING,
+)
 
 
 def test_vertical_tabs_stylesheet_is_linked(sphinx_app_myst) -> None:
@@ -47,3 +54,27 @@ def test_vertical_tabs_rules_stay_on_their_tab_set() -> None:
     assert selectors
     scoped = re.compile(rf"\.sd-tab-set\.{VERTICAL_TABS_CLASS}( > .+)?")
     assert [s for s in selectors if not scoped.fullmatch(s)] == []
+
+
+@pytest.mark.parametrize(
+    ("classes", "warns"),
+    [
+        pytest.param(f"sd-tab-set {VERTICAL_TABS_CLASS}", True, id="marked-tab-set"),
+        pytest.param("sd-tab-set", False, id="plain-tab-set"),
+        pytest.param(VERTICAL_TABS_CLASS, False, id="marked-container"),
+    ],
+)
+def test_vertical_tabs_class_is_deprecated(sphinx_app_myst, classes, warns) -> None:
+    """A tab-set marked with the class warns about its removal, other nodes do not.
+
+    A docutils `container` takes the classes that sphinx-design gives the node of
+    a `tab-set`, so the test needs no sphinx-design.
+    """
+    sphinx_app_myst.build_document(
+        f"Fruits.\n\n```{{container}} {classes}\nApples and pears.\n```\n"
+    )
+    warnings = sphinx_app_myst._warning.getvalue()
+    assert (f"[{VERTICAL_TABS_WARNING}]" in warnings) is warns
+    if warns:
+        assert "stops working in click-extra 11.0.0" in warnings
+        assert "Set `:orientation: vertical` on the tab-set instead" in warnings

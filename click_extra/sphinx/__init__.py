@@ -164,7 +164,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       under the pointer, and makes a cell holding a single link clickable over
       its whole area. See {mod}`click_extra.sphinx.crosshair`.
     - A vertical layout for a sphinx-design `tab-set` marked with
-      `:class: tabs-vertical`: its labels stack down a left rail. Inert without
+      `:class: tabs-vertical`: its labels stack down a left rail. Deprecated
+      for the `:orientation: vertical` option of sphinx-design `0.8.0`, with a
+      warning on each tab-set that carries the class. Inert without
       sphinx-design. See {mod}`click_extra.sphinx.tabs`.
     - Class diagrams of `autoclasstree` that let the mouse wheel scroll the
       page, where the d3 zoom of sphinxcontrib-mermaid would catch it. Inert
@@ -252,7 +254,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # (see crosshair.py).
     crosshair.setup(app)
 
-    # Lay out a tab-set marked `tabs-vertical` in two columns (see tabs.py).
+    # Lay out a tab-set marked `tabs-vertical` in two columns, and warn that the
+    # class is deprecated (see tabs.py).
     tabs.setup(app)
 
     # Keep the d3 zoom of sphinxcontrib-mermaid off the `autoclasstree` diagrams
