@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** Raise the Click floor to `8.5.1`, dropping the shims for the spec of hidden options and the `envvar` of error hints.
+- **Breaking:** Raise the myst-parser floor of the `sphinx` extra to `5.2.0`, dropping the shim for the `content_offset` it over-counted.
 - **Deprecated:** the `tabs-vertical` class of sphinx-design tab-sets now warns and stops working in `11.0.0`. Set the `:orientation: vertical` option of sphinx-design `0.8.0` instead.
 - Send `SIGTERM` to a `run_cli` child that outlives its timeout, and `SIGKILL` only after a grace period, so `sudo` can forward the first to the command it escalated.
 - In a dependency compatibility matrix, show `–` instead of `✅` for a major that came out after the last release of a superseded range.

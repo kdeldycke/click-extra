@@ -32,20 +32,12 @@ module, so it stays importable without the `sphinx` extra.
 
 from __future__ import annotations
 
-from functools import cache, cached_property
+from functools import cached_property
 
 from docutils import nodes
 from docutils.statemachine import StringList
-from packaging.version import Version
 from sphinx.directives import SphinxDirective
 from sphinx.domains import Domain
-
-# Sphinx does not pull in `myst-parser`, so a project that installs Sphinx
-# without the `sphinx` extra has none: the extension stays importable for it.
-try:
-    import myst_parser
-except ImportError:
-    myst_parser = None  # type: ignore[assignment]
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -67,61 +59,6 @@ namespaces of both directive families seed `__file__` with this name rather than
 a path. A block reading it gets the same answer in a Sphinx build and in the
 offline refresh of a `:mirror:` region.
 """
-
-
-@cache
-def myst_version() -> Version | None:
-    """The installed `myst-parser` release, or `None` when there is none.
-
-    Every MyST-specific behavior of the extension is keyed on this answer, so a
-    project without `myst-parser` takes none of them. Cached: the answer cannot
-    change during a build, and every directive asks for it.
-    """
-    return None if myst_parser is None else Version(myst_parser.__version__)
-
-
-MYST_CONTENT_OFFSET_INFLATED_MAX = Version("5.1.0")
-"""Last `myst-parser` release that miscomputes a directive's `content_offset`.
-
-Up to and including this version, `myst-parser` over-counts `content_offset`
-by one whenever an option block is followed by a body ending in blank
-line(s): the parsed body is rebuilt through a string round-trip that drops
-one trailing blank line, so the option-block line count comes out one too
-high. This shifts the reported source line of every body element down by one.
-
-[`#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179) fixes it in
-`myst-parser` `5.2.0`. The open rework in
-[`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) is a
-separate change: it makes `content_offset` document-relative, so its release
-requires {attr}`ContentOffsetMixin.abs_content_offset` to converge on the rST
-branch it already carries. See `docs/upstream.md`. The steps that retire the
-workaround are the `{todo}` of the `click_extra.sphinx.click` module, where
-Sphinx renders them.
-"""
-
-
-def _myst_content_offset_inflation(directive: SphinxDirective) -> int:
-    """Lines to subtract from the MyST error-line computation (`0` or `1`).
-
-    Works around the {data}`MYST_CONTENT_OFFSET_INFLATED_MAX` bug so the
-    variable-conflict error points at the true source line. Only engages on an
-    affected `myst-parser`, and only when the directive carries both an option
-    block and a body ending in a blank line: the two conditions that together
-    trigger the inflation.
-
-    ```{caution}
-    The round-trip behind the bug consumes the *first* trailing blank line, so
-    a body ending in exactly one blank line inflates `content_offset` without
-    leaving a trace in `directive.content`. That single-blank case therefore
-    stays off by one until the upstream fix is adopted; bodies ending in two or
-    more blank lines are corrected.
-    ```
-    """
-    version = myst_version()
-    if version is None or version > MYST_CONTENT_OFFSET_INFLATED_MAX:
-        return 0
-    content = directive.content
-    return int(bool(directive.options and content and not content[-1].strip()))
 
 
 class ContentOffsetMixin(SphinxDirective):
@@ -163,11 +100,7 @@ class ContentOffsetMixin(SphinxDirective):
         if not self.is_myst_syntax:
             return content_offset
         lineno: int = self.lineno
-        # Correct a myst-parser <= 5.1.0 bug that inflates content_offset by
-        # one when an option block precedes a body ending in blank line(s).
-        # See the mechanism and the single-trailing-blank caveat in
-        # _myst_content_offset_inflation().
-        return lineno + content_offset - _myst_content_offset_inflation(self)
+        return lineno + content_offset
 
 
 def directive_source(directive: SphinxDirective) -> tuple[str, str]:
@@ -178,10 +111,8 @@ def directive_source(directive: SphinxDirective) -> tuple[str, str]:
     package, so callers needing the raw source (for an AST conflict check, say)
     do not re-derive it independently of {func}`compile_directive`.
     """
-    # Read directive.content, not directive.block_text: block_text is body-only
-    # in myst-parser <= 5.1.0, and holds the directive header and options in
-    # rST. See the `{todo}` of the click_extra.sphinx.click module for the
-    # release that aligns the two.
+    # Read directive.content, not directive.block_text, which also holds the
+    # directive header and options.
     return "\n".join(directive.content), directive.get_location()
 
 

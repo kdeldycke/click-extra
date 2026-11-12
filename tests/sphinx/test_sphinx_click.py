@@ -1036,10 +1036,9 @@ def test_generated_block_is_attributed_to_the_directive_body(
     *file*, and ``myst-parser`` measures its offsets from the directive rather
     than the document.
 
-    The last two cases pin the ``content_offset`` inflation
-    ``click_extra.sphinx._base.MYST_CONTENT_OFFSET_INFLATED_MAX`` documents,
-    which only fires on a directive carrying both an option block and a body
-    ending in blank lines.
+    The last two cases carry both an option block and a body ending in blank
+    lines, whose ``content_offset`` ``myst-parser`` ``5.1.0`` and older
+    over-counted by one.
     """
     document = test_case.document
     sphinx_app_for_format.build_document(document)

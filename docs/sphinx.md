@@ -942,7 +942,7 @@ myst_enable_extensions = ["alert"]
 ```
 
 ```{versionchanged} 10.0.0
-Click Extra no longer converts alerts itself. The `sphinx` extra requires `myst-parser` `5.1.0` or newer, the first release with the `alert` extension.
+Click Extra no longer converts alerts itself. The `sphinx` extra requires `myst-parser` `5.2.0` or newer, which carries the `alert` extension that `5.1.0` introduced.
 ```
 
 Write alerts using GitHub's blockquote syntax:

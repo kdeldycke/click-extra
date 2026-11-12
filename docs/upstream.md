@@ -234,6 +234,10 @@ Reported from click-extra, and closed upstream:
 - [`#60` - Invalid regex errors with `--no-regex` option](https://github.com/callowayproject/bump-my-version/issues/60)
 - [`#59` - Defaults to `--no-regex` mode](https://github.com/callowayproject/bump-my-version/issues/59)
 
+### [`MyST-Parser`](https://github.com/executablebooks/MyST-Parser)
+
+- [`#1177`](https://github.com/executablebooks/MyST-Parser/issues/1177) / [`#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179) - A directive with an option block and a body ending in blank lines got its `content_offset` inflated by one, so a diagnostic in its body pointed one line late. click-extra corrected the offset; the fix shipped in `myst-parser` `5.2.0`, whose floor retired that correction. The same release ships the `block_text` alignment of [`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164), which superseded [`#1048`](https://github.com/executablebooks/MyST-Parser/pull/1048).
+
 ### [`python-tabulate`](https://github.com/astanin/python-tabulate)
 
 - [`#375`](https://github.com/astanin/python-tabulate/issues/375) - The `youtrack` format has no syntax reference left on the JetBrains site. The maintainer scheduled its removal for `0.11`.
@@ -457,7 +461,6 @@ click-extra maintains and extends the [`click:source`/`click:run` directives](sp
 - [`pallets-sphinx-themes#61` - Move `.. click:example::` and `.. click:run::` implementation to `sphinx-click`](https://github.com/pallets/pallets-sphinx-themes/issues/61)
 - [`sphinx-click#110` - Supports `.. click:example::` and `.. click:run::` directives](https://github.com/click-contrib/sphinx-click/issues/110)
 - [`cloup#92` - Use sphinx directive to generate output of full examples in the docs](https://github.com/janluke/cloup/issues/92)
-- [`MyST-Parser#1177` - `body_offset` is inflated by one when a directive has an option block and its body ends in blank line(s)](https://github.com/executablebooks/MyST-Parser/issues/1177): reported from click-extra, and fixed by [`MyST-Parser#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179), which `myst-parser` `5.2.0` ships. Until the floor reaches that release, `click_extra.sphinx._base._myst_content_offset_inflation` corrects the source line of an error in a directive body, for `myst-parser` `5.1.0` and older. `5.2.0` also ships the `block_text` alignment of [`MyST-Parser#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164), which superseded [`MyST-Parser#1048`](https://github.com/executablebooks/MyST-Parser/pull/1048).
 
 ### Sphinx `python:*` directives and live document rendering
 

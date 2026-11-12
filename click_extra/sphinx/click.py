@@ -35,25 +35,9 @@ Compared to the latter, it:
 ```
 
 ```{todo}
-Retire the MyST workarounds of `click_extra.sphinx._base` once the pinned
-`myst-parser` floor reaches `5.2.0`, the release carrying both fixes:
-
-- [`#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179) fixes the
-  inflated `content_offset`: delete `_myst_content_offset_inflation` and
-  `MYST_CONTENT_OFFSET_INFLATED_MAX`.
-- [`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164) aligns
-  `block_text` with rST: drop the `directive.content` fallback in
-  `directive_source`, which stays off `block_text` only because that attribute
-  is body-only in `myst-parser <= 5.1.0`. A released `block_text` anchors a
-  robust line-number computation and retires the workaround from both sides.
-
-The single-trailing-blank-line case documented on
-`_myst_content_offset_inflation` stays off by one until the floor reaches
-`5.2.0`, and no local fix can reach it: the round-trip consumes that line
-without a trace.
-
-Collapse `ContentOffsetMixin.abs_content_offset` onto its rST branch
-(`content_offset` verbatim) once a release carries the open rework
+Collapse `ContentOffsetMixin.abs_content_offset` of `click_extra.sphinx._base`
+onto its rST branch (`content_offset` verbatim) once a `myst-parser` release
+carries the open rework
 [`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175), which
 makes `content_offset` document-relative.
 ```

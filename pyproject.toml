@@ -140,9 +140,9 @@ optional-dependencies.pytest = [
 optional-dependencies.sphinx = [
   # docutils 0.20 is the minimal version for Sphinx 8.0.0.
   "docutils>=0.20",
-  # myst-parser 5.1 ships the "alert" syntax extension that renders GitHub
-  # alerts on the pages click_extra.sphinx builds.
-  "myst-parser>=5.1",
+  # myst-parser 5.2.0 stopped over-counting the `content_offset` of a directive
+  # with options: below it, click_extra.sphinx diagnostics point one line late.
+  "myst-parser>=5.2",
   # packaging parses the versions and specifiers of the `{matrix}` directive.
   # 23.0 is the floor Sphinx 8.0.0 itself requires.
   "packaging>=23",
@@ -150,7 +150,7 @@ optional-dependencies.sphinx = [
   # `HtmlFormatter[str]` at import, which raises a `TypeError` on any older
   # Pygments.
   "pygments>=2.18",
-  # myst-parser 5.1 above requires Sphinx 8.0.0, so a lower floor here would
+  # myst-parser 5.2 above requires Sphinx 8.0.0, so a lower floor here would
   # declare releases this extra can never install.
   "sphinx>=8",
 ]
@@ -218,9 +218,8 @@ test = [
   # `click_extra.mkdocs` rewrites to `ansi-output`. An older release emits bare
   # fences, which stay unpatched.
   "mkdocs-click>=0.8.1",
-  # myst-parser 5.1 ships the "alert" syntax extension the Sphinx test builds
-  # enable.
-  "myst-parser>=5.1",
+  # Mirrors the sphinx extra floor, whose source lines the Sphinx tests pin.
+  "myst-parser>=5.2",
   # Mirrors the sphinx extra floor; test_pyproject.py also reads specifiers with it.
   "packaging>=23",
   # pymdown-extensions 10.0 is the first version with stable highlight extension API.
@@ -237,7 +236,7 @@ test = [
   # (test_pygments, test_pyproject); the runtime config-URL loader uses urllib.
   # 2.34 ships inline types, removing the need for the types-requests stub.
   "requests>=2.34",
-  # Mirrors the sphinx extra floor, which myst-parser 5.1 sets.
+  # Mirrors the sphinx extra floor, which myst-parser 5.2 sets.
   "sphinx>=8",
 ]
 docs = [
@@ -258,9 +257,8 @@ docs = [
   # mkdocs-click is needed for automodule of tests.mkdocs.test_mkdocs. Mirrors
   # the test group floor.
   "mkdocs-click>=0.8.1",
-  # myst-parser 5.1 ships the native "alert" syntax extension for GitHub-style
-  # callouts, used by docs/conf.py's myst_enable_extensions.
-  "myst-parser>=5.1",
+  # Mirrors the sphinx extra floor.
+  "myst-parser>=5.2",
   # platformdirs renders the alternative folder layout in config-discovery.md's
   # {click:run} blocks. It is a docs-only dependency: the package itself never
   # imports it. 4.0 opened the current major line, whose user_config_dir()
@@ -274,7 +272,7 @@ docs = [
   "pytest>=9",
   # PyYAML renders the Carapace spec in carapace.md {click:run} blocks.
   "pyyaml>=6.0.3",
-  # Mirrors the sphinx extra floor, which myst-parser 5.1 sets.
+  # Mirrors the sphinx extra floor, which myst-parser 5.2 sets.
   "sphinx>=8",
   # sphinx-autodoc-typehints 3.4.0 is the first release supporting Python 3.14,
   # the only Python this group installs on.
@@ -336,9 +334,9 @@ exclude-newer = "1 week"
 # XXX The `sphinx-design` entry lets the `sphinx-design>=0.8` floor of the docs
 # group resolve inside its cooldown: drop this comment once `sync-uv-lock`
 # prunes the entry.
-# XXX The `markdown-it-py`, `mdit-py-plugins` and `myst-parser` entries let
-# `uv.lock` hold the myst-parser 5.2.0 release inside its cooldown: drop this
-# comment once `sync-uv-lock` prunes them.
+# XXX The `markdown-it-py`, `mdit-py-plugins` and `myst-parser` entries let the
+# `myst-parser>=5.2` floor resolve inside its cooldown: drop this comment once
+# `sync-uv-lock` prunes them.
 exclude-newer-package = { click = "2026-11-08T00:00:00Z", extra-platforms = "2026-11-02T00:00:00Z", markdown-it-py = "0 days", mdit-py-plugins = "0 days", myst-parser = "0 days", sphinx-design = "0 days" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
@@ -721,6 +719,8 @@ dependency-graph.all-groups = false
 dependency-graph.no-extras = [ "all" ]
 # XXX Drop once `lint-deps` reports that this entry exempts nothing.
 lint-deps.allow.click = "Click 8.5.1 is on PyPI: only an install under a cooldown fails, until 2026-11-13."
+# XXX Drop once `lint-deps` reports that this entry exempts nothing.
+lint-deps.allow.myst-parser = "myst-parser 5.2.0 is on PyPI: only an install under a cooldown fails, until 2026-11-17."
 # XXX Drop once `lint-deps` reports that this entry exempts nothing.
 lint-deps.allow.sphinx-design = """\
   sphinx-design 0.8.0 is on PyPI: only a docs install under a cooldown fails, until 2026-11-17.\
