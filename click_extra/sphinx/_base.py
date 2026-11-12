@@ -89,10 +89,8 @@ line(s): the parsed body is rebuilt through a string round-trip that drops
 one trailing blank line, so the option-block line count comes out one too
 high. This shifts the reported source line of every body element down by one.
 
-[`#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179) fixes it,
-merged but unreleased. The `main` branch carrying it still reports this
-version, so a build against that branch subtracts the line the fix already
-removed. The open rework in
+[`#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179) fixes it in
+`myst-parser` `5.2.0`. The open rework in
 [`#1175`](https://github.com/executablebooks/MyST-Parser/pull/1175) is a
 separate change: it makes `content_offset` document-relative, so its release
 requires {attr}`ContentOffsetMixin.abs_content_offset` to converge on the rST

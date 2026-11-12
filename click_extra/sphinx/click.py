@@ -35,9 +35,8 @@ Compared to the latter, it:
 ```
 
 ```{todo}
-Retire the MyST workarounds of `click_extra.sphinx._base` as the pinned
-`myst-parser` floor rises past the release carrying each fix. Both fixes are
-merged but unreleased:
+Retire the MyST workarounds of `click_extra.sphinx._base` once the pinned
+`myst-parser` floor reaches `5.2.0`, the release carrying both fixes:
 
 - [`#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179) fixes the
   inflated `content_offset`: delete `_myst_content_offset_inflation` and
@@ -49,8 +48,8 @@ merged but unreleased:
   robust line-number computation and retires the workaround from both sides.
 
 The single-trailing-blank-line case documented on
-`_myst_content_offset_inflation` stays off by one until the floor passes
-`#1179`, and no local fix can reach it: the round-trip consumes that line
+`_myst_content_offset_inflation` stays off by one until the floor reaches
+`5.2.0`, and no local fix can reach it: the round-trip consumes that line
 without a trace.
 
 Collapse `ContentOffsetMixin.abs_content_offset` onto its rST branch
