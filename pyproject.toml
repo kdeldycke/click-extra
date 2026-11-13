@@ -337,7 +337,7 @@ exclude-newer = "1 week"
 # XXX The `markdown-it-py`, `mdit-py-plugins` and `myst-parser` entries let the
 # `myst-parser>=5.2` floor resolve inside its cooldown: drop this comment once
 # `sync-uv-lock` prunes them.
-exclude-newer-package = { click = "2026-11-08T00:00:00Z", extra-platforms = "2026-11-02T00:00:00Z", markdown-it-py = "0 days", mdit-py-plugins = "0 days", myst-parser = "0 days", soupsieve = "2026-11-12T00:00:00Z", sphinx-design = "0 days" }
+exclude-newer-package = { click = "2026-11-08T00:00:00Z", markdown-it-py = "2026-11-12T00:00:00Z", mdit-py-plugins = "2026-11-12T00:00:00Z", myst-parser = "2026-11-12T00:00:00Z", soupsieve = "2026-11-12T00:00:00Z", sphinx-design = "2026-11-12T00:00:00Z" }
 # Package is at root level, not in "./src/".
 build-backend.module-root = ""
 build-backend.source-exclude = [
