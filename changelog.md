@@ -1,9 +1,6 @@
 # Changelog
 
-## [`10.3.0.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.2.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`10.3.0` (2026-11-13)](https://github.com/kdeldycke/click-extra/compare/v10.2.0...v10.3.0)
 
 - **Breaking:** Raise the Click floor to `8.5.1`, dropping the shims for the spec of hidden options and the `envvar` of error hints.
 - **Breaking:** Raise the myst-parser floor of the `sphinx` extra to `5.2.0`, dropping the shim for the `content_offset` it over-counted.
