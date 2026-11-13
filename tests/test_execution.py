@@ -1138,6 +1138,25 @@ def test_format_cli_prompt_environment_values_survive_a_shell_round_trip():
     ]
 
 
+def test_format_cli_prompt_unsets_a_variable_mapped_to_none():
+    """A `None` value removes its variable from the child, which `env -u` says.
+
+    Drawn as an assignment, it read `LANGUAGE=None`, and a pasted copy then set
+    the variable to the string `None` instead of removing it.
+    """
+    drawn = strip_ansi(
+        format_cli_prompt(("forecast",), extra_env={"LANGUAGE": None, "CITY": "Lima"}),
+    )
+    assert drawn == f"{PROMPT}env -u LANGUAGE CITY=Lima forecast"
+    assert shlex.split(drawn.removeprefix(PROMPT)) == [
+        "env",
+        "-u",
+        "LANGUAGE",
+        "CITY=Lima",
+        "forecast",
+    ]
+
+
 def test_format_cli_prompt_honors_an_explicit_theme():
     """A caller drawing the line onto a surface of its own picks the palette.
 

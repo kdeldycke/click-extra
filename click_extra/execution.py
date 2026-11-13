@@ -320,6 +320,8 @@ def format_cli_prompt(
     - the prompt sigil with `bracket`, the structural-token style;
     - each environment assignment as `envvar` name, plain `=`, `default`
       value;
+    - each variable to unset as an `option` `-u` and its `envvar` name, after
+      a plain `env`;
     - the program's binary name with `invoked_command`, its directory plain
       (see {func}`highlight_bin_name`);
     - the `-`/`--` flags with `option`; other arguments stay plain.
@@ -332,6 +334,11 @@ def format_cli_prompt(
     quotes are themselves quoted. Styling reads the raw argument, since a quoted
     `--name=John Doe` no longer opens on a dash.
 
+    A variable mapped to `None` is one {func}`~click_extra.envvar.env_copy`
+    removes from the child's environment, and no assignment can say that: the
+    line then opens on `env -u NAME`, ahead of the assignments, as
+    `$ env -u LANGUAGE LC_ALL=C forecast`.
+
     ```{note}
     The program is left as it stands. Quoting has to wrap the whole token, which
     would put the closing quote inside the name {func}`highlight_bin_name` styles,
@@ -340,7 +347,8 @@ def format_cli_prompt(
     ```
 
     :param cmd_args: the command line to render.
-    :param extra_env: environment assignments to prefix it with.
+    :param extra_env: environment assignments to prefix it with, a `None` value
+        unsetting its variable.
     :param theme: palette to style the line with. Defaults to the theme the
         current invocation runs under, which is what a CLI printing its own
         trace wants. A caller drawing the line onto a surface of its own choosing
@@ -355,10 +363,16 @@ def format_cli_prompt(
     active_theme = get_current_theme() if theme is None else theme
     extra_env_string = ""
     if extra_env:
-        extra_env_string = "".join(
+        unset = "".join(
+            f"{active_theme.option('-u')} {active_theme.envvar(name)} "
+            for name, value in extra_env.items()
+            if value is None
+        )
+        extra_env_string = (f"env {unset}" if unset else "") + "".join(
             f"{active_theme.envvar(name)}"
             f"={active_theme.default(shlex.quote(str(value)))} "
             for name, value in extra_env.items()
+            if value is not None
         )
 
     cmd_parts = tuple(cmd_args)
