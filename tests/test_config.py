@@ -1156,6 +1156,26 @@ def test_export_config_includes_unset_params(invoke):
     assert "regexp" not in result.stdout
 
 
+def test_export_config_includes_unset_params_of_a_plain_click_command(invoke):
+    """A plain Click command exports a parameter without a default as null too.
+
+    Such a command does not capture its raw arguments, so the export reads each
+    parameter's default instead, which Click leaves as its `UNSET` sentinel.
+    """
+
+    @click.command
+    @click.option("--regexp")
+    @config_option
+    @export_config_option
+    def plain_cli(regexp):
+        echo("run")
+
+    result = invoke(plain_cli, "--export-config", "json", color=False)
+    assert result.exit_code == 0
+    assert "does not inherit from Command; dumping defaults." in result.stderr
+    assert '"regexp": null' in result.stdout
+
+
 @pytest.mark.parametrize(
     ("tree", "expected"),
     (

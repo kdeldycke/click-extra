@@ -286,9 +286,9 @@ class ExportConfigOption(ExtraOption):
                 continue
             if has_raw_args:
                 raw, _source = target.consume_value(ctx, opts)
-                resolved = None if raw is UNSET else raw
             else:
-                resolved = target.get_default(ctx)
+                raw = target.get_default(ctx)
+            resolved = None if raw is UNSET else raw
             leaf = _config_dump_value(target, resolved)
             # Render the option under its kebab-case spelling, the canonical
             # presentation for configuration files (matching the CLI flags and

@@ -12,6 +12,7 @@
 - In a dependency compatibility matrix, show `–` instead of `✅` for a major that came out after the last release of a superseded range.
 - Keep links to release anchors resolving with myst-parser `5.2.0`, whose [executablebooks/MyST-Parser#1168](https://github.com/executablebooks/MyST-Parser/pull/1168) drops the empty slug `make_id` gives a release heading.
 - Fix `prep_path()` opening `-` past a replaced `sys.stdout`, like Click's `CliRunner(capture="fd")`, which kept its output out of `click:run` blocks.
+- Fix `--export-config` writing `UNSET` instead of `null` for a parameter without a default on a plain Click command.
 - Skip the process-tree tests where the process table does not list the test process, like in the MacPorts build sandbox.
 
 ## [`10.2.0` (2026-11-06)](https://github.com/kdeldycke/click-extra/compare/v10.1.1...v10.2.0)
