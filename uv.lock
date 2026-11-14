@@ -18,7 +18,7 @@ extra-platforms = "2026-11-02T00:00:00Z"
 markdown-it-py = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
 mdit-py-plugins = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
 myst-parser = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
-soupsieve = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
+soupsieve = "2026-11-12T00:00:00Z"
 sphinx-design = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
 
 [[package]]
@@ -258,7 +258,7 @@ wheels = [
 
 [[package]]
 name = "click-extra"
-version = "10.3.0.dev0"
+version = "11.0.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
