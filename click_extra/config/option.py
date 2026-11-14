@@ -179,6 +179,12 @@ class Sentinel(Enum):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
+    def __reduce_ex__(self, protocol: object) -> tuple[Any, ...]:
+        """Pickle a member by its name: its bare `object()` value would unpickle as a
+        new object, which matches no member.
+        """
+        return getattr, (self.__class__, self.name)
+
 
 NO_CONFIG = Sentinel.NO_CONFIG
 """Sentinel used to indicate that no configuration file must be used at all."""

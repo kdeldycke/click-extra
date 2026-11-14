@@ -17,10 +17,12 @@
 from __future__ import annotations
 
 import ast
+import copy
 import importlib.util
 import json
 import logging
 import os
+import pickle
 import plistlib
 import re
 import subprocess
@@ -3687,6 +3689,21 @@ def test_read_and_parse_conf_returns_first(tmp_path):
 
     assert location == deep.resolve()
     assert conf == {"test-cli": {"k": 2}}
+
+
+@pytest.mark.parametrize("sentinel", tuple(type(NO_CONFIG)))
+@pytest.mark.parametrize(
+    "duplicate",
+    (copy.copy, copy.deepcopy, lambda value: pickle.loads(pickle.dumps(value))),
+    ids=("copy", "deepcopy", "pickle"),
+)
+def test_sentinel_duplication_preserves_identity(sentinel, duplicate):
+    """Copying or pickling a sentinel hands back the member itself.
+
+    A bare `object()` value cannot survive pickling by value: it unpickles as a new
+    object, which matches no member.
+    """
+    assert duplicate(sentinel) is sentinel
 
 
 def test_config_option_default_no_config(invoke, create_config):
