@@ -2266,11 +2266,11 @@ def test_capture_output_keeps_stderr_out_unless_asked():
 CAPTURE_CLICK_VERSION = (8, 5)
 """Click release whose help layout the committed captures picture.
 
-Click ``8.5.0`` gave positional arguments a section of their own, reshaping
-every help screen it renders. A capture is a picture of one Click's output, so
-the matrix cells pinning an older Click inside the supported range compare it
-against a screen that never carried that section. The `Click released` cells
-still check every committed capture, which is where the check belongs.
+A capture is a picture of one Click's output, so a matrix cell running another
+Click compares it against a screen laid out differently: Click ``8.5.0`` gave
+positional arguments a section of their own, and Click ``8.6.0`` no longer breaks
+a line after a hyphen. The `Click released` cells still check every committed
+capture, which is where the check belongs.
 """
 
 
@@ -2281,7 +2281,7 @@ still check every committed capture, which is where the check belongs.
 )
 @pytest.mark.skipif(
     tuple(int(p) for p in importlib.metadata.version("click").split(".")[:2])
-    < CAPTURE_CLICK_VERSION,
+    != CAPTURE_CLICK_VERSION,
     reason="Committed captures picture the Click 8.5 help layout.",
 )
 def test_committed_capture_matches_cli(committed):

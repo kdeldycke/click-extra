@@ -11,6 +11,7 @@
 - Send `SIGTERM` to a `run_cli` child that outlives its timeout, and `SIGKILL` only after a grace period, so `sudo` can forward the first to the command it escalated.
 - In a dependency compatibility matrix, show `–` instead of `✅` for a major that came out after the last release of a superseded range.
 - Keep links to release anchors resolving with myst-parser `5.2.0`, whose [executablebooks/MyST-Parser#1168](https://github.com/executablebooks/MyST-Parser/pull/1168) drops the empty slug `make_id` gives a release heading.
+- Let the `default_options_uncolored_help` and `default_options_colored_help` regexes match the help screens of Click `8.6.0`, which no longer breaks a line after a hyphen.
 - Fix `prep_path()` opening `-` past a replaced `sys.stdout`, like Click's `CliRunner(capture="fd")`, which kept its output out of `click:run` blocks.
 - Fix `--export-config` writing `UNSET` instead of `null` for a parameter without a default on a plain Click command.
 - Fix the command line `run_cli` logs showing a variable it unsets as `NAME=None`, which a pasted copy sets: the line now opens on `env -u NAME`.

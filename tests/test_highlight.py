@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 import os
 import re
 from enum import Enum, IntEnum, auto
@@ -1149,6 +1150,19 @@ def test_cross_ref_highlight_disabled():
     assert theme.metavar("TEXT") not in help_text
 
 
+NO_HYPHEN_BREAK_CLICK_VERSION = (8, 6)
+"""Click release whose help screens no longer break a line after a hyphen.
+
+Below it, Click wraps a `rounded-outline` default as `rounded-` and `outline`, so
+the second word starts a line of its own.
+"""
+
+
+@pytest.mark.skipif(
+    tuple(int(p) for p in importlib.metadata.version("click").split(".")[:2])
+    >= NO_HYPHEN_BREAK_CLICK_VERSION,
+    reason="Click 8.6 no longer breaks a line after a hyphen.",
+)
 def test_choice_does_not_override_default_style():
     """Choice cross-ref highlighting must not restyle text inside bracket fields.
 
@@ -1187,14 +1201,18 @@ def test_choice_does_not_override_default_style():
 
 
 def test_keyword_wrapped_at_its_dash_is_highlighted_whole():
-    """A keyword the renderer wraps after its dash is painted as one run."""
+    """A keyword broken after its dash is painted as one run.
+
+    Click 8.6 no longer wraps a line after a hyphen, so the help text holds the
+    break itself, in a paragraph Click prints as written.
+    """
     cli = Command(
         "test",
         params=[
             ExtraOption(
                 ["--style"],
                 type=click.Choice(["plain", "rounded-outline"]),
-                help="Pick a table style, like the default rounded-outline one.",
+                help="\b\nPick a table style, like the default rounded-\noutline one.",
             ),
         ],
     )
