@@ -6029,6 +6029,41 @@ def test_parse_xml_conventions():
     }
 
 
+@pytest.mark.parametrize(
+    ("elements", "my_list"),
+    (
+        pytest.param("<my_list>pip</my_list>", ("pip",), id="single"),
+        pytest.param("<my-list>pip</my-list>", ("pip",), id="single-kebab-case"),
+        pytest.param(
+            "<my_list>pip</my_list><my_list>npm</my_list>",
+            ("pip", "npm"),
+            id="repeated",
+        ),
+        pytest.param("<my_list/>", (), id="empty"),
+    ),
+)
+def test_xml_single_element_reads_as_one_item_list(
+    invoke, simple_config_cli, create_config, elements, my_list
+):
+    """A lone element naming a multi-value option reads as a one-item list.
+
+    XML has no other way to spell a list of one. An element naming a single-value
+    parameter keeps its text.
+    """
+    conf_path = create_config(
+        "configuration.xml",
+        f"<config-cli1>{elements}"
+        "<default><int_param>3</int_param></default></config-cli1>",
+    )
+
+    result = invoke(simple_config_cli, "--config", str(conf_path), "default")
+
+    assert result.exit_code == 0
+    assert result.stdout == (
+        f"dummy_flag = False\nmy_list = {my_list!r}\nint_parameter = 3\n"
+    )
+
+
 def test_parse_xml_rejects_a_malformed_document():
     from xml.parsers.expat import ExpatError
 

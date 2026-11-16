@@ -16,6 +16,7 @@
 - Fix `--export-config` writing `UNSET` instead of `null` for a parameter without a default on a plain Click command.
 - Fix the command line `run_cli` logs showing a variable it unsets as `NAME=None`, which a pasted copy sets: the line now opens on `env -u NAME`.
 - Fix unpickling the `NO_CONFIG` and `VCS` sentinels, which raised `ValueError: <object object> is not a valid Sentinel`.
+- Fix a lone XML element naming a multi-value option, which failed with `Value must be an iterable.`: it now reads as a one-item list.
 - Skip the process-tree tests where the process table does not list the test process, like in the MacPorts build sandbox.
 
 ## [`10.2.0` (2026-11-06)](https://github.com/kdeldycke/click-extra/compare/v10.1.1...v10.2.0)

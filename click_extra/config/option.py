@@ -75,6 +75,7 @@ from .formats import (
     format_from_mime,
     format_from_path,
     parse_content,
+    parse_xml,
 )
 from .schema import (
     ConfigValidator,
@@ -1150,6 +1151,8 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
                         # variant parses too. Text payloads (URL downloads) fall
                         # through to parse_content(), which handles the XML one.
                         conf = self.load_plist_config(location)
+                    case ConfigFormat.XML:
+                        conf = self.load_xml_config(content)
                     case _:
                         conf = parse_content(fmt, content)
 
@@ -1600,6 +1603,36 @@ class ConfigOption(ConfigDiscovery, ExtraOption, ParamStructure):
         import plistlib
 
         conf: dict[str, Any] = plistlib.loads(path.read_bytes())
+        return conf
+
+    def load_xml_config(self, content: str) -> dict[str, Any]:
+        """Utility method to parse an `XML` configuration document.
+
+        {func}`~click_extra.config.formats.parse_xml` collects the elements
+        repeating a tag into a list, so a lone element reads as its text. An element
+        naming a parameter that takes several values reads as a one-item list
+        instead: XML has no other way to spell a list of one. Element names match
+        parameters through {func}`~click_extra.param_tools.canonical_param_name`,
+        so the kebab-case spelling counts too.
+
+        Returns a ready-to-use data structure.
+        """
+        conf = parse_xml(content)
+
+        def listify(node: dict[str, Any], params: dict[str, Any]) -> None:
+            targets = {canonical_param_name(key): leaf for key, leaf in params.items()}
+            for key, value in node.items():
+                target = targets.get(canonical_param_name(key))
+                if isinstance(value, dict) and isinstance(target, dict):
+                    listify(value, target)
+                elif (
+                    isinstance(value, str)
+                    and isinstance(target, list)
+                    and all(self.get_param_type(param) is list for param in target)
+                ):
+                    node[key] = [value]
+
+        listify(conf, self.params_objects)
         return conf
 
     def _app_section_name(self, ctx: click.Context) -> str:

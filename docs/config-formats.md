@@ -241,7 +241,7 @@ The `JSON5` parser also reads [`JWCC`](https://nigeltao.github.io/blog/2021/json
 
 `XML` is enabled by default, and read with the standard library's [`expat` parser](https://docs.python.org/3/library/pyexpat.html), so no extra dependency is needed.
 
-The root element is the CLI's name. A repeated element (like `my_list` above) is collected into a list, and every value is read as a string, then coerced to its matching parameter's type. An attribute is read under its name prefixed with `@`, and the text of an element that also carries attributes or children under `#text`.
+The root element is the CLI's name. A repeated element (like `my_list` above) is collected into a list, and a lone element naming an option that takes several values reads as a one-item list. Every value is read as a string, then coerced to its matching parameter's type. An attribute is read under its name prefixed with `@`, and the text of an element that also carries attributes or children under `#text`.
 
 ## plist
 
