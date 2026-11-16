@@ -18,7 +18,7 @@ extra-platforms = "2026-11-02T00:00:00Z"
 markdown-it-py = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
 mdit-py-plugins = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
 myst-parser = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
-soupsieve = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
+soupsieve = "2026-11-12T00:00:00Z"
 sphinx-design = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
 
 [[package]]
@@ -353,6 +353,7 @@ docs = [
 test = [
     { name = "coverage" },
     { name = "extra-platforms", extra = ["pytest"] },
+    { name = "hjson" },
     { name = "jsonschema" },
     { name = "mkdocs" },
     { name = "mkdocs-click" },
@@ -363,10 +364,12 @@ test = [
     { name = "pytest-github-actions-annotate-failures" },
     { name = "pytest-httpserver" },
     { name = "pytest-randomly" },
+    { name = "pyyaml" },
     { name = "requests" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
     { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "tomlrt" },
 ]
 typing = [
     { name = "types-docutils" },
@@ -435,6 +438,7 @@ docs = [
 test = [
     { name = "coverage", specifier = ">=7.13" },
     { name = "extra-platforms", extras = ["pytest"], specifier = ">=14" },
+    { name = "hjson", specifier = ">=3.1" },
     { name = "jsonschema", specifier = ">=4.18" },
     { name = "mkdocs", specifier = ">=1.4" },
     { name = "mkdocs-click", specifier = ">=0.8.1" },
@@ -445,8 +449,10 @@ test = [
     { name = "pytest-github-actions-annotate-failures", specifier = ">=0.2" },
     { name = "pytest-httpserver", specifier = ">=1.1" },
     { name = "pytest-randomly", specifier = ">=3" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.34" },
     { name = "sphinx", specifier = ">=8" },
+    { name = "tomlrt", specifier = ">=2.2.10" },
 ]
 typing = [
     { name = "types-docutils", specifier = ">=0.22.3.20251115" },

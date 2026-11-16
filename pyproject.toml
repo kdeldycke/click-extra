@@ -209,6 +209,8 @@ test = [
   "coverage>=7.13",
   # Matches the runtime extra-platforms>=14 floor; the [pytest] extra adds fixtures.
   "extra-platforms[pytest]>=14",
+  # Mirrors the hjson extra floor: test_table.py imports hjson at collection.
+  "hjson>=3.1",
   # jsonschema validates the generated Carapace spec against the vendored
   # carapace-spec schema in test_carapace; 4.18 added the 2020-12 dialect.
   "jsonschema>=4.18",
@@ -232,12 +234,18 @@ test = [
   "pytest-httpserver>=1.1",
   # pytest-randomly 3.x introduced the current seed-management plugin interface.
   "pytest-randomly>=3",
+  # Mirrors the yaml extra floor: test_carapace.py and test_table.py import yaml
+  # at collection.
+  "pyyaml>=6.0.3",
   # requests is used only by the test suite to fetch fixtures and PyPI metadata
   # (test_pygments, test_pyproject); the runtime config-URL loader uses urllib.
   # 2.34 ships inline types, removing the need for the types-requests stub.
   "requests>=2.34",
   # Mirrors the sphinx extra floor, which myst-parser 5.2 sets.
   "sphinx>=8",
+  # Mirrors the toml extra floor: the TOML table and --export-config tests fail
+  # without tomlrt, they do not skip.
+  "tomlrt>=2.2.10",
 ]
 docs = [
   # Flask is used as a real-world example in docs {click:run} blocks.

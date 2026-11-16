@@ -18,6 +18,7 @@
 - Fix unpickling the `NO_CONFIG` and `VCS` sentinels, which raised `ValueError: <object object> is not a valid Sentinel`.
 - Fix a lone XML element naming a multi-value option, which failed with `Value must be an iterable.`: it now reads as a one-item list.
 - Skip the process-tree tests where the process table does not list the test process, like in the MacPorts build sandbox.
+- List `hjson`, `pyyaml` and `tomlrt` in the `test` dependency group: the test suite needs them, so a distribution build must install them.
 
 ## [`10.2.0` (2026-11-06)](https://github.com/kdeldycke/click-extra/compare/v10.1.1...v10.2.0)
 
