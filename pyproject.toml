@@ -505,6 +505,11 @@ files.extend-exclude = [ ".git", ".gitignore", ".mailmap" ]
 # rest of the word, so the picture gains a doubled letter. typos ships an "svg"
 # file type, so no glob is needed here. Filenames stay checked.
 type.svg.check-file = false
+# Skip the content of asciicast recordings too, like the Tachyon stream a test
+# replays: a full-screen program cuts a word at the edge of its screen, so the
+# recording holds fragments like "faile" that it must keep as they were written.
+type.asciicast.extend-glob = [ "*.cast" ]
+type.asciicast.check-file = false
 
 [tool.mypy]
 check_untyped_defs = true
