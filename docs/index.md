@@ -65,6 +65,7 @@ spinner
 logging
 execution
 version
+bug-report
 telemetry
 ```
 

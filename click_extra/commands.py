@@ -647,9 +647,17 @@ class Command(  # type: ignore[misc]
     {class}`~click_extra.command_doc.HelpFormat` backend) then need no guard.
     """
 
+    report_url: str | None = None
+    """URL of the issue form that a bug report links to, or `None` to report none.
+
+    Set from the `report_url` constructor argument. Declared here so the attribute
+    exists on every command, as {meth}`invoke` reads it off the root command.
+    """
+
     def __init__(
         self,
         *args: Any,
+        report_url: str | None = None,
         version_fields: dict[str, Any] | None = None,
         config_schema: type | Callable[[dict[str, Any]], Any] | None = None,
         config_strict: bool = False,
@@ -669,6 +677,11 @@ class Command(  # type: ignore[misc]
     ) -> None:
         """Like `cloup.Command.__init__`, with Click Extra's defaults and parameters.
 
+        :param report_url: URL of the issue form of the project, like
+            `https://github.com/orchard/harvest/issues/new`. Set on the root command,
+            an error that the CLI has no rule for then ends the run with a bug
+            report linking to that form, instead of a bare traceback. See
+            {meth}`invoke`.
         :param version_fields: dictionary of
             `VersionOption` template field overrides forwarded to the
             version option. Accepts any field from
@@ -809,6 +822,8 @@ class Command(  # type: ignore[misc]
         ```
         """
         super().__init__(*args, **kwargs)
+
+        self.report_url = report_url
 
         # Forward keyword overrides to the _HelpColorsMixin attributes.
         if extra_keywords is not None:
@@ -1069,9 +1084,24 @@ class Command(  # type: ignore[misc]
 
         Click prints it once the root context has closed, so after every close
         callback. See `_abort_notice`.
+
+        Under a root command with a `report_url`, an error that is not one of the
+        exceptions Click exits with ends the run with a bug report: see
+        {func}`~click_extra.bug_report.report_unexpected_error`. The innermost command
+        catches it, as its context still holds the options of the run.
         """
         with _abort_notice(ctx):
-            return super().invoke(ctx)
+            try:
+                return super().invoke(ctx)
+            except (Abort, click.ClickException, Exit):
+                raise
+            except Exception as expt:
+                if not getattr(ctx.find_root().command, "report_url", None):
+                    raise
+                # Deferred import: keeps click_extra.bug_report off the startup path.
+                from .bug_report import report_unexpected_error
+
+                report_unexpected_error(ctx, expt)
 
     def make_context(
         self,

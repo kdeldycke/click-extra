@@ -417,6 +417,7 @@ def test_lazy_converter_exports():
 
 
 LAZY_REGISTRIES = (
+    "_LAZY_BUG_REPORT",
     "_LAZY_CAPTURES",
     "_LAZY_CONVERTERS",
     "_LAZY_DISPLAYS",
