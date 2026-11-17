@@ -48,6 +48,8 @@ from .capture.presets import (
     Chrome,
     Cursor,
     CursorShape,
+    parse_font_stack,
+    read_palette,
 )
 from .capture.recording import (
     DEFAULT_RECORDING_BLANK,
@@ -81,7 +83,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any, TypeVar, Unpack
 
-    from .capture.presets import ChromeArguments, TerminalPreset
+    from .capture.presets import ChromeArguments, TerminalPalette, TerminalPreset
     from .capture.screenshot import TColumns
     from .capture.svg import THold
 
@@ -284,6 +286,16 @@ def capture_options(
             "window.",
         ),
         option(
+            "--font",
+            metavar="FAMILIES",
+            default=None,
+            callback=_option_callback(parse_font_stack),
+            help="Fonts the text is set in, best first and comma-separated, like "
+            "'JetBrains Mono, Menlo'. The list closes on monospace unless it "
+            "names a generic family. Defaults to the fonts of --preset, or to "
+            "the renderer's own.",
+        ),
+        option(
             "--border",
             metavar="COLOR",
             default=None,
@@ -468,6 +480,16 @@ Examples:
     "printed, so nothing folds inside the picture.",
 )
 @option(
+    "--palette",
+    type=file_path(exists=True, readable=True, resolve_path=True),
+    default=None,
+    callback=_option_callback(lambda scheme: read_palette(Path(scheme))),
+    help="Color scheme the captured colors resolve against, read from a Windows "
+    "Terminal scheme (.json) or an iTerm2 one (.itermcolors). Replaces the "
+    "palette of --preset and --background, and leaves the window they draw as "
+    "it is. An HTML capture takes its background and foreground alone.",
+)
+@option(
     "--prompt",
     default=None,
     help="Command line to display above the output, when it differs from the "
@@ -588,6 +610,8 @@ def screenshot_cmd(
     columns: TColumns,
     background: TerminalBackground,
     preset: str | None,
+    font: str | None,
+    palette: TerminalPalette | None,
     prompt: str | None,
     head: int | None,
     tail: int | None,
@@ -741,6 +765,8 @@ def screenshot_cmd(
                 title=title,
                 unique_id=output.stem,
                 preset=terminal,
+                palette=palette,
+                font_stack=font,
                 chrome=chrome,
             )
         except (NotImplementedError, ValueError) as error:
@@ -769,6 +795,8 @@ def screenshot_cmd(
                 full=not fragment,
                 background=background,
                 preset=terminal,
+                palette=palette,
+                font_stack=font,
                 chrome=chrome,
             )
         except ValueError as error:
@@ -848,6 +876,7 @@ def snippet_cmd(
     columns: TColumns,
     background: TerminalBackground,
     preset: str | None,
+    font: str | None,
     head: int | None,
     tail: int | None,
     truncation: str,
@@ -930,6 +959,7 @@ def snippet_cmd(
             full=not fragment,
             background=background,
             preset=_resolve_preset(preset),
+            font_stack=font,
             chrome=Chrome(**chrome_fields),
         )
     except ValueError as error:

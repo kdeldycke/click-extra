@@ -73,7 +73,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from ..execution import TArg, TNestedArgs
-    from .presets import Cursor, TerminalPreset
+    from .presets import Cursor, TerminalPalette, TerminalPreset
     from .svg import THold
 
 CSI_RE = re.compile(CSI_PATTERN)
@@ -653,6 +653,8 @@ def record_and_render(
     title: str = "",
     unique_id: str | None = None,
     preset: TerminalPreset | None = None,
+    palette: TerminalPalette | None = None,
+    font_stack: str | None = None,
     chrome: Chrome = Chrome(),
 ) -> tuple[str, int]:
     """Record a command under a pseudo-terminal and render it as an animated SVG.
@@ -710,6 +712,8 @@ def record_and_render(
     :param title: see {func}`~click_extra.capture.screenshot.render`.
     :param unique_id: see {func}`~click_extra.capture.screenshot.render`.
     :param preset: see {func}`~click_extra.capture.screenshot.render`.
+    :param palette: see {func}`~click_extra.capture.screenshot.render`.
+    :param font_stack: see {func}`~click_extra.capture.screenshot.render`.
     :param chrome: see {func}`~click_extra.capture.screenshot.render`.
     :return: the rendered SVG document, and the command's exit code.
     :raises NotImplementedError: on a platform with no pseudo-terminal.
@@ -763,6 +767,8 @@ def record_and_render(
             unique_id=unique_id,
             background=background,
             preset=preset,
+            palette=palette,
+            font_stack=font_stack,
             chrome=chrome,
         ),
         returncode,

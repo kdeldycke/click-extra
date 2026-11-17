@@ -49,6 +49,7 @@ configured theirs to.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, fields, replace
 from enum import Enum
 from typing import NamedTuple
@@ -57,6 +58,7 @@ from ..color import TerminalBackground
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Final, TypedDict
 
     class ChromeArguments(TypedDict, total=False):
@@ -433,6 +435,178 @@ def resolve_palette(
     """
     preset = preset or DEFAULT_PRESET
     return preset.dark if background is TerminalBackground.DARK else preset.light
+
+
+WINDOWS_TERMINAL_SLOTS: Final = (
+    "black",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "purple",
+    "cyan",
+    "white",
+    "brightBlack",
+    "brightRed",
+    "brightGreen",
+    "brightYellow",
+    "brightBlue",
+    "brightPurple",
+    "brightCyan",
+    "brightWhite",
+)
+"""Keys a Windows Terminal color scheme names the 16 ANSI colors under, in order.
+
+Windows Terminal calls magenta `purple`, and so does every scheme written for it.
+"""
+
+_HEX_COLOR_RE: Final = re.compile(r"#[0-9A-Fa-f]{6}")
+"""A color as a scheme states it, `#rrggbb`."""
+
+
+def read_palette(path: Path) -> TerminalPalette:
+    """Read a terminal color scheme file into the palette a capture resolves against.
+
+    Two formats are read, told apart by the file's extension. They are the ones
+    schemes are most often shared in, and two of those
+    [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes)
+    publishes each of its schemes in:
+
+    - `.json`: a Windows Terminal scheme, one object naming each color as
+      `#rrggbb` under the keys of {data}`WINDOWS_TERMINAL_SLOTS`, plus
+      `background` and `foreground`.
+    - `.itermcolors`: an iTerm2 property list, each color as red, green and blue
+      fractions under `Ansi 0 Color` to `Ansi 15 Color`, plus `Background Color`
+      and `Foreground Color`.
+
+    A scheme describes the terminal and not the desktop around it, so the strip a
+    preset paints its window's title bar with is the background here.
+
+    ```{caution}
+    An iTerm2 color in the Display P3 color space is read as sRGB, so the most
+    saturated colors of such a scheme come out a little duller.
+    ```
+
+    :param path: the scheme file.
+    :return: the palette.
+    :raises ValueError: when the file is in neither format, misses a color, or
+        states one in a form no color takes.
+    """
+    suffix = path.suffix.lower()
+    colors: dict[str, str] = {}
+    keys: tuple[str, ...]
+    if suffix == ".json":
+        # Deferred import: keeps json off the startup path of every CLI.
+        import json
+
+        try:
+            scheme = json.loads(path.read_text(encoding="UTF-8"))
+        except json.JSONDecodeError as error:
+            raise ValueError(f"{path.name} is not JSON: {error}.") from None
+        if not isinstance(scheme, dict):
+            raise ValueError(f"{path.name} holds no Windows Terminal scheme object.")
+        keys = ("background", "foreground", *WINDOWS_TERMINAL_SLOTS)
+        for key in keys:
+            value = scheme.get(key)
+            if not isinstance(value, str) or not _HEX_COLOR_RE.fullmatch(value):
+                raise ValueError(f"{path.name} states no #rrggbb color for {key!r}.")
+            colors[key] = value.lower()
+        ansi = tuple(colors[key] for key in WINDOWS_TERMINAL_SLOTS)
+    elif suffix == ".itermcolors":
+        # Deferred import: keeps plistlib, and the XML parser it loads, off the
+        # startup path of every CLI.
+        import plistlib
+
+        try:
+            scheme = plistlib.loads(path.read_bytes())
+        except (plistlib.InvalidFileException, ValueError) as error:
+            raise ValueError(f"{path.name} is not a property list: {error}.") from None
+        keys = ("Background Color", "Foreground Color")
+        keys += tuple(f"Ansi {slot} Color" for slot in range(16))
+        for key in keys:
+            components = scheme.get(key, {}) if isinstance(scheme, dict) else {}
+            try:
+                channels = [
+                    round(float(components[f"{name} Component"]) * 255)
+                    for name in ("Red", "Green", "Blue")
+                ]
+            except (KeyError, TypeError, ValueError):
+                raise ValueError(f"{path.name} states no color for {key!r}.") from None
+            if not all(0 <= channel <= 255 for channel in channels):
+                raise ValueError(f"{path.name} states {key!r} out of range.")
+            colors[key] = "#" + "".join(f"{channel:02x}" for channel in channels)
+        ansi = tuple(colors[f"Ansi {slot} Color"] for slot in range(16))
+        colors["background"] = colors["Background Color"]
+        colors["foreground"] = colors["Foreground Color"]
+    else:
+        raise ValueError(
+            f"Cannot tell the scheme format of {path.name!r}: name it .json for "
+            "Windows Terminal or .itermcolors for iTerm2."
+        )
+    return TerminalPalette(
+        background=colors["background"],
+        foreground=colors["foreground"],
+        ansi=ansi,
+        titlebar=colors["background"],
+    )
+
+
+GENERIC_FONT_FAMILIES: Final = frozenset((
+    "cursive",
+    "emoji",
+    "fangsong",
+    "fantasy",
+    "math",
+    "monospace",
+    "sans-serif",
+    "serif",
+    "system-ui",
+    "ui-monospace",
+    "ui-rounded",
+    "ui-sans-serif",
+    "ui-serif",
+))
+"""The font families CSS names by keyword, which a stack never quotes."""
+
+_FONT_FAMILY_RE: Final = re.compile(r"[\w .-]+")
+"""A font family name, held to characters a stylesheet cannot be broken out of."""
+
+
+def parse_font_stack(value: str) -> str:
+    """Read a list of font families into the stack a capture asks for.
+
+    Families come comma-separated and best first, quoted or not, like
+    `JetBrains Mono, Menlo`. Each one holding a space is written back
+    single-quoted, see {data}`CAPTURE_FONT_STACK`, and a stack naming no generic
+    family closes on `monospace`, which every renderer resolves.
+
+    :param value: the families, as a user writes them.
+    :return: the font stack, as CSS writes it.
+    :raises ValueError: when no family is named, or one holds a character other
+        than a letter, a digit, a space, a dot, a hyphen or an underscore. The
+        stack lands in a stylesheet, where a quote, a brace or an angle bracket
+        would end it early.
+    """
+    families = []
+    for entry in value.split(","):
+        family = entry.strip().strip("'\"").strip()
+        if not family:
+            continue
+        if not _FONT_FAMILY_RE.fullmatch(family):
+            raise ValueError(f"{family!r} is not a font family name.")
+        families.append(family)
+    if not families:
+        raise ValueError("Name at least one font family.")
+    if not any(family.lower() in GENERIC_FONT_FAMILIES for family in families):
+        families.append("monospace")
+    return ", ".join(
+        family.lower()
+        if family.lower() in GENERIC_FONT_FAMILIES
+        else f"'{family}'"
+        if " " in family
+        else family
+        for family in families
+    )
 
 
 NO_PAINT = "none"

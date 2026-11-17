@@ -651,6 +651,22 @@ assert result.exit_code == 0
 A preset's palette is the scheme its terminal *ships with*, not the one your reader configured. It also decides how the captured CLI's colors land: a screen rendered for a dark theme on a light preset washes out, exactly as [the chrome section](#light-and-dark-chrome) describes.
 ```
 
+### Your own colors and font
+
+A preset brings the colors and the font its terminal ships with. `--palette` and `--font` replace them with the ones your own terminal uses, and leave the window as the preset draws it:
+
+```shell-session
+$ click-extra screenshot --palette orchard-night.json --font "JetBrains Mono, Menlo" --output shot.svg -- my-cli --help
+```
+
+`--palette` reads a color scheme file in one of the two formats schemes are most often shared in: a Windows Terminal scheme (`.json`) or an iTerm2 one (`.itermcolors`). [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes) publishes hundreds of schemes in both. A scheme states the background and the 16 colors a CLI names, so pair a light one with `--background light`, which also tells the CLI to render for a light terminal.
+
+`--font` takes font families, best first and comma-separated. A capture embeds no font, so a reader without the first family gets the next one. The list closes on `monospace` unless it names a generic family itself.
+
+```{note}
+An HTML capture takes the scheme's background and foreground alone. The eight base colors render as their CSS names there, see [SVG or HTML](#svg-or-html).
+```
+
 ### Wide glyphs and writing systems
 
 A terminal cell is not a character. A Chinese ideograph, a Hangul syllable, a fullwidth Latin letter and most emoji are each drawn two cells wide, while a combining accent is drawn in none at all. A capture measures its runs in cells, through {func}`click_extra.layout.cell_width`, which is the same [`wcwidth`](https://github.com/jquast/wcwidth) measurement click-extra already uses to align [tables](table.md) and the [command tree](tree.md).

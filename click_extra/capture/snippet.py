@@ -289,6 +289,7 @@ def render_snippet(
     full: bool = True,
     background: TerminalBackground = TerminalBackground.DARK,
     preset: TerminalPreset | None = None,
+    font_stack: str | None = None,
     chrome: Chrome = Chrome(),
 ) -> str:
     """Color source code and render it as a document.
@@ -324,6 +325,7 @@ def render_snippet(
     :param full: see {func}`~click_extra.capture.screenshot.render`.
     :param background: see {func}`~click_extra.capture.screenshot.render`.
     :param preset: see {func}`~click_extra.capture.screenshot.render`.
+    :param font_stack: see {func}`~click_extra.capture.screenshot.render`.
     :param chrome: see {func}`~click_extra.capture.screenshot.render`.
     :return: the rendered document.
     :raises ValueError: when `language` or `style` names nothing Pygments knows.
@@ -360,5 +362,6 @@ def render_snippet(
         background=background,
         preset=preset,
         palette=style_palette(resolved_style, background, preset=preset),
+        font_stack=font_stack,
         chrome=chrome,
     )

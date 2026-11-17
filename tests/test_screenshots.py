@@ -32,7 +32,9 @@ from __future__ import annotations
 
 import importlib.metadata
 import inspect
+import json
 import os
+import plistlib
 import re
 import shutil
 import sys
@@ -67,9 +69,12 @@ from click_extra.capture.presets import (
     OPAQUE,
     PRESETS,
     WATERMARK_INK,
+    WINDOWS_TERMINAL_SLOTS,
     Chrome,
     Cursor,
     CursorShape,
+    parse_font_stack,
+    read_palette,
 )
 from click_extra.capture.recording import record_and_render
 from click_extra.capture.screenshot import (
@@ -1818,6 +1823,181 @@ def test_screenshot_cursor_options_need_their_partner(
     )
     assert result.exit_code != 0
     assert message in result.output
+
+
+ORCHARD_SCHEME = {
+    "name": "Orchard Night",
+    "background": "#1E1E2E",
+    "foreground": "#CDD6F4",
+    "black": "#45475A",
+    "red": "#F38BA8",
+    "green": "#A6E3A1",
+    "yellow": "#F9E2AF",
+    "blue": "#89B4FA",
+    "purple": "#F5C2E7",
+    "cyan": "#94E2D5",
+    "white": "#BAC2DE",
+    "brightBlack": "#585B70",
+    "brightRed": "#F37799",
+    "brightGreen": "#89D88B",
+    "brightYellow": "#EBD391",
+    "brightBlue": "#74A8FC",
+    "brightPurple": "#F2AEDE",
+    "brightCyan": "#6BD7CA",
+    "brightWhite": "#A6ADC8",
+}
+"""A Windows Terminal color scheme, shaped like the ones iTerm2-Color-Schemes
+publishes."""
+
+
+def iterm_scheme(scheme: dict[str, str]) -> dict[str, dict[str, float]]:
+    """The same scheme as iTerm2 writes it: each color as three fractions."""
+
+    def components(color: str) -> dict[str, float]:
+        return {
+            f"{name} Component": int(color[start : start + 2], 16) / 255
+            for name, start in (("Red", 1), ("Green", 3), ("Blue", 5))
+        }
+
+    converted = {
+        "Background Color": components(scheme["background"]),
+        "Foreground Color": components(scheme["foreground"]),
+    }
+    for slot, key in enumerate(WINDOWS_TERMINAL_SLOTS):
+        converted[f"Ansi {slot} Color"] = components(scheme[key])
+    return converted
+
+
+def test_read_palette_reads_a_windows_terminal_scheme(tmp_path):
+    """Each color lands in its slot, magenta read under Windows Terminal's name."""
+    path = tmp_path / "orchard.json"
+    path.write_text(json.dumps(ORCHARD_SCHEME), encoding="UTF-8")
+    palette = read_palette(path)
+    assert palette.background == palette.titlebar == "#1e1e2e"
+    assert palette.foreground == "#cdd6f4"
+    assert palette.ansi == tuple(
+        ORCHARD_SCHEME[key].lower() for key in WINDOWS_TERMINAL_SLOTS
+    )
+
+
+def test_read_palette_reads_an_iterm_scheme_as_its_twin(tmp_path):
+    """The same scheme reads the same, whichever terminal it was written for."""
+    iterm = tmp_path / "orchard.itermcolors"
+    iterm.write_bytes(plistlib.dumps(iterm_scheme(ORCHARD_SCHEME)))
+    windows = tmp_path / "orchard.json"
+    windows.write_text(json.dumps(ORCHARD_SCHEME), encoding="UTF-8")
+    assert read_palette(iterm) == read_palette(windows)
+
+
+@pytest.mark.parametrize(
+    ("name", "content", "message"),
+    (
+        pytest.param("orchard.txt", "", "Cannot tell the scheme format", id="suffix"),
+        pytest.param("orchard.json", "{", "is not JSON", id="not-json"),
+        pytest.param("orchard.json", "[]", "holds no Windows Terminal", id="list"),
+        # Changed through dict() rather than a `{**...}` display: Sphinx's
+        # source parser fails on a dict unpacking another in a decorator, and
+        # drops every constant of this module from its API page.
+        pytest.param(
+            "orchard.json",
+            json.dumps(dict(ORCHARD_SCHEME, red="crimson")),
+            "states no #rrggbb color for 'red'",
+            id="named-color",
+        ),
+        pytest.param(
+            "orchard.json",
+            json.dumps(dict(ORCHARD_SCHEME, brightWhite=None)),
+            "states no #rrggbb color for 'brightWhite'",
+            id="missing-color",
+        ),
+        pytest.param(
+            "orchard.itermcolors", "pears", "is not a property list", id="not-plist"
+        ),
+    ),
+)
+def test_read_palette_refuses_what_is_no_scheme(tmp_path, name, content, message):
+    """A file read as a scheme says what it lacks, rather than drawing black."""
+    path = tmp_path / name
+    path.write_text(content, encoding="UTF-8")
+    with pytest.raises(ValueError, match=re.escape(message)):
+        read_palette(path)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        pytest.param("Menlo", "Menlo, monospace", id="one-family"),
+        pytest.param(
+            "JetBrains Mono, Menlo",
+            "'JetBrains Mono', Menlo, monospace",
+            id="spaced-family",
+        ),
+        pytest.param(
+            "'Fira Code', \"Cascadia Code\"",
+            "'Fira Code', 'Cascadia Code', monospace",
+            id="quoted-families",
+        ),
+        pytest.param("Iosevka, Monospace", "Iosevka, monospace", id="generic-closes"),
+        pytest.param("SF Mono, ui-monospace", "'SF Mono', ui-monospace", id="ui"),
+    ),
+)
+def test_parse_font_stack(value, expected):
+    """Families come back single-quoted where spaced, closed on a generic one."""
+    assert parse_font_stack(value) == expected
+
+
+@pytest.mark.parametrize("value", ("", " , ", "Menlo; fill: red", "Menlo}", "</style>"))
+def test_parse_font_stack_refuses_what_would_break_the_stylesheet(value):
+    """No family, or a character that would end the stylesheet, is refused."""
+    with pytest.raises(ValueError):
+        parse_font_stack(value)
+
+
+def test_render_font_stack_wins_over_the_preset():
+    """A stated font stack replaces the preset's, which keeps the rest."""
+    svg = render("pears", preset=PRESETS["macos"], font_stack="Iosevka, monospace")
+    assert "font-family: Iosevka, monospace;" in svg
+    assert PRESETS["macos"].font_stack not in svg
+
+
+def test_screenshot_draws_with_a_scheme_and_fonts_of_its_own(invoke, tmp_path):
+    """`--palette` and `--font` reach the picture, colors and text alike."""
+    scheme = tmp_path / "orchard.json"
+    scheme.write_text(json.dumps(ORCHARD_SCHEME), encoding="UTF-8")
+    target = tmp_path / "orchard.svg"
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--palette",
+            str(scheme),
+            "--font",
+            "JetBrains Mono",
+            "--output",
+            str(target),
+            "--",
+            sys.executable,
+            "-c",
+            "print('\\x1b[31mapples\\x1b[0m')",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    svg = target.read_text(encoding="UTF-8")
+    assert "fill: #f38ba8" in svg
+    assert 'fill="#1e1e2e"' in svg
+    assert "font-family: 'JetBrains Mono', monospace;" in svg
+
+
+def test_screenshot_reports_a_file_that_is_no_scheme(invoke, tmp_path):
+    """A scheme that cannot be read stops the capture before it runs anything."""
+    scheme = tmp_path / "orchard.txt"
+    scheme.write_text("", encoding="UTF-8")
+    result = invoke(
+        screenshot_cmd,
+        ["--palette", str(scheme), "--output", str(tmp_path / "orchard.svg")]
+        + ["--", sys.executable, "-c", "pass"],
+    )
+    assert result.exit_code == 2
+    assert "Cannot tell the scheme format" in result.stderr
 
 
 def test_screenshot_draws_a_cursor_when_asked(invoke, tmp_path):

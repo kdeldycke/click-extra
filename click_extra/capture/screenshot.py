@@ -734,6 +734,7 @@ def render(
     background: TerminalBackground = TerminalBackground.DARK,
     preset: TerminalPreset | None = None,
     palette: TerminalPalette | None = None,
+    font_stack: str | None = None,
     chrome: Chrome = Chrome(),
 ) -> str:
     """Render captured terminal text to the document `format` names.
@@ -787,6 +788,9 @@ def render(
         preset and chrome name, which is what a terminal capture wants. The
         window's decorations keep answering to the chrome either way: a stated
         palette repaints the terminal's body, not the desktop's frame around it.
+    :param font_stack: fonts the text is set in, best first, as CSS writes them,
+        see {func}`~click_extra.capture.presets.parse_font_stack`. `None` takes
+        the preset's, or the renderer's own.
     :param chrome: how the window around the text is drawn, see
         {class}`~click_extra.capture.presets.Chrome`.
     :return: the rendered document.
@@ -811,8 +815,10 @@ def render(
         return emphasize_ansi(text, emphasize, emphasis_paint(palette))
 
     frame: dict[str, Any] = {"chrome": chrome.resolve(background, preset)}
-    if preset is not None:
-        frame["font_stack"] = preset.font_stack
+    if font_stack is None and preset is not None:
+        font_stack = preset.font_stack
+    if font_stack is not None:
+        frame["font_stack"] = font_stack
     if format is CaptureFormat.HTML:
         # The title bar and its decorations are drawn by the SVG alone: HTML
         # reflows with the page embedding it.
@@ -872,6 +878,8 @@ def capture(
     full: bool = True,
     background: TerminalBackground = TerminalBackground.DARK,
     preset: TerminalPreset | None = None,
+    palette: TerminalPalette | None = None,
+    font_stack: str | None = None,
     chrome: Chrome = Chrome(),
 ) -> tuple[str, int]:
     """Run a command and render its output as a document.
@@ -910,6 +918,8 @@ def capture(
     :param full: see {func}`render`.
     :param background: see {func}`render`.
     :param preset: see {func}`render`.
+    :param palette: see {func}`render`.
+    :param font_stack: see {func}`render`.
     :param chrome: see {func}`render`.
     :return: the rendered document, and the command's exit code.
     :raises OSError: when the command cannot start. {class}`subprocess.Popen`
@@ -963,6 +973,8 @@ def capture(
             full=full,
             background=background,
             preset=preset,
+            palette=palette,
+            font_stack=font_stack,
             chrome=chrome,
         ),
         process.returncode,

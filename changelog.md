@@ -15,6 +15,7 @@
 - Move `TerminalScreen` to the new `click_extra.capture.terminal` module: it keeps a style per cell, so a redraw over a row's start keeps its tail.
 - Name `TERM=xterm-256color` to a recorded command, and note a screen only once its redraw has settled, so no frame shows a half-drawn screen.
 - Draw each background and run of text that frames of an animated SVG capture share once, timed over those frames, which shrinks recordings up to three times.
+- Add `--palette` to `screenshot`, reading a Windows Terminal or iTerm2 color scheme, and `--font` to `screenshot` and `snippet`, naming the fonts a capture asks for.
 - Send `SIGTERM` to a `run_cli` child that outlives its timeout, and `SIGKILL` only after a grace period, so `sudo` can forward the first to the command it escalated.
 - In a dependency compatibility matrix, show `–` instead of `✅` for a major that came out after the last release of a superseded range.
 - Keep links to release anchors resolving with myst-parser `5.2.0`, whose [executablebooks/MyST-Parser#1168](https://github.com/executablebooks/MyST-Parser/pull/1168) drops the empty slug `make_id` gives a release heading.
