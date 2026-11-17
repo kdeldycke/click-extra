@@ -55,6 +55,8 @@ from click_extra.capture.svg import (
 from click_extra.execution import _LIVE_PROCESSES, terminate_live_processes
 from click_extra.spinner import CLEAR_LINE, HIDE_CURSOR
 
+from .test_screenshots import played_frames, svg_to_lines
+
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import IO
@@ -881,6 +883,10 @@ def test_tachyon_live_mode_replays_into_the_committed_capture(monkeypatch):
         hold=2.0,
         unique_id="tachyon-live",
     )
+    # Played back, every moment shows the screen that was up, then the blank.
+    played = [svg_to_lines(still) for still in played_frames(svg, "tachyon-live")]
+    expected = [svg_to_lines(render_svg(frame.text, columns=100)) for frame in frames]
+    assert played == [*expected, []]
     if not TACHYON_CAPTURE.exists():
         TACHYON_CAPTURE.write_text(svg, encoding="UTF-8")
         pytest.fail(f"Wrote {TACHYON_CAPTURE.name}: review it, then commit it.")

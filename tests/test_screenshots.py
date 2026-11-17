@@ -43,6 +43,7 @@ from html import escape, unescape
 from itertools import combinations, pairwise
 from pathlib import Path
 from typing import NamedTuple
+from xml.etree import ElementTree
 
 import pytest
 from extra_platforms.pytest import skip_windows
@@ -247,12 +248,13 @@ def svg_to_lines(svg: str) -> list[str]:
     Groups the `<text>` runs into lines by their shared `y` baseline, then lays
     each one back on its column: the capture is monospaced, so dividing a run's
     `x` offset by {data}`~click_extra.capture.svg.CELL_WIDTH` gives the character
-    column it starts at.
+    column it starts at. Runs are placed by their coordinates, not by their order
+    in the source, which an animation sharing pieces between frames does not keep.
 
     :param svg: source of a rendered capture.
     :return: the captured lines, top to bottom, with trailing whitespace removed.
     """
-    lines: dict[float, str] = {}
+    runs: list[tuple[float, int, str]] = []
     for element in _TEXT_ELEMENT_RE.finditer(svg):
         # The credit line is the one run no terminal printed, and the one that
         # moves on its own: it names the release that drew the image.
@@ -263,10 +265,89 @@ def svg_to_lines(svg: str) -> list[str]:
         baseline = re.search(r'\by="(?P<value>-?[\d.]+)"', element["attrs"])
         if not content or not offset or not baseline:
             continue
-        y = float(baseline["value"])
         column = round(float(offset["value"]) / CELL_WIDTH)
+        runs.append((float(baseline["value"]), column, content))
+    lines: dict[float, str] = {}
+    for y, column, content in sorted(runs):
         lines[y] = lines.get(y, "").ljust(column) + content
     return [line.rstrip() for line in lines.values()]
+
+
+KEYFRAMES_RE = re.compile(r"@keyframes (?P<name>[\w-]+) \{ (?P<steps>.*?) \}\n")
+"""One keyframe rule of an animated capture's stylesheet."""
+
+VISIBILITY_STEP_RE = re.compile(r"(?P<at>[\d.]+)% \{ visibility: (?P<state>\w+);")
+"""One step of a frame's or a shared group's keyframes."""
+
+SVG_NAMESPACE = "http://www.w3.org/2000/svg"
+
+
+def played_frames(svg: str, unique_id: str) -> list[str]:
+    """Each frame of an animated capture, as the still a viewer sees during it.
+
+    Plays the stylesheet the way a browser does: in the middle of each frame's
+    slice of the cycle, every group whose keyframes show it stays and loses its
+    hiding attributes, and every other group is removed. What is left is the
+    picture a reader sees at that moment.
+
+    :param svg: source of an animated capture.
+    :param unique_id: the prefix namespacing its classes.
+    :return: one SVG source per frame, in order.
+    """
+    timings = {
+        match["name"]: [
+            (float(at), state)
+            for at, state in VISIBILITY_STEP_RE.findall(match["steps"])
+        ]
+        for match in KEYFRAMES_RE.finditer(svg)
+        if re.fullmatch(rf"{unique_id}-[fs]\d+", match["name"])
+    }
+
+    def shown(name: str, moment: float) -> bool:
+        state = "hidden"
+        for at, step in timings[name]:
+            if at <= moment:
+                state = step
+        return state == "visible"
+
+    middles = []
+    for index in range(len([name for name in timings if "-f" in name])):
+        steps = timings[f"{unique_id}-f{index}"]
+        opens = next(at for at, state in steps if state == "visible")
+        closes = next(at for at, state in steps if state == "hidden" and at > opens)
+        middles.append((opens + closes) / 2)
+
+    ElementTree.register_namespace("", SVG_NAMESPACE)
+    stills = []
+    for moment in middles:
+        root = ElementTree.fromstring(svg.split("?>", 1)[1])
+        for parent in list(root.iter()):
+            for child in list(parent):
+                name = child.get("class", "")
+                if name not in timings:
+                    continue
+                if shown(name, moment):
+                    child.attrib.pop("visibility", None)
+                    child.attrib.pop("opacity", None)
+                else:
+                    parent.remove(child)
+        stills.append(ElementTree.tostring(root, encoding="unicode"))
+    return stills
+
+
+def poster_frame(svg: str) -> str:
+    """The still a viewer reading no stylesheet shows of an animated capture.
+
+    Every group an attribute hides is removed, which is all such a viewer
+    honors.
+    """
+    ElementTree.register_namespace("", SVG_NAMESPACE)
+    root = ElementTree.fromstring(svg.split("?>", 1)[1])
+    for parent in list(root.iter()):
+        for child in list(parent):
+            if child.get("visibility") == "hidden":
+                parent.remove(child)
+    return ElementTree.tostring(root, encoding="unicode")
 
 
 def svg_box(svg: str) -> tuple[float, float]:
@@ -1169,8 +1250,10 @@ def test_animation_windows_tile_the_cycle(name):
     frames on top of each other.
     """
     windows = []
+    # A shared group shows over several frames, so only each frame's own timing
+    # tiles the cycle.
     for keyframes in re.findall(
-        r"@keyframes [\w-]+ \{ (.*?) \}\n", animated_capture(name)
+        r"@keyframes [\w-]+-f\d+ \{ (.*?) \}\n", animated_capture(name)
     ):
         steps = [
             (float(at), state)
@@ -1214,6 +1297,84 @@ def test_animated_capture_keeps_a_row_that_moves_in_every_frame():
     head = svg[: svg.index('<g class="one-f0"')]
     assert "pear" not in head, "a moving row was drawn outside the frames"
     assert svg.count("pear") == 4
+
+
+TRAIL_FRAMES = [
+    "\n".join([f"picked basket {done}" for done in range(step)] + [f"{glyph} picking"])
+    for step, glyph in enumerate("⠋⠙⠹⠸⠼⠴")
+]
+"""A trail filling up under a spinner: pieces each frame keeps, adds and moves."""
+
+
+@pytest.mark.parametrize(
+    ("frames", "blank"),
+    (
+        pytest.param(TRAIL_FRAMES, 0.0, id="trail"),
+        pytest.param(TRAIL_FRAMES, 0.5, id="trail-then-blank"),
+        pytest.param([f"{glyph} steeping" for glyph in "⠋⠙⠹⠸"] * 2, 0.0, id="loop"),
+        pytest.param(
+            [style(" pear ", bg=bg) + " ripe" for bg in ("blue", "green", "blue")],
+            0.0,
+            id="backgrounds",
+        ),
+        pytest.param(["┌──┐\n│ab│\n└──┘", "┌──┐\n│cd│\n└──┘"], 0.0, id="box-drawing"),
+    ),
+)
+def test_animated_capture_shows_each_frame_what_it_drew(frames, blank):
+    """At any moment, an animation shows exactly the frame that is due.
+
+    Pieces several frames draw are drawn once and timed over all of them, so
+    no frame's picture exists as such in the source: this plays the stylesheet
+    and compares each moment with the still of the same frame.
+    """
+    svg = render_svg(
+        columns=30, unique_id="orchard", frames=frames, interval=0.1, blank=blank
+    )
+    expected = [svg_to_lines(render_svg(frame, columns=30)) for frame in frames]
+    if blank:
+        expected.append([])
+    assert [svg_to_lines(still) for still in played_frames(svg, "orchard")] == expected
+
+
+def test_animated_capture_paints_every_background_before_any_glyph():
+    """A background one frame paints never covers a glyph the frames share.
+
+    The text stays put while the paint behind it changes, so the glyphs are
+    drawn once for every frame and each background once per frame. Drawn in
+    the order the groups come in, a frame's background would land on top.
+    """
+    frames = [style("pear", bg="blue"), style("pear", bg="green")]
+    svg = render_svg(columns=10, unique_id="ripe", frames=frames, interval=0.1)
+    for still in played_frames(svg, "ripe"):
+        layer = still[still.index('clip-path="url(#ripe-clip)"') :]
+        assert layer.index("<rect") < layer.index(">pear</text>")
+    # The glyph is drawn once, for both frames.
+    assert svg.count(">pear</text>") == 1
+
+
+def test_animated_capture_draws_a_piece_its_frames_share_once():
+    """A piece several frames draw is drawn once, in a group timed over them.
+
+    A line arriving midway through a recording stays until its end: one copy
+    shown from its first frame on, rather than one copy per frame.
+    """
+    market = "\nbasket full of ripe pears and apples, ready for market"
+    frames = [f"tick {index}" + (market if index >= 2 else "") for index in range(10)]
+    svg = render_svg(columns=60, unique_id="stall", frames=frames, interval=0.1)
+    assert re.search(r'<g class="stall-s\d+"', svg), "no group is shared"
+    assert svg.count("basket") == 1
+
+
+def test_animated_capture_copies_a_piece_too_small_to_time():
+    """A piece costing less than a timing rule is copied into its frames instead.
+
+    Each glyph of a spinner looping twice shows in two frames far apart. Timing
+    it as a group of its own would take more than drawing it twice.
+    """
+    frames = [f"{glyph} steeping" for glyph in "|/-\\"] * 2
+    svg = render_svg(columns=20, unique_id="tea", frames=frames, interval=0.1)
+    assert not re.search(r'<g class="tea-s\d+"', svg)
+    assert svg.count(">|&#160;steeping</text>") == 2
 
 
 BAND_GROUP_RE = re.compile(r'<g clip-path="url\(#[\w-]+-window\)">(.*?)</g>')

@@ -729,7 +729,7 @@ One number for `interval` times every frame alike, which is what a spinner asks 
 
 The frames differ in nothing but their text, so one stylesheet covers all of them. Everything is namespaced by `unique_id`, keyframes included, so two animations inlined into one page keep their own timing.
 
-A row drawn the same in every frame is drawn once. Only the rows that move are copied per frame, which keeps a recording with little motion small.
+A piece several frames draw alike, a background or a run of text, is drawn once and shown over each of those frames. A recording redraws its whole screen many times a second, and most of that screen stays put: drawn once, it costs one copy, not one per frame.
 
 One frame stays visible wherever the animation does not run, so a capture is never a blank rectangle. The capture also honors a system asking for reduced motion, by keeping every animation rule behind a [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) guard.
 

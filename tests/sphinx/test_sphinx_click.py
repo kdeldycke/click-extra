@@ -50,6 +50,7 @@ from click_extra.sphinx.click import (
 from click_extra.sphinx.click_runner import ClickRunner, program_from_command_line
 from click_extra.spinner_presets import SPINNERS
 
+from ..test_screenshots import played_frames, poster_frame, svg_to_lines
 from .conftest import (
     HTML,
     DirectiveTestCase,
@@ -1980,12 +1981,10 @@ def test_click_run_screenshot_blank_closes_the_cycle(sphinx_app_myst):
     )
 
     svg = asset.read_text(encoding="UTF-8")
-    frames = re.findall(r'<g class="blanked-screen-f(\d+)"([^>]*)>(.*?)</g>', svg)
-    empty = [index for index, _, body in frames if not body.strip()]
-    assert empty, "the cycle closes on nothing"
+    stills = [svg_to_lines(still) for still in played_frames(svg, "blanked-screen")]
+    assert stills[-1] == [], "the cycle closes on nothing"
     # A frame drawing nothing is never what a still falls back to.
-    posters = [index for index, attrs, _ in frames if "hidden" not in attrs]
-    assert posters and posters[0] not in empty
+    assert svg_to_lines(poster_frame(svg)) == stills[-2]
 
 
 def test_click_run_screenshot_speed_scales_the_recorded_frames(sphinx_app_myst):

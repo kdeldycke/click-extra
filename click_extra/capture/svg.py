@@ -76,6 +76,9 @@ if TYPE_CHECKING:
     _Edge = TypeVar("_Edge", int, float)
     """Where a span starts or ends, see {func}`_extend_spans`."""
 
+    _Row: TypeAlias = tuple[tuple[str, ...], tuple[str, ...]]
+    """A drawn row: the pieces painting its cell backgrounds, then its glyphs."""
+
 
 TITLEBAR_HEIGHT = 40
 """Height, in pixels, of the strip a title and its buttons sit in.
@@ -1772,20 +1775,15 @@ def _frame_visibility(state: str) -> str:
     return f"visibility: {state}; opacity: {1 if state == 'visible' else 0};"
 
 
-def _row_group(
-    rows: Sequence[tuple[str, str]],
-    wanted: Iterable[int],
-    matrix: str,
-) -> str:
-    """Draw the named rows: their backgrounds first, then their glyphs.
+def _row_group(rows: Sequence[_Row], matrix: str) -> str:
+    """Draw rows: their backgrounds first, then their glyphs.
 
     The glyphs share one matrix group, which is what carries the font and color
     a renderer ignoring the stylesheet falls back to. Rows carrying nothing draw
     nothing rather than an empty group.
     """
-    picked = [rows[row] for row in wanted]
-    cells = "".join(row_cells for row_cells, _ in picked)
-    glyphs = "".join(row_glyphs for _, row_glyphs in picked)
+    cells = "".join(piece for row_cells, _ in rows for piece in row_cells)
+    glyphs = "".join(piece for _, row_glyphs in rows for piece in row_glyphs)
     if not cells and not glyphs:
         return ""
     return f"{cells}{matrix}{glyphs}</g>"
@@ -1837,12 +1835,61 @@ def animation_metadata(svg: str) -> dict[str, str]:
     )
 
 
-def frame_animation_css(unique_id: str, durations: Sequence[float]) -> str:
+def _visibility_steps(boundaries: Sequence[str], frames: Sequence[int]) -> str:
+    """Keyframe steps showing a group over the frames given, hiding it otherwise.
+
+    :param boundaries: where each frame ends, as a percentage of the cycle.
+    :param frames: the frames showing the group, in order.
+    :return: the steps, from `0%` to the end of the last frame showing it.
+    """
+    opening = "visible" if frames[0] == 0 else "hidden"
+    steps = [f"0% {{ {_frame_visibility(opening)} }}"]
+    for start, end in _consecutive_runs(frames):
+        if start:
+            steps.append(
+                f"{boundaries[start - 1]}% {{ {_frame_visibility('visible')} }}"
+            )
+        steps.append(f"{boundaries[end]}% {{ {_frame_visibility('hidden')} }}")
+    return " ".join(steps)
+
+
+def _timing_cost(frames: Sequence[int], unique_id: str) -> int:
+    """Characters it takes to time a group over the frames given, roughly.
+
+    Its keyframes and the rule applying them, see {func}`frame_animation_css`,
+    plus the group opening and closing around its pieces in each of the two
+    passes of {func}`_stack_frames`. Sized for one decision only: whether
+    copying the group's pieces into each frame's own group costs less.
+    """
+    steps = 2 * sum(1 for _ in _consecutive_runs(frames)) + 1
+    return 3 * len(unique_id) + 120 + 46 * steps + 2 * (len(unique_id) + 55)
+
+
+def _consecutive_runs(frames: Sequence[int]) -> Iterator[tuple[int, int]]:
+    """Cut a sorted list of frames into runs of consecutive ones.
+
+    :return: each run's first and last frame.
+    """
+    start = previous = frames[0]
+    for index in frames[1:]:
+        if index != previous + 1:
+            yield start, previous
+            start = index
+        previous = index
+    yield start, previous
+
+
+def frame_animation_css(
+    unique_id: str,
+    durations: Sequence[float],
+    shared: Sequence[Sequence[int]] = (),
+) -> str:
     """Time an animated capture's frames into CSS animation rules.
 
     Every frame is shown for its own slice of one cycle, so a recording whose
     frames each lasted as long as the terminal held them rides the same
-    machinery as a spinner whose frames are all one interval.
+    machinery as a spinner whose frames are all one interval. A group several
+    frames share is shown over each of their slices.
 
     ```{note}
     Each boundary is computed once and handed to both the frame that ends on it
@@ -1861,6 +1908,8 @@ def frame_animation_css(unique_id: str, durations: Sequence[float]) -> str:
 
     :param unique_id: prefix namespacing this document's classes and keyframes.
     :param durations: seconds each frame is shown, in order.
+    :param shared: the frames each shared group shows over, in order: the first
+        is timed as the `-s0` class, the next as `-s1`, and so on.
     :return: the stylesheet fragment, indented to sit in a `<style>` block.
     :raises ValueError: when a frame is given a duration that is not positive.
     """
@@ -1874,21 +1923,17 @@ def frame_animation_css(unique_id: str, durations: Sequence[float]) -> str:
     # on the sum it was accumulated from. The cycle ends at its end regardless.
     boundaries[-1] = "100"
 
-    rules = []
-    for index, end in enumerate(boundaries):
-        opening = "visible" if index == 0 else "hidden"
-        steps = [f"0% {{ {_frame_visibility(opening)} }}"]
-        if index:
-            steps.append(
-                f"{boundaries[index - 1]}% {{ {_frame_visibility('visible')} }}"
-            )
-        steps.append(f"{end}% {{ {_frame_visibility('hidden')} }}")
-        rules.append(
-            f"    @keyframes {unique_id}-f{index} {{ {' '.join(steps)} }}\n"
-            f"    .{unique_id}-f{index} {{ animation: {unique_id}-f{index} "
-            f"{_css_number(total)}s {FRAME_TIMING_FUNCTION} infinite; }}"
-        )
-    animation = "\n".join(rules)
+    timed: list[tuple[str, tuple[int, ...]]] = [
+        (f"f{index}", (index,)) for index in range(len(durations))
+    ]
+    timed.extend((f"s{number}", tuple(frames)) for number, frames in enumerate(shared))
+    animation = "\n".join(
+        f"    @keyframes {unique_id}-{name} "
+        f"{{ {_visibility_steps(boundaries, frames)} }}\n"
+        f"    .{unique_id}-{name} {{ animation: {unique_id}-{name} "
+        f"{_css_number(total)}s {FRAME_TIMING_FUNCTION} infinite; }}"
+        for name, frames in timed
+    )
     return f"    {REDUCED_MOTION_QUERY} {{\n{animation}\n    }}"
 
 
@@ -1977,8 +2022,7 @@ def _frame_durations(
         durations = (*durations[:-1], durations[-1] + hold)
     if _check_pause(blank):
         # An empty picture, which draws nothing and reads as the cycle turning
-        # over. It also leaves no row identical across every frame, so a blank
-        # costs the saving a still row would otherwise make.
+        # over.
         pictures = (*pictures, "")
         durations = (*durations, blank)
     return pictures, durations
@@ -2018,7 +2062,7 @@ class _Canvas(NamedTuple):
 class _Screens(NamedTuple):
     """Every frame of a capture, drawn row by row."""
 
-    painted: list[list[tuple[str, str]]]
+    painted: list[list[_Row]]
     """Each frame's rows, as their cell backgrounds and their glyphs."""
 
     classes: dict[str, int]
@@ -2080,8 +2124,8 @@ def _draw_screens(
     # it: a help screen repeats a handful of styles across hundreds of runs.
     compiled: dict[Style, tuple[str, str | None, str]] = {}
 
-    def draw_row(row: int, runs: Sequence[tuple[Style, str, int]]) -> tuple[str, str]:
-        """Draw one row's cell backgrounds and glyphs, as two markup strings."""
+    def draw_row(row: int, runs: Sequence[tuple[Style, str, int]]) -> _Row:
+        """Draw one row's cell backgrounds and glyphs, piece by piece."""
         baseline = _svg_number(row * LINE_HEIGHT + CELL_HEIGHT)
         top = row * LINE_HEIGHT + CELL_TOP_INSET
         cells: list[str] = []
@@ -2119,17 +2163,16 @@ def _draw_screens(
                         f'{opening}{glyph_offsets(piece, at)} y="{baseline}">'
                         f"{_xml_escape(piece, preserve_spaces=True)}</text>"
                     )
-        return "".join(cells), "".join(glyphs)
+        return tuple(cells), tuple(glyphs)
 
     # A row is drawn once per distinct content and read back wherever it recurs.
     # Most rows of a recording stand still from one frame to the next, and the
     # drawing is the costly part: measuring, cutting and escaping every run.
     # Keyed on the row index too, since the markup carries the row's vertical
     # position. A still draws each row once, so only an animation pays for it.
-    drawn_rows: dict[tuple[int, tuple[tuple[Style, str, int], ...]], tuple[str, str]]
-    drawn_rows = {}
+    drawn_rows: dict[tuple[int, tuple[tuple[Style, str, int], ...]], _Row] = {}
 
-    def recall_row(row: int, runs: Sequence[tuple[Style, str, int]]) -> tuple[str, str]:
+    def recall_row(row: int, runs: Sequence[tuple[Style, str, int]]) -> _Row:
         """Draw a row, or read it back when an earlier frame already drew it."""
         key = (row, tuple(runs))
         drawn = drawn_rows.get(key)
@@ -2138,7 +2181,7 @@ def _draw_screens(
         return drawn
 
     draw = recall_row if recall else draw_row
-    painted: list[list[tuple[str, str]]] = []
+    painted: list[list[_Row]] = []
     # How many rows each frame drew, which is what says whether an
     # emphasized line exists yet in it. A frame holding only blanks (the one
     # a `blank` closes the cycle with) drew none.
@@ -2160,12 +2203,14 @@ def _draw_screens(
                 # cursor on the row under its output, and the window grows a
                 # line to hold it, exactly as the terminal's would.
                 while len(rendered_rows) <= cursor_row:
-                    rendered_rows.append(("", ""))
+                    rendered_rows.append(((), ()))
                 row_cells, row_glyphs = rendered_rows[cursor_row]
                 rendered_rows[cursor_row] = (
-                    row_cells
-                    + cursor_svg(
-                        cursor, cursor_row, cursor_column, cursor_paint, unique_id
+                    (
+                        *row_cells,
+                        cursor_svg(
+                            cursor, cursor_row, cursor_column, cursor_paint, unique_id
+                        ),
                     ),
                     row_glyphs,
                 )
@@ -2220,15 +2265,30 @@ def _stack_frames(
     unique_id: str,
     *,
     animated: bool,
-) -> tuple[str, int]:
-    """Stack the rows of every frame into the markup the text's clip holds.
+) -> tuple[str, int, list[tuple[int, ...]]]:
+    """Stack the pieces of every frame into the markup the text's clip holds.
+
+    A piece is one cell background or one run of glyphs, at its place on the
+    grid. A piece several frames draw is drawn once, in a group shown over all
+    of them: a recording redraws its whole screen, yet most of it stays put
+    from one frame to the next. The pieces every frame draws need no group, and
+    the pieces a single frame draws go in the group carrying that frame's
+    timing.
+
+    ```{note}
+    Every background is drawn before every glyph, in two passes. A glyph that
+    several frames share sits in another group than the background a single
+    frame paints under it, and drawn later, that background would cover it.
+    ```
 
     :param screens: the drawn frames.
     :param palette: terminal colors the text falls back to.
     :param unique_id: prefix namespacing this document's classes.
     :param animated: hide every frame but one, for the stylesheet to animate.
-    :return: the markup, and the index of the frame left visible wherever the
-        animation does not run.
+    :return: the markup, the index of the frame left visible wherever the
+        animation does not run, and the frames each shared group shows over,
+        in the order of their `-s0`, `-s1`... classes, see
+        {func}`frame_animation_css`.
     """
     # The stylesheet says all of this too, and says it once. It is repeated here
     # as presentation attributes because a renderer is free to ignore a `<style>`
@@ -2250,49 +2310,90 @@ def _stack_frames(
         f'font-size="{_svg_number(CELL_HEIGHT)}" fill="{palette.foreground}">'
     )
     painted = screens.painted
+    if not animated:
+        return _row_group(painted[0], matrix), 0, []
+
     # The frame a renderer showing no animation is left with. The last one that
     # draws something, because an animation that accumulates (a trail filling
     # up, a bar advancing, an outcome landing) says most once it has finished,
     # and a `blank` closing the cycle says nothing at all. A spinner cycling in
     # place reads the same whichever frame is picked.
-    poster = 0
-    if animated:
-        # Padded so a row index means the same thing in every frame.
-        padded = [
-            frame_rows + [("", "")] * (screens.row_count - len(frame_rows))
-            for frame_rows in painted
-        ]
-        # A row drawn the same in every frame is drawn once, outside them. On a
-        # recording where one line moves under twenty that do not, that is the
-        # difference between one copy of those twenty and one copy per frame.
-        still: list[int] = []
-        moving: list[int] = []
-        for row in range(screens.row_count):
-            same = len({frame_rows[row] for frame_rows in padded}) == 1
-            (still if same else moving).append(row)
-        pictured = [
-            index
-            for index, frame_rows in enumerate(padded)
-            if any(cells or glyphs for cells, glyphs in frame_rows)
-        ]
-        poster = pictured[-1] if pictured else len(padded) - 1
-        # Each frame carries its own matrix, so the attribute fallback above
-        # reaches the frames a renderer shows after the first one too. The
-        # hiding is an attribute, not a rule: a renderer free to ignore the
+    pictured = [
+        index
+        for index, frame_rows in enumerate(painted)
+        if any(cells or glyphs for cells, glyphs in frame_rows)
+    ]
+    poster = pictured[-1] if pictured else len(painted) - 1
+
+    # The frames drawing each piece, backgrounds and glyphs kept apart.
+    showing: tuple[dict[str, list[int]], dict[str, list[int]]] = ({}, {})
+    for index, frame_rows in enumerate(painted):
+        for row in frame_rows:
+            for layer, pieces in zip(showing, row, strict=True):
+                for piece in pieces:
+                    frames = layer.setdefault(piece, [])
+                    # The same piece drawn twice in one frame shows once.
+                    if not frames or frames[-1] != index:
+                        frames.append(index)
+
+    # Pieces showing over the same frames share a group, and so a timing.
+    everywhere = len(painted)
+    passes: list[dict[tuple[int, ...], list[str]]] = [{}, {}]
+    for groups, layer in zip(passes, showing, strict=True):
+        for piece, drawing in layer.items():
+            groups.setdefault(tuple(drawing), []).append(piece)
+
+    # A shared group costs a timing rule of its own. Pieces too small to pay
+    # for theirs are copied into the group of each frame drawing them instead.
+    weight: dict[tuple[int, ...], int] = {}
+    for groups in passes:
+        for span, members in groups.items():
+            if 1 < len(span) < everywhere:
+                weight[span] = weight.get(span, 0) + sum(map(len, members))
+    copied = {
+        span
+        for span, size in weight.items()
+        if size * (len(span) - 1) <= _timing_cost(span, unique_id)
+    }
+    for groups in passes:
+        for span in copied & groups.keys():
+            members = groups.pop(span)
+            for index in span:
+                groups.setdefault((index,), []).extend(members)
+    shared = {
+        span: f"s{number}"
+        for number, span in enumerate(span for span in weight if span not in copied)
+    }
+
+    def group(frames: tuple[int, ...], pieces: list[str], glyphs: bool) -> str:
+        """Wrap pieces in the group timing them over the frames drawing them."""
+        body = "".join(pieces)
+        if glyphs:
+            # Each group of glyphs carries its own matrix, so the attribute
+            # fallback above reaches the groups a renderer shows later too.
+            body = f"{matrix}{body}</g>"
+        if len(frames) == everywhere:
+            return body
+        name = f"f{frames[0]}" if len(frames) == 1 else shared[frames]
+        # The hiding is an attribute, not a rule: a renderer free to ignore the
         # stylesheet would otherwise stack every frame on top of the poster.
-        layers = [_row_group(padded[0], still, matrix)]
-        layers.extend(
-            f'<g class="{unique_id}-f{index}"'
-            f"{'' if index == poster else HIDDEN_FRAME_ATTRIBUTES}>"
-            f"{_row_group(frame_rows, moving, matrix)}</g>"
-            for index, frame_rows in enumerate(padded)
-        )
-        stack = "".join(layers)
-    else:
-        still_cells = "".join(row_cells for row_cells, _ in painted[0])
-        still_glyphs = "".join(row_glyphs for _, row_glyphs in painted[0])
-        stack = f"{still_cells}{matrix}{still_glyphs}</g>"
-    return stack, poster
+        hidden = "" if poster in frames else HIDDEN_FRAME_ATTRIBUTES
+        return f'<g class="{unique_id}-{name}"{hidden}>{body}</g>'
+
+    def order(frames: tuple[int, ...]) -> tuple[int, int]:
+        """Pieces every frame draws first, then the shared groups, then frames."""
+        if len(frames) == everywhere:
+            return (0, 0)
+        if frames in shared:
+            return (1, int(shared[frames][1:]))
+        return (2, frames[0])
+
+    stack = "".join(
+        group(frames, groups[frames], bool(glyphs))
+        for glyphs, groups in enumerate(passes)
+        for frames in sorted(groups, key=order)
+    )
+    return stack, poster, list(shared)
 
 
 def _text_layer(stack: str, unique_id: str, canvas: _Canvas) -> tuple[str, str]:
@@ -2567,6 +2668,7 @@ def _stylesheet(
     cursor: Cursor | None,
     *,
     animated: bool,
+    shared: Sequence[Sequence[int]] = (),
 ) -> str:
     """Write the rules of a capture's stylesheet beyond the two it always has.
 
@@ -2575,13 +2677,15 @@ def _stylesheet(
     :param durations: seconds each frame is shown, in order.
     :param cursor: the terminal cursor drawn, or `None`.
     :param animated: time the frames into an animation.
+    :param shared: the frames each shared group shows over, see
+        {func}`frame_animation_css`.
     :return: the rules, one per line.
     """
     styles = "\n".join(
         f"    .{unique_id}-r{rule} {{ {css} }}" for css, rule in classes.items()
     )
     if animated:
-        styles += f"\n{frame_animation_css(unique_id, durations)}"
+        styles += f"\n{frame_animation_css(unique_id, durations, shared)}"
     if cursor is not None and cursor.blink > 0:
         styles += f"\n{blink_css(unique_id, cursor.blink)}"
     return styles
@@ -2808,7 +2912,9 @@ def render_svg(
     canvas = _measure(
         columns, screens.row_count, chrome, collapse_titlebar=collapse_titlebar
     )
-    stack, poster = _stack_frames(screens, palette, unique_id, animated=animated)
+    stack, poster, shared = _stack_frames(
+        screens, palette, unique_id, animated=animated
+    )
     clip, text_layer = _text_layer(stack, unique_id, canvas)
 
     defs = [clip]
@@ -2878,7 +2984,12 @@ def render_svg(
         font_stack=font_stack,
         recording_line=recording_line,
         styles=_stylesheet(
-            unique_id, screens.classes, durations, cursor, animated=animated
+            unique_id,
+            screens.classes,
+            durations,
+            cursor,
+            animated=animated,
+            shared=shared,
         ),
         defs=defs,
         body=body,
