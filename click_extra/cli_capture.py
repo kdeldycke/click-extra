@@ -639,10 +639,11 @@ def screenshot_cmd(
     Neither format needs an optional dependency.
 
     --record runs the command under a pseudo-terminal instead, and writes an
-    animated SVG of every screen it drew: the frames a spinner or a progress
-    bar asks a terminal for, which a plain capture never sees. The invocation
-    is drawn above every frame, and the loop pauses on the final screen for as
-    long as its line count asks, see --hold.
+    animated SVG of every screen it drew: the frames a spinner, a progress bar
+    or a full-screen program asks a terminal for, which a plain capture never
+    sees. The invocation stands above the output as a shell prompt, and the
+    loop pauses on the final screen for as long as its line count asks, see
+    --hold.
     """
     capture_format = resolve_capture_format(output, fragment)
     chrome = Chrome(**chrome_fields)

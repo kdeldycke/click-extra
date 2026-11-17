@@ -516,6 +516,9 @@ pretty = true
 warn_unused_configs = true
 overrides = [
   { module = [ "hjson", "pymdownx", "pymdownx.*", "sphinxcontrib.mermaid" ], ignore_missing_imports = true },
+  # The standard library gained `profiling` in Python 3.15, which only the script
+  # recording the `tests/tachyon-live.cast` fixture imports.
+  { module = [ "profiling.*" ], ignore_missing_imports = true },
   # Sphinx uses Python 3.12+ type statement syntax (PEP 695), which causes
   # mypy to fail with syntax errors when checking against older Python versions.
   # XXX This is a temporary workaround until we drop support for Python 3.11 for Click Extra.

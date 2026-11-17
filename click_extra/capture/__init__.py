@@ -17,8 +17,9 @@
 
 - {mod}`click_extra.capture.screenshot` runs a command, captures its output and
   renders it.
-- {mod}`click_extra.capture.recording` rebuilds the frames of an animation from
-  the stream a command writes at a terminal.
+- {mod}`click_extra.capture.recording` records the frames of an animation, by
+  noting the screen {mod}`click_extra.capture.terminal` rebuilds from the stream
+  a command writes at a terminal.
 - {mod}`click_extra.capture.snippet` colors a source file to render it the same
   way.
 - {mod}`click_extra.capture.svg` and {mod}`click_extra.capture.html` are the two

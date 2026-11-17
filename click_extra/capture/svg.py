@@ -956,16 +956,23 @@ def style_rules(style: Style, palette: TerminalPalette) -> str:
 def cursor_cell(picture: str, columns: int) -> tuple[int, int] | None:
     """Where a terminal left its cursor on the screen a capture pictures.
 
-    A {class}`~click_extra.capture.recording.TerminalScreen` joins its rows with
-    newlines and appends what a command writes to the last of them, so the
-    cursor stands at the end of that row. A picture closing on a newline
-    therefore carries an empty last row, and the cursor lands on it at column
-    zero, which is where a terminal puts it.
+    A command printing line by line leaves its cursor after the last thing it
+    wrote, so the cursor stands at the end of the last row a
+    {class}`~click_extra.capture.terminal.TerminalScreen` joins with newlines. A
+    picture closing on a newline therefore carries an empty last row, and the
+    cursor lands on it at column zero, which is where a terminal puts it.
 
     ```{note}
     Derived rather than recorded, and exactly rather than nearly: the position
     is a property of the text a screen holds, so it survives a frame travelling
     as a bare string and costs the recorder no second channel to carry it on.
+    ```
+
+    ```{todo}
+    Carry each frame's cursor position and visibility beside its text once a
+    recording of a full-screen program asks for a cursor. Such a program moves
+    and hides its cursor anywhere on the screen, which the end of the text does
+    not say, so the cursor drawn today stands after its last row.
     ```
 
     :param picture: the captured text, ANSI escape sequences included.

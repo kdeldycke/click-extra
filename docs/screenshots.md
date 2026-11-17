@@ -970,10 +970,26 @@ $ click-extra screenshot --record --cursor --closing-prompt --typing 0.05 --colu
 
 `--cursor` on its own takes the shape the `--preset` terminal draws, and `--cursor bar` or `--cursor underline` overrides it. `--blink 0` leaves the cursor lit and still. Both apply to a still capture as well, where the cursor lands after the last thing the command printed.
 
-The invocation is drawn above every frame, exactly as a still capture draws its own prompt, and `--prompt` overrides or hides it the same way. `--rows` states the terminal's height, `--timeout` stops a recording that would run on, and the pacing knobs above apply as given. Two of a still capture's arrangements do not carry over: the width must be a number, since the pseudo-terminal exists before the command draws its first line, and `--head`/`--tail` stay out, a recording being made of whole screens.
+The invocation stands above the output as a shell prompt, exactly as a still capture draws its own, and `--prompt` overrides or hides it the same way. `--rows` states the terminal's height, `--timeout` stops a recording that would run on, and the pacing knobs above apply as given. Two of a still capture's arrangements do not carry over: the width must be a number, since the pseudo-terminal exists before the command draws its first line, and `--head`/`--tail` stay out, a recording being made of whole screens.
 
 ```{caution}
 Unix only, for the reasons {func}`~click_extra.capture.recording.record_command` states. The same pipeline is scriptable through {func}`~click_extra.capture.recording.record_and_render`.
+```
+
+### Full-screen programs
+
+A program drawing on the whole terminal records the same way, like a dashboard or a system monitor. State the size it lays itself out for, and stop the recording with `--timeout` when the program waits for a key to quit:
+
+```shell-session
+$ click-extra screenshot --record --columns 100 --rows 50 --timeout 12 --hold 2 --output dashboard.svg -- orchard --dashboard
+```
+
+Each frame is the whole screen, at the height `--rows` states. The prompt the command was typed at stays underneath, covered by the program's alternate screen as on a terminal. `--closing-prompt` draws nothing over a program stopped while its screen is still up.
+
+Such a program writes the sequences its terminal's terminfo entry lists, so the recording names one to it: `TERM` is {data}`~click_extra.capture.recording.RECORDING_TERM`, whatever terminal the recording runs from. {class}`~click_extra.capture.terminal.TerminalScreen` reads that vocabulary, cursor addressing, scroll regions and line drawing included. A screen is noted once the program has been quiet for {data}`~click_extra.capture.recording.REDRAW_GAP`, so a redraw arriving in several reads never shows half-drawn.
+
+```{caution}
+`--cursor` draws the cursor after the last row, wherever the program left it and whether it hid it or not. A query the program sends its terminal goes unanswered, so a program waiting for a reply waits until it gives up.
 ```
 
 ## Publish and maintain

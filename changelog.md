@@ -8,8 +8,12 @@
 - **Breaking:** Raise the Click floor to `8.5.1`, dropping the shims for the spec of hidden options and the `envvar` of error hints.
 - **Breaking:** Raise the myst-parser floor of the `sphinx` extra to `5.2.0`, dropping the shim for the `content_offset` it over-counted.
 - **Deprecated:** the `tabs-vertical` class of sphinx-design tab-sets now warns and stops working in `11.0.0`. Set the `:orientation: vertical` option of sphinx-design `0.8.0` instead.
+- **Deprecated:** `ERASE_IN_LINE`, `PARTIAL_CSI_RE` and `SELECT_GRAPHIC_RENDITION` of `click_extra.capture.recording` now warn and stop resolving in `11.0.0`.
 - Add a `report_url` argument to `@command` and `@group`: an error the CLI has no rule for then ends the run with a bug report to paste into an issue.
 - Add `log_report()`, which logs a bug report of the same shape without ending the run.
+- Record full-screen programs with `screenshot --record` and `record_command()`: the screen now follows cursor addressing, scroll regions, line drawing and the alternate screen.
+- Move `TerminalScreen` to the new `click_extra.capture.terminal` module: it keeps a style per cell, so a redraw over a row's start keeps its tail.
+- Name `TERM=xterm-256color` to a recorded command, and note a screen only once its redraw has settled, so no frame shows a half-drawn screen.
 - Send `SIGTERM` to a `run_cli` child that outlives its timeout, and `SIGKILL` only after a grace period, so `sudo` can forward the first to the command it escalated.
 - In a dependency compatibility matrix, show `–` instead of `✅` for a major that came out after the last release of a superseded range.
 - Keep links to release anchors resolving with myst-parser `5.2.0`, whose [executablebooks/MyST-Parser#1168](https://github.com/executablebooks/MyST-Parser/pull/1168) drops the empty slug `make_id` gives a release heading.

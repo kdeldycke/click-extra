@@ -26,7 +26,8 @@ from extra_platforms.pytest import skip_windows
 
 import click_extra
 from click_extra import command, echo
-from click_extra.capture.recording import TerminalScreen, record_command
+from click_extra.capture.recording import record_command
+from click_extra.capture.terminal import TerminalScreen
 from click_extra.context import START_TIME
 from click_extra.logging import StreamHandler as ExtraStreamHandler
 from click_extra.spinner import _active_line

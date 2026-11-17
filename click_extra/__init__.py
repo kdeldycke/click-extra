@@ -42,6 +42,13 @@ Delete `click_extra/blocks.py`, the deprecated alias of
 ```
 
 ```{todo}
+Delete `_DEPRECATED_NAMES`, `_REMOVAL_VERSION` and `__getattr__` from
+`click_extra/capture/recording.py` in `11.0.0`, which stops serving
+`ERASE_IN_LINE`, `PARTIAL_CSI_RE` and `SELECT_GRAPHIC_RENDITION`: its warnings
+announce that release.
+```
+
+```{todo}
 Delete `_tile_runs`, `_TILE_RUN` and `_TILE_RE` from `click_extra/capture/svg.py`
 in `11.0.0`, with the `__getattr__` serving them as `tile_runs`, `TILE_RUN` and
 `_TILING_RE`, and their tests in `tests/test_screenshots.py`: its warnings

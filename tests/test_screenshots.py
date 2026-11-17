@@ -70,7 +70,7 @@ from click_extra.capture.presets import (
     Cursor,
     CursorShape,
 )
-from click_extra.capture.recording import TerminalScreen, record_and_render
+from click_extra.capture.recording import record_and_render
 from click_extra.capture.screenshot import (
     AUTO_COLUMNS,
     AUTO_TRUNCATION,
@@ -135,6 +135,7 @@ from click_extra.capture.svg import (
     style_rules,
     window_buttons,
 )
+from click_extra.capture.terminal import TerminalScreen
 from click_extra.cli_capture import deliver_capture, screenshot_cmd
 from click_extra.color import TerminalBackground
 from click_extra.execution import PROMPT
@@ -1476,7 +1477,7 @@ def test_cursor_cell_matches_the_screen_that_wrote_it():
         screen.feed(written)
         standing = cursor_cell(screen.display, DEFAULT_COLUMNS)
         column = 0 if standing is None else standing[1]
-        assert column == screen._column, f"after {written!r}"
+        assert column == screen.cursor[1], f"after {written!r}"
 
 
 def cursor_rect(svg: str) -> tuple[float, float, float, float]:

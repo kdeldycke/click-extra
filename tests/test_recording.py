@@ -14,11 +14,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Tests for `click_extra.capture.recording`, which rebuilds a terminal's screen."""
+"""Tests for `click_extra.capture.recording`, which records a terminal's screens."""
 
 from __future__ import annotations
 
-import io
+import json
 import os
 import re
 import signal
@@ -34,13 +34,11 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, unstyle
-from click_extra.ansi import RESET
 from click_extra.capture.presets import Cursor
 from click_extra.capture.recording import (
     DEFAULT_SUBMIT,
     Frame,
     ScreenRecorder,
-    TerminalScreen,
     ansi_prefix,
     quantize,
     record_and_render,
@@ -55,140 +53,11 @@ from click_extra.capture.svg import (
     render_svg,
 )
 from click_extra.execution import _LIVE_PROCESSES, terminate_live_processes
-from click_extra.spinner import CLEAR_LINE, HIDE_CURSOR, SHOW_CURSOR
+from click_extra.spinner import CLEAR_LINE, HIDE_CURSOR
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import IO
-
-GREEN = "\x1b[32m"
-
-
-class TTYStringIO(io.StringIO):
-    """An in-memory text buffer that claims to be an interactive terminal."""
-
-    def isatty(self) -> bool:
-        return True
-
-
-def snapshots(stream: str) -> list[str]:
-    """Replay a stream, keeping the screen each redraw leaves behind.
-
-    Splitting on the erase-in-line is what a real sampler does with timestamps
-    instead: every animation ends a frame with one.
-
-    :param stream: what a command wrote, control sequences and all.
-    :return: the distinct screens, in the order they were drawn.
-    """
-    seen: list[str] = []
-    screen = TerminalScreen()
-    for piece in stream.split(CLEAR_LINE):
-        screen.feed(piece + CLEAR_LINE)
-        if screen.display and (not seen or seen[-1] != screen.display):
-            seen.append(screen.display)
-    return seen
-
-
-@pytest.mark.parametrize(
-    ("stream", "expected"),
-    (
-        pytest.param("plain", "plain", id="text"),
-        pytest.param("one\ntwo", "one\ntwo", id="newline-starts-a-row"),
-        pytest.param("apricot\rfig", "fig", id="return-redraws-the-row"),
-        pytest.param("apricot\rfig\rplum", "plum", id="two-returns"),
-        pytest.param(f"apricot{CLEAR_LINE}", "apricot", id="erase-past-the-cursor"),
-        pytest.param(f"apricot\r{CLEAR_LINE}", "", id="erase-from-the-start"),
-        pytest.param(f"{HIDE_CURSOR}fig{SHOW_CURSOR}", "fig", id="cursor-visibility"),
-        pytest.param("\x1b[2;5Hfig", "fig", id="an-unfollowed-sequence-is-dropped"),
-        pytest.param("\x1b[2 qfig", "fig", id="an-intermediate-byte-is-dropped"),
-        pytest.param("\x1b[200~fig\x1b[201~", "fig", id="a-symbol-final-byte-ends-it"),
-        pytest.param("one\rtwo\nthree", "two\nthree", id="return-then-newline"),
-        pytest.param("one\r\ntwo", "one\ntwo", id="return-newline-keeps-the-row"),
-        pytest.param(
-            f"spin{CLEAR_LINE}\r{CLEAR_LINE}done\r\n\rnext{CLEAR_LINE}",
-            "done\nnext",
-            id="trail-choreography",
-        ),
-    ),
-)
-def test_screen_replays_a_stream(stream, expected):
-    """The screen shows what a terminal would, for the vocabulary it follows."""
-    screen = TerminalScreen()
-    screen.feed(stream)
-    assert screen.display == expected
-
-
-def test_screen_keeps_a_color_set_between_a_return_and_its_text():
-    """A color opened after the cursor comes back still wraps what follows.
-
-    An animation writes the return, then its color, then the text. The redraw
-    is deferred until something lands on the row, and the color is the first
-    thing to land: it must trigger the clear and survive it, or the frame
-    draws in the terminal's default ink.
-    """
-    screen = TerminalScreen()
-    screen.feed(f"apricot\r{GREEN}fig{RESET}{CLEAR_LINE}")
-    assert screen.display == f"{GREEN}fig{RESET}"
-
-
-def test_screen_feeds_the_same_whether_split_or_whole():
-    """A stream arriving in pieces lands where the whole of it would.
-
-    A recorder reads whatever the terminal hands it, which is not aligned on
-    anything: a frame routinely arrives across two reads.
-    """
-    stream = f"apricot\r{GREEN}fig{RESET}{CLEAR_LINE}\rplum{CLEAR_LINE}"
-    whole = TerminalScreen()
-    whole.feed(stream)
-
-    piecewise = TerminalScreen()
-    for index in range(len(stream)):
-        piecewise.feed(stream[index : index + 1])
-    assert piecewise.display == whole.display
-
-
-def test_screen_counts_a_wide_glyph_by_its_cells():
-    """A wide glyph covers the two cells it is drawn with.
-
-    The count is what says whether the cursor sits at the start of a row, which
-    is what an erase-in-line acts on.
-    """
-    screen = TerminalScreen()
-    screen.feed("🌑")
-    screen.feed(CLEAR_LINE)
-    # Past the start of the row, so the erase leaves the glyph alone.
-    assert screen.display == "🌑"
-
-
-def test_screen_recovers_every_frame_a_spinner_draws(monkeypatch):
-    """Replaying a real spinner's stream gives back its frames, and only those.
-
-    The end of the loop this module exists to close: `frame_lines()` says what
-    the spinner draws, the spinner writes it at a terminal, and the screen
-    rebuilds those same lines out of the stream.
-    """
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.setenv("FORCE_COLOR", "1")
-    stream = TTYStringIO()
-    spinner = Spinner(
-        "Steeping",
-        spinner=SPINNERS["moon"],
-        style=Style(fg="green"),
-        stream=stream,
-        interval=0.02,
-        live="always",
-    )
-    spinner.start()
-    # Long enough to draw every frame of an eight-frame preset at 20ms each.
-    time.sleep(0.4)
-    spinner.stop()
-
-    recovered = set(snapshots(stream.getvalue()))
-    assert recovered, "the spinner drew nothing to replay"
-    assert recovered <= set(spinner.frame_lines()), (
-        f"recovered a line the spinner never draws: "
-        f"{sorted(recovered - set(spinner.frame_lines()))}"
-    )
 
 
 class StepClock:
@@ -309,6 +178,48 @@ def test_recorder_records_a_spinner_without_a_terminal(monkeypatch):
     drawn = {frame.text for frame in frames}
     assert drawn <= set(spinner.frame_lines())
     assert all(frame.duration > 0 for frame in frames)
+
+
+def test_recorder_notes_a_redraw_once_its_reads_settle():
+    """Reads arriving within one redraw make one frame, never a half-drawn one.
+
+    A pseudo-terminal hands a large redraw back in several reads, a fraction of
+    a millisecond apart. A screen noted after each of them would picture the
+    program halfway through drawing.
+    """
+    recorder = ScreenRecorder(columns=20, rows=3, onlcr=False)
+    recorder._receive("\x1b[2;1Happle", 0.0)
+    recorder._receive(" pie", 0.0002)
+    recorder._receive("\x1b[2;1Hplum tart", 0.1)
+
+    frames = recorder.frames(end=0.3)
+    assert [frame.text for frame in frames] == ["\napple pie", "\nplum tart"]
+    assert [round(frame.duration, 4) for frame in frames] == [0.0998, 0.2]
+
+
+def test_recorder_holds_a_synchronized_update_until_it_closes():
+    """A program asking its terminal to wait gets no frame of what it drew meanwhile."""
+    recorder = ScreenRecorder(columns=20, rows=3, onlcr=False)
+    recorder._receive("\x1b[?2026happle", 0.0)
+    recorder._receive(" pie\x1b[?2026l", 0.05)
+
+    assert [frame.text for frame in recorder.frames(end=0.2)] == ["apple pie"]
+
+
+def test_recorder_takes_no_frame_of_its_preface_alone():
+    """A screen showing only what stood before the command started is no frame.
+
+    The command erasing its own output leaves the prompt it was typed at, which
+    is where the recording started, not a picture of the command.
+    """
+    recorder = ScreenRecorder(columns=20, rows=3, onlcr=False)
+    recorder._preface("$ bake\r\n")
+    recorder._receive("bread", 0.0)
+    recorder._receive("\r\x1b[K", 0.1)
+    recorder._receive("rolls", 0.2)
+
+    frames = recorder.frames(end=0.3)
+    assert [frame.text for frame in frames] == ["$ bake\nbread", "$ bake\nrolls"]
 
 
 BAR_SCRIPT = """\
@@ -508,6 +419,40 @@ def test_record_command_closes_its_terminal_when_the_command_cannot_start(tmp_pa
     assert not leaked, f"descriptors left open: {sorted(leaked)}"
 
 
+FULL_SCREEN_SCRIPT = """\
+import curses, time
+
+def fill(screen):
+    curses.curs_set(0)
+    # Draw on the terminal's own background, not on curses' default black.
+    curses.use_default_colors()
+    for count in (1, 2, 3):
+        screen.erase()
+        screen.addstr(1, 4, f"apples: {count}")
+        screen.refresh()
+        time.sleep(0.15)
+
+curses.wrapper(fill)
+"""
+"""A full-screen program counting apples on the alternate screen, with curses."""
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_record_command_follows_a_full_screen_program():
+    """Each redraw of a curses program is a frame of the screen it addresses.
+
+    The recording names `xterm-256color` to the program, so curses finds an
+    entry even where `TERM` is unset. Every frame holds the alternate screen at
+    its full height, and the first screen coming back at exit, blank, is none.
+    """
+    frames = record_command(
+        (sys.executable, "-c", FULL_SCREEN_SCRIPT), columns=24, rows=4, duration=10.0
+    )
+    assert [unstyle(frame.text) for frame in frames] == [
+        f"\n    apples: {count}\n\n" for count in (1, 2, 3)
+    ]
+
+
 @skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
 def test_record_and_render_draws_the_prompt_on_every_frame():
     """The stated invocation leads each frame, styled as a shell prompt."""
@@ -580,7 +525,7 @@ def test_record_and_render_numbers_every_frame_in_one_gutter(monkeypatch):
     )
     monkeypatch.setattr(
         "click_extra.capture.recording._record_process",
-        lambda *args, **kwargs: (screens, 0),
+        lambda *args, **kwargs: (screens, 0, False),
     )
     svg, _returncode = record_and_render(
         ("stack",), columns=40, prompt="", unique_id="pantry", line_numbers=True
@@ -861,3 +806,86 @@ def test_a_closing_prompt_opens_a_row_under_a_screen_left_mid_line():
     plain = recorded(BAR_SCRIPT)
     closed = recorded(BAR_SCRIPT, closing_prompt=True)
     assert window_height(closed) - window_height(plain) == pytest.approx(LINE_HEIGHT)
+
+
+def test_a_closing_prompt_stays_off_a_full_screen_program(monkeypatch):
+    """A command stopped on the alternate screen gets no shell prompt drawn.
+
+    Stopped by the recording, a full-screen program leaves its own screen up,
+    where the shell coming back would print over the program.
+    """
+    screens = (Frame("\n  oven", 0.1),)
+
+    def height(*, alternate: bool, closing_prompt: bool) -> float:
+        monkeypatch.setattr(
+            "click_extra.capture.recording._record_process",
+            lambda *args, **kwargs: (screens, 0, alternate),
+        )
+        svg, _returncode = record_and_render(
+            ("bake",), columns=20, rows=4, prompt="", closing_prompt=closing_prompt
+        )
+        return window_height(svg)
+
+    assert height(alternate=False, closing_prompt=True) > height(
+        alternate=False, closing_prompt=False
+    )
+    assert height(alternate=True, closing_prompt=True) == height(
+        alternate=True, closing_prompt=False
+    )
+
+
+TACHYON_CAST = Path(__file__).with_name("tachyon-live.cast")
+"""Tachyon's live mode as a terminal received it, see `tests/tachyon_cast.py`."""
+
+TACHYON_CAPTURE = Path(__file__).with_name("tachyon-live.svg")
+"""The animated capture {data}`TACHYON_CAST` replays into."""
+
+
+def test_tachyon_live_mode_replays_into_the_committed_capture(monkeypatch):
+    """Python's live profiler records into the capture committed beside it.
+
+    Closes the loop on the screenshot the Python documentation shows as a GIF:
+    the curses interface of `python -m profiling.sampling run --live`, as
+    `ncurses` wrote it at an `xterm-256color` terminal, is read back through the
+    recorder with the timing each chunk arrived with, and rendered the way the
+    `screenshot --record` command renders it. To rewrite the capture after a
+    change to the recorder or the renderer, delete it, rerun this test, and
+    review the new one in a browser.
+    """
+    header, *events = (
+        json.loads(line)
+        for line in TACHYON_CAST.read_text(encoding="UTF-8").splitlines()
+    )
+
+    def replay(*args, columns, rows, preface="", **kwargs):
+        recorder = ScreenRecorder(columns=columns, rows=rows, onlcr=False)
+        if preface:
+            recorder._preface(f"{preface}\r\n")
+        for at, _kind, text in events:
+            recorder._receive(text, at)
+        return recorder.frames(end=events[-1][0]), 0, recorder._screen.alternate
+
+    frames, _returncode, alternate = replay(
+        columns=header["width"], rows=header["height"]
+    )
+    # Every frame is the profiler's whole screen, and the last one its verdict.
+    assert not alternate
+    assert {frame.text.count("\n") + 1 for frame in frames} == {header["height"]}
+    assert "PROFILING COMPLETE" in frames[-1].text
+
+    monkeypatch.setattr("click_extra.capture.recording._record_process", replay)
+    svg, _returncode = record_and_render(
+        ("python", "-m", "profiling.sampling", "run", "--live", "--opcodes", "bake.py"),
+        columns=header["width"],
+        rows=header["height"],
+        hold=2.0,
+        unique_id="tachyon-live",
+    )
+    if not TACHYON_CAPTURE.exists():
+        TACHYON_CAPTURE.write_text(svg, encoding="UTF-8")
+        pytest.fail(f"Wrote {TACHYON_CAPTURE.name}: review it, then commit it.")
+    if svg != TACHYON_CAPTURE.read_text(encoding="UTF-8"):
+        pytest.fail(
+            f"{TACHYON_CAPTURE.name} no longer matches its recording: delete it, "
+            "rerun this test and review the rewrite."
+        )

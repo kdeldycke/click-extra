@@ -13,29 +13,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-"""Rebuild a terminal's screen from the stream a command writes at it.
+"""Record the screens a terminal shows while a command writes at it.
 
 A command that animates does not print its frames one after another: it prints
-one, returns the cursor to the start of the line, and prints the next over it.
-The stream therefore says what *changed*, and the frames only exist once
-something replays those changes against a screen. That replay is what this
-module does.
-
-```{note}
-The vocabulary is deliberately small. A spinner and a progress bar move the
-cursor with a carriage return, clear what they are about to redraw with an
-erase-in-line, and end a kept line with a newline. Following those, plus the
-color codes that travel with the text, is enough to recover their frames, and it
-costs no dependency. Anything addressing the cursor by coordinate, clearing the
-screen or switching to the alternate buffer is out of scope: a full-screen
-program is not what a capture pictures.
-```
-
-```{todo}
-Read a full-screen program through [pyte](https://github.com/selectel/pyte)
-behind an optional extra, should picturing one ever be asked for. The screen
-below would stay the default, so the common case keeps costing no dependency.
-```
+one, returns the cursor to the start of the line, and prints the next over it. A
+full-screen program goes further and redraws any cell it likes. The stream
+therefore says what *changed*, and the frames only exist once something replays
+those changes against a screen. {class}`~click_extra.capture.terminal.TerminalScreen`
+is that screen, and this module notes what it shows over time.
 """
 
 from __future__ import annotations
@@ -48,14 +33,15 @@ import select
 import struct
 import subprocess
 import time
+import warnings
 from itertools import pairwise
-from typing import NamedTuple, cast
+from typing import Any, NamedTuple, cast
 
 from ..ansi import CSI_PATTERN, CSI_PREFIX_PATTERN, RESET
 from ..color import TerminalBackground, forced_color
 from ..envvar import env_copy
 from ..execution import _stop_process, _track, _untrack, args_cleanup
-from ..layout import cell_width, number_frames
+from ..layout import number_frames
 from .presets import Chrome
 from .screenshot import (
     DEFAULT_COLUMNS,
@@ -65,6 +51,7 @@ from .screenshot import (
     render,
 )
 from .svg import AUTO_HOLD
+from .terminal import TerminalScreen
 
 # A pseudo-terminal is what makes a CLI checking `isatty` animate for a
 # recorder, and `pty` reaches for `termios`, which Windows does not ship. The
@@ -92,20 +79,11 @@ if TYPE_CHECKING:
 CSI_RE = re.compile(CSI_PATTERN)
 """One control sequence, from the escape that opens it to the final byte ending it.
 
-Broad on purpose: the sequences this screen ignores have to be *recognized* to
-be dropped, or their parameter digits would land on the screen as text. The
-grammar is the one {data}`~click_extra.ansi.CSI_PATTERN` states, so a sequence
-with an intermediate byte, like the `ESC [ 2 SP q` setting the cursor's shape,
-is dropped whole too.
-"""
-
-PARTIAL_CSI_RE = re.compile(rf"(?:{CSI_PREFIX_PATTERN}|\x1b)$")
-"""The opening of a control sequence the rest of which has not arrived yet.
-
-A recorder reads whatever the terminal hands it, on boundaries that answer to
-the pipe rather than to the stream: a sequence routinely straddles two reads.
-Recognizing the half that arrived first is what keeps its bracket and digits off
-the screen, where they would otherwise read as text a command never printed.
+Broad on purpose: a typed prompt is cut between two characters, never inside an
+escape, so every sequence has to be *recognized* whole, see {func}`ansi_prefix`.
+The grammar is the one {data}`~click_extra.ansi.CSI_PATTERN` states, so a
+sequence with an intermediate byte, like the `ESC [ 2 SP q` setting the
+cursor's shape, counts as one too.
 """
 
 DEFAULT_QUANTUM = 0.01
@@ -168,9 +146,29 @@ Short enough to time a frame of the fastest bundled spinner, whose interval is
 READ_SIZE = 65536
 """Bytes read from the terminal at once.
 
-Well past any single frame, so a frame arrives whole in the ordinary case. The
-screen handles a sequence split across two reads regardless, see
-{data}`PARTIAL_CSI_RE`.
+Well past any single frame, but a pseudo-terminal still hands a large redraw
+back in several reads, see {data}`REDRAW_GAP`. The screen holds a sequence split
+across two reads until its tail arrives.
+"""
+
+RECORDING_TERM = "xterm-256color"
+"""Terminal a recording names to its command, through `TERM`.
+
+A full-screen program looks its terminal up in the terminfo database and writes
+the sequences that entry lists, so the name decides the vocabulary
+{class}`~click_extra.capture.terminal.TerminalScreen` has to read. Stating it
+keeps a recording from inheriting whatever terminal it runs from, and gives a
+program run where `TERM` is unset, like a CI runner, an entry to find at all.
+"""
+
+REDRAW_GAP = 0.01
+"""Seconds of quiet that close a redraw, in a recording read off a terminal.
+
+A program draws a screen in one write, which a pseudo-terminal hands back in as
+many reads as its buffer takes. A screen noted between two of them would picture
+a half-drawn frame. The reads of one redraw follow each other within a fraction
+of a millisecond, while a program redrawing ten times a second leaves 100
+milliseconds between two redraws, so this gap tells them apart.
 """
 
 TERMINATE_GRACE = 2.0
@@ -181,130 +179,6 @@ Ctrl+C, gets `SIGTERM` first, to clean up after itself. One that ignores it is
 killed with its descendants once this grace runs out, so the recording never
 waits forever: see `click_extra.execution._stop_process`.
 """
-
-ERASE_IN_LINE = "K"
-"""Final letter of the sequence clearing a line from the cursor onward."""
-
-SELECT_GRAPHIC_RENDITION = "m"
-"""Final letter of the sequence setting colors and attributes.
-
-The one class of sequence kept in the screen's text rather than acted on: it
-carries no cursor movement, and a capture renders it as the color it names.
-"""
-
-
-class TerminalScreen:
-    """The text a terminal shows, rebuilt from what was written at it.
-
-    Rows accumulate as a command writes. A carriage return moves the cursor back
-    to the start of the row it is on, so what follows lands over what is already
-    there, which is how an animation redraws itself in place.
-
-    ```{caution}
-    Overwriting is whole-row rather than per-cell: a write landing on column
-    zero replaces the row instead of covering its first few cells. Every
-    animation this screen exists for redraws its row in full and ends with an
-    erase-in-line, so the two agree there. They part on a command that overwrites
-    a *prefix* and leaves a longer tail behind, where a terminal keeps the tail
-    and this screen drops it. Tracking that faithfully means holding a style per
-    cell, which is a full emulator and the dependency this one avoids.
-    ```
-    """
-
-    def __init__(self) -> None:
-        """Start on a single empty row, with the cursor at its start."""
-        self.rows: list[str] = [""]
-        self._column = 0
-        self._partial = ""
-        self._pending_return = False
-
-    @property
-    def display(self) -> str:
-        """The screen as it stands, rows joined by newlines."""
-        return "\n".join(self.rows)
-
-    def feed(self, text: str) -> None:
-        """Replay what a command wrote, moving the screen to what it now shows.
-
-        Safe to call with the stream cut anywhere: a control sequence straddling
-        two calls is held until the rest of it arrives. A sequence still
-        unfinished when the stream ends never reaches the screen, having named
-        nothing to draw.
-
-        :param text: the stream, control sequences and all.
-        """
-        text = self._partial + text
-        self._partial = ""
-        position = 0
-        for sequence in CSI_RE.finditer(text):
-            self._write(text[position : sequence.start()])
-            self._control(sequence.group())
-            position = sequence.end()
-
-        tail = text[position:]
-        opening = PARTIAL_CSI_RE.search(tail)
-        if opening:
-            self._partial = tail[opening.start() :]
-            tail = tail[: opening.start()]
-        self._write(tail)
-
-    def _land(self) -> None:
-        r"""Apply a deferred carriage return, just before something lands.
-
-        A return only *moves* the cursor: whether the row survives depends on
-        what comes next. Text or styling landing on the row redraws it, so the
-        row is cleared here, at landing time; a newline instead leaves for the
-        next row and the one the cursor came back over survives, which is what
-        a real terminal shows for the `\r\n` a pseudo-terminal substitutes
-        for every newline.
-        """
-        if self._pending_return:
-            self.rows[-1] = ""
-            self._pending_return = False
-
-    def _control(self, sequence: str) -> None:
-        """Act on one control sequence, or drop it when it is out of scope."""
-        final = sequence[-1]
-        if final == SELECT_GRAPHIC_RENDITION:
-            # Styling travels with the text it wraps: kept, never acted on. It
-            # lands like text does, so a color opened between a return and its
-            # redraw survives the deferred clear instead of being wiped by it.
-            self._land()
-            self.rows[-1] += sequence
-        elif final == ERASE_IN_LINE and not self._column:
-            # Cleared from the start of the row, which empties the whole of it.
-            # Past the start, the row already holds only what was written since
-            # the cursor came back, so there is nothing left to erase. The
-            # erase is the redraw a pending return was waiting for.
-            self.rows[-1] = ""
-            self._pending_return = False
-
-    def _write(self, text: str) -> None:
-        """Lay printable text on the screen, one row per newline it carries."""
-        for line_index, line in enumerate(text.split("\n")):
-            if line_index:
-                # A newline settles any return before it without a redraw: the
-                # row it came back over survives, so the `\r\n` a
-                # pseudo-terminal substitutes for every newline keeps the line
-                # a real terminal keeps.
-                self.rows.append("")
-                self._column = 0
-                self._pending_return = False
-            for chunk_index, chunk in enumerate(line.split("\r")):
-                if chunk_index:
-                    # The cursor goes back to the start of the row. The redraw
-                    # is deferred to {meth}`_land`, which is what tells an
-                    # animation redrawing its row apart from a line merely
-                    # ending in a return.
-                    self._column = 0
-                    self._pending_return = True
-                if not chunk:
-                    continue
-                self._land()
-                self.rows[-1] += chunk
-                # A wide glyph covers the two cells it is drawn with, and a
-                # tab as many as reach the next stop.
-                self._column += cell_width(chunk)
 
 
 class Frame(NamedTuple):
@@ -332,15 +206,30 @@ class ScreenRecorder(io.TextIOBase):
     ```
     """
 
-    def __init__(self, *, clock: Callable[[], float] = time.monotonic) -> None:
+    def __init__(
+        self,
+        *,
+        clock: Callable[[], float] = time.monotonic,
+        columns: int | None = None,
+        rows: int | None = None,
+        onlcr: bool = True,
+    ) -> None:
         """Start on a blank screen, with nothing recorded.
 
         :param clock: what the recorder reads the time off. Stated so a test can
             hand it a clock that does not depend on how busy the machine is.
+        :param columns: width of the terminal, see
+            {class}`~click_extra.capture.terminal.TerminalScreen`.
+        :param rows: height of the terminal, see
+            {class}`~click_extra.capture.terminal.TerminalScreen`.
+        :param onlcr: whether a newline returns the cursor to the start of its
+            row, see {class}`~click_extra.capture.terminal.TerminalScreen`.
         """
-        self._screen = TerminalScreen()
+        self._screen = TerminalScreen(columns, rows, onlcr=onlcr)
         self._clock = clock
         self._samples: list[tuple[float, str]] = []
+        self._redraw: float | None = None
+        self._preface_display = ""
 
     def isatty(self) -> bool:
         """Claim to be a terminal, which is what makes a CLI animate at all."""
@@ -368,14 +257,59 @@ class ScreenRecorder(io.TextIOBase):
             self._samples.append((self._clock(), display))
         return len(text)
 
+    def _preface(self, text: str) -> None:
+        """Draw what stands on the screen before the command writes anything.
+
+        A recording drawing its invocation as a shell prompt writes it here, so
+        the command's output lands under it and a full-screen program covers
+        it, as on a terminal. A screen showing nothing more is no frame, see
+        {meth}`frames`.
+
+        :param text: what the screen shows first, control sequences and all.
+        """
+        self._screen.feed(text)
+        self._preface_display = self._screen.display
+
+    def _receive(self, text: str, at: float) -> None:
+        """Replay one read off a terminal, noting the screen each redraw leaves.
+
+        A screen is noted once the stream has been quiet for
+        {data}`REDRAW_GAP`, which no read inside a single redraw ever is, and
+        never in the middle of a synchronized update. A half-drawn screen is
+        therefore never a frame.
+
+        :param text: what the read held, decoded.
+        :param at: when it arrived.
+        """
+        if not text:
+            return
+        if self._redraw is not None and at - self._redraw >= REDRAW_GAP:
+            self._settle()
+        self._screen.feed(text)
+        self._redraw = at
+
+    def _settle(self, *, final: bool = False) -> None:
+        """Note the screen the last redraw left, timed from its last read.
+
+        :param final: note it even mid-update, the stream having ended.
+        """
+        if self._redraw is None or (self._screen.synchronized and not final):
+            return
+        display = self._screen.display
+        if not self._samples or self._samples[-1][1] != display:
+            self._samples.append((self._redraw, display))
+        self._redraw = None
+
     def frames(self, *, end: float | None = None) -> tuple[Frame, ...]:
         """Coalesce what was recorded into the frames the screen held.
 
         A write changing nothing on screen is not a frame, see {meth}`write`,
         and neither is a screen holding nothing but blanks: an animation erases
         its line before printing the result underneath, and neither that erasure
-        nor the newline ending it is a picture. What is left is one frame per
-        distinct screen, each lasting until the next replaced it.
+        nor the newline ending it is a picture. Neither is a screen holding
+        nothing but the prompt a recording drew before its command started.
+        What is left is one frame per distinct screen, each lasting until the
+        next replaced it.
 
         ```{caution}
         The durations are wall-clock, so they answer to how busy the machine was
@@ -387,13 +321,15 @@ class ScreenRecorder(io.TextIOBase):
             lasted. Defaults to now.
         :return: the frames, in the order they were drawn.
         """
+        # A redraw still waiting for its quiet gap is the last screen.
+        self._settle(final=True)
         finish = self._clock() if end is None else end
         # A blank sample at the stop time closes the last screen's span.
         samples = [*self._samples, (finish, "")]
         return tuple(
             Frame(display, until - at)
             for (at, display), (until, _) in pairwise(samples)
-            if display.strip() and until > at
+            if display.strip() and display != self._preface_display and until > at
         )
 
 
@@ -480,12 +416,19 @@ def _record_process(
     background: TerminalBackground = TerminalBackground.DARK,
     duration: float | None = None,
     clock: Callable[[], float] = time.monotonic,
-) -> tuple[tuple[Frame, ...], int]:
-    """{func}`record_command`, reporting the command's exit code beside the frames.
+    preface: str = "",
+) -> tuple[tuple[Frame, ...], int, bool]:
+    """{func}`record_command`, reporting how the command ended beside the frames.
 
     The private form {func}`record_and_render` builds on: a caller writing a
-    file wants to relay how the command it pictured ended, while the public
-    frame recorder keeps its single-value return.
+    file wants to relay the command's exit code, and to know whether it left
+    the alternate screen up, while the public frame recorder keeps its
+    single-value return.
+
+    :param preface: what stands on the screen before the command starts, like
+        the shell prompt it was typed at. Empty draws nothing.
+    :return: the frames, the command's exit code, and whether the alternate
+        screen was still up when the recording ended.
     """
     # Deferred import: keeps extra_platforms off the startup path of every CLI.
     from extra_platforms import is_unix
@@ -503,9 +446,14 @@ def _record_process(
         environment = env_copy({
             **capture_environment(background, columns),
             "LINES": str(rows),
+            "TERM": RECORDING_TERM,
         })
 
-    recorder = ScreenRecorder(clock=clock)
+    # The pseudo-terminal already turns each newline into the return and
+    # newline the command meant, so a bare one moves the cursor straight down.
+    recorder = ScreenRecorder(clock=clock, columns=columns, rows=rows, onlcr=False)
+    if preface:
+        recorder._preface(f"{preface}\r\n")
     # Decoded incrementally rather than chunk by chunk: a pseudo-terminal
     # hands the stream back in kernel-buffer-sized reads, so a multi-byte
     # glyph regularly straddles two of them, and a per-chunk decode would
@@ -554,18 +502,18 @@ def _record_process(
                 break
             if not written:
                 break
-            recorder.write(decoder.decode(written))
+            recorder._receive(decoder.decode(written), clock())
     finally:
         tail = decoder.decode(b"", final=True)
         if tail:
-            recorder.write(tail)
+            recorder._receive(tail, clock())
         os.close(parent)
         try:
             returncode = _stop_process(process, TERMINATE_GRACE)
         finally:
             _untrack(process)
 
-    return recorder.frames(end=clock()), returncode
+    return recorder.frames(end=clock()), returncode, recorder._screen.alternate
 
 
 def quantize(
@@ -712,9 +660,11 @@ def record_and_render(
     Chains {func}`record_command`, {func}`quantize` and
     {func}`~click_extra.capture.screenshot.render`, the way
     {func}`~click_extra.capture.screenshot.capture` chains the still pipeline. The
-    invocation is drawn above every frame as a shell prompt, styled by the
-    active theme through {func}`~click_extra.execution.format_cli_prompt`, so
-    the recording shows what to type to reproduce it.
+    invocation stands on the screen as a shell prompt before the command starts,
+    styled by the active theme through
+    {func}`~click_extra.execution.format_cli_prompt`, so the recording shows
+    what to type to reproduce it. The command's output lands under it, and a
+    full-screen program's alternate screen covers it, as on a terminal.
 
     :param args: the command line to record.
     :param columns: width of the terminal it runs in, in characters. A
@@ -754,7 +704,9 @@ def record_and_render(
     :param closing_prompt: draw the shell's prompt under the last frame, which
         is where it comes back once the command exits, see
         {func}`~click_extra.capture.screenshot.append_prompt`. Only that frame carries
-        it: the shell has not returned while the command is still drawing.
+        it: the shell has not returned while the command is still drawing. A
+        command stopped with the alternate screen still up gets none, as its
+        screen is no shell's.
     :param title: see {func}`~click_extra.capture.screenshot.render`.
     :param unique_id: see {func}`~click_extra.capture.screenshot.render`.
     :param preset: see {func}`~click_extra.capture.screenshot.render`.
@@ -765,22 +717,21 @@ def record_and_render(
     :raises ValueError: when the command drew nothing to record, or when a
         stated `typing` or `submit` is not positive.
     """
-    frames, returncode = _record_process(
+    invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
+    frames, returncode, alternate = _record_process(
         args,
         columns=columns,
         rows=rows,
         background=background,
         duration=duration,
+        preface=invocation,
     )
     timed = quantize(frames, quantum)
     if not timed:
         raise ValueError("Recorded nothing: the command drew no screen.")
 
     texts = tuple(frame.text for frame in timed)
-    invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
-    if invocation:
-        texts = tuple(f"{invocation}\n{text}" for text in texts)
-    if closing_prompt:
+    if closing_prompt and not alternate:
         # The last frame alone: it is the only screen the command has finished
         # drawing, and the shell comes back on no other.
         texts = (
@@ -816,3 +767,37 @@ def record_and_render(
         ),
         returncode,
     )
+
+
+_DEPRECATED_NAMES: dict[str, Any] = {
+    "ERASE_IN_LINE": "K",
+    "PARTIAL_CSI_RE": re.compile(rf"(?:{CSI_PREFIX_PATTERN}|\x1b)$"),
+    "SELECT_GRAPHIC_RENDITION": "m",
+}
+"""Names of the line screen this module kept, each with the value it held.
+
+{class}`~click_extra.capture.terminal.TerminalScreen` reads every sequence
+itself, which leaves these with no reader. `__getattr__` serves each until
+{data}`_REMOVAL_VERSION`.
+"""
+
+
+_REMOVAL_VERSION = "11.0.0"
+"""The release in which the names of {data}`_DEPRECATED_NAMES` stop resolving."""
+
+
+def __getattr__(name: str) -> Any:
+    """Serve a name of {data}`_DEPRECATED_NAMES`, with a warning.
+
+    The value is never cached here, so every access warns. Any other name raises
+    {exc}`AttributeError` without a warning.
+    """
+    if name not in _DEPRECATED_NAMES:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    warnings.warn(
+        f"{__name__}.{name} is deprecated and will be removed in click-extra "
+        f"{_REMOVAL_VERSION}: click_extra.capture.terminal reads every sequence.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return _DEPRECATED_NAMES[name]

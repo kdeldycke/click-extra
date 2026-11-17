@@ -26,6 +26,15 @@ tests.sphinx
    :undoc-members:
 ```
 
+## `tests.tachyon_cast` module
+
+```{eval-rst}
+.. automodule:: tests.tachyon_cast
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
 ## `tests.test_accessibility` module
 
 ```{eval-rst}
@@ -426,6 +435,15 @@ tests.sphinx
 
 ```{eval-rst}
 .. automodule:: tests.test_telemetry
+   :members:
+   :show-inheritance:
+   :undoc-members:
+```
+
+## `tests.test_terminal` module
+
+```{eval-rst}
+.. automodule:: tests.test_terminal
    :members:
    :show-inheritance:
    :undoc-members:
