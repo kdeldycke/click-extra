@@ -351,6 +351,15 @@ def test_screen_refuses_a_terminal_holding_no_cell():
 INFOCMP = shutil.which("infocmp")
 """The terminfo dumper `ncurses` ships, listing the capabilities of an entry."""
 
+TERMINAL_REPLIES = frozenset(("rv", "u6", "u8", "xr"))
+"""Capabilities describing what a terminal answers to a query.
+
+`u6` and `u8` give the format of the cursor position and device attributes
+replies, `rv` and `xr` the patterns of the version replies. `ncurses` matches
+them against what comes back from the terminal, the way it matches a key
+capability against what the keyboard sends: no program writes them.
+"""
+
 TERMINFO_PADDING_RE = re.compile(rb"\$<[\d.*/]+>")
 """A delay a terminfo capability asks for, which `tputs` waits out rather than
 sending, like the `$<100/>` of xterm's visible bell."""
@@ -379,9 +388,14 @@ def test_screen_reads_every_sequence_of_the_recording_terminal():
         encoding="UTF-8",
     ).stdout
     names = re.findall(r"^\t([\w.]+)=", listing, re.MULTILINE)
-    # Key capabilities describe what the keyboard sends, and `acsc` maps the
-    # line-drawing glyphs: neither is ever written to a terminal.
-    written = [name for name in names if not name.startswith("k") and name != "acsc"]
+    # Key capabilities describe what the keyboard sends, replies what the
+    # terminal answers, and `acsc` maps the line-drawing glyphs: none of them is
+    # ever written to a terminal.
+    written = [
+        name
+        for name in names
+        if not name.startswith("k") and name != "acsc" and name not in TERMINAL_REPLIES
+    ]
     assert len(written) > 50, written
 
     leaks = {}
