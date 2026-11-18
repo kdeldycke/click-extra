@@ -25,6 +25,7 @@ import signal
 import sys
 import threading
 import time
+import warnings
 from html import unescape
 from itertools import pairwise
 from pathlib import Path
@@ -34,6 +35,7 @@ import pytest
 from extra_platforms.pytest import skip_windows
 
 from click_extra import SPINNERS, Spinner, Style, unstyle
+from click_extra.capture import recording as capture_recording
 from click_extra.capture.presets import Cursor
 from click_extra.capture.recording import (
     DEFAULT_SUBMIT,
@@ -54,6 +56,7 @@ from click_extra.capture.svg import (
     animation_digest,
     render_svg,
 )
+from click_extra.capture.terminal import TerminalScreen
 from click_extra.execution import _LIVE_PROCESSES, terminate_live_processes
 from click_extra.spinner import CLEAR_LINE, HIDE_CURSOR
 
@@ -989,3 +992,35 @@ def test_tachyon_live_mode_replays_screen_by_screen(monkeypatch):
         for frame in frames
     ]
     assert played == [*expected, []]
+
+
+@pytest.mark.parametrize(
+    ("name", "released"),
+    (
+        ("ERASE_IN_LINE", "K"),
+        ("PARTIAL_CSI_RE", re.compile(r"(?:\x1b\[[0-?]*[ -/]*|\x1b)$")),
+        ("SELECT_GRAPHIC_RENDITION", "m"),
+        ("TerminalScreen", TerminalScreen),
+    ),
+)
+def test_line_screen_names_warn_until_their_removal(name, released):
+    """The names of the `10.2.0` line screen still resolve, with a warning.
+
+    `TerminalScreen` resolves to the class of its new module.
+    """
+    with pytest.warns(
+        DeprecationWarning,
+        match=(
+            rf"^click_extra\.capture\.recording\.{name} is deprecated and will be "
+            r"removed in click-extra 11\.0\.0: "
+        ),
+    ):
+        value = getattr(capture_recording, name)
+    assert value == released
+
+
+def test_recording_module_serves_no_other_missing_name():
+    """A name the module never had stays missing, and sets off no warning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert not hasattr(capture_recording, "TerminalScreens")

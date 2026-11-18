@@ -1376,6 +1376,19 @@ def test_dependency_matrix_groups(synthetic_dep_repo: Path) -> None:
     assert [g.spec for g in groups] == [">=1.0", ">=2.1.3"]
 
 
+def test_dependency_matrix_group_keeps_its_released_fields() -> None:
+    """The four fields of `10.2.0` keep their positions, and build a group alone."""
+    assert DependencyMatrixGroup._fields[:4] == (
+        "first_tag",
+        "last_tag",
+        "first_date",
+        "spec",
+    )
+    group = DependencyMatrixGroup("v1.0.0", "v1.4.0", "2024-03-01", ">=1.0")
+    assert group.spec == ">=1.0"
+    assert group.last_date == ""
+
+
 def test_dependency_matrix_table_columns_and_cells(
     synthetic_dep_repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

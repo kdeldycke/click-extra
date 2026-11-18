@@ -1400,16 +1400,6 @@ def run_cli(
             stderr=None if merge_stderr else "".join(err_lines),
         )
 
-    def abort(reason: str) -> None:
-        """Forcibly stop the child and its descendants, reap it and collect what
-        its pipes still hold.
-
-        See {func}`_kill_process` for what the kill reaches.
-        """
-        log.debug(f"PID {process.pid} {reason}; sending kill.")
-        _kill_process(process, leader=start_new_session)
-        _drain_readers(readers, time.monotonic() + _KILL_DRAIN_GRACE)
-
     deadline = time.monotonic() + timeout if timeout is not None else None
     timeout_desc = "none" if timeout is None else f"{timeout}s"
     try:
@@ -1423,7 +1413,10 @@ def run_cli(
             log.debug(f"PID {process.pid} stopped; exit {process.returncode}.")
             raise timeout_expired() from None
         except KeyboardInterrupt:
-            abort("interrupted")
+            # Killed at once, with its descendants: see _kill_process().
+            log.debug(f"PID {process.pid} interrupted; sending kill.")
+            _kill_process(process, leader=start_new_session)
+            _drain_readers(readers, time.monotonic() + _KILL_DRAIN_GRACE)
             raise
     finally:
         # The child is no longer live: drop it so a later Ctrl+C does not try to

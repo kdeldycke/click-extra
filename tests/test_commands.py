@@ -248,6 +248,7 @@ def test_no_heavy_dependency_ballast_on_startup():
         "subprocess",
         "sysconfig",
         "tabulate",
+        "tempfile",
         "termios",
         "tomllib",
         "tty",

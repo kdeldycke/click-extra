@@ -42,6 +42,7 @@ from ..color import TerminalBackground, forced_color
 from ..envvar import env_copy
 from ..execution import _stop_process, _track, _untrack, args_cleanup
 from ..layout import number_frames
+from . import terminal as _terminal
 from .presets import Chrome
 from .screenshot import (
     DEFAULT_COLUMNS,
@@ -51,7 +52,6 @@ from .screenshot import (
     render,
 )
 from .svg import AUTO_HOLD
-from .terminal import TerminalScreen
 
 # A pseudo-terminal is what makes a CLI checking `isatty` animate for a
 # recorder, and `pty` reaches for `termios`, which Windows does not ship. The
@@ -225,7 +225,7 @@ class ScreenRecorder(io.TextIOBase):
         :param onlcr: whether a newline returns the cursor to the start of its
             row, see {class}`~click_extra.capture.terminal.TerminalScreen`.
         """
-        self._screen = TerminalScreen(columns, rows, onlcr=onlcr)
+        self._screen = _terminal.TerminalScreen(columns, rows, onlcr=onlcr)
         self._clock = clock
         self._samples: list[tuple[float, str]] = []
         self._redraw: float | None = None
@@ -907,22 +907,38 @@ itself, which leaves these with no reader. `__getattr__` serves each until
 """
 
 
+_MOVED_NAMES = frozenset({"TerminalScreen"})
+"""Names this module defined in `10.2.0`, which {mod}`click_extra.capture.terminal`
+defines now.
+
+`__getattr__` serves each from there until {data}`_REMOVAL_VERSION`.
+"""
+
+
 _REMOVAL_VERSION = "11.0.0"
-"""The release in which the names of {data}`_DEPRECATED_NAMES` stop resolving."""
+"""The release in which the names of {data}`_DEPRECATED_NAMES` and
+{data}`_MOVED_NAMES` stop resolving."""
 
 
 def __getattr__(name: str) -> Any:
-    """Serve a name of {data}`_DEPRECATED_NAMES`, with a warning.
+    """Serve a name of {data}`_DEPRECATED_NAMES` or {data}`_MOVED_NAMES`, with a
+    warning.
 
     The value is never cached here, so every access warns. Any other name raises
     {exc}`AttributeError` without a warning.
     """
-    if name not in _DEPRECATED_NAMES:
+    if name in _MOVED_NAMES:
+        value = getattr(_terminal, name)
+        reason = f"import it from {_terminal.__name__}"
+    elif name in _DEPRECATED_NAMES:
+        value = _DEPRECATED_NAMES[name]
+        reason = f"{_terminal.__name__} reads every sequence"
+    else:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     warnings.warn(
         f"{__name__}.{name} is deprecated and will be removed in click-extra "
-        f"{_REMOVAL_VERSION}: click_extra.capture.terminal reads every sequence.",
+        f"{_REMOVAL_VERSION}: {reason}.",
         DeprecationWarning,
         stacklevel=2,
     )
-    return _DEPRECATED_NAMES[name]
+    return value

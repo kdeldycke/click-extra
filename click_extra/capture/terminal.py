@@ -345,8 +345,10 @@ class TerminalScreen:
                     self._pending = text[position:]
                     return
                 elif text[position + 1] in "]PX^_":
-                    # A string this long is skipped up to its terminator.
+                    # A string this long is skipped up to its terminator, whose
+                    # escape may end the read.
                     self._skipping = True
+                    self._pending = "\x1b" if text.endswith("\x1b") else ""
                     return
                 else:
                     position += 1

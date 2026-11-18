@@ -162,7 +162,7 @@ process = subprocess.run(
 print(render_cli_run(("forecast", "Lisbon"), process, env={"FORECAST_UNIT": "celsius"}))
 ```
 
-The first line is the command as the user would have typed it, environment assignments included. Each captured stream then gets its own labelled, indented block, and the exit code closes the trace. A stream that captured nothing is left out entirely: a subprocess run with `stderr=STDOUT` reports a single interleaved `<output>` stream, while separate streams give the `<stdout>` and `<stderr>` pair.
+The first line is the command as the user would have typed it, environment assignments included. A variable mapped to `None` is removed from the environment, so the line opens on `env -u` and its name. Each captured stream then gets its own labelled, indented block, and the exit code closes the trace. A stream that captured nothing is left out entirely: a subprocess run with `stderr=STDOUT` reports a single interleaved `<output>` stream, while separate streams give the `<stdout>` and `<stderr>` pair.
 
 ## Matching output against a regex
 

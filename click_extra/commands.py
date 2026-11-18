@@ -21,6 +21,7 @@ pre-configured with common defaults. The mixins here build custom variants.
 
 from __future__ import annotations
 
+import errno
 import importlib
 import logging
 import os
@@ -1088,15 +1089,19 @@ class Command(  # type: ignore[misc]
         Under a root command with a `report_url`, an error that is not one of the
         exceptions Click exits with ends the run with a bug report: see
         {func}`~click_extra.bug_report.report_unexpected_error`. The innermost command
-        catches it, as its context still holds the options of the run.
+        catches it, as its context still holds the options of the run. Click's
+        `main()` also ends a run on an end of input, like an abort, and on a
+        broken pipe, without a message: both pass through.
         """
         with _abort_notice(ctx):
             try:
                 return super().invoke(ctx)
-            except (Abort, click.ClickException, Exit):
+            except (*_ABORT_EXCEPTIONS, click.ClickException, Exit):
                 raise
             except Exception as expt:
-                if not getattr(ctx.find_root().command, "report_url", None):
+                if (isinstance(expt, OSError) and expt.errno == errno.EPIPE) or (
+                    not getattr(ctx.find_root().command, "report_url", None)
+                ):
                     raise
                 # Deferred import: keeps click_extra.bug_report off the startup path.
                 from .bug_report import report_unexpected_error

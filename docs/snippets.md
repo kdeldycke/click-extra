@@ -123,7 +123,7 @@ Left unstated, the style is `monokai` on the dark chrome and Pygments' own `defa
 
 ## Everything a screenshot wears
 
-A snippet is drawn by the same renderer, so the whole window vocabulary carries over unchanged: `--preset`, `--background`, `--border`, `--radius`, `--backdrop`, `--shadow`, `--margin`, `--padding`, `--opacity`, `--title`, `--watermark`, `--head`, `--tail`, `--line-numbers` and `--emphasize-lines` all mean here what they mean [there](screenshots.md#style-the-capture).
+A snippet is drawn by the same renderer, so the whole window vocabulary carries over unchanged: `--preset`, `--background`, `--font`, `--border`, `--radius`, `--backdrop`, `--shadow`, `--margin`, `--padding`, `--opacity`, `--title`, `--watermark`, `--head`, `--tail`, `--line-numbers` and `--emphasize-lines` all mean here what they mean [there](screenshots.md#style-the-capture).
 
 ```{click:source}
 :screenshot: full-snippet

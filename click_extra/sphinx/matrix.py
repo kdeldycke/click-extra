@@ -1084,11 +1084,15 @@ class DependencyMatrixGroup(NamedTuple):
     first_date: str
     """ISO `YYYY-MM-DD` date of the first tag's commit."""
 
-    last_date: str
-    """ISO `YYYY-MM-DD` date of the last tag's commit."""
-
     spec: str
     """The raw requirement specifier declared for the dependency at this range."""
+
+    last_date: str = ""
+    """ISO `YYYY-MM-DD` date of the last tag's commit.
+
+    Empty when unknown: no major of the dependency then counts as out after the
+    range's last release.
+    """
 
 
 def _safe_version(text: str) -> Version | None:
@@ -1504,7 +1508,7 @@ def dependency_matrix_groups(
         if (spec := _extract_requirement(pyproject, setup_py, dep_name))
     ]
     return [
-        DependencyMatrixGroup(first[0], last[0], first[1], last[1], first[2])
+        DependencyMatrixGroup(first[0], last[0], first[1], first[2], last[1])
         for _, first, last in _runs(declared, key=lambda tag: _spec_identity(tag[2]))
     ]
 

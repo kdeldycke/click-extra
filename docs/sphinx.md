@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the [`matrix` directive](python-directives.md#the-matrix-directive), [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [vertical tab-sets](#vertical-tab-sets), [class diagrams that let the page scroll](#class-diagrams-that-let-the-page-scroll), [GitHub link checks with a token](#github-link-checks-with-a-token), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the [`matrix` directive](python-directives.md#the-matrix-directive), [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [class diagrams that let the page scroll](#class-diagrams-that-let-the-page-scroll), [GitHub link checks with a token](#github-link-checks-with-a-token), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -458,6 +458,14 @@ assert result.exit_code == 0
 assert result.output == "Paris: 18 fahrenheit.\n"
 ```
 
+A variable mapped to `None` is removed from the environment for that call. An assignment cannot say that, so the line opens on `env -u` and the name of the variable:
+
+```{click:run}
+result = invoke(forecast, env={"WEATHER_UNITS": None})
+assert result.exit_code == 0
+assert result.output == "Paris: 18 celsius.\n"
+```
+
 The prompt is one line prepended to the captured output, so it is part of the results rather than a block of its own. It is rendered by {func}`~click_extra.execution.format_cli_prompt`, the same helper that draws it onto an SVG [capture](#committed-captures): a block combining `:hide-prompt:` with `:screenshot:` therefore writes an image without one either.
 
 ### Committed captures
@@ -710,7 +718,7 @@ Loaded Extensions
 
 (...)
 * myst_parser (5.1.0)
-* click_extra.sphinx (10.1.1)
+* click_extra.sphinx (10.2.0)
 
 Traceback
 =========
@@ -1018,11 +1026,7 @@ The build still runs to its end and reports every warning. Then it exits with st
 `myst.xref_missing` is the case this was written for. myst-parser resolves every link to an anchor, on the same page or on another one, against what the build produced. For a link it cannot place, it logs that warning and ships the link as written anyway, so a dead fragment reaches the published site behind a green build. Before you list it:
 
 - Set `myst_heading_anchors`. Without it, myst-parser registers no heading as a target, so it warns on every link to a heading, even one that works because docutils emits a matching HTML `id`.
-- A link to another page resolves against that page's heading slugs only, so it warns on a `(target)=` label there although the browser lands on it. A raw-HTML anchor like `<a name="...">` is invisible to myst-parser on any page. To keep such a link without suppressing the whole type, add its target to `nitpick_ignore` as `("myst", "{target}")`.
-
-```{todo}
-Drop the `(target)=` case from the cross-page caveat above once the `myst-parser` floor of the `sphinx` extra passes the release carrying [executablebooks/MyST-Parser#1158](https://github.com/executablebooks/MyST-Parser/pull/1158), which resolves a link to a label on another page. That fix closes [executablebooks/MyST-Parser#1151](https://github.com/executablebooks/MyST-Parser/issues/1151), and no release carries it yet.
-```
+- A raw-HTML anchor like `<a name="...">` is invisible to myst-parser on any page, so a link to one warns. To keep such a link without suppressing the whole type, add its target to `nitpick_ignore` as `("myst", "{target}")`.
 
 Sphinx has an open request for this feature: [sphinx-doc/sphinx#7949](https://github.com/sphinx-doc/sphinx/issues/7949).
 

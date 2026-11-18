@@ -14,14 +14,13 @@ def harvest(fruit):
 ```
 
 ```{click:run}
+import os
 import tempfile
+from unittest.mock import patch
 
 cache = tempfile.mkdtemp()
-result = invoke(
-    harvest,
-    args=["--fruit", "plum"],
-    env={"XDG_CACHE_HOME": cache, "LOCALAPPDATA": cache},
-)
+with patch.dict(os.environ, {"XDG_CACHE_HOME": cache, "LOCALAPPDATA": cache}):
+    result = invoke(harvest, args=["--fruit", "plum"])
 assert result.exit_code == 1
 assert "harvest stopped on this error, which is a bug." in result.stderr
 assert "/issues/new?title=ZeroDivisionError+in+harvest" in result.stderr
@@ -38,9 +37,11 @@ Issues are often public, so a report holds no file path. The traceback shows mod
 
 The message of the error shows as the code wrote it, and can quote the data of the user: the report asks them to read it before they paste it.
 
+An AI agent that runs the CLI gets one more line. It tells the agent to show the report to its user, and to ask before it files the issue.
+
 ## Which errors get a report
 
-- An exception that Click exits with, like a usage error or an abort, is no bug: Click handles it as before.
+- An exception that Click exits with, like a usage error, an abort, an end of input or a broken pipe, is no bug: Click handles it as before.
 - An `OSError`, like a missing permission or a full disk, is for the user to fix: the run ends with a one-line `Error:`.
 - Any other error gets a report, and the run exits with code `1`.
 
@@ -68,12 +69,13 @@ def sort_fruits():
 ```
 
 ```{click:run}
+import os
 import tempfile
+from unittest.mock import patch
 
 cache = tempfile.mkdtemp()
-result = invoke(
-    sort_fruits, env={"XDG_CACHE_HOME": cache, "LOCALAPPDATA": cache}
-)
+with patch.dict(os.environ, {"XDG_CACHE_HOME": cache, "LOCALAPPDATA": cache}):
+    result = invoke(sort_fruits)
 assert result.exit_code == 0
 assert "Sorted the other fruits." in result.stdout
 assert "Fruits set aside: 1" in result.stderr

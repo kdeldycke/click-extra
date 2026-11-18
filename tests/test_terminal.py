@@ -343,6 +343,14 @@ def test_screen_skips_a_runaway_string_to_its_terminator():
     assert screen.display == "fig"
 
 
+def test_screen_skips_a_runaway_string_cut_inside_its_terminator():
+    """The read that starts skipping a string can end on its terminator's escape."""
+    screen = TerminalScreen()
+    screen.feed("\x1b]0;" + "x" * (PENDING_LIMIT + 1) + "\x1b")
+    screen.feed("\\fig")
+    assert screen.display == "fig"
+
+
 def test_screen_refuses_a_terminal_holding_no_cell():
     with pytest.raises(ValueError, match="holds nothing"):
         TerminalScreen(0, 4)

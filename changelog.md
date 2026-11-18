@@ -6,25 +6,27 @@
 > This version is **not released yet** and is under active development.
 
 - **Breaking:** Raise the Click floor to `8.5.1`, dropping the shims for the spec of hidden options and the `envvar` of error hints.
-- **Breaking:** Raise the myst-parser floor of the `sphinx` extra to `5.2.0`, dropping the shim for the `content_offset` it over-counted.
-- **Deprecated:** the `tabs-vertical` class of sphinx-design tab-sets now warns and stops working in `11.0.0`. Set the `:orientation: vertical` option of sphinx-design `0.8.0` instead.
-- **Deprecated:** `ERASE_IN_LINE`, `PARTIAL_CSI_RE` and `SELECT_GRAPHIC_RENDITION` of `click_extra.capture.recording` now warn and stop resolving in `11.0.0`.
+- **Breaking:** Raise the myst-parser floor of the `sphinx` extra to `5.2.0`, dropping the shim for the `content_offset` that older releases over-counted.
+- **Breaking:** `DependencyMatrixGroup` gains a trailing `last_date` field, so it no longer unpacks into four values.
+- **Deprecated:** The `tabs-vertical` class of sphinx-design tab-sets now logs a `click_extra.tabs_vertical` warning and stops working in `11.0.0`. Set the `:orientation: vertical` option of sphinx-design `0.8.0` instead.
+- **Deprecated:** `ERASE_IN_LINE`, `PARTIAL_CSI_RE`, `SELECT_GRAPHIC_RENDITION` and `TerminalScreen` of `click_extra.capture.recording` now warn and stop resolving in `11.0.0`. Import `TerminalScreen` from `click_extra.capture.terminal` instead.
 - Add a `report_url` argument to `@command` and `@group`: an error the CLI has no rule for then ends the run with a bug report to paste into an issue.
-- Add `log_report()`, which logs a bug report of the same shape without ending the run.
+- Add `log_report()`, which logs a bug report of the same shape without ending the run, and `describe_error()`, `compact_frames()` and `culprit_function()` to fill one in.
 - Record full-screen programs with `screenshot --record` and `record_command()`: the screen now follows cursor addressing, scroll regions, line drawing and the alternate screen.
-- Move `TerminalScreen` to the new `click_extra.capture.terminal` module: it keeps a style per cell, so a redraw over a row's start keeps its tail.
-- Name `TERM=xterm-256color` to a recorded command, and note a screen only once its redraw has settled, so no frame shows a half-drawn screen.
+- Keep a style per cell in `TerminalScreen`, so a redraw over the start of a row keeps the rest of that row.
+- Run a recorded command with `TERM=xterm-256color`, and note a screen only once its redraw settles, so no frame shows a half-drawn screen.
 - Draw each background and run of text that frames of an animated SVG capture share once, timed over those frames, which shrinks recordings up to three times.
 - Add `--palette` to `screenshot`, reading a Windows Terminal or iTerm2 color scheme, and `--font` to `screenshot` and `snippet`, naming the fonts a capture asks for.
 - Add the `:screenshot-palette:` and `:screenshot-font:` directive options, which match `--palette` and `--font`.
 - Add `--start` and `--end` to `screenshot --record`, and `:screenshot-start:` and `:screenshot-end:` to the directives, to keep one slice of a recording.
+- Add `read_palette()`, `parse_font_stack()`, `start_at()` and `end_at()` to the Python API, with matching `palette`, `font_stack`, `start` and `end` arguments of `record_and_render()`.
 - Send `SIGTERM` to a `run_cli` child that outlives its timeout, and `SIGKILL` only after a grace period, so `sudo` can forward the first to the command it escalated.
 - In a dependency compatibility matrix, show `–` instead of `✅` for a major that came out after the last release of a superseded range.
-- Keep links to release anchors resolving with myst-parser `5.2.0`, whose [executablebooks/MyST-Parser#1168](https://github.com/executablebooks/MyST-Parser/pull/1168) drops the empty slug `make_id` gives a release heading.
 - Let the `default_options_uncolored_help` and `default_options_colored_help` regexes match the help screens of Click `8.6.0`, which no longer breaks a line after a hyphen.
+- Fix links to release anchors, like `changelog.md#v1-4-2`, failing with `myst.xref_missing` under myst-parser `5.2.0` when headings take their slug from `make_id`.
 - Fix `prep_path()` opening `-` past a replaced `sys.stdout`, like Click's `CliRunner(capture="fd")`, which kept its output out of `click:run` blocks.
 - Fix `--export-config` writing `UNSET` instead of `null` for a parameter without a default on a plain Click command.
-- Fix the command line `run_cli` logs showing a variable it unsets as `NAME=None`, which a pasted copy sets: the line now opens on `env -u NAME`.
+- Fix `format_cli_prompt()` and the `run_cli` logs showing a variable to unset as `NAME=None`, which a pasted copy sets: the line now opens on `env -u NAME`.
 - Fix unpickling the `NO_CONFIG` and `VCS` sentinels, which raised `ValueError: <object object> is not a valid Sentinel`.
 - Fix a lone XML element naming a multi-value option, which failed with `Value must be an iterable.`: it now reads as a one-item list.
 - Skip the process-tree tests where the process table does not list the test process, like in the MacPorts build sandbox.

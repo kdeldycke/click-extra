@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import logging
 import re
@@ -143,19 +144,26 @@ def test_os_error_ends_with_one_line(invoke):
         pytest.param(click.UsageError("too many plums"), 2, id="usage-error"),
         pytest.param(click.exceptions.Exit(3), 3, id="exit"),
         pytest.param(click.Abort(), 1, id="abort"),
+        pytest.param(EOFError(), 1, id="end-of-input"),
+        pytest.param(BrokenPipeError(errno.EPIPE, "Broken pipe"), 1, id="broken-pipe"),
     ),
 )
 def test_click_exits_pass_through(invoke, error, exit_code):
-    """The exceptions that Click exits with are no bug."""
+    """The exceptions that Click exits with are no bug: the run ends as in Click."""
 
     @command(report_url=REPORT_URL)
     def harvest():
+        raise error
+
+    @command(name="harvest")
+    def plain_harvest():
         raise error
 
     result = invoke(harvest)
 
     assert result.exit_code == exit_code
     assert REPORT_START not in result.stderr
+    assert result.stderr == invoke(plain_harvest).stderr
 
 
 def test_subcommand_error_reports_once(invoke):

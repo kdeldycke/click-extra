@@ -1926,6 +1926,19 @@ def test_read_palette_refuses_what_is_no_scheme(tmp_path, name, content, message
 
 
 @pytest.mark.parametrize(
+    "component", (2.0, float("inf"), float("nan")), ids=("over-one", "inf", "nan")
+)
+def test_read_palette_refuses_an_iterm_component_out_of_range(tmp_path, component):
+    """A color fraction past `1`, or that is no number, names the color it spoils."""
+    scheme = iterm_scheme(ORCHARD_SCHEME)
+    scheme["Ansi 1 Color"]["Red Component"] = component
+    path = tmp_path / "orchard.itermcolors"
+    path.write_bytes(plistlib.dumps(scheme))
+    with pytest.raises(ValueError, match=re.escape("'Ansi 1 Color'")):
+        read_palette(path)
+
+
+@pytest.mark.parametrize(
     ("value", "expected"),
     (
         pytest.param("Menlo", "Menlo, monospace", id="one-family"),

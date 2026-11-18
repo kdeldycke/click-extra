@@ -721,14 +721,6 @@ dependency-graph.all-groups = false
 # extra, so left in the graph it greedily claims all optional packages into a
 # single `--extra all` box and the per-extra subgraphs render empty.
 dependency-graph.no-extras = [ "all" ]
-# XXX Drop once `lint-deps` reports that this entry exempts nothing.
-lint-deps.allow.click = "Click 8.5.1 is on PyPI: only an install under a cooldown fails, until 2026-11-13."
-# XXX Drop once `lint-deps` reports that this entry exempts nothing.
-lint-deps.allow.myst-parser = "myst-parser 5.2.0 is on PyPI: only an install under a cooldown fails, until 2026-11-17."
-# XXX Drop once `lint-deps` reports that this entry exempts nothing.
-lint-deps.allow.sphinx-design = """\
-  sphinx-design 0.8.0 is on PyPI: only a docs install under a cooldown fails, until 2026-11-17.\
-  """
 # Entries of the bundled `pytest.toml` and `ruff.toml` that `[tool.pytest]` and
 # `[tool.ruff]` leave out on purpose, each mapped to its reason: see § Test
 # suite specifics and § Heavy dependencies in AGENTS.md. `lint-repo` reports

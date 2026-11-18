@@ -237,6 +237,7 @@ Reported from click-extra, and closed upstream:
 ### [`MyST-Parser`](https://github.com/executablebooks/MyST-Parser)
 
 - [`#1177`](https://github.com/executablebooks/MyST-Parser/issues/1177) / [`#1179`](https://github.com/executablebooks/MyST-Parser/pull/1179) - A directive with an option block and a body ending in blank lines got its `content_offset` inflated by one, so a diagnostic in its body pointed one line late. click-extra corrected the offset; the fix shipped in `myst-parser` `5.2.0`, whose floor retired that correction. The same release ships the `block_text` alignment of [`#1164`](https://github.com/executablebooks/MyST-Parser/pull/1164), which superseded [`#1048`](https://github.com/executablebooks/MyST-Parser/pull/1048).
+- [`#1151`](https://github.com/executablebooks/MyST-Parser/issues/1151) - A link to an explicit `(target)=` label on another page logged a `myst.xref_missing` warning although the browser lands on it. The fix shipped in `myst-parser` `5.2.0`, whose floor retired the caveat of [failing on chosen warnings](sphinx.md#failing-on-chosen-warnings).
 
 ### [`python-tabulate`](https://github.com/astanin/python-tabulate)
 

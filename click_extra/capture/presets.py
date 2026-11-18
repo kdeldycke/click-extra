@@ -49,6 +49,7 @@ configured theirs to.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, fields, replace
 from enum import Enum
@@ -496,9 +497,6 @@ def read_palette(path: Path) -> TerminalPalette:
     colors: dict[str, str] = {}
     keys: tuple[str, ...]
     if suffix == ".json":
-        # Deferred import: keeps json off the startup path of every CLI.
-        import json
-
         try:
             scheme = json.loads(path.read_text(encoding="UTF-8"))
         except json.JSONDecodeError as error:
@@ -530,7 +528,8 @@ def read_palette(path: Path) -> TerminalPalette:
                     round(float(components[f"{name} Component"]) * 255)
                     for name in ("Red", "Green", "Blue")
                 ]
-            except (KeyError, TypeError, ValueError):
+            # An infinite fraction overflows the rounding, and NaN fails it.
+            except (KeyError, OverflowError, TypeError, ValueError):
                 raise ValueError(f"{path.name} states no color for {key!r}.") from None
             if not all(0 <= channel <= 255 for channel in channels):
                 raise ValueError(f"{path.name} states {key!r} out of range.")
