@@ -7,6 +7,9 @@
 
 ## [`10.3.0` (2026-11-18)](https://github.com/kdeldycke/click-extra/compare/v10.2.0...v10.3.0)
 
+> [!NOTE]
+> `10.3.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/10.3.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v10.3.0).
+
 - **Breaking:** Raise the Click floor to `8.5.1`, dropping the shims for the spec of hidden options and the `envvar` of error hints.
 - **Breaking:** Raise the myst-parser floor of the `sphinx` extra to `5.2.0`, dropping the shim for the `content_offset` that older releases over-counted.
 - **Breaking:** `DependencyMatrixGroup` gains a trailing `last_date` field, so it no longer unpacks into four values.
