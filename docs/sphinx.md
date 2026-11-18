@@ -474,6 +474,8 @@ Inside these pages a `click:run` block renders live, so none of them needs a scr
 
 - `:screenshot-preset:` draws the capture as a named terminal, from its window decorations down to the sigil its shell prompts with. A block naming none falls back to the `click_extra_screenshot_preset` `conf.py` value, so a project drawing every capture as the same desktop states it once. See [terminal presets](screenshots.md#terminal-presets).
 
+- `:screenshot-palette:` and `:screenshot-font:` replace the colors and the font the preset brings, as [`--palette` and `--font`](screenshots.md#your-own-colors-and-font) do. `:screenshot-palette:` names a scheme file relative to the page, or to the source root when the path opens on `/`, and a change to that file rebuilds the page. A `click:source` capture takes its colors from `:screenshot-syntax-style:`, so it takes the font option alone.
+
 - `:screenshot-watermark:` credits the image in its bottom-right corner, with `:screenshot-watermark-color:` for the ink. Unlike the `screenshot` command, which credits click-extra on every image it writes, a block draws none unless asked: the page around it already says what drew it. `click_extra_screenshot_watermark` in `conf.py` turns it on for the whole project. See [the credit line](screenshots.md#the-credit-line).
 
 - `:screenshot-background: light` draws the capture on white chrome, with the ANSI palette to match, for a block rendering a light-background theme. Defaults to `dark`, what a terminal and this package's default theme both look like. Only the image answers to it: the page's own results block is styled by the site's stylesheet and follows the reader's theme either way. See [light and dark chrome](screenshots.md#light-and-dark-chrome) for the CLI-side flag.

@@ -62,6 +62,8 @@ from ..capture.presets import (
     Cursor,
     CursorShape,
     TerminalPreset,
+    parse_font_stack,
+    read_palette,
 )
 from ..capture.recording import (
     DEFAULT_QUANTUM,
@@ -342,12 +344,14 @@ class ClickDirective(ContentOffsetMixin):
         "screenshot-columns": parse_columns,
         "screenshot-cursor": _screenshot_cursor,
         "screenshot-emphasize-lines": directives.unchanged_required,
+        "screenshot-font": parse_font_stack,
         "screenshot-hold": parse_hold,
         "screenshot-interval": _positive_number,
         "screenshot-line-numbers": directives.flag,
         "screenshot-margin": directives.nonnegative_int,
         "screenshot-opacity": _screenshot_opacity,
         "screenshot-padding": directives.nonnegative_int,
+        "screenshot-palette": directives.path,
         "screenshot-preset": _screenshot_preset,
         "screenshot-prompt": directives.unchanged,
         "screenshot-quantum": _positive_number,
@@ -837,16 +841,49 @@ class ClickDirective(ContentOffsetMixin):
         )
 
     @cached_property
-    def screenshot_palette(self) -> TerminalPalette | None:
-        """Colors the capture resolves against, beyond what the chrome names.
+    def screenshot_scheme(self) -> TerminalPalette | None:
+        """Terminal colors the capture is drawn in, set by `:screenshot-palette:`.
 
-        `None` for a capture of a terminal, which is every run: its colors are
-        the terminal's own, and the chrome already answers for them. A capture
-        of *code* takes them from its syntax style instead, background included,
-        so the picture looks like that style does in an editor.
+        The option names a color scheme file, see
+        {func}`~click_extra.capture.presets.read_palette`, relative to the page
+        or, opening on `/`, to the source root, as `literalinclude` reads its
+        path. The page is then rebuilt whenever the scheme changes.
+
+        :return: the scheme's palette, or `None` when the block names none.
+        :raises ValueError: when the file cannot be read, or holds no scheme.
+        """
+        scheme = self.options.get("screenshot-palette")
+        if scheme is None:
+            return None
+        relative, absolute = self.env.relfn2path(scheme, self.env.docname)
+        self.env.note_dependency(relative)
+        try:
+            return read_palette(Path(absolute))
+        except (OSError, ValueError) as exc:
+            raise ValueError(f"click:run: :screenshot-palette: {exc}") from exc
+
+    @cached_property
+    def screenshot_palette(self) -> TerminalPalette | None:
+        """Colors a still capture resolves against, beyond what the chrome names.
+
+        A capture of a terminal, which is every run, takes the
+        {attr}`screenshot_scheme`, and `None` when the block names none: its
+        colors are then the terminal's own, and the chrome already answers for
+        them. A capture of *code* takes them from its syntax style instead,
+        background included, so the picture looks like that style does in an
+        editor.
+
+        :raises ValueError: when a block picturing its code names a scheme, as
+            its colors come from `:screenshot-syntax-style:`, like the `snippet`
+            command's do.
         """
         if not self.screenshots_source:
-            return None
+            return self.screenshot_scheme
+        if "screenshot-palette" in self.options:
+            raise ValueError(
+                "click:source: :screenshot-palette: draws a terminal, and this "
+                "capture pictures code: name its :screenshot-syntax-style: instead."
+            )
         return style_palette(
             self.screenshot_syntax_style,
             self.screenshot_background,
@@ -904,7 +941,9 @@ class ClickDirective(ContentOffsetMixin):
         `:screenshot-opacity:` how solid the window's body is,
         `:screenshot-title:` the caption drawn in the window's own chrome, and
         `:screenshot-watermark:` a credit line for the image's corner, which no
-        capture carries here unless asked for.
+        capture carries here unless asked for. `:screenshot-font:` names the font
+        families the text is set in, see
+        {func}`~click_extra.capture.presets.parse_font_stack`.
         `:screenshot-line-numbers:` is a flag, numbering every line the block
         rendered, its prompt first. `:screenshot-cursor:` draws a terminal
         cursor, in the shape it names or in the preset's own, and
@@ -944,6 +983,8 @@ class ClickDirective(ContentOffsetMixin):
             if f"screenshot-{name}" in self.options
         }
         frame["chrome"] = Chrome(**decoration)
+        if "screenshot-font" in self.options:
+            frame["font_stack"] = self.options["screenshot-font"]
         if "screenshot-cursor" in self.options:
             frame["cursor"] = Cursor(
                 shape=self.options["screenshot-cursor"],
@@ -1086,6 +1127,7 @@ class ClickDirective(ContentOffsetMixin):
             hold=self.screenshot_hold(hold),
             blank=self.options.get("screenshot-blank", blank),
             speed=self.options.get("screenshot-speed", 1.0),
+            palette=self.screenshot_scheme,
             **self.screenshot_frame,
         )
 

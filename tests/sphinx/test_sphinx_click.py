@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -50,7 +51,12 @@ from click_extra.sphinx.click import (
 from click_extra.sphinx.click_runner import ClickRunner, program_from_command_line
 from click_extra.spinner_presets import SPINNERS
 
-from ..test_screenshots import played_frames, poster_frame, svg_to_lines
+from ..test_screenshots import (
+    ORCHARD_SCHEME,
+    played_frames,
+    poster_frame,
+    svg_to_lines,
+)
 from .conftest import (
     HTML,
     DirectiveTestCase,
@@ -2409,6 +2415,96 @@ def test_click_run_screenshot_background_rejects_an_unknown_chrome():
     """A typo names the chromes it could have been, instead of drawing a default."""
     with pytest.raises(ValueError, match=r'"dark".+"light"'):
         _screenshot_background("beige")
+
+
+HARVEST_SOURCE = dedent("""
+    ```{click:source}
+    :hide-source:
+    from click_extra import command, echo
+
+    crates = ("apples", "pears")
+
+    @command
+    def harvest():
+        echo("apples")
+    ```
+
+""")
+"""A page defining a CLI, for a `click:run` block below it to picture."""
+
+
+@pytest.mark.parametrize(
+    "animation",
+    ((), (":screenshot-animate: crates", ":screenshot-interval: 0.5")),
+    ids=("still", "animated"),
+)
+def test_click_run_screenshot_takes_a_palette_and_a_font(sphinx_app_myst, animation):
+    """`:screenshot-palette:` and `:screenshot-font:` reach the picture.
+
+    The scheme is read relative to the page and noted as one of its
+    dependencies, so editing the scheme rebuilds the page.
+    """
+    srcdir = Path(sphinx_app_myst.app.srcdir)
+    (srcdir / "orchard.json").write_text(json.dumps(ORCHARD_SCHEME), encoding="UTF-8")
+    options = (
+        ":screenshot: orchard-screen",
+        ":screenshot-palette: orchard.json",
+        ":screenshot-font: JetBrains Mono",
+        *animation,
+    )
+    sphinx_app_myst.build_document(
+        HARVEST_SOURCE
+        + "```{click:run}\n"
+        + "\n".join(options)
+        + "\nresult = invoke(harvest)\nassert result.exit_code == 0\n```\n"
+    )
+
+    svg = (srcdir / "assets" / "orchard-screen.svg").read_text(encoding="UTF-8")
+    assert 'fill="#1e1e2e"' in svg
+    assert "font-family: 'JetBrains Mono', monospace;" in svg
+    dependencies = sphinx_app_myst.app.env.dependencies["index"]
+    assert "orchard.json" in {Path(dependency).name for dependency in dependencies}
+
+
+def test_click_run_screenshot_palette_reports_a_missing_scheme(sphinx_app_myst):
+    """A scheme file that is not there fails the build, naming the option."""
+    with pytest.raises(ValueError, match=r":screenshot-palette: .*orchard\.json"):
+        sphinx_app_myst.build_document(
+            HARVEST_SOURCE
+            + dedent("""
+                ```{click:run}
+                :screenshot: orchard-screen
+                :screenshot-palette: orchard.json
+                result = invoke(harvest)
+                ```
+            """)
+        )
+
+
+def test_click_source_screenshot_refuses_a_palette(sphinx_app_myst):
+    """A capture of code takes its colors from its syntax style, as `snippet` does."""
+    with pytest.raises(ValueError, match="screenshot-syntax-style"):
+        sphinx_app_myst.build_document(
+            dedent("""
+                ```{click:source}
+                :screenshot: orchard-source
+                :screenshot-palette: orchard.json
+                from click_extra import command
+
+                @command
+                def harvest():
+                    pass
+                ```
+            """)
+        )
+
+
+def test_click_run_screenshot_font_reads_as_the_commands_do():
+    """`:screenshot-font:` shares the parser of `--font`, refusals included."""
+    parse = ClickDirective.option_spec["screenshot-font"]
+    assert parse("JetBrains Mono, Menlo") == "'JetBrains Mono', Menlo, monospace"
+    with pytest.raises(ValueError):
+        parse("Menlo; }")
 
 
 def test_click_run_mirror_region_round_trips():
