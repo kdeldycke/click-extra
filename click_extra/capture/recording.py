@@ -300,6 +300,29 @@ class ScreenRecorder(io.TextIOBase):
             self._samples.append((self._redraw, display))
         self._redraw = None
 
+    def _idle(self, now: float) -> None:
+        """Note the screen a finished redraw left, the stream having gone quiet.
+
+        {meth}`_receive` notes it when the next read arrives, which a command
+        drawing one screen and then waiting for a key never sends. Noting it on
+        a quiet poll changes nothing about its timing, which stays that of its
+        last read.
+
+        :param now: when the stream was found quiet.
+        """
+        if self._redraw is not None and now - self._redraw >= REDRAW_GAP:
+            self._settle()
+
+    def _opened_at(self) -> float | None:
+        """When the first screen {meth}`frames` keeps was drawn.
+
+        :return: that time, or `None` while no such screen was noted.
+        """
+        for at, display in self._samples:
+            if display.strip() and display != self._preface_display:
+                return at
+        return None
+
     def frames(self, *, end: float | None = None) -> tuple[Frame, ...]:
         """Coalesce what was recorded into the frames the screen held.
 
@@ -417,6 +440,7 @@ def _record_process(
     duration: float | None = None,
     clock: Callable[[], float] = time.monotonic,
     preface: str = "",
+    end: float | None = None,
 ) -> tuple[tuple[Frame, ...], int, bool]:
     """{func}`record_command`, reporting how the command ended beside the frames.
 
@@ -427,6 +451,9 @@ def _record_process(
 
     :param preface: what stands on the screen before the command starts, like
         the shell prompt it was typed at. Empty draws nothing.
+    :param end: seconds after the first screen to stop the command at, on the
+        clock of {func}`end_at`. `None` leaves the stop to `duration` or to the
+        command.
     :return: the frames, the command's exit code, and whether the alternate
         screen was still up when the recording ended.
     """
@@ -487,10 +514,19 @@ def _record_process(
     _track(process)
     try:
         while True:
-            if duration is not None and clock() - started >= duration:
+            now = clock()
+            if duration is not None and now - started >= duration:
                 break
+            if end is not None:
+                opened = recorder._opened_at()
+                # One quiet gap past the end: a redraw still under way then has
+                # a read after the end, so the cut drops it instead of keeping
+                # a half-drawn screen.
+                if opened is not None and now - opened >= end + REDRAW_GAP:
+                    break
             readable, _, _ = select.select([parent], [], [], READ_POLL)
             if not readable:
+                recorder._idle(clock())
                 if process.poll() is not None:
                     break
                 continue
@@ -548,6 +584,71 @@ def quantize(
         Frame(frame.text, round(max(round(frame.duration / quantum), 1) * quantum, 9))
         for frame in frames
     )
+
+
+def start_at(frames: Sequence[Frame], start: float) -> tuple[Frame, ...]:
+    """Drop what a recording showed before `start` seconds into it.
+
+    The animation then opens on the screen that stood at that moment, as a
+    player told where to start does: mpv's `--start` and the `startAt` option of
+    [asciinema's player](https://docs.asciinema.org/manual/player/options/#startat)
+    name the same move. It cuts the seconds a command spends warming up, like
+    a profiler's tables filling in from nothing.
+
+    The time counts from the first frame, which is where the animation starts
+    too, and not from the moment the command was launched. The frame on screen
+    at `start` keeps what remains of its duration.
+
+    :param frames: what was recorded.
+    :param start: seconds to drop. Zero keeps every frame.
+    :return: the frames from `start` on.
+    :raises ValueError: when `start` is negative, or when it reaches past the
+        last frame, which would leave nothing to draw.
+    """
+    if start < 0:
+        raise ValueError(f"{start} is not a start time, which is zero or more.")
+    if not start:
+        return tuple(frames)
+    elapsed = 0.0
+    for index, frame in enumerate(frames):
+        if elapsed + frame.duration > start:
+            return (
+                Frame(frame.text, elapsed + frame.duration - start),
+                *frames[index + 1 :],
+            )
+        elapsed += frame.duration
+    raise ValueError(
+        f"Starting {start:g} seconds in drops the whole recording, which lasted "
+        f"{elapsed:.2f} seconds."
+    )
+
+
+def end_at(frames: Sequence[Frame], end: float) -> tuple[Frame, ...]:
+    """Drop what a recording showed after `end` seconds into it.
+
+    The mirror of {func}`start_at`, on the same clock: mpv pairs `--start`
+    with an `--end` that stops at a time counted from the beginning, not from
+    the start. `start_at(end_at(frames, 10), 6)` therefore keeps the four
+    seconds between 6 and 10.
+
+    The frame on screen at `end` keeps the part of its duration before it. A
+    recording ending sooner is kept whole.
+
+    :param frames: what was recorded.
+    :param end: seconds after the first frame to stop at.
+    :return: the frames up to `end`.
+    :raises ValueError: when `end` is not positive.
+    """
+    if end <= 0:
+        raise ValueError(f"{end} is not an end time, which is positive.")
+    kept = []
+    elapsed = 0.0
+    for frame in frames:
+        if elapsed >= end:
+            break
+        kept.append(Frame(frame.text, min(frame.duration, end - elapsed)))
+        elapsed += frame.duration
+    return tuple(kept)
 
 
 def ansi_prefix(text: str, count: int) -> str:
@@ -640,6 +741,8 @@ def record_and_render(
     background: TerminalBackground = TerminalBackground.DARK,
     prompt: str | None = None,
     duration: float | None = None,
+    start: float = 0.0,
+    end: float | None = None,
     quantum: float = DEFAULT_QUANTUM,
     hold: THold = DEFAULT_RECORDING_HOLD,
     blank: float = DEFAULT_RECORDING_BLANK,
@@ -659,7 +762,8 @@ def record_and_render(
 ) -> tuple[str, int]:
     """Record a command under a pseudo-terminal and render it as an animated SVG.
 
-    Chains {func}`record_command`, {func}`quantize` and
+    Chains {func}`record_command`, {func}`end_at`, {func}`start_at`,
+    {func}`quantize` and
     {func}`~click_extra.capture.screenshot.render`, the way
     {func}`~click_extra.capture.screenshot.capture` chains the still pipeline. The
     invocation stands on the screen as a shell prompt before the command starts,
@@ -679,6 +783,11 @@ def record_and_render(
         run. An empty string draws no prompt at all.
     :param duration: seconds to record before stopping the command. `None`
         records until it exits on its own.
+    :param start: seconds of the recording to drop, counted from the first
+        screen the command drew, see {func}`start_at`. Zero keeps them all.
+    :param end: seconds after that first screen to stop the recording and the
+        command at, see {func}`end_at`. `None` records until `duration` runs
+        out or the command exits.
     :param quantum: grid the frame durations are rounded onto, see
         {func}`quantize`.
     :param hold: extra seconds the last frame stays up, or
@@ -718,9 +827,16 @@ def record_and_render(
     :return: the rendered SVG document, and the command's exit code.
     :raises NotImplementedError: on a platform with no pseudo-terminal.
     :raises OSError: when the command cannot start, see {func}`record_command`.
-    :raises ValueError: when the command drew nothing to record, or when a
-        stated `typing` or `submit` is not positive.
+    :raises ValueError: when the command drew nothing to record, when `end`
+        is not after `start`, when `start` reaches past the last screen, or
+        when a stated `typing` or `submit` is not positive.
     """
+    # Refused before anything runs: a recording this would cut to nothing is
+    # not worth waiting for.
+    if end is not None and end <= start:
+        raise ValueError(
+            f"Ending {end:g} seconds in leaves nothing after a start at {start:g}."
+        )
     invocation = prompt_line(args, prompt=prompt, background=background, preset=preset)
     frames, returncode, alternate = _record_process(
         args,
@@ -729,10 +845,13 @@ def record_and_render(
         background=background,
         duration=duration,
         preface=invocation,
+        end=end,
     )
-    timed = quantize(frames, quantum)
-    if not timed:
+    if not frames:
         raise ValueError("Recorded nothing: the command drew no screen.")
+    if end is not None:
+        frames = end_at(frames, end)
+    timed = quantize(start_at(frames, start), quantum)
 
     texts = tuple(frame.text for frame in timed)
     if closing_prompt and not alternate:

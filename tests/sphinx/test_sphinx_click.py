@@ -1967,6 +1967,117 @@ def test_click_run_screenshot_hold_overrides_the_pause(sphinx_app_myst):
     assert "period=1s" in asset.read_text(encoding="UTF-8")
 
 
+STEEPING_SOURCE = """
+    ```{click:source}
+    :hide-source:
+    from click_extra.capture.recording import Frame
+
+    steeping = [Frame("filling", 0.2), Frame("heating", 0.2), Frame("boiled", 0.2)]
+    ```
+"""
+"""A stand-in recording of three screens, for a block to start into."""
+
+
+@pytest.mark.parametrize(
+    ("options", "kept", "dropped", "period"),
+    (
+        # A tenth of a second left of the cut screen, the whole last one, then
+        # the two second hold and the closing blank beat.
+        pytest.param(
+            ":screenshot-start: 0.3", ("heating", "boiled"), ("filling",), "2.9s"
+        ),
+        # The whole first screen and a tenth of the second, then the same.
+        pytest.param(
+            ":screenshot-end: 0.3", ("filling", "heating"), ("boiled",), "2.9s"
+        ),
+        # A tenth, the whole middle screen and a tenth, then the same.
+        pytest.param(
+            ":screenshot-start: 0.1\n:screenshot-end: 0.5",
+            ("filling", "heating", "boiled"),
+            (),
+            "3s",
+        ),
+    ),
+    ids=("start", "end", "both"),
+)
+def test_click_run_screenshot_keeps_a_slice_of_a_recording(
+    sphinx_app_myst, options, kept, dropped, period
+):
+    """`:screenshot-start:` and `:screenshot-end:` keep the screens between them."""
+    asset = Path(sphinx_app_myst.app.srcdir) / "assets" / "steeping-screen.svg"
+    sphinx_app_myst.build_document(
+        dedent(STEEPING_SOURCE)
+        + "\n```{click:run}\n:screenshot: steeping-screen\n"
+        + ":screenshot-record: steeping\n"
+        + options
+        + "\n:hide-results:\nassert steeping\n```\n"
+    )
+
+    svg = asset.read_text(encoding="UTF-8")
+    for text in kept:
+        assert text in svg
+    for text in dropped:
+        assert text not in svg
+    assert f"period={period}" in svg
+
+
+@pytest.mark.parametrize(
+    ("options", "message"),
+    (
+        pytest.param(
+            ":screenshot-record: steeping\n:screenshot-start: 5",
+            "drops the whole recording",
+            id="past-the-end",
+        ),
+        pytest.param(
+            ":screenshot-animate: names\n:screenshot-interval: 0.2\n"
+            ":screenshot-start: 0.1",
+            "no recorded Frame",
+            id="declared-frames",
+        ),
+        pytest.param(
+            ":screenshot-record: steeping\n:screenshot-start: 0.4\n"
+            ":screenshot-end: 0.3",
+            "is not after",
+            id="end-before-start",
+        ),
+        pytest.param(
+            ":screenshot-animate: names\n:screenshot-interval: 0.2\n"
+            ":screenshot-end: 0.3",
+            "no recorded Frame",
+            id="declared-frames-end",
+        ),
+    ),
+)
+def test_click_run_screenshot_start_refuses_what_it_cannot_cut(
+    sphinx_app_myst, options, message
+):
+    """A start past the recording, or into frames nobody recorded, fails the build."""
+    content = (
+        dedent(STEEPING_SOURCE)
+        + "\n```{click:source}\n:hide-source:\nnames = ['kettle', 'teapot']\n```\n"
+        + "\n```{click:run}\n:screenshot: refused-screen\n"
+        + options
+        + "\n:hide-results:\nassert steeping\n```\n"
+    )
+    with pytest.raises(ValueError, match=message):
+        sphinx_app_myst.build_document(content)
+
+
+@pytest.mark.parametrize(
+    ("argument", "expected"),
+    (("0", 0.0), ("2.5", 2.5), ("-1", None), ("soon", None)),
+)
+def test_click_run_screenshot_start_takes_zero_or_more(argument, expected):
+    """A start time is zero or more seconds, and anything else fails the build."""
+    parse = ClickDirective.option_spec["screenshot-start"]
+    if expected is None:
+        with pytest.raises(ValueError):
+            parse(argument)
+    else:
+        assert parse(argument) == expected
+
+
 def test_click_run_screenshot_blank_closes_the_cycle(sphinx_app_myst):
     """A recording ends on an empty beat, so the loop's turnover is visible.
 
@@ -2382,6 +2493,7 @@ def test_click_run_screenshot_opacity_rejects_what_is_not_one(argument):
 @pytest.mark.parametrize(
     "option",
     (
+        "screenshot-end",
         "screenshot-interval",
         "screenshot-quantum",
         "screenshot-speed",

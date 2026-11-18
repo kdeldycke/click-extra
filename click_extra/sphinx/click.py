@@ -71,7 +71,9 @@ from ..capture.recording import (
     DEFAULT_RECORDING_HOLD,
     DEFAULT_SUBMIT,
     Frame,
+    end_at,
     quantize,
+    start_at,
     type_line,
 )
 from ..capture.screenshot import (
@@ -267,6 +269,14 @@ def _positive_number(argument: str) -> float:
     return number
 
 
+def _non_negative_number(argument: str) -> float:
+    """Read an option that takes zero or a number above it, like a start time."""
+    number = float(argument)
+    if number < 0:
+        raise ValueError(f"{argument} is not zero or a positive number.")
+    return number
+
+
 def _screenshot_preset(argument: str) -> TerminalPreset:
     """Read the `:screenshot-preset:` option into the terminal it names."""
     return PRESETS[directives.choice(argument, tuple(sorted(PRESETS)))]
@@ -344,6 +354,7 @@ class ClickDirective(ContentOffsetMixin):
         "screenshot-columns": parse_columns,
         "screenshot-cursor": _screenshot_cursor,
         "screenshot-emphasize-lines": directives.unchanged_required,
+        "screenshot-end": _positive_number,
         "screenshot-font": parse_font_stack,
         "screenshot-hold": parse_hold,
         "screenshot-interval": _positive_number,
@@ -359,6 +370,7 @@ class ClickDirective(ContentOffsetMixin):
         "screenshot-record": directives.unchanged_required,
         "screenshot-shadow": directives.unchanged_required,
         "screenshot-speed": _positive_number,
+        "screenshot-start": _non_negative_number,
         "screenshot-submit": _positive_number,
         "screenshot-syntax-style": directives.unchanged_required,
         "screenshot-title": directives.unchanged_required,
@@ -668,7 +680,10 @@ class ClickDirective(ContentOffsetMixin):
         - a sequence of {class}`~click_extra.capture.recording.Frame`, as a recording
           hands back, each carrying the screen it held and for how long. Those
           durations are wall-clock, so they are rounded onto a grid before they
-          reach the picture, see `:screenshot-quantum:`;
+          reach the picture, see `:screenshot-quantum:`. `:screenshot-start:`
+          and `:screenshot-end:` first keep the slice between two times of the
+          recording, see {func}`~click_extra.capture.recording.start_at` and
+          {func}`~click_extra.capture.recording.end_at`;
         - any other sequence of strings, one captured text per frame, whose
           `:screenshot-interval:` says how long each is shown.
 
@@ -692,12 +707,15 @@ class ClickDirective(ContentOffsetMixin):
             draws a still.
         :raises RuntimeError: when the expression cannot be evaluated.
         :raises TypeError: when it yields neither a spinner nor strings.
-        :raises ValueError: when a bare sequence of frames states no interval.
+        :raises ValueError: when a bare sequence of frames states no interval,
+            or when `:screenshot-start:` or `:screenshot-end:` cut anything but
+            a recording, or cut all of it.
         """
         interval = self.options.get("screenshot-interval")
         subject = self.evaluate(expression, f"click:run: {option}")
 
         if isinstance(subject, Spinner):
+            self.refuse_cuts(expression)
             return (subject.frame_lines(), interval or subject.interval)
         if isinstance(subject, str) or not isinstance(subject, Sequence):
             raise TypeError(
@@ -711,6 +729,19 @@ class ClickDirective(ContentOffsetMixin):
                 f"click:run: {option}: {expression!r} yielded no frame to draw.",
             )
         if all(isinstance(frame, Frame) for frame in recorded):
+            start = self.options.get("screenshot-start", 0.0)
+            end = self.options.get("screenshot-end")
+            if end is not None:
+                if end <= start:
+                    raise ValueError(
+                        f"click:run: :screenshot-end: {end:g} is not after "
+                        f":screenshot-start: {start:g}."
+                    )
+                recorded = end_at(recorded, end)
+            try:
+                recorded = start_at(recorded, start)
+            except ValueError as exc:
+                raise ValueError(f"click:run: :screenshot-start: {exc}") from exc
             # Rounded here rather than left to the page, so forgetting to do it
             # cannot be what dirties the working tree on the next build.
             timed = quantize(
@@ -731,7 +762,26 @@ class ClickDirective(ContentOffsetMixin):
                 f"click:run: {option}: needs a :screenshot-interval: "
                 "when it does not name a spinner or a recording carrying one.",
             )
+        self.refuse_cuts(expression)
         return (recorded, interval)
+
+    def refuse_cuts(self, expression: str) -> None:
+        """Fail a block cutting a slice out of frames nobody recorded.
+
+        Only a recording has seconds to drop: a spinner and a declared sequence
+        cycle in place, so no moment of theirs is worth starting or ending on.
+        Saying so beats drawing the animation as if the option were not there.
+
+        :param expression: the expression the frames came from.
+        :raises ValueError: when the block states `:screenshot-start:` or
+            `:screenshot-end:`.
+        """
+        for name in ("screenshot-start", "screenshot-end"):
+            if name in self.options:
+                raise ValueError(
+                    f"click:run: :{name}: cuts a slice out of a recording, and "
+                    f"{expression!r} yielded no recorded Frame."
+                )
 
     @cached_property
     def screenshot_animation(

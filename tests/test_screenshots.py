@@ -38,6 +38,7 @@ import plistlib
 import re
 import shutil
 import sys
+import time
 import unicodedata
 import warnings
 from dataclasses import fields, replace
@@ -2092,6 +2093,99 @@ def test_screenshot_bare_cursor_takes_the_preset_shape(invoke, tmp_path):
 
 
 @skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_screenshot_record_starts_where_asked(invoke, tmp_path):
+    """`--start` drops the screens a recording opened on.
+
+    Each screen lasts a second, so the cut half a second into the second one
+    holds however late the first is drawn: it counts from that first screen.
+    """
+    target = tmp_path / "quince.svg"
+    program = (
+        "import time; print('apricot', end='', flush=True); time.sleep(1); "
+        "print('\\rquince ', end='', flush=True); time.sleep(1)"
+    )
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--record",
+            "--columns",
+            "40",
+            "--start",
+            "1.5",
+            "--prompt",
+            "",
+            "--output",
+            str(target),
+            "--",
+            sys.executable,
+            "-c",
+            program,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    svg = target.read_text(encoding="UTF-8")
+    assert "apricot" not in svg
+    assert "quince" in svg
+
+
+def test_screenshot_record_refuses_an_end_before_the_start(invoke, tmp_path):
+    """A slice that holds nothing is a usage error, before anything runs."""
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--record",
+            "--start",
+            "3",
+            "--end",
+            "2",
+            "--output",
+            str(tmp_path / "shot.svg"),
+            "--",
+            "echo",
+        ],
+    )
+    assert result.exit_code == 2
+    assert "--end must be later than --start." in result.stderr
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
+def test_screenshot_record_ends_a_command_that_waits(invoke, tmp_path):
+    """`--end` stops a command that draws one screen, then waits for a key.
+
+    The command would sleep for a minute. Its one screen arrives in a single
+    redraw with nothing after it, so only a recorder noting that screen while
+    the stream is quiet knows when the end comes.
+    """
+    target = tmp_path / "waiting.svg"
+    started = time.monotonic()
+    result = invoke(
+        screenshot_cmd,
+        [
+            "--record",
+            "--columns",
+            "40",
+            "--end",
+            "1",
+            "--prompt",
+            "",
+            "--output",
+            str(target),
+            "--",
+            sys.executable,
+            "-c",
+            "import time; print('apricot', flush=True); time.sleep(60)",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert time.monotonic() - started < 30
+    svg = target.read_text(encoding="UTF-8")
+    assert "apricot" in svg
+    # The one screen for exactly a second, then the two second hold and the
+    # closing blank beat.
+    assert "period=3.6s" in svg
+
+
+@skip_windows(reason="A pseudo-terminal needs termios, which Windows lacks")
 def test_screenshot_record_types_its_prompt(invoke, tmp_path):
     """`--typing` opens the recording on the command line being typed."""
     counts = {}
@@ -3526,6 +3620,10 @@ def test_capture_environment(columns, pinned):
         pytest.param(
             ["--speed", "2"], "--speed requires --record", id="speed-needs-record"
         ),
+        pytest.param(
+            ["--start", "2"], "--start requires --record", id="start-needs-record"
+        ),
+        pytest.param(["--end", "2"], "--end requires --record", id="end-needs-record"),
     ),
 )
 def test_screenshot_pacing_needs_record(invoke, tmp_path, arguments, message):

@@ -515,8 +515,9 @@ Examples:
     type=FloatRange(min=0, min_open=True),
     metavar="SECONDS",
     default=None,
-    help="Seconds before the command is killed. Waits forever by default. "
-    "With --record, this is also where the recording stops.",
+    help="Seconds before the command is killed, counted from its launch. Waits "
+    "forever by default. With --record, this also ends the recording, which "
+    "--end does on the clock of --start instead.",
 )
 @option(
     "--record",
@@ -531,6 +532,24 @@ Examples:
     default=None,
     help=f"With --record, the height of the terminal the command runs in, in "
     f"characters. Defaults to {DEFAULT_ROWS}.",
+)
+@option(
+    "--start",
+    type=FloatRange(min=0),
+    metavar="SECONDS",
+    default=None,
+    help="With --record, seconds of the recording to drop, counted from the "
+    "first screen the command draws: the animation opens on the screen it "
+    "showed then, like a player told where to start. Defaults to 0.",
+)
+@option(
+    "--end",
+    type=FloatRange(min=0, min_open=True),
+    metavar="SECONDS",
+    default=None,
+    help="With --record, where the recording stops, in seconds after the first "
+    "screen the command draws, as --start counts them. The command is stopped "
+    "there too.",
 )
 @option(
     "--hold",
@@ -626,6 +645,8 @@ def screenshot_cmd(
     timeout: float | None,
     record: bool,
     rows: int | None,
+    start: float | None,
+    end: float | None,
     hold: THold | None,
     blank: float | None,
     cursor: str | None,
@@ -698,6 +719,8 @@ def screenshot_cmd(
     else:
         for name, given in (
             ("--rows", rows is not None),
+            ("--start", start is not None),
+            ("--end", end is not None),
             ("--hold", hold is not None),
             ("--blank", blank is not None),
             ("--speed", speed is not None),
@@ -710,6 +733,8 @@ def screenshot_cmd(
         raise click.UsageError("--blink requires --cursor.")
     if submit is not None and typing is None:
         raise click.UsageError("--submit requires --typing.")
+    if start is not None and end is not None and end <= start:
+        raise click.UsageError("--end must be later than --start.")
 
     drawn_cursor = None
     if cursor is not None:
@@ -753,6 +778,8 @@ def screenshot_cmd(
                 background=background,
                 prompt=prompt,
                 duration=timeout,
+                start=0.0 if start is None else start,
+                end=end,
                 hold=DEFAULT_RECORDING_HOLD if hold is None else hold,
                 blank=DEFAULT_RECORDING_BLANK if blank is None else blank,
                 speed=1.0 if speed is None else speed,

@@ -40,9 +40,11 @@ from click_extra.capture.recording import (
     Frame,
     ScreenRecorder,
     ansi_prefix,
+    end_at,
     quantize,
     record_and_render,
     record_command,
+    start_at,
     type_line,
 )
 from click_extra.capture.svg import (
@@ -561,6 +563,108 @@ def test_quantize_keeps_the_frames_it_times():
 def test_quantize_rejects_a_grid_going_nowhere():
     with pytest.raises(ValueError, match="positive"):
         quantize((Frame("fig", 0.08),), quantum=0)
+
+
+@pytest.mark.parametrize(
+    ("start", "expected"),
+    (
+        pytest.param(0, [("apricot", 1.0), ("fig", 2.0)], id="zero-keeps-all"),
+        pytest.param(0.25, [("apricot", 0.75), ("fig", 2.0)], id="inside-the-first"),
+        pytest.param(1.0, [("fig", 2.0)], id="on-a-boundary"),
+        pytest.param(2.5, [("fig", 0.5)], id="inside-the-last"),
+    ),
+)
+def test_start_at_opens_on_the_screen_standing_then(start, expected):
+    """The frame on screen at `start` stays, with what remains of its time."""
+    frames = (Frame("apricot", 1.0), Frame("fig", 2.0))
+    cut = start_at(frames, start)
+    assert [(frame.text, frame.duration) for frame in cut] == expected
+
+
+@pytest.mark.parametrize(
+    ("start", "message"),
+    (
+        pytest.param(-1, "zero or more", id="negative"),
+        pytest.param(3, "drops the whole recording", id="at-the-end"),
+        pytest.param(9, "drops the whole recording", id="past-the-end"),
+    ),
+)
+def test_start_at_refuses_a_start_leaving_nothing(start, message):
+    with pytest.raises(ValueError, match=message):
+        start_at((Frame("apricot", 1.0), Frame("fig", 2.0)), start)
+
+
+@pytest.mark.parametrize(
+    ("end", "expected"),
+    (
+        pytest.param(0.25, [("apricot", 0.25)], id="inside-the-first"),
+        pytest.param(1.0, [("apricot", 1.0)], id="on-a-boundary"),
+        pytest.param(2.5, [("apricot", 1.0), ("fig", 1.5)], id="inside-the-last"),
+        pytest.param(9, [("apricot", 1.0), ("fig", 2.0)], id="past-the-end"),
+    ),
+)
+def test_end_at_stops_on_the_screen_standing_then(end, expected):
+    """The frame on screen at `end` keeps what came before it, the rest goes."""
+    frames = (Frame("apricot", 1.0), Frame("fig", 2.0))
+    cut = end_at(frames, end)
+    assert [(frame.text, frame.duration) for frame in cut] == expected
+
+
+@pytest.mark.parametrize("end", (0, -1))
+def test_end_at_refuses_an_end_before_anything(end):
+    with pytest.raises(ValueError, match="positive"):
+        end_at((Frame("apricot", 1.0),), end)
+
+
+def test_record_and_render_ends_where_asked(monkeypatch):
+    """`start` and `end` keep the slice between them, on one clock."""
+    screens = (Frame("apricot", 1.0), Frame("quince", 1.0), Frame("plum", 1.0))
+    monkeypatch.setattr(
+        "click_extra.capture.recording._record_process",
+        lambda *args, **kwargs: (screens, 0, False),
+    )
+    svg, _returncode = record_and_render(
+        ("ripen",), columns=40, prompt="", unique_id="orchard", start=0.5, end=1.5
+    )
+    assert "apricot" in svg
+    assert "quince" in svg
+    assert "plum" not in svg
+    # Half a second of each screen around the boundary, then the two second
+    # hold a one-line screen gets and the closing blank beat.
+    assert "period=3.6s" in svg
+
+
+def test_record_and_render_refuses_an_end_before_the_start(monkeypatch):
+    """A slice that holds nothing is refused before the command runs."""
+
+    def never(*args, **kwargs):
+        raise AssertionError("the command ran")
+
+    monkeypatch.setattr("click_extra.capture.recording._record_process", never)
+    with pytest.raises(ValueError, match="leaves nothing"):
+        record_and_render(("ripen",), columns=40, start=2, end=2)
+
+
+def test_record_and_render_starts_where_asked(monkeypatch):
+    """`start` drops the screens shown before it, and keeps the one standing then.
+
+    The recording is stated rather than timed, so the cut lands inside the
+    second screen whatever the machine's load.
+    """
+    screens = (Frame("apricot", 1.0), Frame("quince", 1.0), Frame("plum", 1.0))
+    monkeypatch.setattr(
+        "click_extra.capture.recording._record_process",
+        lambda *args, **kwargs: (screens, 0, False),
+    )
+    svg, _returncode = record_and_render(
+        ("ripen",), columns=40, prompt="", unique_id="orchard", start=1.5
+    )
+    assert "apricot" not in svg
+    assert "quince" in svg
+    assert "plum" in svg
+    # Half a second left of the cut screen, the whole last one, then the two
+    # second hold a one-line screen gets and the closing blank beat.
+    assert "period=4.1s" in svg
 
 
 def test_quantized_recordings_of_one_command_render_the_same_bytes():

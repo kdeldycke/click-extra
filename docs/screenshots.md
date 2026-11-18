@@ -994,13 +994,15 @@ Unix only, for the reasons {func}`~click_extra.capture.recording.record_command`
 
 ### Full-screen programs
 
-A program drawing on the whole terminal records the same way, like a dashboard or a system monitor. State the size it lays itself out for, and stop the recording with `--timeout` when the program waits for a key to quit:
+A program drawing on the whole terminal records the same way, like a dashboard or a system monitor. State the size it lays itself out for, and stop the recording with `--end` when the program waits for a key to quit:
 
 ```shell-session
-$ click-extra screenshot --record --columns 100 --rows 50 --timeout 12 --hold 2 --output dashboard.svg -- orchard --dashboard
+$ click-extra screenshot --record --columns 100 --rows 50 --end 12 --hold 2 --output dashboard.svg -- orchard --dashboard
 ```
 
 Each frame is the whole screen, at the height `--rows` states. The prompt the command was typed at stays underneath, covered by the program's alternate screen as on a terminal. `--closing-prompt` draws nothing over a program stopped while its screen is still up.
+
+`--start` drops the first seconds of a recording, which a program often spends filling its screen, like a profiler gathering its first samples. `--end` stops the recording, and the program, at a time on the same clock. Both count from the first screen the program draws, so `--start 6 --end 10` keeps the four seconds between them. `--timeout` counts from the launch instead, and still stops a program that never draws a first screen. A `:screenshot-record:` block takes `:screenshot-start:` and `:screenshot-end:`, see {func}`~click_extra.capture.recording.start_at` and {func}`~click_extra.capture.recording.end_at`.
 
 Such a program writes the sequences its terminal's terminfo entry lists, so the recording names one to it: `TERM` is {data}`~click_extra.capture.recording.RECORDING_TERM`, whatever terminal the recording runs from. {class}`~click_extra.capture.terminal.TerminalScreen` reads that vocabulary, cursor addressing, scroll regions and line drawing included. A screen is noted once the program has been quiet for {data}`~click_extra.capture.recording.REDRAW_GAP`, so a redraw arriving in several reads never shows half-drawn.
 
