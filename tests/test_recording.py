@@ -943,20 +943,15 @@ def test_a_closing_prompt_stays_off_a_full_screen_program(monkeypatch):
 TACHYON_CAST = Path(__file__).with_name("tachyon-live.cast")
 """Tachyon's live mode as a terminal received it, see `tests/tachyon_cast.py`."""
 
-TACHYON_CAPTURE = Path(__file__).with_name("tachyon-live.svg")
-"""The animated capture {data}`TACHYON_CAST` replays into."""
 
-
-def test_tachyon_live_mode_replays_into_the_committed_capture(monkeypatch):
-    """Python's live profiler records into the capture committed beside it.
+def test_tachyon_live_mode_replays_screen_by_screen(monkeypatch):
+    """Python's live profiler records into an animation of every screen it drew.
 
     Closes the loop on the screenshot the Python documentation shows as a GIF:
     the curses interface of `python -m profiling.sampling run --live`, as
-    `ncurses` wrote it at an `xterm-256color` terminal, is read back through the
-    recorder with the timing each chunk arrived with, and rendered the way the
-    `screenshot --record` command renders it. To rewrite the capture after a
-    change to the recorder or the renderer, delete it, rerun this test, and
-    review the new one in a browser.
+    `ncurses` wrote it at an `xterm-256color` terminal of the same size, is read
+    back through the recorder with the timing each chunk arrived with, and
+    rendered the way the `screenshot --record` command renders it.
     """
     header, *events = (
         json.loads(line)
@@ -989,13 +984,8 @@ def test_tachyon_live_mode_replays_into_the_committed_capture(monkeypatch):
     )
     # Played back, every moment shows the screen that was up, then the blank.
     played = [svg_to_lines(still) for still in played_frames(svg, "tachyon-live")]
-    expected = [svg_to_lines(render_svg(frame.text, columns=100)) for frame in frames]
+    expected = [
+        svg_to_lines(render_svg(frame.text, columns=header["width"]))
+        for frame in frames
+    ]
     assert played == [*expected, []]
-    if not TACHYON_CAPTURE.exists():
-        TACHYON_CAPTURE.write_text(svg, encoding="UTF-8")
-        pytest.fail(f"Wrote {TACHYON_CAPTURE.name}: review it, then commit it.")
-    if svg != TACHYON_CAPTURE.read_text(encoding="UTF-8"):
-        pytest.fail(
-            f"{TACHYON_CAPTURE.name} no longer matches its recording: delete it, "
-            "rerun this test and review the rewrite."
-        )

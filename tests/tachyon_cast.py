@@ -59,11 +59,18 @@ from pathlib import Path
 CAST = Path(__file__).with_name("tachyon-live.cast")
 """Where the recording is written."""
 
-COLUMNS = 100
-"""Width of the terminal, that of the screenshots in the Python documentation."""
+COLUMNS = 120
+"""Width of the terminal, that of the screenshots in the Python documentation.
 
-ROWS = 50
-"""Height of the terminal."""
+Tachyon draws their second `%` column from 120 columns on, and their missing
+`cumtime` column only from 140.
+"""
+
+ROWS = 47
+"""Height of the terminal, that of the same screenshots.
+
+Their table shows 34 rows, and Tachyon gives it the height less 13.
+"""
 
 LIVE_SECONDS = 4.0
 """Seconds of live profiling, the length of the documentation's own loop."""
@@ -394,7 +401,7 @@ def record() -> None:
         "width": COLUMNS,
         "height": ROWS,
         "env": {"TERM": "xterm-256color"},
-        "title": "python -m profiling.sampling run --live --opcodes --sort tottime",
+        "title": "python -m profiling.sampling run --live --opcodes",
     }
     lines = [json.dumps(header, ensure_ascii=False)]
     lines.extend(json.dumps([at, "o", text], ensure_ascii=False) for at, text in events)
