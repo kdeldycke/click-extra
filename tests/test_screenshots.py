@@ -1898,7 +1898,8 @@ def test_read_palette_reads_an_iterm_scheme_as_its_twin(tmp_path):
         pytest.param("orchard.json", "[]", "holds no Windows Terminal", id="list"),
         # Changed through dict() rather than a `{**...}` display: Sphinx's
         # source parser fails on a dict unpacking another in a decorator, and
-        # drops every constant of this module from its API page.
+        # drops every constant of this module from its API page. See
+        # https://github.com/sphinx-doc/sphinx/issues/14860.
         pytest.param(
             "orchard.json",
             json.dumps(dict(ORCHARD_SCHEME, red="crimson")),
