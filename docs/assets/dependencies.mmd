@@ -15,12 +15,12 @@ flowchart LR
     mkdocs_get_deps(["`mkdocs-get-deps`"])
     colorama(["`colorama`"])
     markdown_it_py(["`markdown-it-py`"])
-    python_dateutil(["`python-dateutil`"])
     ghp_import(["`ghp-import`"])
     markdown(["`markdown`"])
     markupsafe(["`markupsafe`"])
     mdit_py_plugins(["`mdit-py-plugins`"])
     mergedeep(["`mergedeep`"])
+    python_dateutil(["`python-dateutil`"])
     pyyaml_env_tag(["`pyyaml-env-tag`"])
     typing_extensions(["`typing-extensions`"])
     alabaster(["`alabaster`"])
@@ -36,7 +36,6 @@ flowchart LR
     platformdirs(["`platformdirs`"])
     pluggy(["`pluggy`"])
     roman_numerals(["`roman-numerals`"])
-    six(["`six`"])
     snowballstemmer(["`snowballstemmer`"])
     sphinxcontrib_applehelp(["`sphinxcontrib-applehelp`"])
     sphinxcontrib_devhelp(["`sphinxcontrib-devhelp`"])
@@ -157,7 +156,6 @@ flowchart LR
     ghp_import --> python_dateutil
     mdit_py_plugins --> markdown_it_py
     pyyaml_env_tag --> pyyaml
-    python_dateutil --> six
     python_dateutil --> tzdata
     click_extra -.-> ext_carapace
     click_extra -.-> ext_hjson
@@ -211,7 +209,6 @@ flowchart LR
     click pyyaml_env_tag "https://pypi.org/project/pyyaml-env-tag/" _blank
     click requests "https://pypi.org/project/requests/" _blank
     click roman_numerals "https://pypi.org/project/roman-numerals/" _blank
-    click six "https://pypi.org/project/six/" _blank
     click snowballstemmer "https://pypi.org/project/snowballstemmer/" _blank
     click sphinx "https://pypi.org/project/sphinx/" _blank
     click sphinxcontrib_applehelp "https://pypi.org/project/sphinxcontrib-applehelp/" _blank
