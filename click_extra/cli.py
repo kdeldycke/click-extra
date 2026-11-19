@@ -40,6 +40,7 @@ from click import (
 from cloup import Color, dir_path, file_path
 
 from . import context
+from ._utils import REPOSITORY_URL
 from .ansi import nearest_256
 from .cli_wrapper import WrapperGroup, wrap as wrap_cmd
 from .color import is_a_tty
@@ -236,6 +237,9 @@ it. A Nuitka build sees no import of these modules, so `[tool.nuitka]` of
     # option instances, as default_params documents. See click_extra.logo.
     params=partial(default_params, screen=BRAND_SCREEN),
     version_fields={"prog_name": "Click Extra"},
+    # A crash of Click Extra's own code ends with a report for its issue form.
+    # `wrap` opts out, as the code it runs belongs to another project.
+    report_url=f"{REPOSITORY_URL}/issues/new?template=bug-report.yml",
     config_schema=ClickExtraConfig,
     schema_strict=False,
     epilog=DEMO_EPILOG,

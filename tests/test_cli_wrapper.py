@@ -26,6 +26,7 @@ from pathlib import Path
 import click
 import pytest
 
+from click_extra.bug_report import REPORT_START
 from click_extra.cli import demo
 from click_extra.cli_wrapper import (
     WrapperGroup,
@@ -466,6 +467,50 @@ def test_run_unresolvable_target(runner):
     result = runner.invoke(wrap, ["nonexistent_xyz_12345"])
     assert result.exit_code != 0
     assert "Cannot resolve" in result.output
+
+
+@pytest.mark.parametrize(
+    ("source", "wrap_args"),
+    [
+        pytest.param(
+            "import click\n"
+            "\n"
+            "@click.command()\n"
+            "def plums():\n"
+            '    """Count the plums."""\n'
+            '    raise ZeroDivisionError("no basket for the plums")\n'
+            "\n"
+            'if __name__ == "__main__":\n'
+            "    plums()\n",
+            (),
+            id="run",
+        ),
+        pytest.param(
+            'raise ZeroDivisionError("no basket for the plums")\n',
+            ("--params",),
+            id="load",
+        ),
+    ],
+)
+def test_wrapped_crash_gets_no_bug_report(runner, tmp_path, source, wrap_args):
+    """A crash of the wrapped CLI is a bug of that CLI: Click Extra reports none.
+
+    The `click-extra` CLI has a `report_url`, so its root would otherwise end the
+    run with a report for the issues of Click Extra.
+    """
+    script = tmp_path / "plums.py"
+    script.write_text(source, encoding="UTF-8")
+    # A report, if one came, is saved in the cache: keep it in the test directory.
+    cache = str(tmp_path / "cache")
+    result = runner.invoke(
+        demo,
+        ["wrap", *wrap_args, str(script)],
+        env={"XDG_CACHE_HOME": cache, "LOCALAPPDATA": cache},
+    )
+
+    assert result.exit_code == 1
+    assert isinstance(result.exception, ZeroDivisionError)
+    assert REPORT_START not in result.stderr
 
 
 @pytest.mark.parametrize("outer_package", ["sphinx", "click_extra", "", None])

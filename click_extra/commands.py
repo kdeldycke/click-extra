@@ -1091,7 +1091,9 @@ class Command(  # type: ignore[misc]
         {func}`~click_extra.bug_report.report_unexpected_error`. The innermost command
         catches it, as its context still holds the options of the run. Click's
         `main()` also ends a run on an end of input, like an abort, and on a
-        broken pipe, without a message: both pass through.
+        broken pipe, without a message: both pass through. So does any error of a
+        run that executes the code of another project, like the CLI that
+        `click-extra wrap` runs.
         """
         with _abort_notice(ctx):
             try:
@@ -1099,8 +1101,10 @@ class Command(  # type: ignore[misc]
             except (*_ABORT_EXCEPTIONS, click.ClickException, Exit):
                 raise
             except Exception as expt:
-                if (isinstance(expt, OSError) and expt.errno == errno.EPIPE) or (
-                    not getattr(ctx.find_root().command, "report_url", None)
+                if (
+                    (isinstance(expt, OSError) and expt.errno == errno.EPIPE)
+                    or not getattr(ctx.find_root().command, "report_url", None)
+                    or context.get(ctx, context._NO_BUG_REPORT)
                 ):
                     raise
                 # Deferred import: keeps click_extra.bug_report off the startup path.

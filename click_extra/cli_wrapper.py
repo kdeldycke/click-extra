@@ -1005,6 +1005,11 @@ def wrap(
     project directory (its entry point is read from pyproject.toml or setup.cfg),
     Python file path, module:function notation, or Python module name.
     """
+    # The code of the target runs inside this subcommand, when it loads and when
+    # it runs: a bug report of Click Extra would send the user of a crashing target
+    # to the wrong project.
+    context.set(ctx, context._NO_BUG_REPORT, True)
+
     if not script_and_args:
         click.echo(ctx.get_help(), color=ctx.color)
         ctx.exit(0)

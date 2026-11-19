@@ -581,7 +581,7 @@ commands that suppress their non-zero "problems found" exit code and return
 
 
 # --- Internal keys ------------------------------------------------------------
-# Not part of the public API: one module writes and reads each of them. They live
+# Not part of the public API: only Click Extra writes and reads them. They live
 # here, under the `click_extra._` prefix, so that this module spells every key
 # Click Extra puts in `ctx.meta`.
 
@@ -636,6 +636,15 @@ Set by the first verbosity option that applies a level, which also queues the
 reset of the loggers. It lives in `ctx.meta` so the verbosity options queue that
 reset at most once per invocation, even when several of them are passed. See
 `click_extra.logging._level_owner`.
+"""
+
+_NO_BUG_REPORT: Final[str] = "click_extra._no_bug_report"
+"""Set when the run executes the code of another project.
+
+Written by `click_extra.cli_wrapper.wrap`, whose target is another CLI, and read
+by {meth}`click_extra.commands.Command.invoke`. An error then reaches Python's own
+report, as it would without Click Extra, and not a bug report that sends the user
+to the issues of the wrong project.
 """
 
 _VERBOSITY_COUNTER_SCANNED: Final[str] = "click_extra._verbosity_counter_scanned"

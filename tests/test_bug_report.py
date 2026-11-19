@@ -46,6 +46,7 @@ from click_extra.bug_report import (
     option_words,
     report_form_url,
 )
+from click_extra.cli import demo
 
 REPORT_URL = "https://github.com/orchard/harvest/issues/new?template=bug.yml"
 
@@ -188,6 +189,23 @@ def test_subcommand_error_reports_once(invoke):
     assert (
         report_block(result.stderr)[1] == "Options: --season autumn pick --fruit plum"
     )
+
+
+def test_click_extra_cli_reports_its_own_error(invoke, monkeypatch, tmp_path):
+    """An error of a `click-extra` subcommand gets a report for its issue form."""
+
+    def convert_directory(root):
+        raise ZeroDivisionError("no basket for the plums")
+
+    monkeypatch.setattr("click_extra.cli.convert_directory", convert_directory)
+    result = invoke(demo, "convert-to-myst", str(tmp_path))
+
+    assert result.exit_code == 1
+    assert result.stderr.count(REPORT_START) == 1
+    assert (
+        "https://github.com/kdeldycke/click-extra/issues/new"
+        "?template=bug-report.yml&title=ZeroDivisionError"
+    ) in result.stderr
 
 
 def test_report_survives_a_missing_version(invoke, monkeypatch):
