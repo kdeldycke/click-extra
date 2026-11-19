@@ -156,10 +156,10 @@ Each compatibility table below keeps the [support envelope](python-directives.md
 
 <!-- envelope python click cloup -->
 
-- `click-extra` releases before `8.0.0` (2026-06-22)
-- Python versions before `3.10` (2021-10-04)
-- `click` versions before `8.3.1` (2025-11-15)
-- `cloup` versions before `3.0.7` (2025-03-15)
+- `click-extra` releases before `10.0.0` (2026-11-01)
+- Python versions before `3.11` (2022-10-24)
+- `click` versions before `8.5.0` (2026-08-26)
+- `cloup` versions before `4.0.0` (2026-09-12)
 
 <!-- envelope-end -->
 
@@ -195,11 +195,10 @@ Click Extra wraps Click, so the two are tightly coupled and the matrix of suppor
 
 <!-- matrix click -->
 
-| `click-extra` ↴ \\ `click` → | `8.5.1` | `8.5.0` | `8.4.2` ← `8.4.1` | `8.4.0` ← `8.3.1` |
-| :--------------------------- | :-----: | :-----: | :---------------: | :---------------: |
-| `10.x`                       |   ✅    |   ✅    |        ❌         |        ❌         |
-| `9.x`                        |    –    |   ✅    |        ✅         |        ❌         |
-| `8.x`                        |    –    |   ✅    |        ✅         |        ✅         |
+| `click-extra` ↴ \\ `click` → | `8.5.1` | `8.5.0` |
+| :--------------------------- | :-----: | :-----: |
+| `10.3.0`                     |   ✅    |   ❌    |
+| `10.0.x` → `10.2.x`          |   ✅    |   ✅    |
 
 <!-- matrix-end -->
 
