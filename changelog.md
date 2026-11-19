@@ -9,6 +9,9 @@
 
 ## [`10.3.0` (2026-11-18)](https://github.com/kdeldycke/click-extra/compare/v10.2.0...v10.3.0)
 
+> [!WARNING]
+> The `macos-arm64` binary is missing: its build got no GitHub runner, and the published release locks its asset list. On an Apple silicon Mac, install `click-extra` from 🐍 PyPI.
+
 > [!NOTE]
 > `10.3.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/10.3.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v10.3.0).
 
