@@ -192,7 +192,11 @@ def test_subcommand_error_reports_once(invoke):
 
 
 def test_click_extra_cli_reports_its_own_error(invoke, monkeypatch, tmp_path):
-    """An error of a `click-extra` subcommand gets a report for its issue form."""
+    """An error of a `click-extra` subcommand gets a report for its issue form.
+
+    The code of this CLI is in the Click ecosystem, like the frames that run it. Its
+    frames start at the function of the subcommand, which the title names.
+    """
 
     def convert_directory(root):
         raise ZeroDivisionError("no basket for the plums")
@@ -202,10 +206,12 @@ def test_click_extra_cli_reports_its_own_error(invoke, monkeypatch, tmp_path):
 
     assert result.exit_code == 1
     assert result.stderr.count(REPORT_START) == 1
-    assert (
-        "https://github.com/kdeldycke/click-extra/issues/new"
-        "?template=bug-report.yml&title=ZeroDivisionError"
-    ) in result.stderr
+    form = "https://github.com/kdeldycke/click-extra/issues/new?template=bug-report.yml"
+    title = "ZeroDivisionError in convert_to_myst_cmd"
+    assert report_form_url(form, title) in result.stderr
+    callback, raiser = report_block(result.stderr)[4:]
+    assert re.fullmatch(r"  click_extra\.cli:\d+ in convert_to_myst_cmd", callback)
+    assert raiser.endswith(".<locals>.convert_directory")
 
 
 def test_report_survives_a_missing_version(invoke, monkeypatch):

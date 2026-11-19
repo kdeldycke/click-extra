@@ -35,6 +35,7 @@ report asks the user to read it before they paste it.
 
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 import re
@@ -56,7 +57,7 @@ from .version_facts import env_summary
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from types import TracebackType
     from typing import Any
 
@@ -113,17 +114,27 @@ def compact_frames(tb: TracebackType | None) -> tuple[str, ...]:
     return tuple(frames)
 
 
-def cli_traceback(tb: TracebackType | None) -> TracebackType | None:
+def cli_traceback(
+    tb: TracebackType | None, callback: Callable[..., Any] | None = None
+) -> TracebackType | None:
     """The traceback from its first frame outside the Click ecosystem.
 
     An error reaches {meth}`~click_extra.commands.Command.invoke` through the frames
     that Click and Click Extra run the command with, which are the same in every
     report. A traceback with no other frame is kept whole.
+
+    The code of a CLI built in the Click ecosystem, like the `click-extra` CLI, is in
+    it too. So the frame of `callback`, the function of the command, also starts the
+    traceback.
     """
+    code = getattr(inspect.unwrap(callback), "__code__", None) if callback else None
     current = tb
     while current is not None:
         module = current.tb_frame.f_globals.get("__name__", "")
-        if module.partition(".")[0] not in CLI_ECOSYSTEM_PACKAGES:
+        if (
+            module.partition(".")[0] not in CLI_ECOSYSTEM_PACKAGES
+            or current.tb_frame.f_code is code
+        ):
             return current
         current = current.tb_next
     return tb
@@ -389,7 +400,7 @@ def report_unexpected_error(ctx: click.Context, expt: Exception) -> NoReturn:
         logging.getLogger().debug("Traceback of the error:", exc_info=expt)
         raise click.ClickException(str(expt)) from expt
 
-    tb = cli_traceback(expt.__traceback__)
+    tb = cli_traceback(expt.__traceback__, ctx.command.callback)
     root = ctx.find_root()
     # Code run by `exec()` has no module name, like a CLI that a documentation
     # page defines: its frames have none either, and match the empty package.
