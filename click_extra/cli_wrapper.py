@@ -1008,7 +1008,7 @@ def wrap(
     # The code of the target runs inside this subcommand, when it loads and when
     # it runs: a bug report of Click Extra would send the user of a crashing target
     # to the wrong project.
-    context.set(ctx.find_root(), context._NO_BUG_REPORT, True)
+    context.set(ctx, context._NO_BUG_REPORT, True)
 
     if not script_and_args:
         click.echo(ctx.get_help(), color=ctx.color)

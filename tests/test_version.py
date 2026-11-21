@@ -421,6 +421,39 @@ def test_context_meta_laziness(invoke, cmd_decorator):
     assert "git_long_hash" not in version_param.__dict__
 
 
+@pytest.mark.parametrize(
+    "group_version", [False, True], ids=["bare-group", "group-version"]
+)
+def test_subcommand_version_shares_meta(invoke, group_version):
+    """A subcommand with its own `--version` shares `ctx.meta` with its group.
+
+    The group reads what the callback of the subcommand stores there, and the
+    subcommand reads the version it declares.
+    """
+    params = [VersionOption(fields={"version": "1.0.0"})] if group_version else []
+
+    @click.group(params=params)
+    def orchard():
+        """Grow fruits."""
+
+    @orchard.command
+    @version_option(fields={"version": "2.0.0"})
+    @click.pass_context
+    def pick(ctx):
+        """Pick a fruit."""
+        ctx.meta["orchard.fruit"] = "plum"
+        echo(f"version = {ctx.meta['click_extra.version']}")
+
+    @orchard.result_callback()
+    @click.pass_context
+    def harvested(ctx, *args, **kwargs):
+        echo(f"fruit = {ctx.meta.get('orchard.fruit')}")
+
+    result = invoke(orchard, "pick")
+    assert result.exit_code == 0
+    assert result.stdout == "version = 2.0.0\nfruit = plum\n"
+
+
 def test_module_version_parent_package_fallback(monkeypatch):
     """``module_version`` falls back to parent package's ``__version__``.
 

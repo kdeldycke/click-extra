@@ -1101,11 +1101,10 @@ class Command(  # type: ignore[misc]
             except (*_ABORT_EXCEPTIONS, click.ClickException, Exit):
                 raise
             except Exception as expt:
-                root = ctx.find_root()
                 if (
                     (isinstance(expt, OSError) and expt.errno == errno.EPIPE)
-                    or not getattr(root.command, "report_url", None)
-                    or context.get(root, context._NO_BUG_REPORT)
+                    or not getattr(ctx.find_root().command, "report_url", None)
+                    or context.get(ctx, context._NO_BUG_REPORT)
                 ):
                     raise
                 # Deferred import: keeps click_extra.bug_report off the startup path.

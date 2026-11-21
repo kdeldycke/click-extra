@@ -649,7 +649,8 @@ def test_refresh_directives_crashing_mirror_gets_no_bug_report(invoke, tmp_path)
 
     The `click-extra` CLI has a `report_url`, so its root would otherwise end the
     run with a report for the issues of Click Extra. The subcommand has its own
-    `--version` option, which gives it a copy of `ctx.meta`.
+    `--version` option, so the flag it sets reaches the root only through the
+    `ctx.meta` they share.
     """
     doc = tmp_path / "page.md"
     doc.write_text(

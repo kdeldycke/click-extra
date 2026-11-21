@@ -147,6 +147,9 @@ class _LazyMetaDict(dict):  # noqa: FURB189
     iteration and `keys()` count it without resolving it. What reads its value
     resolves it: indexing, `get()`, `items()`, `values()`, `pop()`,
     `setdefault()` and equality. A deleted lazy key stays deleted.
+
+    The contexts of a run share one mapping, as Click shares `meta`: a
+    `--version` option of a subcommand adds its fields to it with `add_source()`.
     """
 
     def __init__(
@@ -156,11 +159,22 @@ class _LazyMetaDict(dict):  # noqa: FURB189
         fields: tuple[str, ...],
     ) -> None:
         # Copy only the entries `base` stores, so a lazy `base` keeps its pending
-        # keys unresolved: each `--version` option of a command tree wraps
-        # `ctx.meta` again.
+        # keys unresolved.
         super().__init__(dict.items(base))
-        self._source = source
-        self._lazy_keys = {f"{META_NAMESPACE}{f}": f for f in fields}
+        self._lazy_keys: dict[str, tuple[object, str]] = {}
+        self.add_source(source, fields)
+
+    def add_source(self, source: object, fields: tuple[str, ...]) -> None:
+        """Resolve each of `fields` from `source`, in place of an earlier source.
+
+        The value an earlier source resolved for one of them is dropped: a field
+        reads the source added last, the option of the innermost command.
+        """
+        for field in fields:
+            key = f"{META_NAMESPACE}{field}"
+            self._lazy_keys[key] = (source, field)
+            if super().__contains__(key):
+                super().__delitem__(key)
 
     def _pending(self) -> list[str]:
         """The lazy keys not resolved yet, in the order they were declared."""
@@ -169,7 +183,8 @@ class _LazyMetaDict(dict):  # noqa: FURB189
 
     def _resolve(self, key: str) -> Any:
         """Resolve a lazy key, cache the result, and return it."""
-        value = getattr(self._source, self._lazy_keys[key])
+        source, field = self._lazy_keys[key]
+        value = getattr(source, field)
         # Store as a regular entry so subsequent reads are plain dict lookups.
         self[key] = value
         return value
@@ -249,7 +264,9 @@ class _LazyMetaDict(dict):  # noqa: FURB189
 
     def copy(self) -> _LazyMetaDict:
         """A shallow copy, whose pending keys stay pending."""
-        return _LazyMetaDict(self, self._source, tuple(self._lazy_keys.values()))
+        duplicate = _LazyMetaDict(self, None, ())
+        duplicate._lazy_keys = dict(self._lazy_keys)
+        return duplicate
 
 
 # --- Argument capture ---------------------------------------------------------
@@ -639,17 +656,13 @@ reset at most once per invocation, even when several of them are passed. See
 """
 
 _NO_BUG_REPORT: Final[str] = "click_extra._no_bug_report"
-"""Set on the root context when the run executes the code of another project.
+"""Set when the run executes the code of another project.
 
 Written by `click_extra.cli_wrapper.wrap`, whose target is another CLI, and by
 `click_extra.cli.refresh_directives_cmd`, whose mirror blocks run the Python of the
 pages they refresh. Read by {meth}`click_extra.commands.Command.invoke`. An error
 then reaches Python's own report, as it would without Click Extra, and not a bug
 report that sends the user to the issues of the wrong project.
-
-The key goes on the root, where every command of the run reads it. A subcommand
-with its own `--version` option holds a copy of `ctx.meta`: a key that its callback
-writes there never reaches the root.
 """
 
 _VERBOSITY_COUNTER_SCANNED: Final[str] = "click_extra._verbosity_counter_scanned"

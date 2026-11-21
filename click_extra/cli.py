@@ -509,7 +509,7 @@ def refresh_directives_cmd(
     """
     # A mirror block runs the Python of the page it refreshes: a bug report of
     # Click Extra would send the author of a crashing block to the wrong project.
-    context.set(ctx.find_root(), context._NO_BUG_REPORT, True)
+    context.set(ctx, context._NO_BUG_REPORT, True)
 
     # Deferred import: keeps the optional sphinx extra off the startup path, so
     # the rest of the CLI works without it.

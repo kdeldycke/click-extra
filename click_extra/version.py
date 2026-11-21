@@ -1294,7 +1294,19 @@ class VersionOption(ExtraOption):
         # Install a lazy dict so that version fields in ctx.meta are only
         # evaluated when actually accessed, sparing every invocation the git calls
         # and the metadata lookups.
-        ctx._meta = _LazyMetaDict(ctx._meta, self, self.template_fields)
+        meta = ctx._meta
+        if isinstance(meta, _LazyMetaDict):
+            # The option of an outer command installed it: the fields of this one
+            # take over in the dict that every context of the run shares.
+            meta.add_source(self, self.template_fields)
+        else:
+            lazy = _LazyMetaDict(meta, self, self.template_fields)
+            # Give it to each context holding the dict it replaces, so that the
+            # contexts of the run keep sharing one `meta`.
+            holder: click.Context | None = ctx
+            while holder is not None and holder._meta is meta:
+                holder._meta = lazy
+                holder = holder.parent
 
         # Eagerly resolve `module` now: cli_frame() relies on stack
         # inspection that only produces the correct result during the eager

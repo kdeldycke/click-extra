@@ -33,6 +33,7 @@ import ast
 import importlib
 import re
 from pathlib import Path
+from types import SimpleNamespace
 
 import click
 import pytest
@@ -619,14 +620,32 @@ def test_lazy_meta_dict_setdefault_resolves_pending_key() -> None:
 
 
 def test_lazy_meta_dict_wraps_another_without_resolving() -> None:
-    """Wrapping a lazy dict, as each ``--version`` of a command tree does, keeps
-    its pending keys pending.
+    """Wrapping a lazy dict keeps its pending keys pending.
+
+    The new dict copies only the entries the wrapped one stores.
     """
     source = _SourceSpy()
 
     outer = _LazyMetaDict(_lazy_dict(source), _SourceSpy(), ("alpha", "beta"))
     assert source.access_count == {"alpha": 0, "beta": 0}
     assert dict(outer) == LAZY_ENTRIES
+
+
+def test_lazy_meta_dict_added_source_takes_over_its_fields() -> None:
+    """A source added later resolves the fields it declares, resolved ones too.
+
+    A copy keeps the source of each pending key.
+    """
+    fruits = SimpleNamespace(alpha="apple", beta="banana")
+    resolved = _LazyMetaDict({}, fruits, ("alpha", "beta"))
+    assert resolved["click_extra.alpha"] == "apple"
+    pending = _LazyMetaDict({}, fruits, ("alpha", "beta"))
+
+    expected = {"click_extra.alpha": "apricot", "click_extra.beta": "banana"}
+    for d in (resolved, pending):
+        d.add_source(SimpleNamespace(alpha="apricot"), ("alpha",))
+        assert dict(d.copy()) == expected
+        assert d == expected
 
 
 def test_pass_context_typed_for_enhanced_context(invoke):

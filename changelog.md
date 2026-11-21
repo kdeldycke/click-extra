@@ -6,6 +6,7 @@
 > This version is **not released yet** and is under active development.
 
 - End a crash of the `click-extra` CLI with a bug report for its issue form, except under `wrap` and `refresh-directives`, which run the code of other projects.
+- Fix `ctx.meta` sharing between a group and a subcommand with its own `--version` option: the group did not see what the subcommand stored.
 
 ## [`10.3.0` (2026-11-18)](https://github.com/kdeldycke/click-extra/compare/v10.2.0...v10.3.0)
 
