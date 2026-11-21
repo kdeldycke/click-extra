@@ -5,6 +5,8 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Write a `width` and a `height` on the root of every generated SVG, so GitHub's image upload and table cells draw it at its own size.
+
 ## [`10.3.1` (2026-11-21)](https://github.com/kdeldycke/click-extra/compare/v10.3.0...v10.3.1)
 
 > [!NOTE]
