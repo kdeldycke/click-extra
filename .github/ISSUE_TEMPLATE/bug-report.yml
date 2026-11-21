@@ -14,9 +14,6 @@ body:
         $ uvx --exclude-newer '1 week' --from git+https://github.com/kdeldycke/click-extra -- click-extra --version
 
         ```
-
-
-        If the bug is gone, it will be included in the next release.
   - type: textarea
     id: description
     attributes:
