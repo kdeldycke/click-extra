@@ -1,9 +1,11 @@
 # Changelog
 
-## [`10.3.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.3.1...main)
+## [`10.3.3.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.3.2...main)
 
 > [!WARNING]
 > This version is **not released yet** and is under active development.
+
+## [`10.3.2` (2026-11-21)](https://github.com/kdeldycke/click-extra/compare/v10.3.1...v10.3.2)
 
 - Write a `width` and a `height` on the root of every generated SVG, so GitHub's image upload and table cells draw it at its own size.
 
