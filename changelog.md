@@ -7,6 +7,9 @@
 
 ## [`10.3.1` (2026-11-21)](https://github.com/kdeldycke/click-extra/compare/v10.3.0...v10.3.1)
 
+> [!NOTE]
+> `10.3.1` is available on [🐍 PyPI](https://pypi.org/project/click-extra/10.3.1/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v10.3.1).
+
 - End a crash of the `click-extra` CLI with a bug report for its issue form, except under `wrap` and `refresh-directives`, which run the code of other projects.
 - Fix `ctx.meta` sharing between a group and a subcommand with its own `--version` option: the group did not see what the subcommand stored.
 - Fix a traceback from a `:mirror:` or `mirror-src` block naming the wrong line of its page.
