@@ -1,5 +1,10 @@
 # Changelog
 
+## [`10.3.2.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.3.1...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`10.3.1` (2026-11-21)](https://github.com/kdeldycke/click-extra/compare/v10.3.0...v10.3.1)
 
 - End a crash of the `click-extra` CLI with a bug report for its issue form, except under `wrap` and `refresh-directives`, which run the code of other projects.
