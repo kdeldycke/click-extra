@@ -416,6 +416,10 @@ linkcheck_ignore = [
     # repology.org refuses the linkcheck builder's connections from CI runners,
     # while the lychee run in the same job checks its badge and page fine.
     r"https://repology\.org",
+    # The Guix site and package index answer the linkcheck builder with 403 from
+    # CI runners, while they serve the same pages elsewhere and the lychee run in
+    # the same job checks them fine.
+    r"https://(packages\.)?guix\.gnu\.org/",
     # crates.io blocks automated link checkers.
     r"https://crates\.io/crates/.*",
     # VirusTotal analysis pages are a JS app that rate-limits bots, and the
