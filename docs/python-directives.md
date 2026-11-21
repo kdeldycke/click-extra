@@ -311,11 +311,10 @@ This project uses it for the [Click](install.md#click-compatibility) and [Cloup]
 ```{matrix} click
 :package: click-extra
 
-| `click-extra` ↴ \\ `click` → | `8.5.1` | `8.5.0` | `8.4.2` ← `8.4.1` | `8.4.0` ← `8.3.1` |
-| :--------------------------- | :-----: | :-----: | :---------------: | :---------------: |
-| `10.x`                       |   ✅    |   ✅    |        ❌         |        ❌         |
-| `9.x`                        |    –    |   ✅    |        ✅         |        ❌         |
-| `8.x`                        |    –    |   ✅    |        ✅         |        ✅         |
+| `click-extra` ↴ \\ `click` → | `8.5.1` | `8.5.0` |
+| :--------------------------- | :-----: | :-----: |
+| `10.3.0`                     |   ✅    |   ❌    |
+| `10.0.x` → `10.2.x`          |   ✅    |   ✅    |
 ```
 ````
 
@@ -349,15 +348,15 @@ The refresh fills it with one item per bound. For `click-extra`, it reads:
 ```{code-block} markdown
 <!-- envelope python click cloup -->
 
-- `click-extra` releases before `8.0.0` (2026-06-22)
-- Python versions before `3.10` (2021-10-04)
-- `click` versions before `8.3.1` (2025-11-15)
-- `cloup` versions before `3.0.7` (2025-03-15)
+- `click-extra` releases before `10.0.0` (2026-11-01)
+- Python versions before `3.11` (2022-10-24)
+- `click` versions before `8.5.0` (2026-08-26)
+- `cloup` versions before `4.0.0` (2026-09-12)
 
 <!-- envelope-end -->
 ```
 
-Each axis keeps its own envelope, as its matrix does. A release is in scope only when every envelope that leaves out releases keeps it, so the release bound is the newest of their first releases. Each version bound is then the oldest version that a release in scope supports. It can be newer than the oldest column of the axis' matrix: `click-extra` releases from `8.0.0` onward support no Python before `3.10`, while its Python table goes down to `3.7`. Each bound carries its release date: the date of the tag for a release, the date of its final release for a Python, and the PyPI date for a dependency release.
+Each axis keeps its own envelope, as its matrix does. A release is in scope only when every envelope that leaves out releases keeps it, so the release bound is the newest of their first releases. Each version bound is then the oldest version that a release in scope supports. It can be newer than the oldest column of the axis' matrix: `click-extra` releases from `10.0.0` onward support no Python before `3.11`, while its Python table goes down to `3.7`. Each bound carries its release date: the date of the tag for a release, the date of its final release for a Python, and the PyPI date for a dependency release.
 
 The region has no directive form: its list renders as is, on GitHub and in Sphinx alike.
 

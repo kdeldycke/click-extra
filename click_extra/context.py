@@ -639,12 +639,17 @@ reset at most once per invocation, even when several of them are passed. See
 """
 
 _NO_BUG_REPORT: Final[str] = "click_extra._no_bug_report"
-"""Set when the run executes the code of another project.
+"""Set on the root context when the run executes the code of another project.
 
-Written by `click_extra.cli_wrapper.wrap`, whose target is another CLI, and read
-by {meth}`click_extra.commands.Command.invoke`. An error then reaches Python's own
-report, as it would without Click Extra, and not a bug report that sends the user
-to the issues of the wrong project.
+Written by `click_extra.cli_wrapper.wrap`, whose target is another CLI, and by
+`click_extra.cli.refresh_directives_cmd`, whose mirror blocks run the Python of the
+pages they refresh. Read by {meth}`click_extra.commands.Command.invoke`. An error
+then reaches Python's own report, as it would without Click Extra, and not a bug
+report that sends the user to the issues of the wrong project.
+
+The key goes on the root, where every command of the run reads it. A subcommand
+with its own `--version` option holds a copy of `ctx.meta`: a key that its callback
+writes there never reaches the root.
 """
 
 _VERBOSITY_COUNTER_SCANNED: Final[str] = "click_extra._verbosity_counter_scanned"

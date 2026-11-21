@@ -31,7 +31,8 @@ from textwrap import dedent
 import pytest
 from click.testing import CliRunner
 
-from click_extra.cli import refresh_directives_cmd
+from click_extra.bug_report import REPORT_START
+from click_extra.cli import demo, refresh_directives_cmd
 from click_extra.sphinx.python import (
     MIRROR_MARKER_END,
     MIRROR_MARKER_START,
@@ -641,6 +642,30 @@ def test_refresh_directives_cli_reads_and_writes_a_page_once(tmp_path, monkeypat
     result = CliRunner().invoke(refresh_directives_cmd, [str(doc)])
     assert result.exit_code == 0, result.output
     assert calls == ["read", "write"]
+
+
+def test_refresh_directives_crashing_mirror_gets_no_bug_report(invoke, tmp_path):
+    """A crash of a mirror block is a bug of its page: Click Extra reports none.
+
+    The `click-extra` CLI has a `report_url`, so its root would otherwise end the
+    run with a report for the issues of Click Extra. The subcommand has its own
+    `--version` option, which gives it a copy of `ctx.meta`.
+    """
+    doc = tmp_path / "page.md"
+    doc.write_text(
+        dedent("""\
+            ```{python:render}
+            :mirror:
+            print(len("plums") // 0)
+            ```
+            """),
+        encoding="UTF-8",
+    )
+    result = invoke(demo, "refresh-directives", doc)
+
+    assert result.exit_code == 1
+    assert isinstance(result.exception, ZeroDivisionError)
+    assert REPORT_START not in result.stderr
 
 
 def test_python_render_mirror_show_source_still_single_table(sphinx_app_myst):

@@ -2,6 +2,8 @@
 
 The `click-extra` package ships a CLI of the same name. It doubles as a live demo of the framework's rendering features and as a toolbox of documentation and testing utilities. It comes with the package itself (see [installation](install.md)) or as a [standalone binary](binaries.md).
 
+A crash of the CLI's own code ends with a [bug report](bug-report.md) for the issue form of Click Extra. A subcommand that runs the code of another project, like [`wrap`](wrap.md), shows the traceback of the error instead.
+
 Everything below is rendered at build time from the actual command tree, so this reference cannot drift from the code.
 
 ## Commands

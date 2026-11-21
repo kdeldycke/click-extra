@@ -5,7 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- End a crash of the `click-extra` CLI with a bug report for its issue form, except under `wrap`, whose target keeps its own traceback.
+- End a crash of the `click-extra` CLI with a bug report for its issue form, except under `wrap` and `refresh-directives`, which run the code of other projects.
 
 ## [`10.3.0` (2026-11-18)](https://github.com/kdeldycke/click-extra/compare/v10.2.0...v10.3.0)
 

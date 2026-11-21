@@ -238,7 +238,8 @@ it. A Nuitka build sees no import of these modules, so `[tool.nuitka]` of
     params=partial(default_params, screen=BRAND_SCREEN),
     version_fields={"prog_name": "Click Extra"},
     # A crash of Click Extra's own code ends with a report for its issue form.
-    # `wrap` opts out, as the code it runs belongs to another project.
+    # `wrap` and `refresh-directives` opt out, as the code they run belongs to
+    # another project.
     report_url=f"{REPOSITORY_URL}/issues/new?template=bug-report.yml",
     config_schema=ClickExtraConfig,
     schema_strict=False,
@@ -506,6 +507,10 @@ def refresh_directives_cmd(
     Python executed with the privileges of this process, so only refresh
     documentation you trust, exactly as you would only build trusted docs.
     """
+    # A mirror block runs the Python of the page it refreshes: a bug report of
+    # Click Extra would send the author of a crashing block to the wrong project.
+    context.set(ctx.find_root(), context._NO_BUG_REPORT, True)
+
     # Deferred import: keeps the optional sphinx extra off the startup path, so
     # the rest of the CLI works without it.
     try:

@@ -47,6 +47,11 @@ An AI agent that runs the CLI gets one more line. It tells the agent to show the
 
 Set `report_url` on the root command. On a group, the error of any subcommand then gets one report, which names the subcommand and its options.
 
+The `click-extra` CLI sets one: a crash of its own code ends with a report for the issue form of Click Extra. Two of its subcommands run the code of another project. An error in that code is no bug of Click Extra, so it reaches Python's own traceback:
+
+- [`wrap`](wrap.md) runs its target. A target that sets its own `report_url` ends with its own report.
+- [`refresh-directives`](python-directives.md#keeping-the-tables-current) runs the mirror blocks of the pages it refreshes.
+
 ## A report that does not stop the run
 
 `log_report()` logs a report of the same shape, for a failure that the CLI survives, like an item it set aside:

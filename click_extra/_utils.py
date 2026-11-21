@@ -150,8 +150,10 @@ Listed on Click Extra's own version screen, and the base of the page each
 generated Carapace spec and capture watermark links to."""
 
 REPOSITORY_URL = "https://github.com/kdeldycke/click-extra"
-"""Click Extra's source repository, named in the provenance comment of every
-generated man page."""
+"""Click Extra's source repository.
+
+Every generated man page names it in its provenance comment, and a bug report of
+the `click-extra` CLI links to its issue form."""
 
 
 def missing_extra_message(

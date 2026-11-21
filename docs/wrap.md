@@ -253,7 +253,7 @@ $ click-extra wrap -- ../weather-cli --help
 ModuleNotFoundError: No module named 'httpx'
 ```
 
-A traceback like this means resolution already succeeded and the target started running: the missing module is a dependency of the target, not of Click Extra. It is the same error a direct `python -m weather_cli` would raise.
+A traceback like this means resolution already succeeded and the target started running: the missing module is a dependency of the target, not of Click Extra. It is the same error a direct `python -m weather_cli` would raise. `wrap` adds no [bug report](bug-report.md) to it, as the error is no bug of Click Extra.
 
 The lightest fix is to layer the missing packages onto an ephemeral run with [`uv`](https://docs.astral.sh/uv/), one `--with` per dependency:
 
