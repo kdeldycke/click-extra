@@ -869,8 +869,8 @@ _TRAIL_BATCH = (
 
 Each entry is one operation. Durations are a few seconds each and staggered, so
 the live spinner, bar and streaming outcomes stay watchable, and the leeks scorch
-to leave a `✘` in the trail. Tests stub `time.sleep`, so these never slow the
-suite.
+to leave a `✘` in the trail. Tests stub the `sleep` this module calls, so these
+never slow the suite.
 """
 
 

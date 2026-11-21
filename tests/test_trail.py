@@ -20,6 +20,7 @@ import io
 import re
 import threading
 import time
+from types import SimpleNamespace
 
 import click
 import pytest
@@ -174,8 +175,9 @@ def test_demo_trail_rejects_unknown_spinner(invoke):
 def test_demo_trail_prints_plain_lines_off_tty(invoke, monkeypatch, args):
     """Every rendering runs the batch to completion and, off a TTY, prints each
     outcome and the finisher as plain lines, with no indicator drawn."""
-    # Skip the real per-vegetable pauses so the batch completes instantly.
-    monkeypatch.setattr(time, "sleep", lambda _seconds: None)
+    # Skip the real per-vegetable pauses so the batch completes instantly. Only
+    # the CLI module gets the stub: every other thread keeps the real `sleep`.
+    monkeypatch.setattr("click_extra.cli.time", SimpleNamespace(sleep=lambda _: None))
     result = invoke(demo, *args)
     assert result.exit_code == 0
     # No spinner or bar drew: either one writes a carriage return to redraw.
