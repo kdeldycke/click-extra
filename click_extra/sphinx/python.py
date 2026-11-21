@@ -60,10 +60,10 @@ from docutils.parsers.rst import Parser as RstParser
 from docutils.utils import new_document
 
 from ..markdown.blocks import (
+    _rewrite_fenced_regions,
     fence_spans,
     marker_res,
     region_markers,
-    rewrite_fenced_regions,
     rewrite_fences,
     split_options,
     update_blocks,
@@ -382,6 +382,7 @@ def _execute_mirror_block(
     body: list[str],
     namespace: dict[str, object],
     location: str,
+    start: int,
 ) -> list[str]:
     """Execute a mirror block's Python body and return its captured stdout lines.
 
@@ -395,8 +396,13 @@ def _execute_mirror_block(
     the Sphinx build where the `conf.py` directory rides `sys.path`: a block
     importing a sibling helper module (a `docs_update.py` next to the page)
     behaves the same offline as it does at build time.
+
+    :param start: the index of the first line of `body` among the lines of the
+        page, from 0. A traceback then names the line of the page.
     """
-    code = compile("\n".join(body), location, "exec")
+    # Blank lines ahead of the body put each of its lines at its line of the
+    # page, in a traceback and in a syntax error alike.
+    code = compile("\n" * start + "\n".join(body), location, "exec")
     directory = str(Path(location).resolve().parent)
     sys.path.insert(0, directory)
     try:
@@ -426,13 +432,16 @@ def _rewrite_mirror_regions(text: str, location: str) -> str:
     """
     namespace: dict[str, object] = {"__file__": PLACEHOLDER_FILE}
 
-    def generate(inner: list[str]) -> list[str] | None:
+    def generate(inner: list[str], start: int) -> list[str] | None:
         options, body = split_options(inner)
         if "mirror" not in options:
             return None
-        return _execute_mirror_block(body, namespace, location)
+        # The body starts below what `split_options` took: the options and a
+        # blank line.
+        offset = start + len(inner) - len(body)
+        return _execute_mirror_block(body, namespace, location, offset)
 
-    return rewrite_fenced_regions(text, "mirror", _MIRROR_FENCE_OPEN_RE, generate)
+    return _rewrite_fenced_regions(text, "mirror", _MIRROR_FENCE_OPEN_RE, generate)
 
 
 def _rewrite_mirror_src_regions(text: str, location: str) -> str:
@@ -474,7 +483,7 @@ def _rewrite_mirror_src_regions(text: str, location: str) -> str:
         # Past the `-->` line.
         cursor += 1
 
-        generated = _execute_mirror_block(body, namespace, location)
+        generated = _execute_mirror_block(body, namespace, location, index + 1)
         end = _mirror_src_end(lines, spans, cursor)
 
         chunk = [*lines[index:cursor], "", *generated, ""]

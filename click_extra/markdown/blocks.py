@@ -376,6 +376,22 @@ def rewrite_fenced_regions(
     :param content: computes the region's lines from the fence's inner lines.
     :return: the rewritten source.
     """
+    return _rewrite_fenced_regions(
+        text, name, fence_open, lambda inner, _: content(inner)
+    )
+
+
+def _rewrite_fenced_regions(
+    text: str,
+    name: str,
+    fence_open: re.Pattern[str],
+    content: Callable[[list[str], int], list[str] | None],
+) -> str:
+    """{func}`rewrite_fenced_regions`, also handing `content` where the fence is.
+
+    `content` gets the index of the first inner line among the lines of `text`, so
+    that it can relate an inner line to its line in the source.
+    """
     opening, closing = region_markers(name)
     lines = text.split("\n")
     spans = fence_spans(lines)
@@ -385,7 +401,7 @@ def rewrite_fenced_regions(
         # An unterminated fence keeps the tail untouched.
         if span is None or span.close is None or not fence_open.match(lines[index]):
             return None
-        region = content(lines[span.body])
+        region = content(lines[span.body], span.body.start)
         if region is None:
             return None
         # Emit the whole fence unit (source and close line) verbatim.

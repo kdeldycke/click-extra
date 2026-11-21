@@ -25,6 +25,7 @@ Covers ``python:source``, ``python:run``, and the three render variants:
 from __future__ import annotations
 
 import sys
+import traceback
 from pathlib import Path
 from textwrap import dedent
 
@@ -667,6 +668,49 @@ def test_refresh_directives_crashing_mirror_gets_no_bug_report(invoke, tmp_path)
     assert result.exit_code == 1
     assert isinstance(result.exception, ZeroDivisionError)
     assert REPORT_START not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        pytest.param(
+            "# Orchard\n"
+            "\n"
+            "```{python:render}\n"
+            ":mirror:\n"
+            "\n"
+            'fruits = ["apple", "pear"]\n'
+            "print(len(fruits) // 0)\n"
+            "```\n",
+            id="fence",
+        ),
+        pytest.param(
+            "# Orchard\n"
+            "\n"
+            "<!-- mirror-src\n"
+            "\n"
+            'fruits = ["apple", "pear"]\n'
+            "print(len(fruits) // 0)\n"
+            "-->\n",
+            id="comment",
+        ),
+    ],
+)
+def test_crashing_mirror_traceback_names_its_page_line(tmp_path, page):
+    """The traceback of a mirror block that raises names the line of its page."""
+    doc = tmp_path / "page.md"
+    doc.write_text(page, encoding="UTF-8")
+
+    with pytest.raises(ZeroDivisionError) as excinfo:
+        update_mirror_blocks([doc])
+
+    raiser = "print(len(fruits) // 0)"
+    frames = [
+        (frame.lineno, frame.line)
+        for frame in traceback.extract_tb(excinfo.value.__traceback__)
+        if frame.filename == str(doc)
+    ]
+    assert frames == [(page.splitlines().index(raiser) + 1, raiser)]
 
 
 def test_python_render_mirror_show_source_still_single_table(sphinx_app_myst):
