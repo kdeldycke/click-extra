@@ -31,7 +31,7 @@ extensions = [
 ]
 ```
 
-This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the [`matrix` directive](python-directives.md#the-matrix-directive), [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [class diagrams that let the page scroll](#class-diagrams-that-let-the-page-scroll), [GitHub link checks with a token](#github-link-checks-with-a-token), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes two things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), and [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
+This unlocks the always-on features: the ANSI-capable Pygments HTML formatter, the [`matrix` directive](python-directives.md#the-matrix-directive), [todo-list deduplication](#todo-list-deduplication), a [warning for the todos it misses](#todos-missing-from-the-todo-list), a one-line first column, a [crosshair](#crosshair-on-two-axis-tables) and [tinted state cells](python-directives.md#the-support-envelope) for [two-axis tables](table.md#two-axis-tables), [class diagrams that let the page scroll](#class-diagrams-that-let-the-page-scroll), [GitHub link checks with a token](#github-link-checks-with-a-token), the [man-page hook](man-page.md#from-a-sphinx-build), [failing on chosen warnings](#failing-on-chosen-warnings), and [stable changelog anchors](#stable-changelog-anchors). It also fixes five things a build writes: [viewcode pages nothing links to](#viewcode-pages-nothing-links-to), [viewcode links that miss their object](#viewcode-links-that-reach-their-object), [a todo-list that a parallel read reorders](#todo-list-in-page-order), [doctrees that carry the build environment](#lean-doctrees-for-eval-rst-pages), and [an icon gap in social card titles](#social-card-titles-without-an-icon-gap). The `click:*` and `python:*` directive families are disabled by default and require an explicit opt-in described below.
 
 ```{danger}
 **Build-time code execution.** Every `click:*` and `python:*` directive runs its body with the same privileges as the Sphinx process: full filesystem access, full network access, and full access to the build environment's secrets (`GITHUB_TOKEN`, `READTHEDOCS_TOKEN`, etc.). The runner namespace is unrestricted: there is no sandbox.
@@ -1010,6 +1010,10 @@ click_extra_fail_on_warnings = ["click_extra.todo_unrendered"]
 
 To silence it, list it in `suppress_warnings` instead.
 
+## Todo-list in page order
+
+The `todolist` page lists its entries page by page, in the order `sphinx.ext.todo` holds them. A serial read fills that order page by page, in name order. A parallel read, started with `--jobs`, fills it in the order its workers finish, so the list changes from one build to the next: [sphinx-doc/sphinx#14809](https://github.com/sphinx-doc/sphinx/pull/14809). `click_extra.sphinx` sorts the entries by page once the read is over, so both reads give the same list. It is inert on a project that does not enable `sphinx.ext.todo`.
+
 ## Failing on chosen warnings
 
 Sphinx fails a build on warnings all or nothing: `--fail-on-warning` counts every warning, and [`suppress_warnings`](https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-suppress_warnings) can hide a type but never make one fatal. A project that lives with some warnings, like unresolved references to third-party names, then cannot stop the build on the ones it does not accept.
@@ -1086,6 +1090,10 @@ To keep the class on a sphinx-design older than `0.8.0`, list `click_extra.tabs_
 
 A serial read publishes such a page only for the last document it reads. A parallel read, started with `--jobs`, publishes all of them: [sphinx-doc/sphinx#14675](https://github.com/sphinx-doc/sphinx/issues/14675). The extension drops these modules once the read is over, so both reads publish the same pages. It is inert on a project that does not enable `sphinx.ext.viewcode`.
 
+## Viewcode links that reach their object
+
+Each page of `sphinx.ext.viewcode` links every documented object of its module back to the description of the object, through a `[docs]` link. viewcode builds all the links of a page from one module path: the path of the first signature that made it read the module. A documented instance reports the module of its class, so an instance documented before its class gives the page of that class's module the module path of the instance. The links then lead to anchors that do not exist: [sphinx-doc/sphinx#14815](https://github.com/sphinx-doc/sphinx/pull/14815). Which signature comes first follows the read order, so a parallel read can change the links from one build to the next. The extension points each link at the anchor of its object. It is inert on a project that does not enable `sphinx.ext.viewcode`.
+
 ## Lean doctrees for `{eval-rst}` pages
 
 Sphinx pickles the doctree of each page it reads, and leaves the build environment out of the pickle. myst-parser parses an [`{eval-rst}` block](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html#how-directives-parse-content) into a separate document, which holds the environment, and the nodes it moves into the page keep a reference to that document. Without a fix, each page with such a block pickles the whole environment with its doctree: on a project with an API reference, these doctrees weigh megabytes each, which costs disk space, memory and build time.
@@ -1143,6 +1151,10 @@ html_theme_options = {
 ```
 
 The count goes up on each anniversary of the date, never before it. A count of days divided by 365 would run a day ahead for each leap day in between.
+
+## Social card titles without an icon gap
+
+A page title that opens on an icon, like `` # {octicon}`flame` Recipes `` with [sphinx-design](https://sphinx-design.readthedocs.io), renders as the SVG of the icon, a space and the text. [sphinxext-opengraph](https://github.com/sphinx-doc/sphinxext-opengraph) copies that text into the `og:title` of the page with its leading space, so the social card reads `" Recipes"`: [sphinx-doc/sphinxext-opengraph#150](https://github.com/sphinx-doc/sphinxext-opengraph/pull/150). The extension removes the space for sphinxext-opengraph alone, and gives the theme the title unchanged. It is inert on a project that does not enable sphinxext-opengraph.
 
 ## ANSI shell sessions
 

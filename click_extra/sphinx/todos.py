@@ -44,6 +44,18 @@ of a nested function. It never becomes a node, so its `{todo}` reaches no
 and logs a {data}`UNRENDERED_TODO_WARNING` for each such `{todo}`. Its author can
 then move it into a docstring that a page renders.
 
+A parallel read also changes the order of the list. The `todo` domain keys its
+entries on their page, and the `todolist` renders them in the order of that
+mapping, which a parallel read fills in the order its workers merge. This module
+sorts the mapping by page once the read is over, which is the order a serial
+read gives ([sphinx-doc/sphinx#14809](https://github.com/sphinx-doc/sphinx/pull/14809)).
+
+```{todo}
+Delete {func}`sort_todos` once
+[sphinx-doc/sphinx#14809](https://github.com/sphinx-doc/sphinx/pull/14809)
+ships, and the `sphinx` extra's floor passes the release that carries it.
+```
+
 ```{todo}
 Propose the deduplication upstream, as a `sphinx.ext.todo` feature rather
 than a third-party hook.
@@ -549,8 +561,23 @@ def report_unrendered_todos(app: Sphinx, env: BuildEnvironment) -> None:
                 )
 
 
+def sort_todos(app: Sphinx, env: BuildEnvironment) -> None:
+    """Order the entries of the `todo` domain by page, as a serial read does.
+
+    Connected to `env-updated`, which fires once the read is over: after a
+    parallel read merged the entries of its workers, and before Sphinx pickles
+    the environment. Inert without `sphinx.ext.todo`, which registers the domain.
+    """
+    domain = env.domains.get("todo")
+    if domain is None:
+        return
+    todos = domain.data.get("todos")
+    if todos:
+        domain.data["todos"] = dict(sorted(todos.items()))
+
+
 def setup(app: Sphinx) -> None:
-    """Register the deduplication hook and the unrendered-todo check on `app`.
+    """Register the todo-list hooks on `app`.
 
     Called from {func}`click_extra.sphinx.setup` so projects only need to list
     `"click_extra.sphinx"` in their `extensions`. Priority 400 places the
@@ -561,5 +588,6 @@ def setup(app: Sphinx) -> None:
     app.add_config_value(
         DEDUPE_TODOS_CONFIG, default=True, rebuild="html", types=[bool]
     )
+    app.connect("env-updated", sort_todos)
     app.connect("doctree-resolved", deduplicate_todos, priority=400)
     app.connect("env-check-consistency", report_unrendered_todos)

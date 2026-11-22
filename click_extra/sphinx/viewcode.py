@@ -29,14 +29,29 @@ workers after every purge has run, so it publishes a page for each unused module
 This module drops every entry with no recorded use once the read is over, which
 gives both reads the same pages.
 
+The same entry also sets where the `[docs]` links of a page point. viewcode
+builds all of them from one module path: the path of the signature that created
+the entry. A documented instance reports the module of its class, so an instance
+can create the entry of that class's module and lend it its own module path,
+under which none of the objects of the page is indexed. The links then lead to
+anchors that do not exist, and which signature comes first follows the read
+order ([sphinx-doc/sphinx#14815](https://github.com/sphinx-doc/sphinx/pull/14815)).
+This module gives each page the module path under which most of its objects are
+indexed, and points each link at the page that holds the object.
+
 ```{todo}
-Delete this module once
+Delete {func}`drop_unused_viewcode_modules` once
 [sphinx-doc/sphinx#14675](https://github.com/sphinx-doc/sphinx/issues/14675) is
-fixed and the `sphinx` extra's floor passes the release that carries the fix.
+fixed, and {func}`anchor_viewcode_backlinks` once
+[sphinx-doc/sphinx#14815](https://github.com/sphinx-doc/sphinx/pull/14815)
+ships, each when the `sphinx` extra's floor passes the release that carries the
+fix. The module goes with the second of the two.
 ```
 """
 
 from __future__ import annotations
+
+from collections import Counter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -60,10 +75,46 @@ def drop_unused_viewcode_modules(app: Sphinx, env: BuildEnvironment) -> None:
             del modules[modname]
 
 
+def anchor_viewcode_backlinks(app: Sphinx, env: BuildEnvironment) -> None:
+    """Point the `[docs]` links of each viewcode page at the objects' own anchors.
+
+    Connected to `env-updated` after {func}`drop_unused_viewcode_modules`. For
+    each module, counts the linked objects that the Python domain indexes under
+    each leading part of the module path, and keeps the part that indexes the
+    most, the shortest on a tie. Each link then leads to the page of the object
+    indexed under that part. A module whose objects no part indexes keeps the
+    links viewcode gave it. Inert without `sphinx.ext.viewcode`.
+    """
+    objects = env.domaindata["py"]["objects"]
+    modules = getattr(env, "_viewcode_modules", {})
+    for modname, entry in list(modules.items()):
+        if not entry:
+            continue
+        code, tags, used, _ = entry
+        parts = modname.split(".")
+        hits: Counter[str] = Counter()
+        for prefix in (".".join(parts[:depth]) for depth in range(1, len(parts) + 1)):
+            for fullname in used:
+                target = objects.get(f"{prefix}.{fullname}")
+                if target and not target.aliased:
+                    hits[prefix] += 1
+        if not hits:
+            continue
+        best = min(hits, key=lambda prefix: (-hits[prefix], prefix))
+        for fullname in used:
+            target = objects.get(f"{best}.{fullname}")
+            if target and not target.aliased:
+                used[fullname] = target.docname
+        modules[modname] = (code, tags, used, best)
+
+
 def setup(app: Sphinx) -> None:
-    """Register the cleanup of unused viewcode modules on `app`.
+    """Register the viewcode fixes on `app`.
 
     Called from {func}`click_extra.sphinx.setup` so projects only need to list
-    `"click_extra.sphinx"` in their `extensions`.
+    `"click_extra.sphinx"` in their `extensions`. Both hooks share the
+    `env-updated` event, so they run in the order they are connected: the
+    backlinks are set on the modules the first hook keeps.
     """
     app.connect("env-updated", drop_unused_viewcode_modules)
+    app.connect("env-updated", anchor_viewcode_backlinks)

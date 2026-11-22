@@ -131,3 +131,70 @@ def test_parallel_read_publishes_the_pages_of_a_serial_one(tmp_path):
         cwd=srcdir,
     )
     assert module_pages(outdir) == PUBLISHED_PAGES
+
+
+VINEYARD_MODULES = {
+    "__init__.py": "",
+    "grape.py": 'class Grape:\n    """A grape of the vineyard."""\n',
+    "harvest.py": (
+        "from vineyard.grape import Grape\n\n"
+        'MERLOT = Grape()\n"""A grape of the harvest."""\n'
+    ),
+}
+"""A package whose `harvest` module documents an instance of a `grape` class.
+
+viewcode reads `MERLOT` in the module of its class, `vineyard.grape`, and finds
+no definition of it there.
+"""
+
+
+def test_backlinks_point_at_the_anchor_of_their_object(tmp_path, monkeypatch):
+    """A `[docs]` link leads to its object, whatever signature viewcode read first.
+
+    The page documents the instance before the class, so the instance creates
+    the viewcode entry of `vineyard.grape` under the module path
+    `vineyard.harvest`
+    ([sphinx-doc/sphinx#14815](https://github.com/sphinx-doc/sphinx/pull/14815)).
+    One page is enough: a serial read purges an entry only between two pages.
+    """
+    srcdir = tmp_path / "source"
+    package = srcdir / "vineyard"
+    package.mkdir(parents=True)
+    for name, source in VINEYARD_MODULES.items():
+        (package / name).write_text(source, encoding="UTF-8")
+    extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "click_extra.sphinx"]
+    (srcdir / "conf.py").write_text(f"extensions = {extensions!r}", encoding="UTF-8")
+    (srcdir / "index.rst").write_text(
+        "Vineyard\n========\n\n"
+        ".. automodule:: vineyard.harvest\n   :members:\n\n"
+        ".. automodule:: vineyard.grape\n   :members:\n",
+        encoding="UTF-8",
+    )
+    monkeypatch.syspath_prepend(str(srcdir))
+
+    outdir = tmp_path / "build"
+    try:
+        with docutils_namespace():
+            app = Sphinx(
+                str(srcdir),
+                str(srcdir),
+                str(outdir),
+                str(outdir / ".doctrees"),
+                "html",
+                status=StringIO(),
+                warning=StringIO(),
+            )
+            app.build()
+    finally:
+        # autodoc imported the package into this process: forget it, so no other
+        # test finds it there.
+        for module in [
+            name for name in sys.modules if name.split(".")[0] == "vineyard"
+        ]:
+            del sys.modules[module]
+
+    page = (outdir / "_modules" / "vineyard" / "grape.html").read_text(encoding="UTF-8")
+    assert 'href="../../index.html#vineyard.grape.Grape"' in page
+    assert 'id="vineyard.grape.Grape"' in (outdir / "index.html").read_text(
+        encoding="UTF-8"
+    )

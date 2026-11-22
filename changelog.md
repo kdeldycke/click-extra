@@ -7,6 +7,9 @@
 
 - Write a `width` and a `height` on the root of every generated SVG, so GitHub's image upload and table cells draw it at its own size.
 - Name the repository URL in the `@generated` comment of every generated SVG, the way a generated man page does.
+- Fix the `[docs]` links of a `sphinx.ext.viewcode` page leading to missing anchors when a documented instance comes before the class of its value.
+- Fix a parallel Sphinx read changing the order of the `todolist` entries from one build to the next.
+- Fix the space a leading title icon leaves at the start of the `og:title` that sphinxext-opengraph writes.
 
 ## [`10.3.1` (2026-11-21)](https://github.com/kdeldycke/click-extra/compare/v10.3.0...v10.3.1)
 

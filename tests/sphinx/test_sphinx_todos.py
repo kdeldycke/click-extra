@@ -33,6 +33,7 @@ from click_extra.sphinx.todos import (
     _package_modules,
     docstring_todos,
     is_reexport,
+    sort_todos,
     todo_identity,
 )
 
@@ -449,6 +450,30 @@ def test_build_succeeds_without_the_todo_extension(tmp_path):
         todo_extension=False,
     )
     assert entries == []
+
+
+def test_sort_todos_orders_the_domain_by_page():
+    """Entries merged out of page order, as a parallel read does, come back sorted."""
+    domain = SimpleNamespace(
+        data={"todos": {"plums": ["prune"], "apples": ["pick"], "figs": ["dry"]}}
+    )
+    sort_todos(None, SimpleNamespace(domains={"todo": domain}))
+    assert list(domain.data["todos"]) == ["apples", "figs", "plums"]
+    assert domain.data["todos"]["plums"] == ["prune"]
+
+
+@pytest.mark.parametrize(
+    "domains",
+    (
+        pytest.param({}, id="no-todo-extension"),
+        pytest.param({"todo": SimpleNamespace(data={})}, id="no-todo-yet"),
+    ),
+)
+def test_sort_todos_is_inert_without_entries(domains):
+    """A project with no todo domain, or no todo in it, is left as it was."""
+    before = {name: dict(domain.data) for name, domain in domains.items()}
+    sort_todos(None, SimpleNamespace(domains=domains))
+    assert {name: dict(domain.data) for name, domain in domains.items()} == before
 
 
 @pytest.mark.parametrize(

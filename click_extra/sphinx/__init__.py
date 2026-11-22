@@ -54,6 +54,7 @@ from . import (
     manpages,
     matrix,
     mermaid,
+    opengraph,
     tables,
     tabs,
     todos,
@@ -157,6 +158,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       can list. Inert on a project that does not enable `sphinx.ext.todo`, and
       silenced through `suppress_warnings`. See
       {mod}`click_extra.sphinx.todos`.
+    - The `todolist` entries in the order of their pages, which a parallel
+      read otherwise shuffles. Inert on a project that does not enable
+      `sphinx.ext.todo`. See {mod}`click_extra.sphinx.todos`.
     - A one-line first column for every table whose top-left cell names both
       axes, like the `matrix` tables: a narrow screen scrolls the table
       instead of wrapping its labels. See {mod}`click_extra.sphinx.tables`.
@@ -178,6 +182,12 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     - No `sphinx.ext.viewcode` page for a module that no documented object
       links to, so a parallel read publishes the pages of a serial one. Inert
       without `sphinx.ext.viewcode`. See {mod}`click_extra.sphinx.viewcode`.
+    - Each `[docs]` link of a `sphinx.ext.viewcode` page pointed at the anchor
+      of its object, where a documented instance can lend the page the module
+      path of another module. Inert without `sphinx.ext.viewcode`. See
+      {mod}`click_extra.sphinx.viewcode`.
+    - An `og:title` without the space a leading title icon leaves. Inert
+      without sphinxext-opengraph. See {mod}`click_extra.sphinx.opengraph`.
     - Every node of a page pointed at the page's own document before Sphinx
       pickles it, which keeps the build environment out of the doctree of a
       page with an ``{eval-rst}`` block. See {mod}`click_extra.sphinx.doctrees`.
@@ -240,9 +250,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # user-supplied Python, so it needs no exec opt-in.
     matrix.setup(app)
 
-    # Collapse the duplicate `todolist` entries autodoc's repeated docstring
-    # renderings produce, and warn about the docstring todos no page renders
-    # (see todos.py). Inert unless the project enables `sphinx.ext.todo`.
+    # Sort the `todolist` entries by page, collapse the duplicates autodoc's
+    # repeated docstring renderings produce, and warn about the docstring todos
+    # no page renders (see todos.py). Inert unless the project enables
+    # `sphinx.ext.todo`.
     todos.setup(app)
 
     # Keep the first column of a corner-labeled table on one line (see
@@ -266,9 +277,14 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # linkcheck.py). Inert until the variable is set.
     linkcheck.setup(app)
 
-    # Drop the viewcode pages that no documented object links to (see
-    # viewcode.py). Inert without `sphinx.ext.viewcode`.
+    # Drop the viewcode pages that no documented object links to, and point the
+    # `[docs]` links of the others at their objects (see viewcode.py). Inert
+    # without `sphinx.ext.viewcode`.
     viewcode.setup(app)
+
+    # Drop the space a leading title icon leaves in `og:title` (see
+    # opengraph.py). Inert without sphinxext-opengraph.
+    opengraph.setup(app)
 
     # Point the nodes an `{eval-rst}` block moves into a page at that page, so
     # its pickled doctree leaves out the build environment (see doctrees.py).
