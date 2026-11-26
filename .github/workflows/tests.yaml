@@ -221,7 +221,7 @@ jobs:
 
       - name: Run CLI via pipx
         run: |
-          uv --no-progress tool install pipx
+          uv --no-progress tool install 'pipx==1.18.19'
           pipx run                                                      click-extra --version
           pipx run --spec click-extra                                   click-extra --version
           pipx run --spec git+https://github.com/kdeldycke/click-extra  click-extra --version
