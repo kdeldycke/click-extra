@@ -372,6 +372,13 @@ build-backend.source-include = [
 # Nuitka's import analysis cannot follow: each module is included by name.
 # repomatic forwards every key of this table as a Nuitka CLI flag.
 include-module = [ "click_extra.cli_capture", "click_extra.cli_prebake" ]
+# Each platform points at its native icon format, all rendered from
+# docs/assets/favicon.svg. A non-native image, like a PNG for
+# --windows-icon-from-ico, makes Nuitka require imageio to convert it, which
+# fails the build. A flag for another OS than the build host is ignored.
+linux-icon = "docs/assets/icon.png"
+macos-app-icon = "docs/assets/icon.icns"
+windows-icon-from-ico = "docs/assets/icon.ico"
 
 [tool.ruff]
 preview = true
