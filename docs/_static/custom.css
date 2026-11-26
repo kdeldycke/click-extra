@@ -22,11 +22,16 @@
 /* Shared ::before properties for sidebar toctree icons, following Furo's own
  * mask-image pattern (used for admonitions, search, etc.). The icon color
  * follows currentColor so it works in both light and dark mode.
+ *
+ * An internal href is relative to the current page, and gains a "../" per
+ * level of nesting, like on the source pages under _modules/. Each internal
+ * selector matches the exact href of a top-level page and the "/"-prefixed
+ * suffix of a nested one.
  */
-.sidebar-tree a.reference.internal[href="click_extra.html"]::before,
-.sidebar-tree a.reference.internal[href="tests.html"]::before,
-.sidebar-tree a.reference.internal[href="genindex.html"]::before,
-.sidebar-tree a.reference.internal[href="py-modindex.html"]::before,
+.sidebar-tree a.reference.internal:is([href="click_extra.html"], [href$="/click_extra.html"])::before,
+.sidebar-tree a.reference.internal:is([href="tests.html"], [href$="/tests.html"])::before,
+.sidebar-tree a.reference.internal:is([href="genindex.html"], [href$="/genindex.html"])::before,
+.sidebar-tree a.reference.internal:is([href="py-modindex.html"], [href$="/py-modindex.html"])::before,
 .sidebar-tree a.reference.external[href="https://github.com/kdeldycke/click-extra"]::before,
 .sidebar-tree a.reference.external[href="https://github.com/sponsors/kdeldycke"]::before {
   content: "";
@@ -43,19 +48,19 @@
 }
 
 /* Individual icon assignments. */
-.sidebar-tree a.reference.internal[href="click_extra.html"]::before {
+.sidebar-tree a.reference.internal:is([href="click_extra.html"], [href$="/click_extra.html"])::before {
   -webkit-mask-image: var(--icon-code-review);
   mask-image: var(--icon-code-review);
 }
-.sidebar-tree a.reference.internal[href="tests.html"]::before {
+.sidebar-tree a.reference.internal:is([href="tests.html"], [href$="/tests.html"])::before {
   -webkit-mask-image: var(--icon-codescan-checkmark);
   mask-image: var(--icon-codescan-checkmark);
 }
-.sidebar-tree a.reference.internal[href="genindex.html"]::before {
+.sidebar-tree a.reference.internal:is([href="genindex.html"], [href$="/genindex.html"])::before {
   -webkit-mask-image: var(--icon-list-unordered);
   mask-image: var(--icon-list-unordered);
 }
-.sidebar-tree a.reference.internal[href="py-modindex.html"]::before {
+.sidebar-tree a.reference.internal:is([href="py-modindex.html"], [href$="/py-modindex.html"])::before {
   -webkit-mask-image: var(--icon-package);
   mask-image: var(--icon-package);
 }

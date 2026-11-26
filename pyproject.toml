@@ -250,12 +250,15 @@ test = [
 docs = [
   # Flask is used as a real-world example in docs {click:run} blocks.
   "flask>=3",
-  # furo 2024.8.6+ supports Sphinx 8; pinned to recent CalVer release.
-  "furo>=2025.9.25",
-  # The optional config format parsers, all needed by config.md's {click:run}
-  # blocks. Each floor mirrors the runtime extra declaring it, justified there.
+  # furo 2024.8.6 is the first release that supports Sphinx 8, the floor of this
+  # group.
+  "furo>=2024.8.6",
+  # hjson renders the HJSON table format of table.md, and tests.test_table
+  # imports it at module level, which its API page needs. Mirrors the hjson extra
+  # floor.
   "hjson>=3.1",
-  # Mirrors the json5 extra floor.
+  # json5 adds `*.json5` and `*.jwcc` to the `--config` file patterns that the
+  # rendered help screens show. Mirrors the json5 extra floor.
   "json5>=0.12.1",
   # jsonschema is needed for automodule of tests.test_carapace. Mirrors the test
   # group floor.
@@ -273,7 +276,8 @@ docs = [
   # signature that example calls.
   "platformdirs>=4",
   # Pygments is needed for automodule/autoclasstree of click_extra.pygments.
-  "pygments>=2.14",
+  # Mirrors the sphinx extra floor, which Sphinx 8.0.0 sets.
+  "pygments>=2.18",
   # pymdown-extensions is needed by the mkdocs plugin module.
   "pymdown-extensions>=10",
   # pytest is needed for automodule/autoclasstree of click_extra.pytest.
@@ -283,9 +287,11 @@ docs = [
   # Mirrors the sphinx extra floor, which myst-parser 5.2 sets.
   "sphinx>=8",
   # sphinx-autodoc-typehints 3.4.0 is the first release supporting Python 3.14,
-  # the only Python this group installs on.
+  # the oldest Python this group installs on.
   "sphinx-autodoc-typehints>=3.4",
-  # sphinx-copybutton 0.5.2 stabilized the copy button behavior for code blocks.
+  # sphinx-copybutton 0.5.2 stopped excluding the `.gp` prompt class by default,
+  # which broke the prompt pattern that docs/conf.py sets to copy a command
+  # without its prompt and output lines.
   "sphinx-copybutton>=0.5.2",
   # sphinx-datatables 1.0.0 is the first stable release; renders the binaries
   # catalog as a searchable, sortable table.
@@ -301,12 +307,16 @@ docs = [
   # jQuery. Declared because docs/conf.py loads it itself: sphinx-datatables
   # activates it too late to register jquery.js on its own.
   "sphinxcontrib-jquery>=4",
-  # sphinxcontrib-mermaid 1.2.3 fixed mermaid_d3_zoom configuration support.
-  "sphinxcontrib-mermaid>=1.2.3",
+  # sphinxcontrib-mermaid 2.1.0 fixes the interaction of fullscreen, d3 zoom and
+  # lazy rendering, which the class-tree override of click_extra.sphinx relies on.
+  "sphinxcontrib-mermaid>=2.1",
   # sphinxext-opengraph 0.13 stabilized OpenGraph metadata generation for Sphinx 8+.
   "sphinxext-opengraph>=0.13",
   # Mirrors the toml extra floor, exercised by config.md's TOML export {click:run} blocks.
   "tomlrt>=2.2.10",
+  # autodoc imports every module it documents, and the tests API pages document
+  # the test suite, whose modules import pytest plugins and test helpers.
+  { include-group = "test" },
 ]
 # Every stub floor tracks the library release it describes (types-jsonschema
 # against jsonschema 4.18). Below it the stubs describe an older API than the

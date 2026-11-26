@@ -22,6 +22,7 @@ from datetime import date
 from pathlib import Path
 
 import click
+from extra_platforms import is_github_ci
 
 import click_extra.config.option
 from click_extra import ShowParamsOption
@@ -64,10 +65,10 @@ extensions = [
     "sphinx.ext.viewcode",
     # Adds a copy button to code blocks.
     "sphinx_copybutton",
+    "sphinx_design",
     # Emits sitemap.xml from html_baseurl, so crawlers find the API reference as
     # well as the guide pages.
     "sphinx_sitemap",
-    "sphinx_design",
     "sphinxext.opengraph",
     "myst_parser",
     # myst_docstrings hooks autodoc-process-docstring at priority 400 (vs default
@@ -171,7 +172,6 @@ manpages_url = "man/{page}.{section}.html"
 myst_enable_extensions = [
     "alert",
     "attrs_inline",
-    "fieldlist",
     "replacements",
     "smartquotes",
     "substitution",
@@ -194,10 +194,10 @@ myst_heading_anchors = 6
 # GitHub-style slugifier keeps leading digits, "--" prefixes, dots and
 # underscores that docutils strips or collapses (like "`--params` option",
 # which docutils turns into "params-option"), which otherwise leaves every
-# cross-reference to such a heading unresolved. The dotted-path string form (not
-# the function object) keeps the config value picklable, so Sphinx can cache it
-# between builds.
-myst_heading_slug_func = "docutils.nodes.make_id"
+# cross-reference to such a heading unresolved. The `docutils` preset of
+# myst-parser returns the ids of docutils' `make_id`, and a preset name keeps the
+# config value picklable, so Sphinx can cache it between builds.
+myst_heading_slug_func = "docutils"
 # Allow the ```mermaid``` directive without curly braces (```{mermaid}```), see:
 # https://github.com/mgaitan/sphinxcontrib-mermaid/issues/99#issuecomment-2339587001
 myst_fence_as_directive = ["mermaid"]
@@ -245,38 +245,59 @@ click_extra_release_anchors = True
 # here, which reference upstream-internal names and private types absent from any
 # intersphinx inventory.
 nitpick_ignore_regex = [
-    # Packages whose documented names autodoc cannot link to. The docs fetch no
-    # intersphinx inventory for docutils, mkdocs, pygments and sphinx. Cloup's
-    # inventory sits behind a Cloudflare bot challenge (HTTP 429,
-    # `cf-mitigated: challenge`, probed 2026-07-30), so Sphinx's intersphinx
-    # fetcher cannot retrieve its objects.inv. extra-platforms has an inventory,
-    # but it documents `Group` and `Trait` under other names than the
-    # `extra_platforms.group.Group` and `extra_platforms.trait.Trait` that
-    # autodoc renders.
-    (r"py:.*", r"(cloup|docutils|extra_platforms|mkdocs|pygments|sphinx)\..*"),
+    # Packages whose documented names autodoc cannot link to. docutils publishes
+    # no intersphinx inventory: its site answers `objects.inv` with 404 (probed
+    # 2026-11-26). Cloup's inventory sits behind a Cloudflare bot challenge (HTTP
+    # 429, `cf-mitigated: challenge`, probed 2026-07-30), so Sphinx's intersphinx
+    # fetcher cannot retrieve its objects.inv. The MkDocs inventory holds neither
+    # `mkdocs.plugins.BasePlugin` nor `mkdocs.config.defaults.MkDocsConfig`, the
+    # only MkDocs names autodoc renders here (fetched 2026-11-26).
+    (r"py:.*", r"(cloup|docutils|mkdocs)\..*"),
     # Click internals not exposed in its public docs.
     (r"py:.*", r"click\.(testing|types|_\w+)\..*"),
     # Private (underscore-prefixed) symbols, in click-extra or upstream.
     (r"py:.*", r"(.*\.)?_[A-Za-z]\w*(\..*)?"),
-    # Third-party types that only a few annotations name: the test helpers on the
-    # tests page, and the `requests` request of click_extra.sphinx.linkcheck. Not
-    # worth an inventory download on every build.
-    (r"py:.*", r"(packaging|requests)\..*"),
+    # The `requests` request that only the annotations of
+    # click_extra.sphinx.linkcheck name. Not worth an inventory download on every
+    # build.
+    (r"py:.*", r"requests\..*"),
 ]
 
-# Names inherited from re-exported click/cloup docstrings. The bare ones resolve
-# in their own upstream docs through the module context, which is lost when
-# autodoc re-renders them under click-extra.
+# The first entries are names inherited from re-exported click and cloup
+# docstrings. Each bare name resolves in its own upstream docs through the module
+# context, which is lost when autodoc re-renders it under click-extra. The
+# comment above each one names the upstream object whose docstring holds it.
 nitpick_ignore = [
+    # click.decorators.make_pass_decorator.
     ("py:func", "object_type"),
+    # click.decorators.pass_obj.
     ("py:attr", "Context.obj"),
+    # click.core.ParameterSource.DEFAULT_MAP.
     ("py:attr", "Context.default_map"),
+    # click.core.Parameter.get_default.
     ("py:meth", "Context.lookup_default"),
+    # click.types.Choice.normalize_choice.
     ("py:meth", "Context.token_normalize_func"),
+    # click.core.Parameter.type_cast_value, Parameter.value_is_missing,
+    # Parameter.value_from_envvar and Option.value_from_envvar.
     ("py:attr", "multiple"),
     ("py:attr", "nargs"),
+    # click.types.ParamType.convert.
     ("py:meth", "fail"),
+    # cloup.constraints.constrained_params.
     ("py:class", "Constraint"),
+    # extra-platforms documents `Group` and `Trait` under other names than the
+    # `extra_platforms.group.Group` and `extra_platforms.trait.Trait` that
+    # autodoc renders.
+    ("py:class", "extra_platforms.group.Group"),
+    ("py:class", "extra_platforms.trait.Trait"),
+    # Names absent from the Sphinx and Pygments inventories (fetched
+    # 2026-11-26). Pygments lists its HTML formatter under the bare
+    # `HtmlFormatter` name, not under the module path autodoc renders.
+    ("py:class", "sphinx.ext.todo.TodoListProcessor"),
+    ("py:obj", "sphinx.util.typing.OptionSpec"),
+    ("py:class", "pygments.filter.Filter"),
+    ("py:class", "pygments.formatters.html.HtmlFormatter"),
     # cloup's SectionMixin docstring names `click.MultiCommand`, which current
     # Click keeps only as a private, undocumented alias.
     ("py:class", "click.MultiCommand"),
@@ -325,6 +346,14 @@ intersphinx_mapping = {
     # The annotations of click_extra.pytest name pytest's public classes, like
     # the `pytest.ParameterSet` its decorator expanders return.
     "pytest": ("https://docs.pytest.org/en/stable", None),
+    # The annotations and docstrings of click_extra.sphinx and click_extra.pygments
+    # name the classes of these two.
+    "pygments": ("https://pygments.org", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master", None),
+    # The API pages name types of these two in signatures and docstrings, like
+    # `extra_platforms.Platform` and `packaging.version.Version`.
+    "extra-platforms": ("https://kdeldycke.github.io/extra-platforms", None),
+    "packaging": ("https://packaging.pypa.io/en/stable", None),
 }
 
 # Prefix document path to section labels, to use:
@@ -353,7 +382,7 @@ html_favicon = "assets/favicon.svg"
 # it holds its own on a light background and a dark one alike. The path is
 # relative to the site root, where its html_static_path entry below copies the
 # file: Sphinx does not publish docs/assets/.
-ogp_image = "_static/banner-gradient-dark.png"
+ogp_image = "_static/banner-social-dark.png"
 # ogp_image is relative to ogp_site_url, not to the page. Without a site URL,
 # sphinxext.opengraph emits the image path as-is, which social crawlers can't
 # resolve since they only ever see the raw HTML.
@@ -420,8 +449,6 @@ linkcheck_ignore = [
     # CI runners, while they serve the same pages elsewhere and the lychee run in
     # the same job checks them fine.
     r"https://(packages\.)?guix\.gnu\.org/",
-    # crates.io blocks automated link checkers.
-    r"https://crates\.io/crates/.*",
     # VirusTotal analysis pages are a JS app that rate-limits bots, and the
     # binaries catalog links one per released binary. Also excluded from the
     # lychee run (see [tool.lychee] in pyproject.toml).
@@ -455,11 +482,16 @@ html_show_sourcelink = False
 # Listing docs/assets/ wholesale would drag every other asset along.
 html_static_path = [
     "_static",
-    "assets/banner-gradient-dark.png",
+    "assets/banner-social-dark.png",
     "assets/logo-square-dark.png",
     "assets/logo-square-light.png",
 ]
 html_css_files = ["custom.css"]
+
+# Copied verbatim to the root of the build, where GitHub Pages looks for the page
+# it serves for a path the site does not publish. `html_static_path` would bury it
+# under `_static/`.
+html_extra_path = ["404.html"]
 
 # Copy only the commands of a session block, without their prompt: `$ ` for a
 # shell, `>>> ` and `... ` for Python. A block holding no prompt is copied whole.
@@ -509,6 +541,38 @@ def pin_app_dir() -> None:
 pin_app_dir()
 
 
+def prune_build_artifacts(app, exception):
+    """Delete what Sphinx leaves in the output tree that is not content.
+
+    `.buildinfo` records the configuration hash an incremental build compares
+    against, and `.buildinfo.bak` is the copy Sphinx keeps when that comparison
+    fails. Neither is content, and no setting suppresses them: the HTML builder
+    writes `.buildinfo` from a finish task unconditionally, so the only way to
+    keep them out of a published tree is to remove them once it has.
+
+    `_sources/` is created unconditionally too, before `html_copy_source` is
+    ever consulted, so switching that off empties the directory without
+    removing it. It is deleted here only while empty, which keeps this from
+    discarding the sources of a build that does want to publish them.
+
+    The markers go in a GitHub Actions build alone. That build starts from an
+    empty output directory, and its tree is the one that gets published. A
+    local incremental build needs `.buildinfo`: when the file is missing,
+    Sphinx `9.2.0` skips the configuration comparison and compares file times
+    only, so a changed html-only setting like `html_title` leaves every page as
+    it was.
+    """
+    if exception:
+        return
+    outdir = Path(app.outdir)
+    if is_github_ci():
+        for marker in (".buildinfo", ".buildinfo.bak"):
+            (outdir / marker).unlink(missing_ok=True)
+    sources = outdir / "_sources"
+    if sources.is_dir() and not any(sources.iterdir()):
+        sources.rmdir()
+
+
 def setup(app):
     """Sphinx extension entry point.
 
@@ -519,5 +583,9 @@ def setup(app):
     the rendered output cannot drift from the actual Theme code path: tweak a
     built-in theme in `click_extra/theme.py` and the next build picks up the
     new colors.
+
+    Also removes what the build leaves in the output tree that is not content,
+    with `prune_build_artifacts()`.
     """
     app.connect("autodoc-process-docstring", inject_slot_example_docstring)
+    app.connect("build-finished", prune_build_artifacts)

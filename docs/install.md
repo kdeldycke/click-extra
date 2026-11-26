@@ -6,15 +6,13 @@
 
 ## Quick start
 
-Click Extra is [distributed on PyPI](https://pypi.org/project/click-extra/).
-
-So you can install the latest stable release with your favorite package manager [like `uv`](https://docs.astral.sh/uv/):
-
 ```{code-block} shell-session
 $ uv pip install click-extra
 ```
 
-## Demo CLI
+This installs the latest release of Click Extra [from PyPI](https://pypi.org/project/click-extra/) with [`uv`](https://docs.astral.sh/uv/), ready to import in your own CLI.
+
+## Try it now
 
 You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/). This downloads and runs `click-extra`, a demo CLI included in the package:
 
@@ -65,17 +63,19 @@ The demo CLI is also compiled into [standalone executables](#binaries) for Linux
 
 ## Try the library
 
-Now that you have tried the demo application, you can also try the library itself in an interactive Python shell without installing anything on your system:
+Now that you have tried the demo application, you can also try the library itself in an interactive Python shell, without installing anything on your system:
 
 ```{code-block} shell-session
 $ uvx --with click-extra python
-Installed 8 packages in 5ms
-Python 3.14.0 free-threading build (main, Oct 28 2025, 11:52:40) [Clang 20.1.4 ] on darwin
-Type "help", "copyright", "credits" or "license" for more information.
->>> from click_extra import echo, style
->>> echo(style("Hello, World!", fg="green"))
-Hello, World!
->>>
+```
+
+Then import it and call it like any other module:
+
+```{python:run}
+:show-source:
+from click_extra import echo, style
+
+echo(style("Hello, World!", fg="green"))
 ```
 
 ## Installation methods
@@ -256,7 +256,7 @@ $ click-extra --help-format man
 The full command tree is also pre-rendered as static `.1` files:
 
 - Bundled with the latest release as [`click-extra-manpages.tar.gz`](https://github.com/kdeldycke/click-extra/releases/latest/download/click-extra-manpages.tar.gz). Extract it, then copy the `.1` files of its `man/` folder to `${MANPATH%%:*}/man1/` (typically `/usr/local/share/man/man1/`).
-- Rendered as HTML pages on the documentation site, listed in the [man page index](man-page.md#index).
+- Rendered as HTML pages on the documentation site, listed in the [man page index](man.md).
 
 Packagers can regenerate them from source as part of their build phase:
 

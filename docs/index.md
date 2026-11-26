@@ -16,10 +16,11 @@ tutorial
 ```
 
 ```{toctree}
-:caption: The click-extra CLI
+:caption: Running and wrapping CLIs
 :maxdepth: 2
 :hidden:
 cli
+man
 wrap
 ```
 
@@ -98,7 +99,7 @@ man-page
 ```
 
 ```{toctree}
-:caption: Sphinx and MkDocs
+:caption: Documenting a CLI
 :maxdepth: 2
 :hidden:
 sphinx

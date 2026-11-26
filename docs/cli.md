@@ -19,3 +19,13 @@ The CLI reads its defaults from the `[tool.click-extra]` section of the nearest 
 ```{click:config} demo
 from click_extra.cli import demo
 ```
+
+The schema leaves out two parts of the section, which the sections below cover.
+
+### Themes
+
+Each `[tool.click-extra.themes.<name>]` table declares a help-screen theme for `--theme`. A table named after a built-in theme overrides the slots it sets, and a table with any other name adds a theme. See [themes from your config file](theme.md#themes-from-your-config-file).
+
+### Default subcommand
+
+The reserved `_default_subcommands` key names the subcommand that runs when `click-extra` gets no subcommand on the command line. See [default subcommands](config.md#default-subcommands).
