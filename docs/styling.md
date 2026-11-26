@@ -340,26 +340,3 @@ try:
 except TypeError as exc:
     print(repr(exc))
 ```
-
-## `click_extra.styling` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.styling
-   :strict:
-
-.. automodule:: click_extra.styling
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
-
-## `click_extra.ansi` API
-
-```{eval-rst}
-.. automodule:: click_extra.ansi
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :no-index:
-```

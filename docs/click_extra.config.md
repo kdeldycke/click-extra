@@ -10,74 +10,16 @@
 
 ## Submodules
 
-## `click_extra.config.builtin` module
-
 ```{eval-rst}
-.. automodule:: click_extra.config.builtin
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
+.. toctree::
+   :maxdepth: 4
 
-## `click_extra.config.discovery` module
-
-```{eval-rst}
-.. automodule:: click_extra.config.discovery
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.config.export` module
-
-```{eval-rst}
-.. automodule:: click_extra.config.export
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.config.flags` module
-
-```{eval-rst}
-.. automodule:: click_extra.config.flags
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.config.formats` module
-
-```{eval-rst}
-.. automodule:: click_extra.config.formats
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.config.option` module
-
-```{eval-rst}
-.. automodule:: click_extra.config.option
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.config.schema` module
-
-```{eval-rst}
-.. automodule:: click_extra.config.schema
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.config.subcommands` module
-
-```{eval-rst}
-.. automodule:: click_extra.config.subcommands
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   click_extra.config.builtin
+   click_extra.config.discovery
+   click_extra.config.export
+   click_extra.config.flags
+   click_extra.config.formats
+   click_extra.config.option
+   click_extra.config.schema
+   click_extra.config.subcommands
 ```

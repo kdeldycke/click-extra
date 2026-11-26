@@ -171,15 +171,3 @@ assert result.stdout == (
 ```
 
 This applies per command, so a group and each of its subcommands independently switch to POSIX parsing when the variable is set. Because presence alone is enough, `POSIXLY_CORRECT` also overrides an explicit `context_settings={"allow_interspersed_args": True}`: it can only make parsing stricter, never re-enable interspersing.
-
-## `click_extra.context` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.context
-   :strict:
-
-.. automodule:: click_extra.context
-   :no-index:
-   :members:
-   :undoc-members:
-```

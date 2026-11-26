@@ -309,29 +309,3 @@ assert "Found 2 bruised fruits." in result.stdout
 ```{tip}
 The resolved flag is published on `ctx.meta` as `ZERO_EXIT` for downstream code to consume. See the [available keys](context.md#available-keys) table to read it from your own callbacks.
 ```
-
-## `click_extra.execution` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.execution
-   :strict:
-
-.. automodule:: click_extra.execution
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
-
-## `click_extra.jobs` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.jobs
-   :strict:
-
-.. automodule:: click_extra.jobs
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

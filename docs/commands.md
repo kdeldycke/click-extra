@@ -1595,16 +1595,3 @@ The composition can carry custom glue code, simplify redistributing these CLIs o
 
 If you have other examples in the same vein, share them in an issue or a PR: I'd love to complement this documentation with creative use cases.
 ```
-
-## `click_extra.commands` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.commands
-   :strict:
-
-.. automodule:: click_extra.commands
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

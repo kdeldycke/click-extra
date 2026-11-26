@@ -47,7 +47,7 @@ When a trailing `# type: ignore[...]` comment would push a line past 88 characte
 
 ### Each module has one indexed home
 
-Every public module of `click_extra` and `tests` has an `automodule` section on the API page of its package (`docs/click_extra*.md`, `docs/tests*.md`), and an `automodule` block on a guide page carries `:no-index:`. `repomatic update-docs` keeps an API page that already exists, so it never adds the section of a new module: add it by hand, in alphabetical order. `tests/test_docs_api.py` fails naming each public module that no API page indexes.
+Every public module of `click_extra` and `tests` has an API page of its own, like `docs/click_extra.color.md`: `[tool.repomatic] docs.apidoc-extra-args` passes `--separate`, so `repomatic update-docs` writes the page of a new module and lists it in the toctree of its package. The class tree of a module sits on that page too, above its members, so all the API documentation of a module stays together: a guide page carries neither an `automodule` nor an `autoclasstree` block. `tests/test_docs_api.py` fails naming each public module that no API page indexes, and each guide page that carries such a block.
 
 ### Test suite specifics
 

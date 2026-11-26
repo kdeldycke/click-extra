@@ -131,16 +131,3 @@ result = invoke(produce, args=["--tree"])
 assert result.exit_code == 0
 assert "restock" in result.stdout
 ```
-
-## `click_extra.tree` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.tree
-   :strict:
-
-.. automodule:: click_extra.tree
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

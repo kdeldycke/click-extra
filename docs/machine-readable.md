@@ -196,16 +196,3 @@ Three things are worth knowing before wiring any of this into a tool or a model.
 **Two lookalikes that answer different questions.** `--help-format json` describes the *interface*: what the command is, what it accepts, what it documents. [`--params`](parameters.md#params-option) describes the *state* of one invocation: every parameter's resolved value and where it came from, be that a flag, an environment variable, a configuration file or a default. An agent picking flags wants the first. An agent debugging why a run behaved a certain way wants the second.
 
 Neither requires the target to cooperate: [`click-extra wrap`](#any-click-cli) extracts both from a CLI that knows nothing about Click Extra.
-
-## `click_extra.command_doc` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.command_doc
-   :strict:
-
-.. automodule:: click_extra.command_doc
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

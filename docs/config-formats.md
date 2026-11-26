@@ -384,16 +384,3 @@ Other tools are following suit:
 [zizmor#322](https://github.com/orgs/zizmorcore/discussions/322#discussioncomment-15919620).
 [sh#1268](https://github.com/mvdan/sh/issues/1268) was declined.
 ```
-
-## `click_extra.config.formats` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.config.formats
-   :strict:
-
-.. automodule:: click_extra.config.formats
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

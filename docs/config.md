@@ -829,37 +829,3 @@ assert result.exit_code == 0
 ```
 
 This works identically across all configuration formats (TOML, YAML, JSON, INI, etc.), since the section lookup operates on the normalized dict structure after parsing.
-
-## `click_extra.config` API
-
-```{eval-rst}
-.. automodule:: click_extra.config.builtin
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclasstree:: click_extra.config.option
-   :strict:
-
-.. automodule:: click_extra.config.option
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: click_extra.config.discovery
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclasstree:: click_extra.config.export
-   :strict:
-
-.. automodule:: click_extra.config.export
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

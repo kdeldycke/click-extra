@@ -213,13 +213,3 @@ print(f"--workers: type={type(workers).__name__}, default={workers.default}")
 ```
 
 This pattern is how click-extra builds every `*_option` decorator listed above but the two hand-written ones, and how downstream projects can extend the suite without re-implementing the subclass-validation / fresh-params machinery.
-
-## `click_extra.decorators` API
-
-```{eval-rst}
-.. automodule:: click_extra.decorators
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

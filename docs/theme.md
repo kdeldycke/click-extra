@@ -543,22 +543,3 @@ $ click-extra --config orchard.toml screenshot --output orchard-light.svg --back
 - `NO_COLOR=1` in the environment overrides any `--theme` choice by silencing all ANSI output.
 
 The `--color` callback inspects the standard set of color environment variables (`NO_COLOR`, `CLICOLOR`, `FORCE_COLOR`, `LLM`, etc.) before the theme is applied: see [`COLOR_ENVVARS`](colorize.md) for the full list.
-
-## `click_extra.theme` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.theme
-   :strict:
-
-.. automodule:: click_extra.theme
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: click_extra.sphinx.theme_docs
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

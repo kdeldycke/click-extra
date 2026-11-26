@@ -725,6 +725,9 @@ dependency-graph.all-groups = false
 # extra, so left in the graph it greedily claims all optional packages into a
 # single `--extra all` box and the per-extra subgraphs render empty.
 dependency-graph.no-extras = [ "all" ]
+# Give each module its own API page, which `repomatic update-docs` writes and
+# lists in the toctree of its package.
+docs.apidoc-extra-args = [ "--separate" ]
 # Entries of the bundled `pytest.toml` and `ruff.toml` that `[tool.pytest]` and
 # `[tool.ruff]` leave out on purpose, each mapped to its reason: see § Test
 # suite specifics and § Heavy dependencies in AGENTS.md. `lint-repo` reports

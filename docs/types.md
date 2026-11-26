@@ -759,16 +759,3 @@ Click does not ship an equivalent type. The closest idiom is `click.Choice` plus
 - [pallets/click#2537](https://github.com/pallets/click/issues/2537) (closed as not planned): earlier request for space-separated multi-values on a single flag.
 
 The maintainers' position has been roughly: `multiple=True` already does the job, separator conventions vary across communities (`,` vs `:` vs `;`), and escaping breaks when a value contains the separator. `MultiChoice` opts into the convention anyway, because SQL-style `SELECT a, b, c` is the dominant mental model for the table-rendering use cases click-extra supports. `click_extra.table_options.ColumnsOption` is the headline consumer (see [the `--columns` documentation](parameters.md#columns-selection)).
-
-## `click_extra.types` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.types
-   :strict:
-
-.. automodule:: click_extra.types
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

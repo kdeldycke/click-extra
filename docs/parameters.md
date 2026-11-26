@@ -310,39 +310,3 @@ with click.Context(weather):
 The second column is {py:meth}`~click_extra.param_tools.ParamStructure.get_param_type`, which reduces a Click type to the Python type a configuration file has to carry, through the {py:attr}`~click_extra.param_tools.ParamStructure.TYPE_MAP` table. A repeatable parameter is a `list` whatever its items are, a boolean flag is a `bool`, and an unrecognized custom type falls back to `str`, since a command line carries nothing else.
 
 `--help` sits in that tree like any other option, and a subcommand sharing its name with a parameter of the same level is left out of it, since a single path cannot address both. What a consumer does with the tree is its own decision: `--params` reports every node, while `--config` narrows it down through [`excluded_params`](config.md#excluding-parameters).
-
-## `click_extra.parameters` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.parameters
-   :strict:
-
-.. automodule:: click_extra.parameters
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
-
-## `click_extra.param_tools` API
-
-```{eval-rst}
-.. automodule:: click_extra.param_tools
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
-
-## `click_extra.show_params` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.show_params
-   :strict:
-
-.. automodule:: click_extra.show_params
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

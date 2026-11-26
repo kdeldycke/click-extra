@@ -486,16 +486,3 @@ ansi_text = "".join(swatch.format(i) for i in range(256))
 ```{seealso}
 This package's own CLI ships several other demo subcommands (`colors`, `styles`, `8color`, `gradient`) under [Colors and styles](colorize.md#colors-and-styles): they are useful as ready-made ANSI fixtures even if you do not use the CLI itself.
 ```
-
-## `click_extra.pygments` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.pygments
-   :strict:
-
-.. automodule:: click_extra.pygments
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

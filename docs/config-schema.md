@@ -340,16 +340,3 @@ load({"city": "lyon", "high-c": 21})  # Forecast(city="lyon", high_c=21)
 ```
 
 Pass `strict=True` to reject keys that match no field. A non-dataclass callable (a Pydantic `.model_validate`, say) is returned unchanged, and `None` passes through.
-
-## `click_extra.config.schema` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.config.schema
-   :strict:
-
-.. automodule:: click_extra.config.schema
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

@@ -785,16 +785,3 @@ assert dedent("""\
 ## Internal `click_extra` logger
 
 Click Extra has its own logger, named `click_extra`, which is used to print debug messages to inspect its own internal behavior.
-
-## `click_extra.logging` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.logging
-   :strict:
-
-.. automodule:: click_extra.logging
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

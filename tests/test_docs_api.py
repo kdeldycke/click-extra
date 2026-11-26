@@ -14,21 +14,21 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-"""Every public module is indexed on the API page of its package.
+"""Every public module is indexed on its own API page, and only there.
 
-`sphinx-apidoc` writes the API pages: `docs/click_extra.md` and one page per
-subpackage, plus the same set for `tests`. It writes each page once. A later
-run keeps the page already in place, as
-{func}`click_extra.markdown.myst.convert_rst_files_in_directory` does, so a
-module added afterwards never reaches its API page. Its only `automodule` block
-then tends to land on a guide page, and the build accepts that without a
-warning.
+`sphinx-apidoc` writes the API pages with `--separate`: one page per module,
+like `docs/click_extra.color.md`, and one per package, like
+`docs/click_extra.md`, whose toctree lists the pages below it. A later run keeps
+each page already in place, as
+{func}`click_extra.markdown.myst.convert_rst_files_in_directory` does, and adds
+the page of a new module. A guide page teaches its subject and carries no
+autodoc block: the class tree of a module sits on its API page, above its
+members, so all the API documentation of a module stays together.
 
-So the API page owns the index entry of each module, and every guide-page block
-carries `:no-index:`. This test reads the source trees and the API pages as
-text, and fails naming each public module that no API page indexes. The check
-imports nothing, so it needs none of the optional dependencies a module pulls
-in.
+This test reads the source trees and the pages as text. It fails naming each
+public module that no API page indexes, and each guide page that carries an
+`automodule` or `autoclasstree` block. The check imports nothing, so it needs
+none of the optional dependencies a module pulls in.
 """
 
 from __future__ import annotations
@@ -54,6 +54,12 @@ DEPRECATION_SHIMS = frozenset({"click_extra.blocks"})
 AUTOMODULE = re.compile(r"^\.\. automodule:: (?P<module>\S+)\s*$")
 OPTION = re.compile(r"^\s+:[\w-]+:")
 
+# The two autodoc directives a guide page must not carry: the members of a module,
+# and its class tree.
+AUTODOC_BLOCK = re.compile(
+    r"^\.\. (?P<directive>automodule|autoclasstree):: (?P<module>\S+)\s*$"
+)
+
 
 def public_modules(package: str) -> list[str]:
     """Name every public module of `package`, read from its source tree.
@@ -76,6 +82,15 @@ def public_modules(package: str) -> list[str]:
 def api_pages(package: str) -> list[Path]:
     """Return the API pages of `package`, in the documentation tree."""
     return sorted((PROJECT_ROOT / "docs").glob(f"{package}*.md"))
+
+
+def guide_pages() -> list[Path]:
+    """Return every page of the documentation tree that is not an API page."""
+    return sorted(
+        page
+        for page in (PROJECT_ROOT / "docs").glob("*.md")
+        if not page.name.startswith(DOCUMENTED_PACKAGES)
+    )
 
 
 def indexed_modules(pages: list[Path]) -> set[str]:
@@ -111,11 +126,11 @@ def test_deprecation_shims_still_exist():
 
 @pytest.mark.parametrize("package", DOCUMENTED_PACKAGES)
 def test_every_module_is_indexed_on_an_api_page(package):
-    """No public module is left to a guide page, or to no page at all.
+    """No public module is left to no page at all.
 
-    A failure names a module that no API page indexes. Add its section to the
-    API page of its package, in alphabetical order with the others, and give
-    any guide-page block of the same module `:no-index:`.
+    A failure names a module that no API page indexes. Run `repomatic
+    update-docs`, which writes the page of the module and lists it in the
+    toctree of its package.
     """
     indexed = indexed_modules(api_pages(package))
     missing = [
@@ -126,6 +141,24 @@ def test_every_module_is_indexed_on_an_api_page(package):
     assert not missing, (
         "These modules have no indexed automodule on an API page:\n  "
         + "\n  ".join(missing)
+    )
+
+
+def test_no_guide_page_carries_an_autodoc_block():
+    """A guide page shows no API: neither the members of a module nor its class tree.
+
+    A failure names the guide page, the directive and the module of each block
+    it carries. Move the block to the API page of the module, where an
+    `autoclasstree` sits in a fence of its own above the `automodule` fence.
+    """
+    found = [
+        f"{page.name}: {block.group('directive')} {block.group('module')}"
+        for page in guide_pages()
+        for line in page.read_text(encoding="UTF-8").splitlines()
+        if (block := AUTODOC_BLOCK.match(line))
+    ]
+    assert not found, "These guide pages carry an autodoc block:\n  " + (
+        "\n  ".join(found)
     )
 
 

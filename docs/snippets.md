@@ -194,13 +194,3 @@ The `:mirror:` regions are refreshed offline, without a build:
 ```shell-session
 $ click-extra refresh-directives docs/
 ```
-
-## `click_extra.capture.snippet` API
-
-```{eval-rst}
-.. automodule:: click_extra.capture.snippet
-   :no-index:
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```

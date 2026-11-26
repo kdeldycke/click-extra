@@ -198,16 +198,3 @@ print(unescape_regex(r"Usage: forecast \[OPTIONS\] \[CITIES\]\.\.\."))
 ```
 
 The [`assert_output_regex` fixture](pytest.md#assert-output-regex) wraps that comparison into an assertion carrying a character-level diff, and the [ready-made patterns](pytest.md#ready-made-patterns) shipped with it cover the help screen and debug logs Click Extra adds to every CLI.
-
-## `click_extra.testing` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.testing
-   :strict:
-
-.. automodule:: click_extra.testing
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

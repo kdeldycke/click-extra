@@ -44,16 +44,3 @@ assert result.output == "Telemetry: False\n"
 assert flag_result.exit_code == 0
 assert flag_result.output == "Telemetry: True\n"
 ```
-
-## `click_extra.telemetry` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.telemetry
-   :strict:
-
-.. automodule:: click_extra.telemetry
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

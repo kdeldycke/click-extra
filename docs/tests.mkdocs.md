@@ -9,20 +9,10 @@
 
 ## Submodules
 
-## `tests.mkdocs.conftest` module
-
 ```{eval-rst}
-.. automodule:: tests.mkdocs.conftest
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
+.. toctree::
+   :maxdepth: 4
 
-## `tests.mkdocs.test_mkdocs` module
-
-```{eval-rst}
-.. automodule:: tests.mkdocs.test_mkdocs
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   tests.mkdocs.conftest
+   tests.mkdocs.test_mkdocs
 ```

@@ -358,16 +358,3 @@ Some CLIs import their Click command *lazily*: a `__main__:main` wrapper that ru
 ```shell-session
 $ PYTHONPATH=../my-project click-extra wrap --man -- my_package.cli:cli
 ```
-
-## `click_extra.cli_wrapper` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.cli_wrapper
-   :strict:
-
-.. automodule:: click_extra.cli_wrapper
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

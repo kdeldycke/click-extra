@@ -283,13 +283,13 @@ def test_cli_reference_anchors(built_docs, anchor):
             "the-support-envelope",
         ),
         (
-            "click_extra.config.html",
+            "click_extra.config.option.html",
             "install.html#extra-dependencies",
             "install.html",
             "extra-dependencies",
         ),
         (
-            "click_extra.config.html",
+            "click_extra.config.option.html",
             "config-discovery.html#use-platformdirs-instead",
             "config-discovery.html",
             "use-platformdirs-instead",

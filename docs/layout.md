@@ -189,13 +189,3 @@ for line in lines:
 ```
 
 It powers the wrapping of the [`vertical` table format](table.md#column-widths), which has no rendering backend to delegate its line breaking to.
-
-## `click_extra.layout` API
-
-```{eval-rst}
-.. automodule:: click_extra.layout
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

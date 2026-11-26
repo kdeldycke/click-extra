@@ -899,39 +899,3 @@ result = invoke(sorted_demo)
 assert result.exit_code == 0
 assert result.stdout.index("Apple") < result.stdout.index("Cherry")
 ```
-
-## `click_extra.table` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.table
-   :strict:
-
-.. automodule:: click_extra.table
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
-
-## `click_extra.table_options` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.table_options
-   :strict:
-
-.. automodule:: click_extra.table_options
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
-
-## `click_extra.columns` API
-
-```{eval-rst}
-.. automodule:: click_extra.columns
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

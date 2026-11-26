@@ -9,65 +9,15 @@
 
 ## Submodules
 
-## `click_extra.capture.html` module
-
 ```{eval-rst}
-.. automodule:: click_extra.capture.html
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
+.. toctree::
+   :maxdepth: 4
 
-## `click_extra.capture.presets` module
-
-```{eval-rst}
-.. automodule:: click_extra.capture.presets
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.capture.recording` module
-
-```{eval-rst}
-.. automodule:: click_extra.capture.recording
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.capture.screenshot` module
-
-```{eval-rst}
-.. automodule:: click_extra.capture.screenshot
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.capture.snippet` module
-
-```{eval-rst}
-.. automodule:: click_extra.capture.snippet
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.capture.svg` module
-
-```{eval-rst}
-.. automodule:: click_extra.capture.svg
-   :members:
-   :show-inheritance:
-   :undoc-members:
-```
-
-## `click_extra.capture.terminal` module
-
-```{eval-rst}
-.. automodule:: click_extra.capture.terminal
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   click_extra.capture.html
+   click_extra.capture.presets
+   click_extra.capture.recording
+   click_extra.capture.screenshot
+   click_extra.capture.snippet
+   click_extra.capture.svg
+   click_extra.capture.terminal
 ```

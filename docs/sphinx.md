@@ -1261,16 +1261,3 @@ If not, you are likely to encounter execution tracebacks such as:
 NameError: name 'yo_cli' is not defined
 ```
 ````
-
-## `click_extra.sphinx` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.sphinx
-   :strict:
-
-.. automodule:: click_extra.sphinx
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```

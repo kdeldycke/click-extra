@@ -259,19 +259,6 @@ cases = [
 run_test_suite("weather", cases)
 ```
 
-## `click_extra.test_suite` API
-
-```{eval-rst}
-.. autoclasstree:: click_extra.test_suite
-   :strict:
-
-.. automodule:: click_extra.test_suite
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
-
 ## Future directions
 
 The current design is a declarative list of directives. Two points of comparison suggest where it could go next.

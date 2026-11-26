@@ -126,13 +126,3 @@ print("MYAPP_DEBUG" in os.environ)
 ```
 
 Pair it with `subprocess.run(..., env=env_copy({"MYAPP_TOKEN": secret}))` when you need to add a few variables for a child process without leaking them into the parent's `os.environ`.
-
-## `click_extra.envvar` API
-
-```{eval-rst}
-.. automodule:: click_extra.envvar
-   :no-index:
-   :members:
-   :undoc-members:
-   :show-inheritance:
-```
