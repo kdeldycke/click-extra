@@ -449,6 +449,43 @@ assert "--progress-bar" in result.stdout
 
 A Ctrl+C inside the trail still ends it on a finisher, like `✘ Interrupted after 2/5 roasts`, so the record of the batch says where it stopped. A task already running when the Ctrl+C landed prints its own outcome below that line once it finishes, while the CLI [waits for it](execution.md#interrupting-a-run).
 
+### Skipped operations
+
+An operation that neither succeeded nor failed, like one with nothing to do, marks `None` instead of a boolean. Its line takes the `⊘` glyph of {py:data}`~click_extra.theme.SKIP_GLYPH`, painted with the theme's `warning` style, and {py:attr}`~click_extra.trail.OperationTrail.skip_count` tallies it apart from `ok_count`, so the finisher can leave it out of its count:
+
+```{click:source}
+from click_extra import command
+from click_extra.trail import OperationTrail
+
+
+@command
+def harvest():
+    """Pick the orchard's fruits, skipping the ones out of season."""
+    fruits = {"apples": True, "cherries": None, "pears": True}
+    with OperationTrail(jobs=1) as trail:
+        for fruit, in_season in fruits.items():
+            trail.mark(in_season, f"{fruit} picked" if in_season
+                       else f"{fruit} out of season")
+        picked = trail.ok_count
+        tried = len(fruits) - trail.skip_count
+        trail.finish(
+            picked == tried,
+            f"Picked {picked}/{tried} fruits, {trail.skip_count} skipped",
+        )
+```
+
+```{click:run}
+result = invoke(harvest, args=[])
+assert result.exit_code == 0
+# The skipped operation keeps its own line, marked with the skip glyph.
+assert "⊘" in result.output
+assert "cherries out of season" in result.output
+# The finisher counts the two picked fruits alone, so it closes on ✓.
+assert "Picked 2/2 fruits, 1 skipped" in result.output
+```
+
+`finish()` takes `None` too, for a batch that skipped every operation. Outside a trail, {py:func}`~click_extra.spinner.trail_glyph` draws the same glyph for `None`, and `Spinner.skip()` leaves it on a kept line, like `ok()` and `fail()` do below.
+
 ### A progress bar instead of a spinner
 
 Because the trail knows its `total`, it can carry a *determinate* [progress bar](#progress-bars) rather than an indeterminate spinner. Give the `roast` command above a bar by adding `progress_bar=True` (mutually exclusive with `spinner=`, and requiring a positive `total`), plus the `label` and `unit` its tally reads:
@@ -558,7 +595,7 @@ assert callable(bake)
 
 ![A spinner turning, then replaced by a kept success line](assets/baking-bread-screen.svg)
 
-Pass your own marker (`spinner.ok("done")`) or override the paint with a `Style` (`spinner.fail(style=Style(fg="bright_red"))`). Color is stripped under `--no-color`/`NO_COLOR`; off a terminal the line is still written, so the outcome is recorded in logs and pipes.
+A call that had nothing to do can finish with `skip()` instead, whose `⊘` marker takes the theme's `warning` style. Pass your own marker (`spinner.ok("done")`) or override the paint with a `Style` (`spinner.fail(style=Style(fg="bright_red"))`). Color is stripped under `--no-color`/`NO_COLOR`; off a terminal the line is still written, so the outcome is recorded in logs and pipes.
 
 Because the finisher is written even when the spinner never appeared (a call shorter than the `delay`, a pipe, a non-terminal), gate it on the `shown` property when you only want it after a spinner the reader actually saw:
 

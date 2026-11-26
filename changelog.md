@@ -5,6 +5,7 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
+- Mark a skipped operation of an `OperationTrail` with `None`: its line takes the `⊘` of the new `SKIP_GLYPH`, and `skip_count` tallies it. Add `Spinner.skip()`.
 - Write a `width` and a `height` on the root of every generated SVG, so GitHub's image upload and table cells draw it at its own size.
 - Name the repository URL in the `@generated` comment of every generated SVG, the way a generated man page does.
 - Fix the `[docs]` links of a `sphinx.ext.viewcode` page leading to missing anchors when a documented instance comes before the class of its value.

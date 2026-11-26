@@ -65,13 +65,14 @@ from click_extra.spinner import (
     trail_glyph,
 )
 from click_extra.spinner_presets import ASCII_SPINNER_FRAMES, SPINNER_FRAMES
-from click_extra.theme import KO_GLYPH, OK_GLYPH
+from click_extra.theme import KO_GLYPH, OK_GLYPH, SKIP_GLYPH
 
 from .conftest import StallingTTY, TTYStringIO, wait_until
 
 # ANSI styling codes click.style emits, named for readable color asserts.
 GREEN = "\x1b[32m"
 RED = "\x1b[31m"
+YELLOW = "\x1b[33m"
 BOLD = "\x1b[1m"
 BG_RED = "\x1b[41m"
 
@@ -740,9 +741,11 @@ def test_frame_lines_colors_on_request(color):
 @pytest.mark.parametrize(
     ("outcome", "glyph", "color"),
     (
-        # Default theme paints the success glyph green, the error glyph red.
+        # Default theme paints the success glyph green, the error glyph red and
+        # the skip glyph yellow.
         ("ok", OK_GLYPH, GREEN),
         ("fail", KO_GLYPH, RED),
+        ("skip", SKIP_GLYPH, YELLOW),
     ),
 )
 def test_outcome_leaves_persistent_line(monkeypatch, outcome, glyph, color):
@@ -1022,7 +1025,9 @@ def test_active_spinner_ignores_disabled_spinner():
     (
         pytest.param((True,), {"color": False}, OK_GLYPH, id="success-bare"),
         pytest.param((False,), {"color": False}, KO_GLYPH, id="failure-bare"),
+        pytest.param((None,), {"color": False}, SKIP_GLYPH, id="skip-bare"),
         pytest.param((True, "+"), {"color": False}, "+", id="symbol"),
+        pytest.param((None, "-"), {"color": False}, "-", id="skip-symbol"),
         pytest.param(
             (False, None, Style(fg="cyan")),
             {},

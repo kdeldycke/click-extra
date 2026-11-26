@@ -1207,3 +1207,12 @@ Style at the call site with the active theme's `error` slot:
 `get_current_theme().error(KO_GLYPH)`. See {data}`~click_extra.theme.OK_GLYPH` for why
 the glyph is exposed unstyled.
 """
+
+SKIP_GLYPH: str = "⊘"
+"""Plain circled-slash glyph for an operation that was skipped: it neither
+succeeded nor failed.
+
+Style at the call site with the active theme's `warning` slot:
+`get_current_theme().warning(SKIP_GLYPH)`. See {data}`~click_extra.theme.OK_GLYPH`
+for why the glyph is exposed unstyled.
+"""

@@ -29,7 +29,7 @@ import click_extra
 from click_extra import SPINNERS, Style
 from click_extra.cli import _TRAIL_BATCH, demo
 from click_extra.spinner import SHOW_CURSOR, _active_line, active_spinner
-from click_extra.theme import KO_GLYPH, OK_GLYPH
+from click_extra.theme import KO_GLYPH, OK_GLYPH, SKIP_GLYPH
 from click_extra.trail import (
     OperationTrail,
     _BarIndicator,
@@ -203,6 +203,68 @@ def test_trail_line_carries_themed_glyphs():
     assert OK_GLYPH in trail_line(True, "backup saved")
     assert "backup saved" in trail_line(True, "backup saved")
     assert KO_GLYPH in trail_line(False, "backup failed")
+    assert SKIP_GLYPH in trail_line(None, "backup skipped")
+
+
+@pytest.mark.parametrize(
+    "rendering",
+    (
+        pytest.param({}, id="sequential"),
+        pytest.param({"jobs": 2}, id="concurrent-spinner"),
+        pytest.param({"progress_bar": True}, id="progress-bar"),
+    ),
+)
+def test_trail_marks_a_skipped_operation(rendering):
+    """`None` marks an operation that neither succeeded nor failed.
+
+    Its line takes the skip glyph, and the tally counts it apart from the
+    successes, so the finisher can leave it out of its count.
+    """
+    stream = io.StringIO()
+    with OperationTrail(
+        label="Picking", unit="fruits", total=3, stream=stream, **rendering
+    ) as trail:
+        trail.mark(True, "apples picked")
+        trail.mark(None, "cherries out of season")
+        trail.operation().mark(False, "pears bruised")
+        trail.finish(False, "Picked 1/2 fruits, 1 skipped")
+    lines = [
+        re.sub(r" \([^)]*\)$", "", line)
+        for line in click.unstyle(stream.getvalue()).splitlines()
+    ]
+    assert lines == [
+        f"{OK_GLYPH} apples picked",
+        f"{SKIP_GLYPH} cherries out of season",
+        f"{KO_GLYPH} pears bruised",
+        f"{KO_GLYPH} Picked 1/2 fruits, 1 skipped",
+    ]
+    assert trail.ok_count == 1
+    assert trail.skip_count == 1
+
+
+@pytest.mark.parametrize(
+    "rendering",
+    (
+        pytest.param({"jobs": 2}, id="concurrent-spinner"),
+        pytest.param({"progress_bar": True}, id="progress-bar"),
+    ),
+)
+def test_drawn_indicator_keeps_a_skipped_finisher(rendering):
+    """A batch that skipped every operation closes a drawn indicator on `⊘`."""
+    stream = TTYStringIO()
+    with OperationTrail(
+        label="Picking", unit="fruits", total=1, stream=stream, timer=False, **rendering
+    ) as trail:
+        assert wait_until(
+            lambda: trail._indicator is not None and trail._indicator.shown
+        )
+        trail.mark(None, "cherries out of season")
+        trail.finish(None, "Picked 0/0 fruits, 1 skipped")
+    plain = click.unstyle(stream.getvalue())
+    assert f"{SKIP_GLYPH} cherries out of season\n" in plain
+    assert f"{SKIP_GLYPH} Picked 0/0 fruits, 1 skipped\n" in plain
+    assert trail.ok_count == 0
+    assert trail.skip_count == 1
 
 
 def test_sequential_trail_echoes_lines_and_finisher():

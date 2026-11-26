@@ -82,7 +82,7 @@ from .spinner_presets import (
     SpinnerPreset,
 )
 from .styling import Style
-from .theme import KO_GLYPH, OK_GLYPH, get_current_theme
+from .theme import KO_GLYPH, OK_GLYPH, SKIP_GLYPH, get_current_theme
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -390,32 +390,36 @@ def _halt(thread: threading.Thread, event: threading.Event) -> bool:
 
 
 def trail_glyph(
-    ok: bool,
+    ok: bool | None,
     symbol: str | None = None,
     style: Style | None = None,
     *,
     color: bool = True,
 ) -> str:
-    """Return the `✓` or `✘` glyph marking an outcome, painted for it.
+    """Return the `✓`, `✘` or `⊘` glyph marking an outcome, painted for it.
 
     The success glyph {data}`~click_extra.theme.OK_GLYPH` painted with the active
-    theme's `success` slot, or the failure glyph
-    {data}`~click_extra.theme.KO_GLYPH` painted with its `error` slot.
+    theme's `success` slot, the failure glyph {data}`~click_extra.theme.KO_GLYPH`
+    painted with its `error` slot, or the skip glyph
+    {data}`~click_extra.theme.SKIP_GLYPH` painted with its `warning` slot.
 
-    :param ok: whether the outcome is a success.
+    :param ok: whether the outcome is a success, or `None` for an operation that
+        was skipped: it neither succeeded nor failed.
     :param symbol: a glyph to draw in place of the themed one.
     :param style: a style to paint the glyph with, in place of the theme's slot.
     :param color: whether to paint the glyph at all. With color off, the glyph
         goes bare and the theme is never consulted.
     :return: the glyph, painted or bare.
     """
-    glyph = symbol if symbol is not None else (OK_GLYPH if ok else KO_GLYPH)
+    glyph = symbol
+    if glyph is None:
+        glyph = SKIP_GLYPH if ok is None else OK_GLYPH if ok else KO_GLYPH
     if not color:
         return glyph
     paint: Callable[[str], str]
     if style is None:
         theme = get_current_theme()
-        paint = theme.success if ok else theme.error
+        paint = theme.warning if ok is None else theme.success if ok else theme.error
     else:
         paint = style
     return paint(glyph)
@@ -865,21 +869,32 @@ class Spinner:
         """
         self._finalize(symbol, style, success=False)
 
+    def skip(self, symbol: str | None = None, *, style: Style | None = None) -> None:
+        """Stop the spinner and leave a persistent line for a skipped call.
+
+        The counterpart of {meth}`ok` for a call that neither succeeded nor
+        failed, defaulting to {data}`~click_extra.theme.SKIP_GLYPH` (`⊘`) painted
+        with the active theme's `warning` slot.
+        """
+        self._finalize(symbol, style, success=None)
+
     def _finalize(
         self,
         symbol: str | None,
         style: Style | None,
         *,
-        success: bool,
+        success: bool | None,
     ) -> None:
         """Stop the animation and write a kept ``{symbol} {label}`` final line.
 
         Resolves color on the calling thread, stops the spinner (which erases the
         live frame and restores the cursor), then writes the final line in its
-        place. The glyph and its paint default to the active theme's success /
-        error slots, so a finished spinner matches the rest of a themed CLI.
-        Degrades to a plain line when color is disabled or the spinner was never
-        shown, so the outcome is still recorded off a TTY.
+        place. The glyph and its paint default to the active theme's slot for the
+        outcome (see {func}`trail_glyph`), so a finished spinner matches the rest
+        of a themed CLI. Degrades to a plain line when color is disabled or the
+        spinner was never shown, so the outcome is still recorded off a TTY.
+
+        :param success: whether the call succeeded, or `None` for a skipped one.
         """
         stream = self._resolve_stream()
         color = _color_enabled(stream)
