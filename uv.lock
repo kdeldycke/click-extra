@@ -76,11 +76,11 @@ wheels = [
 
 [[package]]
 name = "bracex"
-version = "3.2.2"
+version = "3.2.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2d/1f/b7ce2efe406b87bb3693d587b91bcd8fa9030888870ceff29e4a0d233cb2/bracex-3.2.2.tar.gz", hash = "sha256:d18976160b3ba01a57d5c53a5c8c3aa2506efa9e0a3a62467251f82b8f563fde", size = 34980, upload-time = "2026-11-07T21:28:25.433Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/42/39/9ae971118d77b86cc3f03ab5a467ddb58de352d8ef29830c81531d22010c/bracex-3.2.3.tar.gz", hash = "sha256:8fbf92b4db3c31de999145e22a47d4ffdbefb983a98583c3272bd7d570f9a343", size = 35266, upload-time = "2026-11-14T17:11:16.858Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/21/b5/52a750a062db07ba056cde1c52c802b898a96b70953389a0b2247e18f210/bracex-3.2.2-py3-none-any.whl", hash = "sha256:284d59c4656e5a0421ff691402074bd5847049d50410535764a2c522a47095bc", size = 14151, upload-time = "2026-11-07T21:28:24.028Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/42/f5d49972873bd3fff36e736ad1fcb36f9fdadb1ad577dfcfa17777dc84f0/bracex-3.2.3-py3-none-any.whl", hash = "sha256:8d6d677856121820d67b9009e76a5740fb02ab6dcd2d9815a83724d1888c305d", size = 14182, upload-time = "2026-11-14T17:11:15.595Z" },
 ]
 
 [[package]]
@@ -1054,11 +1054,11 @@ wheels = [
 
 [[package]]
 name = "platformdirs"
-version = "4.14.5"
+version = "4.14.7"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d7/9a/8475be631fb33ca1466915e70fd594c42a4e84b512db650eaa14f90fe75d/platformdirs-4.14.5.tar.gz", hash = "sha256:32e9921db7385aa8169bee4fe9501923e5715ba9fb7ea3b9c69b0d8e0639f7a1", size = 71464, upload-time = "2026-11-04T16:54:50.358Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/2c/ec57eede0db493e61443c76ac7b4d24e94a24050afb3d598bf3678487f75/platformdirs-4.14.7.tar.gz", hash = "sha256:5472257c1cf97a14658af52997011c7e59e4aebf3a24950b973c11b579e1b074", size = 75132, upload-time = "2026-11-17T20:03:32.656Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7c/ae/ecbbbfd0e4343a6a521d49b3c8656fb4643dee2a4f6eaf941cf3280391a8/platformdirs-4.14.5-py3-none-any.whl", hash = "sha256:8e778c6fa421516f4d3369449f8df3b0e1b72c0e0005fe88e3ec772d0a14e750", size = 35402, upload-time = "2026-11-04T16:54:48.875Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/46/3737af9f971f3934794103256d7f1ed6200a62be0c7b7ff09ac4cf6b3422/platformdirs-4.14.7-py3-none-any.whl", hash = "sha256:391513b74707c42335fff3ea17eaac657a7ee9ffcadd809634d34ea594d0122c", size = 89658, upload-time = "2026-11-17T20:03:31.16Z" },
 ]
 
 [[package]]
@@ -1429,11 +1429,11 @@ wheels = [
 
 [[package]]
 name = "soupsieve"
-version = "4.1"
+version = "4.1.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/95/48/21a393ff731b8f928fa4f8176f9a7ceba2252ee60a5149f25b45c292aa5c/soupsieve-4.1.tar.gz", hash = "sha256:ca9abf7126667010d8f6e9b39bfc1bc3b23c8aed9bcb0f54a754dde969bb8aab", size = 161955, upload-time = "2026-11-10T01:59:50.399Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/17/35/bf779c1cc376bc216a2d94e3b3d9ee48347296af29bedfc6caaf96bc132f/soupsieve-4.1.2.tar.gz", hash = "sha256:c6539a2638f26991463527337e39d630e3cbb86d024f52282a510535b8a7e09f", size = 178884, upload-time = "2026-11-18T17:21:03.858Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/88/73/6a2087c72975cfc07394623bca8d17654342ea4055ae368deafe5a81a542/soupsieve-4.1-py3-none-any.whl", hash = "sha256:e4d667b3974ce6e038e7390486b8093369854a1d345ffdd4c121dfc4a782e809", size = 52302, upload-time = "2026-11-10T01:59:48.571Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/33/f5082b3c480db024453077592057200955aed2a376327b8921d553404ca7/soupsieve-4.1.2-py3-none-any.whl", hash = "sha256:96b4115212a3abee1f572d62da706cca090b088cb5effa278db5702122e63a2c", size = 59295, upload-time = "2026-11-18T17:21:02.593Z" },
 ]
 
 [[package]]
@@ -1533,15 +1533,17 @@ wheels = [
 
 [[package]]
 name = "sphinx-autodoc-typehints"
-version = "3.17.5"
+version = "3.17.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "docutils", version = "0.23", source = { registry = "https://pypi.org/simple" } },
+    { name = "pygments" },
     { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" } },
     { name = "typing-extensions", marker = "python_full_version < '3.15'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ed/54/015d34dee1061ad211ea267ced0795879b894eba9124494494283f1a03f6/sphinx_autodoc_typehints-3.17.5.tar.gz", hash = "sha256:8eaad05b05b765b3bb4c2cf1c1410eacce9d31a156d92cac9eb21a0a9099c90d", size = 514079, upload-time = "2026-11-04T05:26:33.014Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/e8/f2ce890cb2beb746e975c88db71c31e6c84dc37185f0ed04e9cf69db5147/sphinx_autodoc_typehints-3.17.6.tar.gz", hash = "sha256:d5b8dace7d1b8688869033ab7d5307139b3f02e67d40446e2bafd707a08dad68", size = 523599, upload-time = "2026-11-18T00:21:36.6Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/45/535120fcca2ba189047bee5a1887b0f10a309897f24f8648299354b4c5f4/sphinx_autodoc_typehints-3.17.5-py3-none-any.whl", hash = "sha256:6cf3aa57b85bb5991ad8892872c87acde794efbd2fd280a73b64c33681c4d2f1", size = 140682, upload-time = "2026-11-04T05:26:31.232Z" },
+    { url = "https://files.pythonhosted.org/packages/90/1d/1cb7724abd08eb1594d15e50ad44c854c198ad2eb800a4e6bb3c4bd7c076/sphinx_autodoc_typehints-3.17.6-py3-none-any.whl", hash = "sha256:0242291ff90300ca43748ae3f61ae34a39b23ae0f1d43e500621802cde6502b8", size = 198517, upload-time = "2026-11-18T00:21:34.965Z" },
 ]
 
 [[package]]
@@ -1759,11 +1761,11 @@ wheels = [
 
 [[package]]
 name = "types-pygments"
-version = "2.21.0.20260819"
+version = "2.21.0.20261115"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/84/2b/b3e929c39fb056f0e44560acbe53a7c3f28f428af5362d043642d80b31ec/types_pygments-2.21.0.20260819.tar.gz", hash = "sha256:68e0cb27115b08b681c843e30a153b5d9850c048e1158623ada36ccd4cf7e89b", size = 21509, upload-time = "2026-08-19T02:47:15.827Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/08/24586d80224f2ec635254df6d9fa8c6910eba35c893f04f9223ddfc37cd6/types_pygments-2.21.0.20261115.tar.gz", hash = "sha256:cecb86ae5d6d9d06184f6f2f71a23a88242606ae54c52673d949bb6e5592a606", size = 21770, upload-time = "2026-11-15T08:33:27.549Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/a5/10a2de06b53a36f4334391fcf292b51877cbc71d3f6eac353e7b87a0a17e/types_pygments-2.21.0.20260819-py3-none-any.whl", hash = "sha256:85e216770d616db6a7e96fb70c2de9d9f283b746c37edb7768ce645bdbcaddb2", size = 29099, upload-time = "2026-08-19T02:47:14.81Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/2f/c0336c0bee671708ed0e3762fac94170de595461523598dfa470a888d3c5/types_pygments-2.21.0.20261115-py3-none-any.whl", hash = "sha256:6179c0d8460f32491b60294f6e4c340811a97e229a9738327c9d33ea0bb5ad59", size = 29248, upload-time = "2026-11-15T08:33:26.429Z" },
 ]
 
 [[package]]
@@ -1864,14 +1866,14 @@ wheels = [
 
 [[package]]
 name = "wcmatch"
-version = "12.0.1"
+version = "12.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bracex" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/17/bf44790f97414e37885830139933b4e96faac71560768ae9f9e458dbd936/wcmatch-12.0.1.tar.gz", hash = "sha256:4ea6acef75b657bf71ac8fa9520165bf5ae55120c4e655895a5b7d4c69896c5e", size = 163680, upload-time = "2026-11-07T21:45:37.072Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/c5/fb0e01e995d104af32ce83a4ada70476d647c116dc8897887949c9886204/wcmatch-12.0.3.tar.gz", hash = "sha256:ccf83affafadc4286ffb335bc827ca2bffb0547fa5d5587600b585151bce4359", size = 167761, upload-time = "2026-11-14T21:47:55.702Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/24/8a5bbb3e73962b5bc901966f926b4fe25cbc9d1170ad9b4d9938441dbdc3/wcmatch-12.0.1-py3-none-any.whl", hash = "sha256:0e11b0bf1700bc8222ad5e7dc79fb326d9e0304458c7e2c25419ab6d26d07d8e", size = 51084, upload-time = "2026-11-07T21:45:35.661Z" },
+    { url = "https://files.pythonhosted.org/packages/82/e1/1be8aa2cc624821fc17c195da4a467fc5dfa5073345b08c784dd76977ebc/wcmatch-12.0.3-py3-none-any.whl", hash = "sha256:7255aeae27423a2dfe5bbce9bab7e97369ecad16f0d0a5244f85239123daeaa5", size = 52483, upload-time = "2026-11-14T21:47:54.32Z" },
 ]
 
 [[package]]
