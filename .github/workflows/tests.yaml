@@ -132,12 +132,12 @@ jobs:
 
       - name: Test wrapper on Click CLIs
         run: |
-          uv --no-progress run --frozen --with flask -- click-extra             wrap  flask --help
-          uv --no-progress run --frozen --with flask -- click-extra --no-color  wrap  flask --help
-          uv --no-progress run --frozen --with flask -- click-extra             run   flask --help
-          uv --no-progress run --frozen --with flask -- click-extra                   flask --help
-          uv --no-progress run --frozen --with quart -- click-extra             wrap  quart --help
-          uv --no-progress run --frozen --with quart -- click-extra                   quart --help
+          uv --no-progress run --frozen --with 'flask==3.1.3'  -- click-extra             wrap  flask --help
+          uv --no-progress run --frozen --with 'flask==3.1.3'  -- click-extra --no-color  wrap  flask --help
+          uv --no-progress run --frozen --with 'flask==3.1.3'  -- click-extra             run   flask --help
+          uv --no-progress run --frozen --with 'flask==3.1.3'  -- click-extra                   flask --help
+          uv --no-progress run --frozen --with 'quart==0.22.0' -- click-extra             wrap  quart --help
+          uv --no-progress run --frozen --with 'quart==0.22.0' -- click-extra                   quart --help
 
       - name: Self-test the CLI against its test suite
         # Dogfood both the test-suite engine and click-extra's own config: the
@@ -303,8 +303,8 @@ jobs:
           uv run -- click-extra         --version
           uv run        -m click_extra  --version
           uv run python -m click_extra  --version
-          uv run --with flask --with quart -- click-extra run flask --help
-          uv run --with flask --with quart -- click-extra run quart --help
+          uv run --with 'flask==3.1.3' --with 'quart==0.22.0' -- click-extra run flask --help
+          uv run --with 'flask==3.1.3' --with 'quart==0.22.0' -- click-extra run quart --help
 
       - name: Resolve again (${{ matrix.resolution || 'not requested' }})
         # A cell carrying a `resolution` key resolves the project again with it: `lowest-direct` installs every direct
