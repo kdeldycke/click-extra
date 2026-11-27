@@ -202,7 +202,7 @@ Click Extra wraps Click, so the two are tightly coupled and the matrix of suppor
 
 | `click-extra` ↴ \\ `click` → | `8.5.1` | `8.5.0` |
 | :--------------------------- | :-----: | :-----: |
-| `10.3.x`                     |   ✅    |   ❌    |
+| `10.3.x` → `10.x`            |   ✅    |   ❌    |
 | `10.0.x` → `10.2.x`          |   ✅    |   ✅    |
 
 <!-- matrix-end -->
