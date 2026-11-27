@@ -41,10 +41,11 @@ a module or a class, so that every read lists the same members.
 
 ```{todo}
 Delete {func}`keep_definitions_over_aliases` once
-`PythonDomain.merge_domaindata` keeps a definition over an alias, and
-{func}`copy_source_annotations` once autodoc lists the members of an object
-whatever it documented before. Each goes when the `sphinx` extra's floor passes
-the release that carries its fix, and the module goes with the last of them.
+[sphinx-doc/sphinx#14885](https://github.com/sphinx-doc/sphinx/issues/14885) is
+fixed, and {func}`copy_source_annotations` once autodoc lists the members of an
+object whatever it documented before. Each goes when the `sphinx` extra's floor
+passes the release that carries its fix, and the module goes with the last of
+them.
 ```
 """
 
