@@ -266,6 +266,7 @@ Three flavors ship with Click Extra:
 Every styled slot of each built-in theme, with the swatch and attribute decorations rendered live at Sphinx build time. The block below iterates `BUILTIN_THEMES` and calls `palette_html()` for each: downstream projects with their own custom themes can drop the same loop into their own docs to get matching swatch listings.
 
 ```{python:render}
+:show-source:
 from click_extra.theme import BUILTIN_THEMES
 from click_extra.sphinx.theme_docs import palette_html
 

@@ -9,13 +9,17 @@
 - Write a `width` and a `height` on the root of every generated SVG, so GitHub's image upload and table cells draw it at its own size.
 - Name the repository URL in the `@generated` comment of every generated SVG, the way a generated man page does.
 - Embed the project icon in the standalone Windows binaries.
+- Add a `click_extra.dead_link` Sphinx warning for each internal link of the built HTML that leads to no page or anchor, which `suppress_warnings` turns off.
 - Fix the `[docs]` links of a `sphinx.ext.viewcode` page leading to missing anchors when a documented instance comes before the class of its value.
 - Fix a parallel Sphinx read letting the `:canonical:` alias of a re-exported object replace its definition, which sent cross-references to the re-exporting page and broke `[docs]` links.
 - Fix the `sphinx.ext.viewcode` index linking a missing page for each module whose source it could not read, like `builtins`.
+- Fix autodoc members declared only by an annotation, like the names of an `if TYPE_CHECKING:` block, depending on the order Sphinx reads the pages.
 - Fix a parallel Sphinx read changing the order of the `todolist` entries from one build to the next.
+- Fix the `todolist` of a serial Sphinx read linking fragments, like `#LogLevel`, that its own page does not hold.
 - Fix the space a leading title icon leaves at the start of the `og:title` that sphinxext-opengraph writes.
 - Give each module's API reference a page of its own, and add a man pages index and a 404 page to the documentation.
 - Point the slot links of the theme palettes at the API page of `click_extra.theme`, which holds their anchors.
+- Show the source of each `python:run` example and of the theme palette loop in the documentation, and render its ANSI examples live.
 
 ## [`10.3.1` (2026-11-21)](https://github.com/kdeldycke/click-extra/compare/v10.3.0...v10.3.1)
 

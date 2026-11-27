@@ -191,6 +191,7 @@ GREETING = "hello, sphinx"
 ```
 
 ```{python:run}
+:show-source:
 print(dedent(GREETING).upper())
 ```
 

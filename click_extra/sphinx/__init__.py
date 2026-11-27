@@ -50,11 +50,13 @@ from . import (
     crosshair,
     doctrees,
     fail_on_warnings,
+    internal_links,
     linkcheck,
     manpages,
     matrix,
     mermaid,
     opengraph,
+    parallel,
     tables,
     tabs,
     todos,
@@ -159,8 +161,9 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       silenced through `suppress_warnings`. See
       {mod}`click_extra.sphinx.todos`.
     - The `todolist` entries in the order of their pages, which a parallel
-      read otherwise shuffles. Inert on a project that does not enable
-      `sphinx.ext.todo`. See {mod}`click_extra.sphinx.todos`.
+      read otherwise shuffles, and with links that reach their targets after a
+      serial read. Inert on a project that does not enable `sphinx.ext.todo`.
+      See {mod}`click_extra.sphinx.todos`.
     - A one-line first column for every table whose top-left cell names both
       axes, like the `matrix` tables: a narrow screen scrolls the table
       instead of wrapping its labels. See {mod}`click_extra.sphinx.tables`.
@@ -190,7 +193,16 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     - The Python objects of a parallel read indexed as a serial read indexes
       them: the alias of an object that a re-exporting page declares never
       replaces its definition. Inert in a serial read. See
-      {mod}`click_extra.sphinx.viewcode`.
+      {mod}`click_extra.sphinx.parallel`.
+    - The same autodoc members on a page, whatever the pages read before it:
+      the names that only the source of a module annotates, in an
+      `if TYPE_CHECKING:` block or as `self.x: T` in a method. Inert without
+      `sphinx.ext.autodoc`. See {mod}`click_extra.sphinx.parallel`.
+    - A {data}`click_extra.sphinx.internal_links.DEAD_LINK_WARNING` warning for
+      each internal link of the built HTML that leads to no page, or to no
+      anchor of its page, once per page. Inert with a builder that writes no
+      HTML, and silenced through `suppress_warnings`. See
+      {mod}`click_extra.sphinx.internal_links`.
     - An `og:title` without the space a leading title icon leaves. Inert
       without sphinxext-opengraph. See {mod}`click_extra.sphinx.opengraph`.
     - Every node of a page pointed at the page's own document before Sphinx
@@ -255,10 +267,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # user-supplied Python, so it needs no exec opt-in.
     matrix.setup(app)
 
-    # Sort the `todolist` entries by page, collapse the duplicates autodoc's
-    # repeated docstring renderings produce, and warn about the docstring todos
-    # no page renders (see todos.py). Inert unless the project enables
-    # `sphinx.ext.todo`.
+    # Sort the `todolist` entries by page, keep their nodes apart from the
+    # doctrees a serial read writes, collapse the duplicates autodoc's repeated
+    # docstring renderings produce, and warn about the docstring todos no page
+    # renders (see todos.py). Inert unless the project enables `sphinx.ext.todo`.
     todos.setup(app)
 
     # Keep the first column of a corner-labeled table on one line (see
@@ -282,11 +294,14 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # linkcheck.py). Inert until the variable is set.
     linkcheck.setup(app)
 
-    # Keep each Python definition over an alias of it in a parallel read, drop
-    # the viewcode pages that no documented object links to and the modules
+    # Keep each Python definition over an alias of it in a parallel read, and
+    # list the members that only the source annotates whatever autodoc read
+    # before (see parallel.py).
+    parallel.setup(app)
+
+    # Drop the viewcode pages that no documented object links to and the modules
     # viewcode could not read, and point the `[docs]` links of the other pages
-    # at their objects (see viewcode.py). Only the first applies without
-    # `sphinx.ext.viewcode`.
+    # at their objects (see viewcode.py). Inert without `sphinx.ext.viewcode`.
     viewcode.setup(app)
 
     # Drop the space a leading title icon leaves in `og:title` (see
@@ -300,6 +315,10 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # Anchor each changelog release on its version (see changelog.py). Inert
     # until `click_extra_release_anchors` is set.
     changelog.setup(app)
+
+    # Warn about each internal link of the built HTML that leads nowhere (see
+    # internal_links.py). Inert with a builder that writes no HTML.
+    internal_links.setup(app)
 
     # Fail the build on the warning types a project lists (see
     # fail_on_warnings.py). Inert until `click_extra_fail_on_warnings` names one.

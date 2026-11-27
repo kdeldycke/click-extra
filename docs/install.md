@@ -12,6 +12,11 @@ $ uv pip install click-extra
 
 This installs the latest release of Click Extra [from PyPI](https://pypi.org/project/click-extra/) with [`uv`](https://docs.astral.sh/uv/), ready to import in your own CLI.
 
+% Keeps the links of other sites to the old `#demo-cli` anchor working, while the
+% heading keeps its natural `#try-it-now` anchor.
+
+<a id="demo-cli"></a>
+
 ## Try it now
 
 You can try Click Extra right now in your terminal, without installing any dependency or virtual env [thanks to `uvx`](https://docs.astral.sh/uv/guides/tools/). This downloads and runs `click-extra`, a demo CLI included in the package:

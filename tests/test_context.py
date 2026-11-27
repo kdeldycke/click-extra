@@ -133,6 +133,7 @@ NON_META_KEYS = frozenset({
     "click_extra.normalize_keys",
     # The types of Sphinx warnings.
     "click_extra.config_docstring_heading",
+    "click_extra.dead_link",
     "click_extra.tabs_vertical",
     "click_extra.todo_unrendered",
 })

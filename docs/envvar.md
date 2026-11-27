@@ -13,6 +13,7 @@ The helpers underpin click-extra's [`show_envvar` defaults](commands.md#default-
 Merge and deduplicate environment-variable names from any combination of strings and arbitrarily-nested iterables. `None` values are filtered out. Order is preserved (first occurrence wins), and on Windows every name is upper-cased to match the [platform's case-insensitive `os.environ` semantics](https://docs.python.org/3/library/os.html#os.environ): the same normalization the standard library applies internally.
 
 ```{python:run}
+:show-source:
 from click_extra.envvar import merge_envvar_ids
 
 print(merge_envvar_ids("MYAPP_DEBUG"))
@@ -31,6 +32,7 @@ The result is a `tuple[str, ...]` ready to feed Click's `envvar=` parameter on o
 Normalize an arbitrary string into a canonical environment-variable name: split on non-alphanumeric runs, drop empties, join with underscores, uppercase the result.
 
 ```{python:run}
+:show-source:
 from click_extra.envvar import clean_envvar_id
 
 print(clean_envvar_id("my-cli"))
@@ -47,6 +49,7 @@ This helper does not exactly replicate Click's own auto-envvar derivation: [Clic
 Compute the auto-generated environment variable Click would read for an option or argument, given a parameter instance and either an active `click.Context` or a plain settings dict (like `context_settings`). Returns `None` when the parameter has `allow_from_autoenv=False`, or when no `auto_envvar_prefix` is configured. The output exactly mirrors what `click.core.Parameter.resolve_envvar_value()` and `click.core.Option.resolve_envvar_value()` produce internally:
 
 ```{python:run}
+:show-source:
 import click
 
 from click_extra.envvar import param_auto_envvar_id
@@ -83,6 +86,7 @@ flowchart LR
 ```
 
 ```{python:run}
+:show-source:
 import click
 
 from click_extra.envvar import param_envvar_ids
@@ -109,16 +113,17 @@ This is what powers click-extra's `--params` table: each row's *Env. vars.* colu
 Returns a shallow copy of `os.environ` with optional extra keys layered on top, or `None` when `extend` is empty. Mirrors Python's own subprocess-handling pattern: `subprocess.Popen(env=None)` inherits the current environment, so returning `None` for the no-extension case is a useful contract:
 
 ```{python:run}
+:show-source:
 import os
 from click_extra import env_copy
 
-# No extension → returns None (subprocess inherits unchanged).
+# No extension: returns None (subprocess inherits unchanged).
 print(env_copy())
 print(env_copy({}))
 
-# Extension → returns a copy with the extras layered on top.
+# Extension: returns a copy with the extras layered on top.
 copy = env_copy({"MYAPP_DEBUG": "1"})
-print(copy is os.environ)  # False — it's a copy.
+print(copy is os.environ)  # False: it's a copy.
 print(copy["MYAPP_DEBUG"])
 
 # Original environment stays unchanged.

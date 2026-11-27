@@ -26,12 +26,14 @@
    click_extra.sphinx.crosshair
    click_extra.sphinx.doctrees
    click_extra.sphinx.fail_on_warnings
+   click_extra.sphinx.internal_links
    click_extra.sphinx.linkcheck
    click_extra.sphinx.manpages
    click_extra.sphinx.matrix
    click_extra.sphinx.mermaid
    click_extra.sphinx.myst_docstrings
    click_extra.sphinx.opengraph
+   click_extra.sphinx.parallel
    click_extra.sphinx.python
    click_extra.sphinx.tables
    click_extra.sphinx.tabs

@@ -48,6 +48,7 @@ flowchart TD
 After that wiring, `@command` always produces a `Command`, and `@command(cls=MyCommand)` is accepted *only if* `MyCommand` is a subclass of `Command`. Anything else raises a `TypeError` with a full MRO listing of the offending class, so the caller sees *why* their override was rejected:
 
 ```{python:run}
+:show-source:
 import click
 
 from click_extra import command
@@ -89,6 +90,7 @@ When the factory is given `params=` as a callable (like `default_params`), it's 
 A small wrapper that lets a decorator-factory be called *either* with parentheses (the standard `@dec()` form) *or* without (`@dec`). `decorator_factory` applies it automatically to every decorator it produces.
 
 ```{python:run}
+:show-source:
 from click_extra.decorators import allow_missing_parenthesis
 
 
@@ -177,6 +179,7 @@ Each factory-built decorator also exposes the constructor signature of its optio
 To plug a custom `ExtraOption` subclass into the same machinery, instantiate `decorator_factory(dec=option, cls=MyOption)`:
 
 ```{python:run}
+:show-source:
 from click_extra import command, decorators, option
 from click_extra.parameters import ExtraOption
 

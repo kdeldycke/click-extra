@@ -45,26 +45,17 @@ order ([sphinx-doc/sphinx#14815](https://github.com/sphinx-doc/sphinx/pull/14815
 This module gives each page the module path under which most of its objects are
 indexed, and points each link at the page that holds the object.
 
-That count reads the objects of the Python domain. A parallel read merges the
-objects of its workers with `PythonDomain.merge_domaindata`, which copies the
-entries of each worker over the ones in place. So the alias that a page
-re-exporting an object declares with `:canonical:` can replace the definition
-that the page of its module registered in another worker, and the `[docs]` links
-of that module lose their anchors. A serial read keeps the definition, because
-`PythonDomain.note_object` never lets an alias replace one. This module puts back
-each definition that an alias replaced. The cross-references to such an object
-then lead to the page of its module, as in a serial read.
+{mod}`click_extra.sphinx.parallel` keeps the index of a parallel read in line.
 
 ```{todo}
 Delete {func}`drop_unused_viewcode_modules` once
 [sphinx-doc/sphinx#14675](https://github.com/sphinx-doc/sphinx/issues/14675) is
-fixed and the viewcode index leaves out the modules it could not read,
+fixed and [sphinx-doc/sphinx#14677](https://github.com/sphinx-doc/sphinx/pull/14677)
+leaves the modules viewcode could not read out of its index, and
 {func}`anchor_viewcode_backlinks` once
 [sphinx-doc/sphinx#14815](https://github.com/sphinx-doc/sphinx/pull/14815)
-ships, and {func}`keep_definitions_over_aliases` once
-`PythonDomain.merge_domaindata` keeps a definition over an alias. Each goes when
-the `sphinx` extra's floor passes the release that carries its fix, and the
-module goes with the last of them.
+ships, each when the `sphinx` extra's floor passes the release that carries the
+fix. The module goes with the second of the two.
 ```
 """
 
@@ -74,56 +65,8 @@ from collections import Counter
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Set as AbstractSet
-
     from sphinx.application import Sphinx
-    from sphinx.domains.python import ObjectEntry
     from sphinx.environment import BuildEnvironment
-
-
-_MERGED_DEFINITIONS: dict[str, ObjectEntry] = {}
-"""The Python objects that the merged workers of the running read define, by name.
-
-{func}`keep_definitions_over_aliases` fills it as the main process merges each
-worker, and {func}`forget_merged_definitions` empties it before each read.
-"""
-
-
-def forget_merged_definitions(
-    app: Sphinx, env: BuildEnvironment, docnames: list[str]
-) -> None:
-    """Empty the record of {func}`keep_definitions_over_aliases` before a read.
-
-    Connected to `env-before-read-docs`, so a read restores only the definitions
-    of its own workers, never one from an earlier build in the same process.
-    """
-    _MERGED_DEFINITIONS.clear()
-
-
-def keep_definitions_over_aliases(
-    app: Sphinx,
-    env: BuildEnvironment,
-    docnames: AbstractSet[str],
-    other: BuildEnvironment,
-) -> None:
-    """Put back each Python definition that the alias of a later worker replaced.
-
-    Connected to `env-merge-info`, which fires in the main process each time a
-    parallel read has merged the entries of a worker. Records each definition
-    the worker brings, and puts the recorded definition back over each alias the
-    worker brings for the same name, as a serial read keeps it. A worker holds
-    the entries of the documents it did not read too, but merges only those of
-    `docnames`, so only those count. Inert in a serial read, which merges no
-    worker.
-    """
-    objects = env.domaindata["py"]["objects"]
-    for fullname, entry in other.domaindata["py"]["objects"].items():
-        if entry.docname not in docnames:
-            continue
-        if not entry.aliased:
-            _MERGED_DEFINITIONS[fullname] = entry
-        elif fullname in _MERGED_DEFINITIONS:
-            objects[fullname] = _MERGED_DEFINITIONS[fullname]
 
 
 def drop_unused_viewcode_modules(app: Sphinx, env: BuildEnvironment) -> None:
@@ -154,8 +97,8 @@ def anchor_viewcode_backlinks(app: Sphinx, env: BuildEnvironment) -> None:
     most, the shortest on a tie. Each link then leads to the page of the object
     indexed under that part. A module whose objects no part indexes keeps the
     links viewcode gave it. In a parallel read, the count relies on
-    {func}`keep_definitions_over_aliases` to index each object as a serial read
-    does. Inert without `sphinx.ext.viewcode`.
+    {func}`~click_extra.sphinx.parallel.keep_definitions_over_aliases` to index
+    each object as a serial read does. Inert without `sphinx.ext.viewcode`.
     """
     objects = env.domaindata["py"]["objects"]
     modules = getattr(env, "_viewcode_modules", {})
@@ -184,12 +127,9 @@ def setup(app: Sphinx) -> None:
     """Register the viewcode fixes on `app`.
 
     Called from {func}`click_extra.sphinx.setup` so projects only need to list
-    `"click_extra.sphinx"` in their `extensions`. The two merge hooks keep the
-    Python domain of a parallel read as a serial read leaves it, with or without
-    `sphinx.ext.viewcode`. The two `env-updated` hooks run in the order they are
-    connected: the backlinks are set on the modules the first one keeps.
+    `"click_extra.sphinx"` in their `extensions`. Both hooks share the
+    `env-updated` event, so they run in the order they are connected: the
+    backlinks are set on the modules the first hook keeps.
     """
-    app.connect("env-before-read-docs", forget_merged_definitions)
-    app.connect("env-merge-info", keep_definitions_over_aliases)
     app.connect("env-updated", drop_unused_viewcode_modules)
     app.connect("env-updated", anchor_viewcode_backlinks)

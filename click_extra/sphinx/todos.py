@@ -50,10 +50,22 @@ mapping, which a parallel read fills in the order its workers merge. This module
 sorts the mapping by page once the read is over, which is the order a serial
 read gives ([sphinx-doc/sphinx#14809](https://github.com/sphinx-doc/sphinx/pull/14809)).
 
+A serial read breaks the links of the list instead. It keeps the doctree of each
+page in memory for the write, and the `todo` domain holds the very nodes of
+that doctree. Writing the page resolves the cross-references of its todos in
+place, against that page, so a `todolist` written after it copies links to
+anchors of another page, which miss on its own. This module gives the domain
+copies of its nodes once the read is over, as a parallel read does.
+
 ```{todo}
 Delete {func}`sort_todos` once
 [sphinx-doc/sphinx#14809](https://github.com/sphinx-doc/sphinx/pull/14809)
 ships, and the `sphinx` extra's floor passes the release that carries it.
+```
+
+```{todo}
+Delete {func}`detach_todos` once `sphinx.ext.todo` keeps nodes of its own in
+its domain, and the `sphinx` extra's floor passes the release that does.
 ```
 
 ```{todo}
@@ -576,6 +588,27 @@ def sort_todos(app: Sphinx, env: BuildEnvironment) -> None:
         domain.data["todos"] = dict(sorted(todos.items()))
 
 
+def detach_todos(app: Sphinx, env: BuildEnvironment) -> None:
+    """Give the `todo` domain copies of its nodes, apart from their doctrees.
+
+    Connected to `env-updated`, which fires once the read is over and before the
+    first page is written. Writing a page then resolves the cross-references of
+    its own doctree, and leaves those of the copies for each `todolist` to
+    resolve against its page. The copies keep the source, the line, the page and
+    the anchor that the deduplication and the `todolist` read. Inert without
+    `sphinx.ext.todo`, which registers the domain.
+    """
+    domain = env.domains.get("todo")
+    if domain is None:
+        return
+    todos = domain.data.get("todos")
+    if todos:
+        domain.data["todos"] = {
+            docname: [node.deepcopy() for node in nodes]
+            for docname, nodes in todos.items()
+        }
+
+
 def setup(app: Sphinx) -> None:
     """Register the todo-list hooks on `app`.
 
@@ -589,5 +622,6 @@ def setup(app: Sphinx) -> None:
         DEDUPE_TODOS_CONFIG, default=True, rebuild="html", types=[bool]
     )
     app.connect("env-updated", sort_todos)
+    app.connect("env-updated", detach_todos)
     app.connect("doctree-resolved", deduplicate_todos, priority=400)
     app.connect("env-check-consistency", report_unrendered_todos)

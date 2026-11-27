@@ -5,10 +5,16 @@ Click Extra ships its own `Style` class as a drop-in replacement for [`cloup.Sty
 The class lands automatically when you do `from click_extra import Style`: `__init__.py` re-exports it after `from cloup import *` so the click-extra version takes precedence.
 
 ```{python:run}
+:show-source:
+:language: ansi-output
 from click_extra import Style
 
 red_bold = Style(fg="red", bold=True)
-print(red_bold("hello"))
+styled = red_bold("hello")
+
+# The call wraps the text in the escapes of the style.
+assert styled == "\x1b[31m\x1b[1mhello\x1b[0m"
+print(styled)
 ```
 
 ## Hex-string color shorthand
@@ -16,12 +22,18 @@ print(red_bold("hello"))
 `Style.fg` and `Style.bg` accept `"#rrggbb"` or `"#rgb"` shorthand strings alongside Click's named colors and RGB tuples. The shorthand is converted to an RGB tuple on construction:
 
 ```{python:run}
+:show-source:
+:language: ansi-output
 from click_extra import Style
 
 print(Style(fg="#f1fa8c"))  # 6-digit hex
 print(Style(fg="#abc"))  # 3-digit shorthand expands to #aabbcc
 print(Style(fg=(241, 250, 140)))  # tuple form still works
 print(Style(fg="bright_yellow"))  # Click named color still works
+
+# The shorthands and the tuple are the same color.
+assert Style(fg="#f1fa8c") == Style(fg=(241, 250, 140))
+assert Style(fg="#abc") == Style(fg="#aabbcc") == Style(fg=(170, 187, 204))
 ```
 
 ## REPL-friendly `__repr__` and `__str__`
@@ -29,11 +41,17 @@ print(Style(fg="bright_yellow"))  # Click named color still works
 The compact `__repr__` hides `None` and falsy attributes and renders RGB tuples as `#rrggbb`. The `__str__` returns the styled word `"sample"` so `print(style)` and debugger inspectors visualize what the style does, not just its fields:
 
 ```{python:run}
+:show-source:
+:language: ansi-output
 from click_extra import Style
 
 s = Style(fg="#f1fa8c", bold=True, italic=True)
 print(repr(s))
 print(s)
+
+# `str()` applies the style to the word "sample".
+assert str(s) == s("sample")
+assert repr(s) == "Style(fg=#f1fa8c, bold, italic)"
 ```
 
 ## Composition operator `a | b`
@@ -41,6 +59,7 @@ print(s)
 The `|` operator merges two styles. The right operand wins on conflicts; `None` fields on either side don't override the other side's set fields. The reflected `__ror__` makes mixing with `cloup.Style` (or any compatible subclass) symmetric:
 
 ```{python:run}
+:show-source:
 from click_extra import Style
 
 base = Style(fg="cyan", bold=True)
@@ -54,6 +73,7 @@ print(repr(override | base))
 Where `|` lets the right operand always win, `cascade` keeps the *instance*'s set values and only fills its `None` fields from `base`. Useful for theme-inheritance patterns where a derived style should keep its overrides and inherit the rest:
 
 ```{python:run}
+:show-source:
 from click_extra import Style
 
 base = Style(fg="cyan", bold=True, italic=True)
@@ -66,6 +86,7 @@ print(repr(derived.cascade(base)))
 `Style.to_dict()` emits a plain mapping containing only the set fields, with RGB tuples flattened to `#rrggbb` strings so the output round-trips through TOML/JSON/YAML untouched. `Style.from_dict()` is the symmetric loader and rejects unknown keys with `TypeError` so typos surface immediately:
 
 ```{python:run}
+:show-source:
 import json
 
 from click_extra import Style
@@ -83,9 +104,10 @@ print(s == s2)
 ```
 
 ```{python:run}
+:show-source:
 from click_extra import Style
 
-# Unknown field → TypeError at load time, not silent drop.
+# Unknown field: TypeError at load time, not silent drop.
 try:
     Style.from_dict({"colour": "red"})
 except TypeError as exc:
@@ -97,6 +119,7 @@ except TypeError as exc:
 Renders the style as a semicolon-separated CSS declaration list, suitable for inline `style="..."` attributes on HTML spans. Used by [`AnsiHtmlFormatter`](pygments.md#ansi-html-formatter) and the [theme palette swatches](theme.md#palettes):
 
 ```{python:run}
+:show-source:
 from click_extra import Style
 
 print(Style(fg="#f1fa8c", bold=True, italic=True).to_css())
@@ -125,6 +148,7 @@ The mapping is:
 Given one or more consecutive ANSI SGR escapes (the `\x1b[...m` sequences Click emits), rebuild a `Style` instance. Supports the standard 8/16-color codes (30–37, 40–47, 90–97, 100–107), the `38;5;n` / `48;5;n` 256-color extension, and the `38;2;r;g;b` / `48;2;r;g;b` 24-bit extension. Reset codes (the full `0` reset, its parameter-less `\x1b[m` form included, and selective resets like `22`, `39` or `49`) are ignored, so parsing the full output of a style call recovers that style. Multiple back-to-back escapes (as Click emits when combining colors with attributes) are merged into a single `Style`:
 
 ```{python:run}
+:show-source:
 from click_extra import Style
 
 # Single escape with multiple SGR codes.
@@ -147,6 +171,7 @@ print(repr(Style.from_ansi("\x1b[38;5;226m")))
 While `from_ansi()` parses bare escapes, `split_ansi()` tokenizes a whole string mixing text and escapes. It is a stateful SGR stream parser: each escape updates the current style (full and selective resets honored), and every maximal run of text sharing the same style is yielded as a `(Style, text)` tuple. Non-SGR escapes (cursor movements, OSC hyperlink wrappers) carry no style information and are removed from the yielded text:
 
 ```{python:run}
+:show-source:
 from click_extra import Style, split_ansi, style
 
 runs = list(
@@ -166,6 +191,7 @@ for run_style, text in runs:
 `render_ansi(text, emitter)` builds on it to rewrite a string: unstyled runs pass through verbatim, and each styled run is replaced by whatever markup the `emitter` callable produces. Styled runs are split at newlines, so no markup wrapper ever crosses a line boundary:
 
 ```{python:run}
+:show-source:
 from click_extra import render_ansi, style
 
 
@@ -183,6 +209,7 @@ print(result)
 Styling a fragment closes it with a reset, and that reset also closes whatever styling surrounded the fragment. `open_ansi(text)` returns the escapes `text` still leaves in effect, so the surrounding styling can be reopened right after the splice:
 
 ```{python:run}
+:show-source:
 from click_extra import open_ansi, style
 
 sentence = style("Rain on Monday, sun on Tuesday.", fg="yellow")
@@ -198,6 +225,7 @@ print(repr(patched))
 A full reset empties the accumulator, so a string that closes its own styling reopens nothing:
 
 ```{python:run}
+:show-source:
 from click_extra import open_ansi, style
 
 assert open_ansi(style("Rain on Monday.", fg="yellow")) == ""
@@ -215,6 +243,7 @@ Four ready-made converters translate ANSI styling to markup languages with nativ
 - `ansi_to_textile()` produces `%{…}` spans carrying the style as inline CSS.
 
 ```{python:run}
+:show-source:
 from click_extra import (
     ansi_to_html,
     ansi_to_jira,
@@ -243,6 +272,7 @@ Each converter maps ANSI attributes to their closest equivalent in the target ma
 Returns the [WCAG 2.x contrast ratio](https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio) between this style's foreground and another style's foreground. Result is in `[1, 21]`: `1` = identical colors (no contrast), `21` = maximum contrast (black on white). WCAG AA requires `4.5+` for normal text and `3.0+` for large text; AAA wants `7.0+` and `4.5+` respectively.
 
 ```{python:run}
+:show-source:
 from click_extra import Style
 
 # White text on black background: maximum contrast.
@@ -264,6 +294,7 @@ Click Extra uses this internally to gate the [WCAG legibility floor and AA Large
 A `Style` compares equal to the `cloup.Style` carrying the same fields, and hashes the same, so the two classes mix in sets and dict keys:
 
 ```{python:run}
+:show-source:
 import cloup
 
 from click_extra import Style
@@ -287,6 +318,7 @@ The serialization machinery `Style.to_dict` / `from_dict` relies on two small mo
 Walks every field via `dataclasses.fields`, skips the ones still holding their default, applies an optional `keep(field, value) -> bool` filter to the rest (default keeps them all), and passes the surviving values through an `encode(field, value) -> encoded_value` callback (default identity):
 
 ```{python:run}
+:show-source:
 from dataclasses import dataclass
 
 from click_extra.styling import fields_to_dict
@@ -319,6 +351,7 @@ print(fields_to_dict(Color(r=255, g=128, name="orange"), encode=hex_encoder))
 The symmetric loader. Validates every key in `data` against `cls`'s dataclass fields and raises `TypeError` listing every unknown key, so callers can build a constructor call without an extra pre-validation pass:
 
 ```{python:run}
+:show-source:
 from dataclasses import dataclass
 
 from click_extra.styling import dict_to_fields
@@ -334,7 +367,7 @@ class Color:
 
 print(Color(**dict_to_fields(Color, {"r": 255, "name": "orange"})))
 
-# Unknown key → TypeError listing the offending name.
+# Unknown key: TypeError listing the offending name.
 try:
     dict_to_fields(Color, {"red": 255})
 except TypeError as exc:

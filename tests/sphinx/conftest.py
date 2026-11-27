@@ -23,10 +23,13 @@ the tests in this subdirectory.
 from __future__ import annotations
 
 import importlib.util
+import subprocess
+import sys
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from inspect import cleandoc
+from io import StringIO
 from pathlib import Path
 from textwrap import indent
 from typing import Any
@@ -355,4 +358,49 @@ def admonition_block(admonition_type: str, content: str) -> str:
         f'<p class="admonition-title">{title}</p>\n'
         f"{content}"
         "</div>\n"
+    )
+
+
+def build_serial(srcdir: Path, outdir: Path) -> str:
+    """Build the HTML pages of `srcdir` in this process, one document at a time.
+
+    :return: the warnings of the build.
+    """
+    warnings = StringIO()
+    with docutils_namespace():
+        app = Sphinx(
+            str(srcdir),
+            str(srcdir),
+            str(outdir),
+            str(outdir / ".doctrees"),
+            "html",
+            status=StringIO(),
+            warning=warnings,
+        )
+        app.build()
+    return warnings.getvalue()
+
+
+def build_parallel(srcdir: Path, outdir: Path) -> None:
+    """Build the HTML pages of `srcdir` with two workers, in a process of its own.
+
+    Forking the test process, which runs other threads, can deadlock the
+    workers. `python -m` puts the working directory first on `sys.path`, which
+    makes the modules of `srcdir` importable to autodoc.
+    """
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "--builder",
+            "html",
+            "--jobs",
+            "2",
+            "--quiet",
+            str(srcdir),
+            str(outdir),
+        ],
+        check=True,
+        cwd=srcdir,
     )

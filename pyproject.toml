@@ -260,14 +260,8 @@ docs = [
   # json5 adds `*.json5` and `*.jwcc` to the `--config` file patterns that the
   # rendered help screens show. Mirrors the json5 extra floor.
   "json5>=0.12.1",
-  # jsonschema is needed for automodule of tests.test_carapace. Mirrors the test
-  # group floor.
-  "jsonschema>=4.18",
   # MkDocs is needed for automodule/autoclasstree of click_extra.mkdocs.
   "mkdocs>=1.4",
-  # mkdocs-click is needed for automodule of tests.mkdocs.test_mkdocs. Mirrors
-  # the test group floor.
-  "mkdocs-click>=0.8.1",
   # Mirrors the sphinx extra floor.
   "myst-parser>=5.2",
   # platformdirs renders the alternative folder layout in config-discovery.md's

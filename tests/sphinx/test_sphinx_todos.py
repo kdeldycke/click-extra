@@ -476,6 +476,30 @@ def test_sort_todos_is_inert_without_entries(domains):
     assert {name: dict(domain.data) for name, domain in domains.items()} == before
 
 
+def test_todolist_links_lead_to_the_page_of_their_target(tmp_path):
+    """A cross-reference of a todo leads to its target from the `todolist` page.
+
+    A serial read writes the page of the todo first, which resolves its
+    cross-references in place, against that page. A `todolist` listing those
+    resolved nodes, rather than copies of them, links a bare fragment that no
+    anchor of its own page holds.
+    """
+    outdir, _, _ = build_project(
+        tmp_path,
+        "orchard_links",
+        {
+            "fruits": (
+                "Fruits\n======\n\n"
+                ".. py:function:: ripen()\n\n   Ripen a fruit.\n\n"
+                ".. todo:: Pick what :py:func:`ripen` softens.\n"
+            )
+        },
+    )
+    html = (outdir / "todos.html").read_text(encoding="UTF-8")
+    assert 'href="fruits.html#ripen"' in html
+    assert 'href="#ripen"' not in html
+
+
 @pytest.mark.parametrize(
     ("source", "expected"),
     (
