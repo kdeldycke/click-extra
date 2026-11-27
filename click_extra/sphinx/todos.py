@@ -64,8 +64,10 @@ ships, and the `sphinx` extra's floor passes the release that carries it.
 ```
 
 ```{todo}
-Delete {func}`detach_todos` once `sphinx.ext.todo` keeps nodes of its own in
-its domain, and the `sphinx` extra's floor passes the release that does.
+Delete {func}`detach_todos` once
+[sphinx-doc/sphinx#14624](https://github.com/sphinx-doc/sphinx/pull/14624),
+which keeps copies of the todo nodes in the domain, ships, and the `sphinx`
+extra's floor passes the release that carries it.
 ```
 
 ```{todo}
