@@ -1,5 +1,10 @@
 # Changelog
 
+## [`10.4.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.4.0...main)
+
+> [!WARNING]
+> This version is **not released yet** and is under active development.
+
 ## [`10.4.0` (2026-11-27)](https://github.com/kdeldycke/click-extra/compare/v10.3.1...v10.4.0)
 
 - Add a skipped outcome to `OperationTrail` and `Spinner`: `mark(None)` and `skip()` print the new `SKIP_GLYPH` (`⊘`), and `skip_count` counts the skips.
