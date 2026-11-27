@@ -7,6 +7,9 @@
 
 ## [`10.4.0` (2026-11-27)](https://github.com/kdeldycke/click-extra/compare/v10.3.1...v10.4.0)
 
+> [!NOTE]
+> `10.4.0` is available on [🐍 PyPI](https://pypi.org/project/click-extra/10.4.0/) and [🐙 GitHub](https://github.com/kdeldycke/click-extra/releases/tag/v10.4.0).
+
 - Add a skipped outcome to `OperationTrail` and `Spinner`: `mark(None)` and `skip()` print the new `SKIP_GLYPH` (`⊘`), and `skip_count` counts the skips.
 - Write a `width` and a `height` on the root of every generated SVG, so GitHub's image upload and table cells draw it at its own size.
 - Name the repository URL in the `@generated` comment of every generated SVG, the way a generated man page does.
