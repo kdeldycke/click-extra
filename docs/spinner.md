@@ -318,7 +318,7 @@ Both `label` and `echo()` are safe to touch while the animation runs, so a worke
 
 ### The operation trail
 
-The two idioms above (a running `done/total` label, plus one echoed line per finished task) are packaged together as {py:class}`~click_extra.trail.OperationTrail`, the batch-reporting companion of the [concurrency primitives](execution.md) `run_jobs` and `run_lanes`. Each completed operation leaves a persistent `✓`/`✘` {py:func}`~click_extra.trail.trail_line` on screen, and {py:meth}`~click_extra.trail.OperationTrail.finish` closes the batch with a kept summary line:
+The two idioms above (a running `done/total` label, plus one echoed line per finished task) are packaged together as {py:class}`~click_extra.trail.OperationTrail`, the batch-reporting companion of the [concurrency primitives](execution.md) `run_jobs` and `run_lanes`. Each completed operation leaves a persistent `✓`, `✘` or `⊘` {py:func}`~click_extra.trail.trail_line` on screen, and {py:meth}`~click_extra.trail.OperationTrail.finish` closes the batch with a kept summary line:
 
 ```python
 from click_extra.jobs import run_jobs
@@ -380,7 +380,7 @@ assert callable(fetch_feeds)
 
 The rendering adapts to the batch's concurrency, and you pick neither mode by hand. Run concurrently (`jobs > 1`), one aggregate spinner carries the `Fetching 3/5 feeds` tally while the trail lines stream above it, its animation picked from the [catalog](#spinner-catalog) with `spinner=SPINNERS["moon"]`. Run sequentially (`jobs <= 1`), each outcome echoes as a plain line and every operation stays free to keep its own per-call `Spinner`. Either way the finisher carries the elapsed time. {class}`~click_extra.trail.OperationTrail` details what each mode drives.
 
-Only the aggregate spinner or bar needs an interactive terminal, since it redraws in place. The `✓`/`✘` lines and the finisher print on any stream, so a pipe or a CI log keeps the batch's record, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.trail.OperationTrail.ok_count` tally.
+Only the aggregate spinner or bar needs an interactive terminal, since it redraws in place. The trail lines and the finisher print on any stream, so a pipe or a CI log keeps the batch's record, and `mark()` is safe to call from worker threads. A sequential batch whose real product is another output (a result table on `stdout`) can silence its trail with `echo_sequential=False` while keeping the {py:attr}`~click_extra.trail.OperationTrail.ok_count` tally.
 
 Two arguments decide what a trail shows. `live` says where its spinner or bar may draw: `"auto"` (the default) on an interactive terminal, unless `--no-progress` or `--accessible` turned progress off; `"always"` on any stream; and `"never"` nowhere. A trail that does not draw keeps its lines. `visible=False` silences the whole trail.
 
@@ -500,7 +500,7 @@ with OperationTrail(
     ...  # mark() each outcome, then finish(), exactly as above.
 ```
 
-The aggregate indicator becomes a bar holding the `done/total` count, the same `✓`/`✘` outcomes streaming above it, and a kept summary replaces the bar on `finish()`. It serves sequential and concurrent batches alike.
+The aggregate indicator becomes a bar holding the `done/total` count, the same outcome lines streaming above it, and a kept summary replaces the bar on `finish()`. It serves sequential and concurrent batches alike.
 
 Unlike the sequential trail above, the bar is driven by cursor-control codes, so it draws only on an interactive terminal, unless `live="always"` forces it. Recorded off one, the landed outcomes sit above a bar tracking the tally:
 
@@ -563,7 +563,7 @@ Colors accept any form [`click.style`](https://click.palletsprojects.com/en/stab
 
 Color is decoupled from the animation: under `--no-color` or `NO_COLOR` the spinner keeps spinning, just in plain text (the `--progress` section below explains the rationale). Inside a Click Extra CLI the color follows the reconciled `--color`/`--no-color` flag; standalone it reads the [same environment variables](colorize.md#color-flag) as `--color`, then falls back to whether the terminal is interactive.
 
-The same `Style` type colors the `ok()` / `fail()` finishers: they default to the theme's `success`/`error` style and take a `style=` override, covered in the *Success and failure* section below.
+The same `Style` type colors the `ok()`, `fail()` and `skip()` finishers: they default to the theme's `success`, `error` and `warning` style and take a `style=` override, covered in the *Success and failure* section below.
 
 ## Success and failure
 
@@ -608,7 +608,7 @@ with Spinner("Baking bread") as spinner:
 
 ## Elapsed time
 
-Set `timer=True` to append the running wall-clock time to the spinner, and to any `ok()`/`fail()` line:
+Set `timer=True` to append the running wall-clock time to the spinner, and to any `ok()`, `fail()` or `skip()` line:
 
 ```{click:source}
 :hide-source:

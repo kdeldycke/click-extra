@@ -18,12 +18,17 @@
 from __future__ import annotations
 
 import ast
+import dataclasses
+import re
 import subprocess
 import sys
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
+
+from click_extra.sphinx.theme_docs import palette_html
+from click_extra.theme import BUILTIN_THEMES, HelpTheme
 
 # Import click_extra.sphinx with myst_parser blocked, to check the module does not
 # hard-depend on it. Runs in a subprocess: a meta-path blocker installed in-process
@@ -158,3 +163,29 @@ def test_resolve_any_xref(sphinx_app):
         contnode=None,
     )
     assert result == []
+
+
+def test_palette_slot_links_lead_to_the_api_page():
+    """Each native slot of a palette links its anchor on the theme's API page.
+
+    `docs/theme.md` renders the palettes, and `docs/click_extra.theme.md`
+    documents the slots, as attributes of `HelpTheme`. A link that holds only a
+    fragment looks for the slot on the page of the palette, which has no such
+    anchor.
+    """
+    docs = Path(__file__).parents[2] / "docs"
+    assert "palette_html(" in (docs / "theme.md").read_text(encoding="UTF-8")
+    slots = {field.name for field in dataclasses.fields(HelpTheme)}
+    links = [
+        link
+        for link in re.findall(r'href="([^"]+)"', palette_html(BUILTIN_THEMES["dark"]))
+        if not link.startswith("https://")
+    ]
+    assert links
+    for link in links:
+        page, _, fragment = link.partition("#")
+        source = docs / f"{Path(page).stem}.md" if page else docs / "theme.md"
+        assert ".. automodule:: click_extra.theme\n" in source.read_text(
+            encoding="UTF-8"
+        ), link
+        assert fragment.removeprefix("click_extra.theme.HelpTheme.") in slots, link

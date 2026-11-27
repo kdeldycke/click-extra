@@ -313,7 +313,7 @@ This project uses it for the [Click](install.md#click-compatibility) and [Cloup]
 
 | `click-extra` ↴ \\ `click` → | `8.5.1` | `8.5.0` |
 | :--------------------------- | :-----: | :-----: |
-| `10.3.0`                     |   ✅    |   ❌    |
+| `10.3.x`                     |   ✅    |   ❌    |
 | `10.0.x` → `10.2.x`          |   ✅    |   ✅    |
 ```
 ````

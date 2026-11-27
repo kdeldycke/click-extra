@@ -718,7 +718,7 @@ Loaded Extensions
 
 (...)
 * myst_parser (5.2.0)
-* click_extra.sphinx (10.3.0)
+* click_extra.sphinx (10.3.1)
 
 Traceback
 =========
@@ -1090,9 +1090,13 @@ To keep the class on a sphinx-design older than `0.8.0`, list `click_extra.tabs_
 
 A serial read publishes such a page only for the last document it reads. A parallel read, started with `--jobs`, publishes all of them: [sphinx-doc/sphinx#14675](https://github.com/sphinx-doc/sphinx/issues/14675). The extension drops these modules once the read is over, so both reads publish the same pages. It is inert on a project that does not enable `sphinx.ext.viewcode`.
 
+viewcode also keeps a module whose source it cannot read. An attribute set to a builtin class, like a `group_class` set to `type`, sends it to `builtins`, which has no source. viewcode publishes no page for such a module, but its `_modules/` index links one. The extension drops these modules too, so the index links only pages that exist.
+
 ## Viewcode links that reach their object
 
 Each page of `sphinx.ext.viewcode` links every documented object of its module back to the description of the object, through a `[docs]` link. viewcode builds all the links of a page from one module path: the path of the first signature that made it read the module. A documented instance reports the module of its class, so an instance documented before its class gives the page of that class's module the module path of the instance. The links then lead to anchors that do not exist: [sphinx-doc/sphinx#14815](https://github.com/sphinx-doc/sphinx/pull/14815). Which signature comes first follows the read order, so a parallel read can change the links from one build to the next. The extension points each link at the anchor of its object. It is inert on a project that does not enable `sphinx.ext.viewcode`.
+
+To find that anchor, the extension reads where the Python domain indexes each object. A parallel read merges the index of each worker over the entries already merged. So the alias that a page re-exporting an object declares with `:canonical:` can replace the definition that the page of its module registered, and the links of that module then miss their anchors. A serial read keeps the definition. The extension puts each replaced definition back, so the cross-references to that object also lead to the page of its module, as in a serial read. This part applies with or without `sphinx.ext.viewcode`.
 
 ## Lean doctrees for `{eval-rst}` pages
 

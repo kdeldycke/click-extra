@@ -170,7 +170,7 @@ Every default option ships with a matching decorator. `decorator_factory` builds
 
 Every entry in this list but `sort_by_option` is an `allow_missing_parenthesis`-wrapped factory, so `@theme_option` and `@theme_option()` are both legal, and `@theme_option(default="light")` overrides the default while keeping the click-extra subclass guarantee. The two hand-written entries skip the factory because their leading positional argument, a version string or column definitions, conflicts with the `param_decls`-first convention it relies on. Neither checks that a `cls=` override inherits from its option class.
 
-Each factory-built decorator also exposes the constructor signature of its option class, so editors, `help()` and the API reference below show the real parameters instead of an opaque `(*args, **kwargs)`.
+Each factory-built decorator also exposes the constructor signature of its option class, so editors, `help()` and the {mod}`click_extra.decorators` API page show the real parameters instead of an opaque `(*args, **kwargs)`.
 
 ## Rolling your own
 

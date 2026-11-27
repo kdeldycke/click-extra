@@ -172,15 +172,16 @@ def _palette_slot_link(name: str) -> str:
     """Wrap a slot name in an anchor pointing at its dataclass-field definition.
 
     Cloup-inherited slots resolve to a per-field anchor on cloup's autoapi
-    page (like `#cloup.HelpTheme.invoked_command`); HelpTheme-native
-    slots resolve to the local autodoc anchor on the same page that hosts
-    the palette (`docs/theme.md`), so the link works inside click-extra's
-    own documentation without an external roundtrip.
+    page (like `#cloup.HelpTheme.invoked_command`). HelpTheme-native slots
+    resolve to their autodoc anchor on the API page of {mod}`click_extra.theme`,
+    which sits beside the page that hosts the palette (`docs/theme.md`), so the
+    link works inside click-extra's own documentation without an external
+    roundtrip.
     """
     if name in _PALETTE_CLOUP_SLOTS:
         href = f"{_PALETTE_CLOUP_URL}#cloup.HelpTheme.{name}"
     else:
-        href = f"#click_extra.theme.HelpTheme.{name}"
+        href = f"click_extra.theme.html#click_extra.theme.HelpTheme.{name}"
     return f'<a href="{href}"><code>{name}</code></a>'
 
 

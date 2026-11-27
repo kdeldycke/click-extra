@@ -5,12 +5,17 @@
 > [!WARNING]
 > This version is **not released yet** and is under active development.
 
-- Mark a skipped operation of an `OperationTrail` with `None`: its line takes the `⊘` of the new `SKIP_GLYPH`, and `skip_count` tallies it. Add `Spinner.skip()`.
+- Add a skipped outcome to `OperationTrail` and `Spinner`: `mark(None)` and `skip()` print the new `SKIP_GLYPH` (`⊘`), and `skip_count` counts the skips.
 - Write a `width` and a `height` on the root of every generated SVG, so GitHub's image upload and table cells draw it at its own size.
 - Name the repository URL in the `@generated` comment of every generated SVG, the way a generated man page does.
+- Embed the project icon in the standalone Windows binaries.
 - Fix the `[docs]` links of a `sphinx.ext.viewcode` page leading to missing anchors when a documented instance comes before the class of its value.
+- Fix a parallel Sphinx read letting the `:canonical:` alias of a re-exported object replace its definition, which sent cross-references to the re-exporting page and broke `[docs]` links.
+- Fix the `sphinx.ext.viewcode` index linking a missing page for each module whose source it could not read, like `builtins`.
 - Fix a parallel Sphinx read changing the order of the `todolist` entries from one build to the next.
 - Fix the space a leading title icon leaves at the start of the `og:title` that sphinxext-opengraph writes.
+- Give each module's API reference a page of its own, and add a man pages index and a 404 page to the documentation.
+- Point the slot links of the theme palettes at the API page of `click_extra.theme`, which holds their anchors.
 
 ## [`10.3.1` (2026-11-21)](https://github.com/kdeldycke/click-extra/compare/v10.3.0...v10.3.1)
 

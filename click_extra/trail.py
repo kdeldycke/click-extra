@@ -100,8 +100,9 @@ class _SpinnerIndicator:
 
     Carries the running ``{label} {done}/{total} {unit}`` tally on one animated
     line while completed outcomes stream above it, and closes on the spinner's
-    kept {meth}`~Spinner.ok` / {meth}`~Spinner.fail` line. Used for a concurrent
-    batch, where per-call spinners would collide on the shared stream.
+    kept {meth}`~Spinner.ok`, {meth}`~Spinner.fail` or {meth}`~Spinner.skip`
+    line. Used for a concurrent batch, where per-call spinners would collide on
+    the shared stream.
     """
 
     def __init__(
@@ -447,7 +448,7 @@ class OperationTrail:
 
     The aggregate indicators redraw in place, which a pipe or a CI log cannot
     do, so by default they draw only on an interactive terminal, and `live`
-    changes where they draw. The `✓`/`✘` lines and the finisher only append, so
+    changes where they draw. The outcome lines and the finisher only append, so
     they print on any stream, in plain text where color is off. Where no
     indicator draws, every rendering echoes each outcome as it lands, as the
     sequential one does. `visible=False` silences all of it. The running `✓`
@@ -745,8 +746,9 @@ class OperationTrail:
         skipped every operation.
 
         With an aggregate indicator that drew, it becomes the indicator's kept
-        line (a spinner's {meth}`~click_extra.spinner.Spinner.ok` /
-        {meth}`~click_extra.spinner.Spinner.fail` line, or the bar's replacement
+        line (a spinner's {meth}`~click_extra.spinner.Spinner.ok`,
+        {meth}`~click_extra.spinner.Spinner.fail` or
+        {meth}`~click_extra.spinner.Spinner.skip` line, or the bar's replacement
         line); otherwise, a plain echoed line. The batch's elapsed time since
         construction is appended when `timer` is on.
 
@@ -781,7 +783,7 @@ class OperationTrail:
         """Start a timed operation, returning a handle to record its outcome.
 
         The handle captures the current time; call {meth}`_Operation.mark` when
-        the work finishes to record its `✓`/`✘` outcome with the elapsed time
+        the work finishes to record its outcome with the elapsed time
         appended (when `timer` is on). This is how a batch reports
         per-operation timings under concurrency, where the trail itself never
         sees when an operation began:

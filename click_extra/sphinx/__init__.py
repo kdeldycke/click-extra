@@ -180,11 +180,16 @@ def setup(app: Sphinx) -> ExtensionMetadata:
       `GITHUB_TOKEN`, release downloads excepted. Inert until the variable is
       set. See {mod}`click_extra.sphinx.linkcheck`.
     - No `sphinx.ext.viewcode` page for a module that no documented object
-      links to, so a parallel read publishes the pages of a serial one. Inert
+      links to, so a parallel read publishes the pages of a serial one, and no
+      index link to a module whose source viewcode could not read. Inert
       without `sphinx.ext.viewcode`. See {mod}`click_extra.sphinx.viewcode`.
     - Each `[docs]` link of a `sphinx.ext.viewcode` page pointed at the anchor
       of its object, where a documented instance can lend the page the module
       path of another module. Inert without `sphinx.ext.viewcode`. See
+      {mod}`click_extra.sphinx.viewcode`.
+    - The Python objects of a parallel read indexed as a serial read indexes
+      them: the alias of an object that a re-exporting page declares never
+      replaces its definition. Inert in a serial read. See
       {mod}`click_extra.sphinx.viewcode`.
     - An `og:title` without the space a leading title icon leaves. Inert
       without sphinxext-opengraph. See {mod}`click_extra.sphinx.opengraph`.
@@ -277,9 +282,11 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # linkcheck.py). Inert until the variable is set.
     linkcheck.setup(app)
 
-    # Drop the viewcode pages that no documented object links to, and point the
-    # `[docs]` links of the others at their objects (see viewcode.py). Inert
-    # without `sphinx.ext.viewcode`.
+    # Keep each Python definition over an alias of it in a parallel read, drop
+    # the viewcode pages that no documented object links to and the modules
+    # viewcode could not read, and point the `[docs]` links of the other pages
+    # at their objects (see viewcode.py). Only the first applies without
+    # `sphinx.ext.viewcode`.
     viewcode.setup(app)
 
     # Drop the space a leading title icon leaves in `og:title` (see

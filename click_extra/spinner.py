@@ -544,12 +544,12 @@ class Spinner:
             by hand is as safe as one styled through these arguments.
         :param label_style: a {class}`~click_extra.styling.Style` for the label
             alone, in place of `style` there. It also paints the label of the
-            kept {meth}`ok` / {meth}`fail` line, which `style` leaves plain. It
-            outlives a reassigned {attr}`label`, where styling embedded in the
-            text has to be applied again at every step.
+            kept {meth}`ok`, {meth}`fail` or {meth}`skip` line, which `style`
+            leaves plain. It outlives a reassigned {attr}`label`, where styling
+            embedded in the text has to be applied again at every step.
         :param timer: append the elapsed wall-clock time to the spinner, and to
-            any final {meth}`ok` / {meth}`fail` line. `None` (the default)
-            follows the CLI's `--time` / `--no-time` flag, as an
+            any final {meth}`ok`, {meth}`fail` or {meth}`skip` line. `None` (the
+            default) follows the CLI's `--time` / `--no-time` flag, as an
             {class}`~click_extra.trail.OperationTrail` does. `True` forces it on
             with {func}`~click_extra.humanize.format_duration`'s compact format
             (`2.3s`, `1:05`, then `1:02:03`), `False` forces it off, and a
@@ -559,14 +559,14 @@ class Spinner:
             parentheses included, in place of `style` there
             (`Style(dim=True)` to set the clock back from the label). A `timer`
             callable formats only the duration, so it cannot reach the
-            parentheses: this can. Also paints the timer of the kept {meth}`ok`
-            / {meth}`fail` line.
+            parentheses: this can. Also paints the timer of the kept {meth}`ok`,
+            {meth}`fail` or {meth}`skip` line.
         :param stream: where to draw; defaults to {data}`sys.stderr` so the
             spinner never mixes into `stdout` data.
         :param live: where the animation may draw: `"auto"` (the default) on an
             interactive terminal only, unless `--no-progress` turns it off,
             `"always"` on any stream, `"never"` nowhere. A spinner that does not
-            draw still writes its {meth}`ok` / {meth}`fail` line.
+            draw still writes its {meth}`ok`, {meth}`fail` or {meth}`skip` line.
         :param hide_cursor: hide the text cursor while spinning and restore it on
             stop.
         :param beep: ring the terminal bell once when the spinner stops. It
@@ -755,7 +755,8 @@ class Spinner:
 
         A disabled spinner (non-TTY stream, or `live="never"`) returns at once
         without spawning a thread or emitting anything (but still records the
-        start time, so a later {meth}`ok` / {meth}`fail` can report a duration).
+        start time, so a later {meth}`ok`, {meth}`fail` or {meth}`skip` can
+        report a duration).
         """
         # Time the operation even when the spinner is silenced, and resolve color
         # here on the calling thread: the animation thread never sees the Click

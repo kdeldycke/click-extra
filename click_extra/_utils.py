@@ -152,8 +152,14 @@ generated Carapace spec and capture watermark links to."""
 REPOSITORY_URL = "https://github.com/kdeldycke/click-extra"
 """Click Extra's source repository.
 
-Every generated man page names it in its provenance comment, and a bug report of
-the `click-extra` CLI links to its issue form."""
+Every generated man page and SVG capture names it in its provenance comment, and
+a bug report of the `click-extra` CLI links to its issue form."""
+
+GENERATOR_STAMP = f"{GENERATOR_TAG} <{REPOSITORY_URL}>"
+"""The generator and its repository, as a provenance comment names them.
+
+The header comment of a generated man page and the `@generated` comment of an
+SVG capture both carry it."""
 
 
 def missing_extra_message(
