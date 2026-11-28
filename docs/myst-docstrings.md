@@ -154,6 +154,8 @@ Use single backticks. The extension doubles them for reST:
 | `` `True` ``               | ``` ``True`` ```               |
 | `` `platform.machine()` `` | ``` ``platform.machine()`` ``` |
 
+A link or a footnote reference in inline code is kept as written, so `` `[^1]` `` becomes ``` ``[^1]`` ```.
+
 ### Code blocks
 
 Both plain triple-backtick fences and `{code-block}` directive fences are supported:
@@ -206,7 +208,6 @@ In the example above, single-backtick code spans (`path`, `True`) are doubled fo
 The extension handles the constructs listed above. It does **not** convert:
 
 - **Nested fences of the same length** (```` ``` ```` in ```` ``` ````). A fence closes on the first bare run of its character that is at least as long, as in any MyST document, so a fence holding another fence of its character must be longer: ````` ````{note} ````` can hold a ```` ```python ```` code block. A reST directive (like `.. code-block::`) inside a fence needs no longer fence.
-- **Link or footnote syntax inside inline code** (`` `[text](url)` ``, `` `[^label]` ``). It is read as a link or a footnote reference, not as code. Show such syntax in a code block, whose content is kept verbatim.
 - **`{` inside single backticks**. Content like `` `{version}` `` would be misinterpreted as a cross-reference. Keep these as double backticks (``` ``{version}`` ```), which the extension passes through to Sphinx as-is.
 - **Domain-qualified roles** (`` {py:class}`str` ``). The role converter only handles bare role names. Write domain-qualified references in reST (`` :py:class:`str` ``), which passes through unchanged; the `convert-to-myst` migration leaves them in reST for the same reason.
 - **MyST substitution references** (`{{variable}}`). These are a `myst-parser` feature for `.md` files and are not processed inside docstrings.

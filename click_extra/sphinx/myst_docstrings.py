@@ -37,7 +37,8 @@ Supported conversions:
 - A fence longer than three characters can hold fences of its own character, as
   in any MyST document. {func}`click_extra.markdown.blocks.fence_spans` reads
   the fences.
-- Inline code spans get the double backticks of reST literals.
+- Inline code spans get the double backticks of reST literals. A link or a
+  footnote reference inside one is kept as written.
 - Markdown links become reST hyperlinks, without the backticks of their label.
 - Footnote references and definitions become auto-numbered reST footnotes.
 
@@ -128,9 +129,13 @@ _LINK_RE = re.compile(
 )
 
 
-def _convert_link(match: re.Match[str]) -> str:
-    """Convert a markdown link to reST, stripping backticks from the label."""
-    label = match.group(1).replace("`", "")
+def _convert_link(match: re.Match[str], restore: Callable[[str], str]) -> str:
+    """Convert a markdown link to reST, stripping backticks from the label.
+
+    At this step, each code span of the label is a placeholder. `restore` puts
+    the spans back, so their backticks go too.
+    """
+    label = restore(match.group(1)).replace("`", "")
     url = match.group(2) if match.group(2) is not None else match.group(3)
     return f"`{label} <{url}>`_"
 
@@ -342,6 +347,14 @@ def myst_to_rst(lines: list[str]) -> None:
     def _save(m: re.Match[str]) -> str:
         return _stash(m.group(0))
 
+    def _restore(value: str) -> str:
+        # Last in, first out: a span stashed late can hold the placeholder of
+        # one stashed before it, like a reST literal inside a reST hyperlink
+        # reference.
+        for key, stashed in reversed(placeholders.items()):
+            value = value.replace(key, stashed)
+        return value
+
     def _save_backtick_span(m: re.Match[str]) -> str:
         # The padding that lets a MyST span start or end on a backtick goes:
         # reST allows no space next to the delimiters of a literal.
@@ -350,11 +363,11 @@ def myst_to_rst(lines: list[str]) -> None:
         return _stash(f"``{m.group(1).strip()}``")
 
     def _convert_span(m: re.Match[str]) -> str:
-        # A code span (group 1) is doubled in place. A role or a hyperlink
-        # reference is kept verbatim behind a placeholder.
+        # Each span goes behind a placeholder: a role or a hyperlink reference
+        # as written, a code span (group 1) doubled into a reST literal.
         if m.group(1) is None:
             return _stash(m.group(0))
-        return _double_inline_code(m)
+        return _stash(_double_inline_code(m))
 
     # 0. Protect the content of code blocks from every following step. It is
     # code, so a backtick, a role or a link in it is kept as written.
@@ -393,7 +406,9 @@ def myst_to_rst(lines: list[str]) -> None:
     # The same pass protects reST backtick spans (cross-references from step 2,
     # and reST hyperlink references in idempotent pass-through) with
     # placeholders, so their backticks are not mistaken for inline code
-    # boundaries, and no code span is read as one of them.
+    # boundaries, and no code span is read as one of them. Each code span goes
+    # behind a placeholder too: its content is code, so a link or a footnote
+    # reference in it is kept as written.
     text = _BACKTICK_SPAN_RE.sub(_convert_span, text)
 
     # 7. Footnote references: [^label] -> [#label]_.
@@ -405,15 +420,13 @@ def myst_to_rst(lines: list[str]) -> None:
     # Runs after inline code so that the reST links it produces (which use
     # single backticks: `text <url>`_) are not doubled by step 6.
     # Backticks in link labels are stripped because reST does not support
-    # nested markup (inline code inside hyperlinks).  This lets authors write
+    # nested markup (inline code inside hyperlinks). The label gets its code
+    # spans back from their placeholders first. This lets authors write
     # idiomatic MyST like [`sys.platform`](url) and get a clean reST link.
-    text = _LINK_RE.sub(_convert_link, text)
+    text = _LINK_RE.sub(lambda m: _convert_link(m, _restore), text)
 
-    # Restore the protected spans, byte-for-byte. Last in, first out: a span
-    # stashed late can hold the placeholder of one stashed before it, like a
-    # reST literal inside a reST hyperlink reference.
-    for key, value in reversed(placeholders.items()):
-        text = text.replace(key, value)
+    # Restore the protected spans, byte-for-byte.
+    text = _restore(text)
 
     lines[:] = text.split("\n")
 

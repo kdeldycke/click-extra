@@ -504,8 +504,17 @@ def test_multiple_links_on_same_line():
             "[from `foo` to `bar`](https://example.com)",
             "`from foo to bar <https://example.com>`_",
         ),
+        (
+            "[``fig``](https://example.com)",
+            "`fig <https://example.com>`_",
+        ),
     ],
-    ids=["code-label", "code-label-mid-sentence", "multiple-code-spans"],
+    ids=[
+        "code-label",
+        "code-label-mid-sentence",
+        "multiple-code-spans",
+        "double-backtick-label",
+    ],
 )
 def test_link_strips_backticks_from_label(myst, expected):
     """reST has no nested markup, so backticks are stripped from link labels."""
@@ -582,6 +591,26 @@ def test_inline_code_conversion(myst, expected):
 )
 def test_inline_code_not_converted(text):
     assert _convert(text) == text
+
+
+@pytest.mark.parametrize(
+    ("myst", "expected"),
+    [
+        (
+            "Write `[apple](https://example.com)` for a link.",
+            "Write ``[apple](https://example.com)`` for a link.",
+        ),
+        ("Write `pear[^1]` for a note.", "Write ``pear[^1]`` for a note."),
+        (
+            "`[plum](https://example.com)` renders [plum](https://example.com).",
+            "``[plum](https://example.com)`` renders `plum <https://example.com>`_.",
+        ),
+    ],
+    ids=["link", "footnote-reference", "beside-the-link-it-shows"],
+)
+def test_inline_code_keeps_its_content(myst, expected):
+    """Inline code is code: a link or a footnote reference in it stays as written."""
+    assert _convert(myst) == expected
 
 
 @pytest.mark.parametrize(
