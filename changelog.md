@@ -1,9 +1,6 @@
 # Changelog
 
-## [`10.4.1.dev0` (unreleased)](https://github.com/kdeldycke/click-extra/compare/v10.4.0...main)
-
-> [!WARNING]
-> This version is **not released yet** and is under active development.
+## [`10.4.1` (2026-11-28)](https://github.com/kdeldycke/click-extra/compare/v10.4.0...v10.4.1)
 
 - Fix MyST docstrings converting a link or a footnote reference inside inline code, and keeping the backticks of a double-backtick link label.
 
