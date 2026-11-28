@@ -725,7 +725,7 @@ _scrub_foreign_modules()
 del _scrub_foreign_modules
 
 
-__version__ = "10.4.1.dev0"
+__version__ = "11.0.0.dev0"
 __git_branch__ = ""
 __git_date__ = ""
 __git_long_hash__ = ""
