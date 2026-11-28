@@ -42,9 +42,12 @@ a module or a class, so that every read lists the same members.
 ```{todo}
 Delete {func}`keep_definitions_over_aliases` once
 [sphinx-doc/sphinx#14885](https://github.com/sphinx-doc/sphinx/issues/14885) is
-fixed, and {func}`copy_source_annotations` once autodoc lists the members of an
-object whatever it documented before. Each goes when the `sphinx` extra's floor
-passes the release that carries its fix, and the module goes with the last of
+fixed. Delete {func}`copy_source_annotations` once
+[sphinx-doc/sphinx#14890](https://github.com/sphinx-doc/sphinx/issues/14890) and
+[sphinx-doc/sphinx#14891](https://github.com/sphinx-doc/sphinx/issues/14891) are
+both fixed: from Python 3.14 on, it also keeps autodoc from dropping the fields
+that a `TypedDict` inherits. Each function goes when the floor of the `sphinx`
+extra passes the releases with its fixes, and the module goes with the last of
 them.
 ```
 """
